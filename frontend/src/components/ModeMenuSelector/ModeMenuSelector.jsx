@@ -1,6 +1,10 @@
 import './ModeMenuSelector.css'
+import { useState } from 'react'
+import Options from './Options.jsx/Options.jsx'
 
-function ModeMenuSelector() {
+function ModeMenuSelector({ theme, onThemeChange }) {
+  const [showOptions, setShowOptions] = useState(false)
+
   const handleSolo = () => {
     console.log('Solo mode selected')
     // Add your solo game logic here
@@ -12,12 +16,19 @@ function ModeMenuSelector() {
   }
 
   const handleOptions = () => {
-    console.log('Options clicked')
-    // Add your options logic here
+    setShowOptions(true)
+  }
+
+  const handleBackToMenu = () => {
+    setShowOptions(false)
+  }
+
+  if (showOptions) {
+    return <Options onBack={handleBackToMenu} theme={theme} onThemeChange={onThemeChange} />
   }
 
   return (
-    <div className="mode-card">
+    <div className={`mode-card ${theme === 'dark' ? 'dark' : ''}`}>
       <h2>Select Game Mode</h2>
       
       <div className="mode-buttons">

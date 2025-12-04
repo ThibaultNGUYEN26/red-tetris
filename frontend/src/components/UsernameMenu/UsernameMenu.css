@@ -84,3 +84,32 @@
   opacity: 0.6;
   box-shadow: none;
 }
+
+/* Dark Theme */
+.username-card.dark {
+  background: rgba(44, 62, 80, 0.85);
+  border: 1px solid rgba(135, 206, 235, 0.2);
+}
+
+.username-card.dark h2 {
+  color: #ecf0f1;
+}
+
+.username-card.dark .username-input {
+  background: rgba(52, 73, 94, 0.9);
+  color: #ecf0f1;
+  border-color: rgba(135, 206, 235, 0.3);
+}
+
+.username-card.dark .username-input::placeholder {
+  color: rgba(236, 240, 241, 0.5);
+}
+
+.username-card.dark .username-input:focus {
+  border-color: #87CEEB;
+  box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.3);
+}
+
+.username-card.dark .character-count {
+  color: #95a5a6;
+}

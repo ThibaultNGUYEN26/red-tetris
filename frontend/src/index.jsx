@@ -7,9 +7,14 @@ import ModeMenuSelector from './components/ModeMenuSelector/ModeMenuSelector.jsx
 
 function Index() {
   const [username, setUsername] = useState(null)
+  const [theme, setTheme] = useState('dark')
 
   const handleUsernameSubmit = (submittedUsername) => {
     setUsername(submittedUsername)
+  }
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme)
   }
 
   return (
@@ -20,9 +25,9 @@ function Index() {
       </div>
       <div className='content-wrapper'>
         {!username ? (
-          <UsernameMenu onSubmit={handleUsernameSubmit} />
+          <UsernameMenu onSubmit={handleUsernameSubmit} theme={theme} />
         ) : (
-          <ModeMenuSelector />
+          <ModeMenuSelector theme={theme} onThemeChange={handleThemeChange} />
         )}
       </div>
     </>

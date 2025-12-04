@@ -1,7 +1,7 @@
 import './UsernameMenu.css'
 import { useState, useEffect, useRef } from 'react'
 
-function UsernameMenu({ onSubmit }) {
+function UsernameMenu({ onSubmit, theme }) {
   const [username, setUsername] = useState('')
   const inputRef = useRef(null)
 
@@ -31,7 +31,7 @@ function UsernameMenu({ onSubmit }) {
   }
 
   return (
-    <div className="username-card">
+    <div className={`username-card ${theme === 'dark' ? 'dark' : ''}`}>
       <h2>Enter Your Username</h2>
       <input
         ref={inputRef}
