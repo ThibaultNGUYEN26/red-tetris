@@ -13,6 +13,8 @@
   height: calc(6 * var(--cloud-factor));
   border-radius: calc(3 * var(--cloud-factor));
   animation: cloudFloat 30s linear infinite;
+  pointer-events: none;
+  z-index: -2;
 }
 .cloud:before {
   content: "";

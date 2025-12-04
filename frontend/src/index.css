@@ -3,12 +3,23 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: 'Quicksand', 'Nunito', 'Montserrat', Arial, Helvetica, sans-serif;
 }
 
 html, body, #root {
   width: 100%;
   height: 100%;
   overflow: hidden;
+}
+
+.content-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
 }
 
 /* SKY BACKGROUND */
