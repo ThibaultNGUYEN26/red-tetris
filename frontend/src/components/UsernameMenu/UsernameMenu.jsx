@@ -1,7 +1,7 @@
 import './UsernameMenu.css'
 import { useState, useEffect, useRef } from 'react'
 
-function UsernameMenu() {
+function UsernameMenu({ onSubmit }) {
   const [username, setUsername] = useState('')
   const inputRef = useRef(null)
 
@@ -20,7 +20,7 @@ function UsernameMenu() {
   const handleSubmit = () => {
     if (username.trim().length > 0) {
       console.log('Username submitted:', username)
-      // Add your validation logic here
+      onSubmit(username)
     }
   }
 

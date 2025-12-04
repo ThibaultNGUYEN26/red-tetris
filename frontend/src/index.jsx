@@ -1,9 +1,16 @@
 import './index.css'
+import { useState } from 'react'
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
 import UsernameMenu from './components/UsernameMenu/UsernameMenu.jsx'
+import ModeMenuSelector from './components/ModeMenuSelector/ModeMenuSelector.jsx'
 
 function Index() {
+  const [username, setUsername] = useState(null)
+
+  const handleUsernameSubmit = (submittedUsername) => {
+    setUsername(submittedUsername)
+  }
 
   return (
     <>
@@ -12,7 +19,11 @@ function Index() {
         <TetriminosClouds />
       </div>
       <div className='content-wrapper'>
-        <UsernameMenu />
+        {!username ? (
+          <UsernameMenu onSubmit={handleUsernameSubmit} />
+        ) : (
+          <ModeMenuSelector />
+        )}
       </div>
     </>
   )
