@@ -26,11 +26,69 @@ html, body, #root {
 .sky-background {
   position: fixed;
   inset: 0;
-  background: linear-gradient(to bottom, 
+  background: linear-gradient(to bottom,
     #87CEEB 0%,
     #B0E0E6 40%,
     #E0F6FF 100%
   );
   overflow: hidden;
   z-index: -1;
+}
+
+/* Ensure no stars in light mode */
+.sky-background::before {
+  content: none;
+}
+
+/* DARK MODE - NIGHT SKY WITH STARS */
+.sky-background.dark {
+  background: linear-gradient(to bottom,
+    #0a0e27 0%,
+    #1a1d3d 40%,
+    #2a2d4d 100%
+  );
+}
+
+.stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(2px 2px at 20% 30%, white, transparent),
+    radial-gradient(1px 1px at 60% 70%, white, transparent),
+    radial-gradient(2px 2px at 50% 50%, white, transparent),
+    radial-gradient(1px 1px at 80% 10%, white, transparent),
+    radial-gradient(2px 2px at 90% 60%, white, transparent),
+    radial-gradient(1px 1px at 33% 80%, white, transparent),
+    radial-gradient(1px 1px at 15% 15%, white, transparent),
+    radial-gradient(2px 2px at 70% 25%, white, transparent),
+    radial-gradient(1px 1px at 40% 60%, white, transparent),
+    radial-gradient(2px 2px at 25% 45%, white, transparent),
+    radial-gradient(1px 1px at 35% 20%, white, transparent),
+    radial-gradient(2px 2px at 75% 55%, white, transparent),
+    radial-gradient(1px 1px at 10% 65%, white, transparent),
+    radial-gradient(1px 1px at 85% 35%, white, transparent),
+    radial-gradient(2px 2px at 45% 85%, white, transparent);
+  background-size: 200% 200%;
+  animation: fadeInOut 3s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+  }
+  5% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
 }
