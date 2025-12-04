@@ -6,6 +6,7 @@ function GoodClouds() {
       <div className="cloud"></div>
       <div className="cloud"></div>
       <div className="cloud"></div>
+      <div className="cloud"></div>
     </>
   )
 }
