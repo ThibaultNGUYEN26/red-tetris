@@ -1,9 +1,12 @@
 .username-card {
-  background: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
+  border: 3px solid rgba(255, 255, 255, 0.4);
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(12px);
   max-width: 400px;
   width: 90%;
   display: flex;
@@ -14,102 +17,155 @@
 }
 
 .username-card h2 {
-  color: #2c3e50;
+  color: #2a5298;
   font-size: 2rem;
+  font-weight: 800;
   margin-bottom: 3rem;
   text-align: center;
+  text-shadow:
+    2px 2px 4px rgba(255, 255, 255, 0.5),
+    0 0 10px rgba(255, 255, 255, 0.3);
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .username-input {
   width: 100%;
   padding: 0.75rem 1rem;
   font-size: 1rem;
-  border: 2px solid rgba(135, 206, 235, 0.5);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
   outline: none;
   transition: all 0.3s ease;
-  color: #2c3e50;
+  color: #1a3d7a;
   text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
 }
 
 .username-input:focus {
-  border-color: #87CEEB;
-  box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(135, 206, 235, 0.4);
+  transform: scale(1.02);
 }
 
 .username-input::placeholder {
-  color: rgba(44, 62, 80, 0.5);
+  color: rgba(42, 82, 152, 0.6);
   text-align: center;
+  font-weight: 500;
 }
 
 .character-count {
-  color: #7f8c8d;
+  color: #2a5298;
   font-size: 0.875rem;
+  font-weight: 600;
   margin: 0;
   margin-bottom: 2rem;
   align-self: flex-end;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
 }
 
 .submit-button {
   width: 100%;
   padding: 0.875rem 1.5rem;
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   color: white;
-  background: linear-gradient(135deg, #87CEEB 0%, #5FA9D8 100%);
-  border: none;
-  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(100, 150, 255, 0.8) 0%, rgba(50, 100, 200, 0.8) 100%);
+  border: 3px solid rgba(42, 82, 152, 0.6);
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(135, 206, 235, 0.4);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .submit-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #5FA9D8 0%, #4A8EC7 100%);
-  box-shadow: 0 6px 16px rgba(135, 206, 235, 0.5);
-  transform: translateY(-2px);
+  background: linear-gradient(135deg, rgba(120, 170, 255, 1) 0%, rgba(70, 120, 220, 1) 100%);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow:
+    0 6px 12px rgba(0, 0, 0, 0.3),
+    0 0 15px rgba(100, 150, 255, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4);
 }
 
 .submit-button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(135, 206, 235, 0.4);
+  transform: translateY(0) scale(1);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
 .submit-button:disabled {
-  background: linear-gradient(135deg, #B0BEC5 0%, #90A4AE 100%);
+  background: linear-gradient(135deg, rgba(150, 150, 150, 0.4) 0%, rgba(100, 100, 100, 0.4) 100%);
+  border-color: rgba(100, 100, 100, 0.3);
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.5;
   box-shadow: none;
 }
 
 /* Dark Theme */
 .username-card.dark {
-  background: rgba(44, 62, 80, 0.85);
-  border: 1px solid rgba(135, 206, 235, 0.2);
+  background: linear-gradient(135deg, rgba(20, 20, 40, 0.4) 0%, rgba(10, 10, 30, 0.5) 100%);
+  border-color: rgba(100, 100, 200, 0.5);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(100, 100, 200, 0.2),
+    inset 0 2px 4px rgba(100, 100, 200, 0.2);
 }
 
 .username-card.dark h2 {
-  color: #ecf0f1;
+  color: #f0f0f0;
+  text-shadow:
+    0 0 10px rgba(100, 150, 255, 0.8),
+    0 0 20px rgba(100, 150, 255, 0.4),
+    2px 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .username-card.dark .username-input {
-  background: rgba(52, 73, 94, 0.9);
-  color: #ecf0f1;
-  border-color: rgba(135, 206, 235, 0.3);
+  background: linear-gradient(135deg, rgba(50, 50, 80, 0.4) 0%, rgba(30, 30, 60, 0.5) 100%);
+  color: #d0d8ff;
+  border-color: rgba(100, 100, 200, 0.4);
+  text-shadow: 0 0 6px rgba(100, 150, 255, 0.3);
 }
 
 .username-card.dark .username-input::placeholder {
-  color: rgba(236, 240, 241, 0.5);
+  color: rgba(176, 196, 255, 0.6);
 }
 
 .username-card.dark .username-input:focus {
-  border-color: #87CEEB;
-  box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.3);
+  border-color: rgba(150, 150, 255, 0.6);
+  box-shadow:
+    0 6px 16px rgba(100, 100, 200, 0.3),
+    0 0 25px rgba(100, 150, 255, 0.5);
 }
 
 .username-card.dark .character-count {
-  color: #95a5a6;
+  color: #b0c4ff;
+  text-shadow: 0 0 8px rgba(100, 150, 255, 0.5);
+}
+
+.username-card.dark .submit-button {
+  background: linear-gradient(135deg, rgba(100, 150, 255, 0.6) 0%, rgba(50, 100, 200, 0.6) 100%);
+  border-color: rgba(100, 100, 200, 0.6);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    0 0 15px rgba(100, 150, 255, 0.3),
+    inset 0 1px 2px rgba(100, 150, 255, 0.2);
+}
+
+.username-card.dark .submit-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(120, 170, 255, 0.8) 0%, rgba(70, 120, 220, 0.8) 100%);
+  box-shadow:
+    0 6px 12px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(100, 150, 255, 0.5),
+    inset 0 1px 2px rgba(100, 150, 255, 0.3);
 }

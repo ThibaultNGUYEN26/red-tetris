@@ -4,6 +4,7 @@ import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
 import UsernameMenu from './components/UsernameMenu/UsernameMenu.jsx'
 import ModeMenuSelector from './components/ModeMenuSelector/ModeMenuSelector.jsx'
+import Leaderboard from './components/Leaderboard/Leaderboard.jsx'
 
 function Index() {
   const [username, setUsername] = useState(null)
@@ -55,6 +56,7 @@ function Index() {
         <GoodClouds />
         <TetriminosClouds />
       </div>
+      {username && <Leaderboard theme={theme} />}
       <div className='content-wrapper'>
         {!username ? (
           <UsernameMenu onSubmit={handleUsernameSubmit} theme={theme} />
