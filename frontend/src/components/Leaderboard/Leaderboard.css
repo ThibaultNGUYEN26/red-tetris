@@ -1,6 +1,6 @@
 .leaderboard {
   position: fixed;
-  right: 5vw;
+  right: 10vw;
   top: 50%;
   transform: translateY(-50%);
   width: 300px;
