@@ -67,7 +67,17 @@ html, body, #root {
     radial-gradient(2px 2px at 75% 55%, white, transparent),
     radial-gradient(1px 1px at 10% 65%, white, transparent),
     radial-gradient(1px 1px at 85% 35%, white, transparent),
-    radial-gradient(2px 2px at 45% 85%, white, transparent);
+    radial-gradient(2px 2px at 45% 85%, white, transparent),
+    radial-gradient(1px 1px at 55% 40%, white, transparent),
+    radial-gradient(2px 2px at 30% 75%, white, transparent),
+    radial-gradient(1px 1px at 65% 20%, white, transparent),
+    radial-gradient(1px 1px at 95% 50%, white, transparent),
+    radial-gradient(2px 2px at 5% 40%, white, transparent),
+    radial-gradient(1px 1px at 50% 90%, white, transparent),
+    radial-gradient(1px 1px at 20% 55%, white, transparent),
+    radial-gradient(2px 2px at 88% 75%, white, transparent),
+    radial-gradient(1px 1px at 42% 12%, white, transparent),
+    radial-gradient(1px 1px at 72% 82%, white, transparent);
   background-size: 200% 200%;
   animation: fadeInOut 3s ease-in-out infinite;
 }

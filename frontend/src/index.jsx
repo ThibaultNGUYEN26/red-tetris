@@ -26,7 +26,7 @@ function Index() {
     const updateStarPositions = () => {
       if (!starsRef.current) return
 
-      const positions = Array.from({ length: 15 }, () =>
+      const positions = Array.from({ length: 25 }, () =>
         `${Math.random() * 100}% ${Math.random() * 100}%`
       ).join(', ')
 
