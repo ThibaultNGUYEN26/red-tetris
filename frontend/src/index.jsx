@@ -2,7 +2,7 @@ import './index.css'
 import { useState, useEffect, useRef } from 'react'
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
-import UsernameMenu from './components/UsernameMenu/UsernameMenu.jsx'
+import ProfileMenu from './components/ProfileMenu/ProfileMenu.jsx'
 import ModeMenuSelector from './components/ModeMenuSelector/ModeMenuSelector.jsx'
 import Leaderboard from './components/Leaderboard/Leaderboard.jsx'
 
@@ -59,7 +59,7 @@ function Index() {
       {username && <Leaderboard theme={theme} />}
       <div className='content-wrapper'>
         {!username ? (
-          <UsernameMenu onSubmit={handleUsernameSubmit} theme={theme} />
+          <ProfileMenu onSubmit={handleUsernameSubmit} theme={theme} />
         ) : (
           <ModeMenuSelector theme={theme} onThemeChange={handleThemeChange} />
         )}

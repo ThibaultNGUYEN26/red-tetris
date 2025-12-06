@@ -1,0 +1,201 @@
+/* Avatar container */
+.face-avatar {
+  position: relative;
+  display: inline-block;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+/* Size variants */
+.face-small {
+  width: 50px;
+  height: 37px;
+}
+
+.face-medium {
+  width: 100px;
+  height: 100px;
+}
+
+.face-large {
+  width: 155px;
+  height: 155px;
+}
+
+/* Face */
+.face-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+
+  border: 3px solid rgba(0, 0, 0, 0.3);
+}
+
+/**********************************
+ * EYES
+ **********************************/
+.eyes {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 0;
+  justify-content: center;
+  align-items: center;
+}
+
+.eye {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 50%;
+}
+
+.face-small .eye { width: 6px; height: 6px; }
+.face-medium .eye { width: 16px; height: 16px; }
+.face-large .eye { width: 26px; height: 26px; }
+
+/* Highlight for realism */
+.eye::after {
+  content: '';
+  position: absolute;
+  background: white;
+  opacity: 0.8;
+  border-radius: 50%;
+  width: 35%;
+  height: 35%;
+  top: 20%;
+  left: 20%;
+}
+
+/* UWU eyes image */
+.eye-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.eye-uwu,
+.eye-sad,
+.eye-very_sad,
+.eye-crying,
+.eye-normal,
+.eye-happy,
+.eye-joy,
+.eye-cute,
+.eye-love,
+.eye-blink,
+.eye-close,
+.eye-soft,
+.eye-dizzy,
+.eye-fear,
+.eye-cold_fear,
+.eye-panic,
+.eye-dead {
+  position: relative;
+}
+
+.face-small .eye-uwu,
+.face-small .eye-sad,
+.face-small .eye-very_sad,
+.face-small .eye-crying,
+.face-small .eye-normal,
+.face-small .eye-happy,
+.face-small .eye-joy,
+.face-small .eye-cute,
+.face-small .eye-love,
+.face-small .eye-blink,
+.face-small .eye-close,
+.face-small .eye-soft,
+.face-small .eye-dizzy,
+.face-small .eye-fear,
+.face-small .eye-cold_fear,
+.face-small .eye-panic,
+.face-small .eye-dead {
+  width: 38px;
+  height: 24px;
+}
+
+.face-medium .eye-uwu,
+.face-medium .eye-sad,
+.face-medium .eye-very_sad,
+.face-medium .eye-crying,
+.face-medium .eye-normal,
+.face-medium .eye-happy,
+.face-medium .eye-joy,
+.face-medium .eye-cute,
+.face-medium .eye-love,
+.face-medium .eye-blink,
+.face-medium .eye-close,
+.face-medium .eye-soft,
+.face-medium .eye-dizzy,
+.face-medium .eye-fear,
+.face-medium .eye-cold_fear,
+.face-medium .eye-panic,
+.face-medium .eye-dead {
+  width: 76px;
+  height: 48px;
+}
+
+.face-large .eye-uwu,
+.face-large .eye-sad,
+.face-large .eye-very_sad,
+.face-large .eye-crying,
+.face-large .eye-normal,
+.face-large .eye-happy,
+.face-large .eye-joy,
+.face-large .eye-cute,
+.face-large .eye-love,
+.face-large .eye-blink,
+.face-large .eye-close,
+.face-large .eye-soft,
+.face-large .eye-dizzy,
+.face-large .eye-fear,
+.face-large .eye-cold_fear,
+.face-large .eye-panic,
+.face-large .eye-dead {
+  width: 114px;
+  height: 72px;
+}
+
+/**********************************
+ * MOUTH
+ **********************************/
+.mouth-container {
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mouth-image {
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.face-small .mouth-image {
+  width: 38px;
+  height: 24px;
+}
+
+.face-medium .mouth-image {
+  width: 76px;
+  height: 48px;
+}
+
+.face-large .mouth-image {
+  width: 114px;
+  height: 72px;
+}
