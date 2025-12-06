@@ -46,10 +46,41 @@ function ProfileMenu({ onSubmit, theme }) {
     }
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (username.trim().length > 0) {
-      console.log('Username submitted:', username)
-      console.log('Avatar selected:', currentAvatar)
+      const profileData = {
+        username: username.trim(),
+        avatar: {
+          skinColor: currentAvatar.skinColor,
+          eyeType: currentAvatar.eyeType,
+          mouthType: currentAvatar.mouthType,
+        },
+      }
+
+      console.log('📤 Sending profile to backend:', JSON.stringify(profileData, null, 2))
+
+      try {
+        // TODO: Replace with actual backend endpoint
+        const response = await fetch('/api/profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(profileData),
+        })
+
+        console.log('✅ Profile sent successfully')
+        console.log('📊 Response status:', response.status)
+
+        // Uncomment when backend exists:
+        // const data = await response.json()
+        // console.log('📥 Backend response:', data)
+
+      } catch (error) {
+        console.error('❌ Failed to send profile to backend:', error.message)
+        console.log('⚠️ This is expected since backend is not running yet')
+      }
+
       onSubmit(username, currentAvatar)
     }
   }
@@ -72,7 +103,7 @@ function ProfileMenu({ onSubmit, theme }) {
 
       {/* Avatar Customization */}
       <div className="avatar-section">
-      
+
         {/* Avatar Preview */}
         <div className="avatar-preview">
           <FaceAvatar faceConfig={currentAvatar} size="large" />
