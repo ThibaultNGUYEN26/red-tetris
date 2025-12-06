@@ -62,3 +62,11 @@ Here you will recieve the profile with 2 inputs: username and avatar.
 ```
 You need to handle the duplicate username.
 Keep duplicate avatars.
+
+---
+
+## Game
+
+When others add indestructible lines, wait until the player play its actual piece to add the indestructible lines. Otherwise, we will have visual problems such as glitches or vanishing pieces.
+
+

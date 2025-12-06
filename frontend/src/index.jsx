@@ -9,6 +9,7 @@ import Leaderboard from './components/Leaderboard/Leaderboard.jsx'
 function Index() {
   const [username, setUsername] = useState(null)
   const [theme, setTheme] = useState('light')
+  const [showRooms, setShowRooms] = useState(false)
 
   const handleUsernameSubmit = (submittedUsername) => {
     setUsername(submittedUsername)
@@ -56,12 +57,12 @@ function Index() {
         <GoodClouds />
         <TetriminosClouds />
       </div>
-      {username && <Leaderboard theme={theme} />}
+      {username && !showRooms && <Leaderboard theme={theme} />}
       <div className='content-wrapper'>
         {!username ? (
           <ProfileMenu onSubmit={handleUsernameSubmit} theme={theme} />
         ) : (
-          <ModeMenuSelector theme={theme} onThemeChange={handleThemeChange} />
+          <ModeMenuSelector theme={theme} onThemeChange={handleThemeChange} onShowRooms={setShowRooms} />
         )}
       </div>
     </>

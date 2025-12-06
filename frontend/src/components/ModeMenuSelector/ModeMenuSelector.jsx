@@ -1,9 +1,11 @@
 import './ModeMenuSelector.css'
 import { useState } from 'react'
 import Options from './Options.jsx/Options.jsx'
+import Rooms from '../Rooms/Rooms.jsx'
 
-function ModeMenuSelector({ theme, onThemeChange }) {
+function ModeMenuSelector({ theme, onThemeChange, onShowRooms }) {
   const [showOptions, setShowOptions] = useState(false)
+  const [showRooms, setShowRooms] = useState(false)
 
   const handleSolo = () => {
     console.log('Solo mode selected')
@@ -12,7 +14,8 @@ function ModeMenuSelector({ theme, onThemeChange }) {
 
   const handleMultiplayer = () => {
     console.log('Multiplayer mode selected')
-    // Add your multiplayer logic here
+    setShowRooms(true)
+    onShowRooms(true)
   }
 
   const handleOptions = () => {
@@ -23,8 +26,17 @@ function ModeMenuSelector({ theme, onThemeChange }) {
     setShowOptions(false)
   }
 
+  const handleBackFromRooms = () => {
+    setShowRooms(false)
+    onShowRooms(false)
+  }
+
   if (showOptions) {
     return <Options onBack={handleBackToMenu} theme={theme} onThemeChange={onThemeChange} />
+  }
+
+  if (showRooms) {
+    return <Rooms theme={theme} onBack={handleBackFromRooms} />
   }
 
   return (
