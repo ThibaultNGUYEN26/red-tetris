@@ -103,12 +103,40 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.mode-select:hover {
+  border-color: rgba(100, 150, 255, 0.4);
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
 .mode-select:focus {
   outline: none;
   border-color: rgba(100, 150, 255, 0.6);
   box-shadow:
     0 4px 12px rgba(100, 150, 255, 0.2),
     0 0 15px rgba(100, 150, 255, 0.2);
+  border-radius: 12px;
+}
+
+.mode-select option {
+  background: white;
+  color: #2a5298;
+  padding: 0.8rem 1rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 8px;
+  margin: 2px 4px;
+}
+
+.mode-select option:hover {
+  background: linear-gradient(135deg, rgba(100, 150, 255, 0.15) 0%, rgba(150, 180, 255, 0.15) 100%);
+  color: #1a4088;
+}
+
+.mode-select option:checked {
+  background: linear-gradient(135deg, rgba(100, 150, 255, 0.25) 0%, rgba(150, 180, 255, 0.25) 100%);
+  color: #1a4088;
+  font-weight: 700;
 }
 
 .players-section {
@@ -299,6 +327,27 @@
   background: rgba(50, 50, 80, 0.6);
   border-color: rgba(100, 100, 200, 0.4);
   color: #e0e0e0;
+}
+
+.create-room-card.dark .mode-select:hover {
+  background-color: rgba(60, 60, 90, 0.7);
+  border-color: rgba(100, 150, 255, 0.5);
+}
+
+.create-room-card.dark .mode-select option {
+  background: rgba(40, 40, 70, 0.95);
+  color: #b0c4ff;
+}
+
+.create-room-card.dark .mode-select option:hover {
+  background: rgba(80, 100, 150, 0.5);
+  color: #d0e0ff;
+}
+
+.create-room-card.dark .mode-select option:checked {
+  background: rgba(100, 120, 180, 0.6);
+  color: #e0f0ff;
+  font-weight: 700;
 }
 
 .create-room-card.dark .room-name-input::placeholder {

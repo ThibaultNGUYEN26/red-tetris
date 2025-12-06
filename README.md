@@ -67,6 +67,13 @@ Keep duplicate avatars.
 
 ## Game
 
+### Warnings
+
 When others add indestructible lines, wait until the player play its actual piece to add the indestructible lines. Otherwise, we will have visual problems such as glitches or vanishing pieces.
 
+### Gamemodes
 
+Classique
+Speed
+Cooperative
+More to add

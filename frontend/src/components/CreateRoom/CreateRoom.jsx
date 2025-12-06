@@ -11,9 +11,6 @@ function CreateRoom({ theme, onBack, onCreateRoom }) {
   const gameModes = [
     'classic',
     'speed',
-    'marathon',
-    'survival',
-    'battle',
     'cooperative',
   ]
 
