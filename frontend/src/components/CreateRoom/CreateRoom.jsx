@@ -1,8 +1,9 @@
 import './CreateRoom.css'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-function CreateRoom({ theme, onBack, onCreateRoom }) {
+function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [] }) {
   const [roomName, setRoomName] = useState('')
+  const [isEditingName, setIsEditingName] = useState(false)
   const [selectedMode, setSelectedMode] = useState('classic')
   const [players, setPlayers] = useState([
     { id: 1, name: 'You', isHost: true }
@@ -14,15 +15,59 @@ function CreateRoom({ theme, onBack, onCreateRoom }) {
     'cooperative',
   ]
 
+  // Generate default room name on mount
+  useEffect(() => {
+    const generateDefaultRoomName = () => {
+      const existingRoomNames = existingRooms.map(room => room.name)
+      let roomNumber = 1
+      let defaultName = `Room ${roomNumber}`
+
+      // Find the lowest available room number
+      while (existingRoomNames.includes(defaultName)) {
+        roomNumber++
+        defaultName = `Room ${roomNumber}`
+      }
+
+      return defaultName
+    }
+
+    setRoomName(generateDefaultRoomName())
+  }, [existingRooms])
+
   const handleRoomNameChange = (e) => {
     const value = e.target.value
-    if (value.length <= 20) {
+    if (value.length <= 15) {
       setRoomName(value)
     }
   }
 
   const handleModeChange = (e) => {
     setSelectedMode(e.target.value)
+  }
+
+  const handleEditClick = () => {
+    setIsEditingName(true)
+  }
+
+  const handleNameBlur = () => {
+    setIsEditingName(false)
+    if (roomName.trim().length === 0) {
+      // Reset to default if empty
+      const existingRoomNames = existingRooms.map(room => room.name)
+      let roomNumber = 1
+      let defaultName = `Room ${roomNumber}`
+      while (existingRoomNames.includes(defaultName)) {
+        roomNumber++
+        defaultName = `Room ${roomNumber}`
+      }
+      setRoomName(defaultName)
+    }
+  }
+
+  const handleNameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.target.blur()
+    }
   }
 
   const handleStartGame = () => {
@@ -38,21 +83,31 @@ function CreateRoom({ theme, onBack, onCreateRoom }) {
 
   return (
     <div className={`create-room-card ${theme === 'dark' ? 'dark' : ''}`}>
-      <h2>Create Room</h2>
-
       <div className="create-room-form">
         {/* Room Name */}
-        <div className="form-group">
-          <label>Room Name</label>
-          <input
-            type="text"
-            value={roomName}
-            onChange={handleRoomNameChange}
-            placeholder="Enter room name..."
-            maxLength={20}
-            className="room-name-input"
-          />
-          <span className="char-count">{roomName.length}/20</span>
+        <div className="form-group room-name-section">
+          {isEditingName ? (
+            <div className="room-name-container">
+              <input
+                type="text"
+                value={roomName}
+                onChange={handleRoomNameChange}
+                onBlur={handleNameBlur}
+                onKeyDown={handleNameKeyDown}
+                maxLength={15}
+                className="room-name-input editing"
+                autoFocus
+              />
+              <span className="char-count">{roomName.length}/15</span>
+            </div>
+          ) : (
+            <div className="room-name-display">
+              <span className="room-name-text">{roomName}</span>
+              <button className="edit-button" onClick={handleEditClick} title="Rename room">
+                ✏️
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Game Mode */}

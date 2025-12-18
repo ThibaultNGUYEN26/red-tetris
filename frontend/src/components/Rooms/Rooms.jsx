@@ -21,7 +21,7 @@ function Rooms({ theme, onBack }) {
   }
 
   if (showCreateRoom) {
-    return <CreateRoom theme={theme} onBack={handleBackFromCreate} />
+    return <CreateRoom theme={theme} onBack={handleBackFromCreate} existingRooms={rooms} />
   }
 
   return (
