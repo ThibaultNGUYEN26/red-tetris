@@ -20,9 +20,9 @@ function Options({ onBack, theme, onThemeChange }) {
   return (
     <div className={`mode-card ${theme === 'dark' ? 'dark' : ''}`}>
       <h2>Options</h2>
-      
+
       <div className="options-buttons">
-        <button 
+        <button
           className="option-button"
           onClick={handleThemeToggle}
         >
@@ -30,18 +30,18 @@ function Options({ onBack, theme, onThemeChange }) {
           <span className="option-title">{theme === 'dark' ? 'Dark' : 'Light'} Theme</span>
           <span className="option-description">Switch to {theme === 'dark' ? 'light' : 'dark'} mode</span>
         </button>
-        
-        <button 
+
+        <button
           className="option-button"
           onClick={handleSoundToggle}
         >
-          <span className="option-icon">{soundEnabled ? '🔊' : '🔇'}</span>
+          <span className="option-icon">{soundEnabled ? '🔊' : '🔈'}</span>
           <span className="option-title">Sound</span>
           <span className="option-description">{soundEnabled ? 'Enabled' : 'Disabled'}</span>
         </button>
       </div>
 
-      <button 
+      <button
         className="back-button"
         onClick={onBack}
       >

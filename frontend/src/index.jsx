@@ -13,11 +13,34 @@ function Index() {
 
   const handleUsernameSubmit = (submittedUsername) => {
     setUsername(submittedUsername)
+    // Push a new state to the browser history
+    window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme)
   }
+
+  // Handle browser back button
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (username && !event.state?.hasUsername) {
+        setUsername(null)
+        setShowRooms(false)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+
+    // Set initial state
+    if (username) {
+      window.history.replaceState({ hasUsername: true }, '', window.location.pathname)
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+    }
+  }, [username])
 
   const starsRef = useRef(null)
 
