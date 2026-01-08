@@ -1,5 +1,5 @@
 import './CreateRoom.css'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [] }) {
   const [roomName, setRoomName] = useState('')
@@ -8,6 +8,8 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [] }) {
   const [players, setPlayers] = useState([
     { id: 1, name: 'You', isHost: true }
   ])
+  const [roomId, setRoomId] = useState(null)
+  const hasCreatedRoom = useRef(false)
 
   const gameModes = [
     'classic',
@@ -33,6 +35,107 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [] }) {
 
     setRoomName(generateDefaultRoomName())
   }, [existingRooms])
+
+  // Create room on backend when component mounts and room name is set
+  useEffect(() => {
+    const createRoomOnBackend = async () => {
+      if (!roomName) return
+
+      const roomData = {
+        name: roomName,
+        gameMode: selectedMode,
+        maxPlayers: 6,
+        host: players.find(p => p.isHost)?.name || 'You'
+      }
+
+      console.log('Creating room on backend:', JSON.stringify(roomData, null, 2))
+
+      try {
+        const response = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(roomData),
+        })
+
+        console.log('Room created successfully')
+        console.log('Response status:', response.status)
+
+        // Store room ID for future updates
+        try {
+          const data = await response.json()
+          if (data.roomId) {
+            setRoomId(data.roomId)
+            console.log('Room ID:', data.roomId)
+          }
+        } catch (jsonError) {
+          // Backend returned non-JSON response (e.g., 404 with empty body)
+          // Use a mock ID for development
+          const mockRoomId = `mock-${Date.now()}`
+          setRoomId(mockRoomId)
+          console.log('Using mock room ID for development:', mockRoomId)
+        }
+
+      } catch (error) {
+        console.error('Failed to create room on backend:', error.message)
+        console.log('This is expected since backend is not running yet')
+        // Set a mock room ID so updates can still be logged
+        const mockRoomId = `mock-${Date.now()}`
+        setRoomId(mockRoomId)
+        console.log('Using mock room ID for development:', mockRoomId)
+      }
+    }
+
+    // Only create room once on mount when roomName is available
+    if (roomName && !hasCreatedRoom.current) {
+      createRoomOnBackend()
+      hasCreatedRoom.current = true
+    }
+  }, [roomName, selectedMode, players])
+
+  // Send room name updates to backend in real-time (debounced)
+  useEffect(() => {
+    if (!roomId || !roomName || !hasCreatedRoom.current) {
+      console.log('Skipping room name update:', { roomId: !!roomId, roomName: !!roomName, hasCreatedRoom: hasCreatedRoom.current })
+      return
+    }
+
+    const updateRoomName = async () => {
+      const updateData = {
+        name: roomName.trim(),
+        gameMode: selectedMode,
+        maxPlayers: 6,
+        host: players.find(p => p.isHost)?.name || 'You'
+      }
+
+      console.log('Updating room name on backend:', JSON.stringify(updateData, null, 2))
+
+      try {
+        const response = await fetch(`/api/rooms/${roomId}/name`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updateData),
+        })
+
+        const data = await response.json()
+        console.log('Room name updated:', JSON.stringify(data, null, 2))
+
+      } catch (error) {
+        console.error('Failed to update room name on backend:', error.message)
+        console.log('This is expected since backend is not running yet')
+      }
+    }
+
+    // Debounce room name updates (500ms delay)
+    const timeoutId = setTimeout(() => {
+      updateRoomName()
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [roomName, roomId, selectedMode, players])
 
   const handleRoomNameChange = (e) => {
     const value = e.target.value
@@ -70,14 +173,36 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [] }) {
     }
   }
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (roomName.trim().length > 0 && players.length >= 2) {
-      console.log('Starting game:', {
+      const gameData = {
+        roomId,
         roomName: roomName.trim(),
         gameMode: selectedMode,
         players: players
-      })
-      // TODO: Add start game logic
+      }
+
+      console.log('Starting game on backend:', JSON.stringify(gameData, null, 2))
+
+      try {
+        const response = await fetch(`/api/rooms/${roomId}/start`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(gameData),
+        })
+
+        console.log('Game started successfully')
+        console.log('Response status:', response.status)
+
+        const data = await response.json()
+        console.log('Backend response:', data)
+
+      } catch (error) {
+        console.error('Failed to start game on backend:', error.message)
+        console.log('This is expected since backend is not running yet')
+      }
     }
   }
 

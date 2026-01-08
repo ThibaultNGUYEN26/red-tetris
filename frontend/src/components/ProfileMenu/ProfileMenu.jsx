@@ -57,7 +57,7 @@ function ProfileMenu({ onSubmit, theme }) {
         },
       }
 
-      console.log('📤 Sending profile to backend:', JSON.stringify(profileData, null, 2))
+      console.log('Sending profile to backend:', JSON.stringify(profileData, null, 2))
 
       try {
         // TODO: Replace with actual backend endpoint
@@ -69,16 +69,16 @@ function ProfileMenu({ onSubmit, theme }) {
           body: JSON.stringify(profileData),
         })
 
-        console.log('✅ Profile sent successfully')
-        console.log('📊 Response status:', response.status)
+        console.log('Profile sent successfully')
+        console.log('Response status:', response.status)
 
         // Uncomment when backend exists:
         // const data = await response.json()
-        // console.log('📥 Backend response:', data)
+        // console.log('Backend response:', data)
 
       } catch (error) {
-        console.error('❌ Failed to send profile to backend:', error.message)
-        console.log('⚠️ This is expected since backend is not running yet')
+        console.error('Failed to send profile to backend:', error.message)
+        console.log('This is expected since backend is not running yet')
       }
 
       onSubmit(username, currentAvatar)
