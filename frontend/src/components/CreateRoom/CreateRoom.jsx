@@ -1,12 +1,12 @@
 import './CreateRoom.css'
 import { useState, useEffect, useRef } from 'react'
 
-function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [] }) {
+function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [], username }) {
   const [roomName, setRoomName] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
   const [selectedMode, setSelectedMode] = useState('classic')
   const [players, setPlayers] = useState([
-    { id: 1, name: 'You', isHost: true }
+    { id: 1, name: username || 'You', isHost: true }
   ])
   const [roomId, setRoomId] = useState(null)
   const hasCreatedRoom = useRef(false)
@@ -45,7 +45,8 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [] }) {
         name: roomName,
         gameMode: selectedMode,
         maxPlayers: 6,
-        host: players.find(p => p.isHost)?.name || 'You'
+        host: username,
+        playerCount: players.length
       }
 
       console.log('Creating room on backend:', JSON.stringify(roomData, null, 2))
@@ -106,7 +107,8 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [] }) {
         name: roomName.trim(),
         gameMode: selectedMode,
         maxPlayers: 6,
-        host: players.find(p => p.isHost)?.name || 'You'
+        host: username,
+        playerCount: players.length
       }
 
       console.log('Updating room name on backend:', JSON.stringify(updateData, null, 2))
@@ -204,6 +206,43 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [] }) {
         console.log('This is expected since backend is not running yet')
       }
     }
+  }
+
+  const handleBack = async () => {
+    if (!roomId) {
+      onBack()
+      return
+    }
+
+    const leaveData = {
+      roomId,
+      username,
+      isHost: true
+    }
+
+    console.log('Leaving room:', JSON.stringify(leaveData, null, 2))
+
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/leave`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(leaveData),
+      })
+
+      console.log('Left room successfully')
+      console.log('Response status:', response.status)
+
+      const data = await response.json()
+      console.log('Backend response:', JSON.stringify(data, null, 2))
+
+    } catch (error) {
+      console.error('Failed to leave room on backend:', error.message)
+      console.log('This is expected since backend is not running yet')
+    }
+
+    onBack()
   }
 
   return (
@@ -306,7 +345,7 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [] }) {
         </button>
 
         {/* Back Button */}
-        <button className="back-button" onClick={onBack}>
+        <button className="back-button" onClick={handleBack}>
           ← Back
         </button>
       </div>

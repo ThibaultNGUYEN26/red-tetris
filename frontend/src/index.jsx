@@ -85,7 +85,7 @@ function Index() {
         {!username ? (
           <ProfileMenu onSubmit={handleUsernameSubmit} theme={theme} />
         ) : (
-          <ModeMenuSelector theme={theme} onThemeChange={handleThemeChange} onShowRooms={setShowRooms} />
+          <ModeMenuSelector theme={theme} onThemeChange={handleThemeChange} onShowRooms={setShowRooms} username={username} />
         )}
       </div>
     </>

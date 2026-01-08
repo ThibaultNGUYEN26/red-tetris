@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Options from './Options.jsx/Options.jsx'
 import Rooms from '../Rooms/Rooms.jsx'
 
-function ModeMenuSelector({ theme, onThemeChange, onShowRooms }) {
+function ModeMenuSelector({ theme, onThemeChange, onShowRooms, username }) {
   const [showOptions, setShowOptions] = useState(false)
   const [showRooms, setShowRooms] = useState(false)
 
@@ -36,7 +36,7 @@ function ModeMenuSelector({ theme, onThemeChange, onShowRooms }) {
   }
 
   if (showRooms) {
-    return <Rooms theme={theme} onBack={handleBackFromRooms} />
+    return <Rooms theme={theme} onBack={handleBackFromRooms} username={username} />
   }
 
   return (

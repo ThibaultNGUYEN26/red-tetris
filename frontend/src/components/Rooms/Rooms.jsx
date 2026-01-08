@@ -2,7 +2,7 @@ import './Rooms.css'
 import { useState } from 'react'
 import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 
-function Rooms({ theme, onBack }) {
+function Rooms({ theme, onBack, username }) {
   const [showCreateRoom, setShowCreateRoom] = useState(false)
   const [rooms, setRooms] = useState([])
 
@@ -15,13 +15,39 @@ function Rooms({ theme, onBack }) {
     setShowCreateRoom(false)
   }
 
-  const handleJoinRoom = (roomId) => {
-    console.log('Joining room:', roomId)
-    // TODO: Add join room logic
+  const handleJoinRoom = async (roomId) => {
+    const joinData = {
+      roomId,
+      username
+    }
+
+    console.log('Joining room:', JSON.stringify(joinData, null, 2))
+
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(joinData),
+      })
+
+      console.log('Joined room successfully')
+      console.log('Response status:', response.status)
+
+      const data = await response.json()
+      console.log('Backend response:', JSON.stringify(data, null, 2))
+
+      // TODO: Navigate to room view or handle successful join
+
+    } catch (error) {
+      console.error('Failed to join room on backend:', error.message)
+      console.log('This is expected since backend is not running yet')
+    }
   }
 
   if (showCreateRoom) {
-    return <CreateRoom theme={theme} onBack={handleBackFromCreate} existingRooms={rooms} />
+    return <CreateRoom theme={theme} onBack={handleBackFromCreate} existingRooms={rooms} username={username} />
   }
 
   return (
