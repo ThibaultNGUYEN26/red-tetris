@@ -63,7 +63,7 @@ function ProfileMenu({ onSubmit, theme }) {
 
       try {
         // TODO: Replace with actual backend endpoint
-        const response = await fetch('${API_URL}/api/profile', {
+        const response = await fetch(`${API_URL}/api/profile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
