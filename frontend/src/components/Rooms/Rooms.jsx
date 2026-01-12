@@ -2,6 +2,8 @@ import './Rooms.css'
 import { useState } from 'react'
 import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 
+const API_URL = import.meta.env.VITE_API_URL || ''
+
 function Rooms({ theme, onBack, username }) {
   const [showCreateRoom, setShowCreateRoom] = useState(false)
   const [rooms, setRooms] = useState([])
@@ -24,7 +26,7 @@ function Rooms({ theme, onBack, username }) {
     console.log('Joining room:', JSON.stringify(joinData, null, 2))
 
     try {
-      const response = await fetch(`/api/rooms/${roomId}/join`, {
+      const response = await fetch(`${API_URL}/api/rooms/${roomId}/join`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
