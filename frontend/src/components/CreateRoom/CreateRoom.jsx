@@ -1,6 +1,8 @@
 import './CreateRoom.css'
 import { useState, useEffect, useRef } from 'react'
 
+const API_URL = import.meta.env.VITE_API_URL || ''
+
 function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [], username }) {
   const [roomName, setRoomName] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
@@ -52,7 +54,7 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [], username 
       console.log('Creating room on backend:', JSON.stringify(roomData, null, 2))
 
       try {
-        const response = await fetch('/api/rooms', {
+        const response = await fetch(`${API_URL}/api/rooms`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -114,7 +116,7 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [], username 
       console.log('Updating room name on backend:', JSON.stringify(updateData, null, 2))
 
       try {
-        const response = await fetch(`/api/rooms/${roomId}/name`, {
+        const response = await fetch(`${API_URL}/api/rooms/${roomId}/name`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -187,7 +189,7 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [], username 
       console.log('Starting game on backend:', JSON.stringify(gameData, null, 2))
 
       try {
-        const response = await fetch(`/api/rooms/${roomId}/start`, {
+        const response = await fetch(`${API_URL}/api/rooms/${roomId}/start`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -223,7 +225,7 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [], username 
     console.log('Leaving room:', JSON.stringify(leaveData, null, 2))
 
     try {
-      const response = await fetch(`/api/rooms/${roomId}/leave`, {
+      const response = await fetch(`${API_URL}/api/rooms/${roomId}/leave`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

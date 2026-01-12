@@ -2,6 +2,8 @@ import './ProfileMenu.css'
 import { useState, useEffect, useRef } from 'react'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 
+const API_URL = import.meta.env.VITE_API_URL || ''
+
 function ProfileMenu({ onSubmit, theme }) {
   const [username, setUsername] = useState('')
   const inputRef = useRef(null)
@@ -61,7 +63,7 @@ function ProfileMenu({ onSubmit, theme }) {
 
       try {
         // TODO: Replace with actual backend endpoint
-        const response = await fetch('/api/profile', {
+        const response = await fetch('${API_URL}/api/profile', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
