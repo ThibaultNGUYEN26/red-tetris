@@ -22,13 +22,14 @@ To set up and run the frontend application, follow these steps:
 
    Then merge the frontend branch to combine both frontend and backend code:
    ```bash
-   git merge frontend
+   git merge origin/frontend
    ```
 
 2. **Install all required dependencies:**
 
-   This will download and install all npm packages defined in `package.json`:
+   This will download and install all npm packages defined in `package.json` located in `frontend/`:
    ```bash
+   cd frontend
    npm install
    ```
    or
@@ -45,6 +46,15 @@ To set up and run the frontend application, follow these steps:
 
    The application will be available in your browser `http://localhost:5173`.
 
+
+4. **Go to Backend folder:**
+
+    Set-up the Node JS development server:
+
+    ```npm init -y
+    npm install express socket.io
+    npm install -D nodemon
+    ```
 ---
 
 ## Backend API Endpoints
