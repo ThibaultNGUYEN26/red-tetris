@@ -4,13 +4,12 @@ import { pool } from "../config/db.js";
 const router = express.Router();
 
 router.post("/profile", async (req, res) => {
-  const { username, avatar } = req.body;
-
-  if (!username || !avatar) {
-    return res.status(400).json({ error: "Missing username or avatar" });
-  }
-
   try {
+    const { username, avatar } = req.body;
+    if (!username || !avatar) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
     const query = `
       INSERT INTO users (username, avatar)
       VALUES ($1, $2)
@@ -18,11 +17,18 @@ router.post("/profile", async (req, res) => {
       DO UPDATE SET avatar = EXCLUDED.avatar
       RETURNING id, username, avatar;
     `;
+    const values = [username, avatar];
+    const result = await pool.query(query, values);
 
-    const { rows } = await pool.query(query, [username, avatar]);
-    res.status(200).json(rows[0]);
+    const user = result.rows[0];
+
+    // User session token
+    const sessionToken = crypto.randomUUID();
+    user.token = sessionToken;
+
+    res.status(200).json(user);
   } catch (err) {
-    console.error("Profile route error:", err);
+    console.error("Profile upsert failed:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
