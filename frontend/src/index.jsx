@@ -22,6 +22,12 @@ function Index() {
     setTheme(newTheme)
   }
 
+  const handleReturnToProfile = () => {
+    setUsername(null)
+    setShowRooms(false)
+    window.history.replaceState({}, '', window.location.pathname)
+  }
+
   // Handle browser back button
   useEffect(() => {
     const handlePopState = (event) => {
@@ -81,8 +87,15 @@ function Index() {
         <GoodClouds />
         <TetriminosClouds />
       </div>
+
       {username && !showRooms && (
         <>
+          <button
+            className="return-profile-btn"
+            onClick={handleReturnToProfile}
+          >
+            ← Change profile
+          </button>
           <PlayerStats theme={theme} />
           <Leaderboard theme={theme} />
         </>

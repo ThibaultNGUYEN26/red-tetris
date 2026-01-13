@@ -102,3 +102,42 @@ html, body, #root {
     opacity: 0;
   }
 }
+
+.return-profile-btn {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 20;
+
+  padding: 10px 18px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.25),
+    rgba(255, 255, 255, 0.15)
+  );
+
+  backdrop-filter: blur(10px);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.return-profile-btn:hover {
+  transform: scale(1.05);
+}
+
+/* DARK MODE */
+.sky-background.dark + .return-profile-btn,
+.dark .return-profile-btn {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 60, 0.6),
+    rgba(20, 20, 40, 0.6)
+  );
+  color: #ffffff;
+  border-color: rgba(120, 150, 255, 0.6);
+  box-shadow: 0 0 12px rgba(120, 150, 255, 0.4);
+}

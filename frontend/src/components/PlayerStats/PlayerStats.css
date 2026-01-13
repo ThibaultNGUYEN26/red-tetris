@@ -136,7 +136,11 @@
   background: linear-gradient(135deg, #4caf50, #81c784);
   border-color: rgba(76, 175, 80, 0.8);
   color: #0a1a12; /* dark readable text */
-  transform: scale(1.02);
+}
+
+.stat-item.highlight:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
 .stat-item.highlight .stat-label,

@@ -62,7 +62,7 @@ function ProfileMenu({ onSubmit, theme }) {
       console.log('Sending profile to backend:', JSON.stringify(profileData, null, 2))
 
       try {
-        // TODO: Replace with actual backend endpoint
+        console.log('API URL:', API_URL)
         const response = await fetch(`${API_URL}/api/profile`, {
           method: 'POST',
           headers: {
