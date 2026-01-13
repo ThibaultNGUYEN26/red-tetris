@@ -1,0 +1,210 @@
+.player-stats {
+  position: fixed;
+  left: 10vw;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 300px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.15),
+    rgba(255, 255, 255, 0.08)
+  );
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  padding: 16px;
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.15),
+    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+/* DARK MODE */
+.player-stats.dark {
+  background: linear-gradient(
+    135deg,
+    rgba(20, 20, 40, 0.4) 0%,
+    rgba(10, 10, 30, 0.5) 100%
+  );
+  border-color: rgba(100, 100, 200, 0.5);
+
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),          /* depth */
+    0 0 20px rgba(100, 100, 200, 0.25),    /* outer glow */
+    inset 0 2px 4px rgba(100, 100, 200, 0.2); /* inner glow */
+
+  animation: pulse-panel 4s ease-in-out infinite;
+  color: #f0f0f0;
+}
+
+/* TITLE */
+.player-stats-title {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: #2a5298;
+  text-shadow:
+    2px 2px 4px rgba(255, 255, 255, 0.5),
+    0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.player-stats.dark .player-stats-title {
+  color: #f0f0f0;
+  text-shadow:
+    0 0 10px rgba(100, 150, 255, 0.8),
+    0 0 20px rgba(100, 150, 255, 0.4),
+    2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* HEADER */
+.player-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.player-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a3d7a;
+}
+
+.player-stats.dark .player-name {
+  color: #d0d8ff;
+  text-shadow: 0 0 6px rgba(100, 150, 255, 0.3);
+}
+
+/* STATS GRID */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+/* STAT ITEM */
+.stat-item {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.25),
+    rgba(255, 255, 255, 0.15)
+  );
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 8px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.player-stats.dark .stat-item {
+  background: linear-gradient(
+    135deg,
+    rgba(50, 50, 80, 0.4),
+    rgba(30, 30, 60, 0.5)
+  );
+  border-color: rgba(100, 100, 200, 0.4);
+}
+
+.stat-item:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* LABEL + VALUE */
+.stat-label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #2a5298;
+  font-family: 'Courier New', monospace;
+}
+
+.player-stats.dark .stat-value {
+  color: #b0c4ff;
+  text-shadow: 0 0 6px rgba(100, 150, 255, 0.4);
+}
+
+/* HIGHLIGHT (WIN RATIO) */
+.stat-item.highlight {
+  background: linear-gradient(135deg, #4caf50, #81c784);
+  border-color: rgba(76, 175, 80, 0.8);
+  color: #0a1a12; /* dark readable text */
+}
+
+.stat-item.highlight:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.stat-item.highlight .stat-label,
+.stat-item.highlight .stat-value {
+  color: #0a1a12;
+  text-shadow: none;
+}
+
+.player-stats.dark .stat-item.highlight {
+  background: linear-gradient(135deg, #66ff99, #33cc77);
+  box-shadow:
+    0 0 12px rgba(102, 255, 153, 0.6),
+    inset 0 2px 4px rgba(255, 255, 255, 0.25);
+}
+
+.player-stats.dark .stat-item.highlight .stat-label,
+.player-stats.dark .stat-item.highlight .stat-value {
+  color: #062012; /* VERY readable on green */
+  font-weight: 800;
+}
+
+/* LOADING */
+.loading {
+  text-align: center;
+  font-weight: 600;
+  color: #2a5298;
+}
+
+.player-stats.dark .loading {
+  color: #d0d8ff;
+}
+
+/* SUBTLE GLOW PULSE */
+@keyframes pulse-panel {
+  0%, 100% {
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      0 0 18px rgba(100, 100, 200, 0.25),
+      inset 0 2px 4px rgba(100, 100, 200, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 10px 36px rgba(0, 0, 0, 0.5),
+      0 0 28px rgba(120, 150, 255, 0.45),
+      inset 0 2px 4px rgba(120, 150, 255, 0.3);
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 1680px) {
+  .player-stats {
+    left: 7vw;
+  }
+}
+
+@media (max-width: 1024px) {
+  .player-stats {
+    width: 260px;
+    left: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .player-stats {
+    display: none;
+  }
+}
