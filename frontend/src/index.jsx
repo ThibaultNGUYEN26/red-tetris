@@ -21,7 +21,6 @@ function Index() {
       setUsername(profileOrUsername)
       setUserProfile({ username: profileOrUsername, avatar })
     }
-    // Push a new state to the browser history
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }
 
@@ -32,6 +31,7 @@ function Index() {
   const handleReturnToProfile = () => {
     setUsername(null)
     setShowRooms(false)
+    setUserProfile(null)
     window.history.replaceState({}, '', window.location.pathname)
   }
 
