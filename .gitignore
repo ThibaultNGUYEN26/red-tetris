@@ -21,6 +21,8 @@ lerna-debug.log*
 ############################
 .env
 .env.*
+backend/.env
+frontend/.env
 
 ############################
 # Build output
