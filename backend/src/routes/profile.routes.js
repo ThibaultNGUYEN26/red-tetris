@@ -6,8 +6,13 @@ const router = express.Router();
 router.post("/profile", async (req, res) => {
   try {
     const { username, avatar } = req.body;
+
     if (!username || !avatar) {
       return res.status(400).json({ error: "Missing data" });
+    }
+
+    if (!/^[a-zA-Z0-9]{3,15}$/.test(username)) {
+      return res.status(400).json({ error: "Invalid username" });
     }
 
     const query = `
@@ -17,16 +22,11 @@ router.post("/profile", async (req, res) => {
       DO UPDATE SET avatar = EXCLUDED.avatar
       RETURNING id, username, avatar;
     `;
-    const values = [username, avatar];
+
+    const values = [username, JSON.stringify(avatar)];
     const result = await pool.query(query, values);
 
-    const user = result.rows[0];
-
-    // User session token
-    const sessionToken = crypto.randomUUID();
-    user.token = sessionToken;
-
-    res.status(200).json(user);
+    res.status(200).json(result.rows[0]);
   } catch (err) {
     console.error("Profile upsert failed:", err);
     res.status(500).json({ error: "Server error" });

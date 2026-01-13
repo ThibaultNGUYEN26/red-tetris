@@ -6,6 +6,8 @@ import { Server } from "socket.io";
 import cors from "cors";
 
 import profileRoutes from "./routes/profile.routes.js";
+import roomRoutes from "./routes/rooms.routes.js";
+
 import setupSockets from "./socket/index.js";
 import { pool } from "./config/db.js";
 
@@ -20,7 +22,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
 app.use("/api", profileRoutes);
+app.use("/api", roomRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
