@@ -76,15 +76,16 @@ To set up and run the frontend application, follow these steps:
 ```
 
 **Backend Requirements:**
-- Handle duplicate usernames (reject or suggest alternative)
-- Duplicate avatars are allowed
+- If username already exists, we log in with that user session
 - Validate username (alphanumeric, 3-15 characters)
+- Generate and return a unique `sessionId`
 
 **Example Response:**
 ```json
 {
   "success": true,
-  "userId": "<unique_user_id>"
+  "userId": "<unique_user_id>",
+  "token": "<unique_session_id>"
 }
 ```
 
