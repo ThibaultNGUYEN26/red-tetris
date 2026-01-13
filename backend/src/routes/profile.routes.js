@@ -25,8 +25,12 @@ router.post("/profile", async (req, res) => {
 
     const values = [username, JSON.stringify(avatar)];
     const result = await pool.query(query, values);
+    
+    const user = result.rows[0];
+    const sessionToken = crypto.randomUUID();
+    user.token = sessionToken;
 
-    res.status(200).json(result.rows[0]);
+    res.status(200).json(user);
   } catch (err) {
     console.error("Profile upsert failed:", err);
     res.status(500).json({ error: "Server error" });
