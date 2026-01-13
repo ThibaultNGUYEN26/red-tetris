@@ -1,4 +1,3 @@
-// src/game/Game.js
 import { TICK_RATE } from "../config/constants.js";
 
 export default class Game {
