@@ -11,9 +11,16 @@ function Index() {
   const [username, setUsername] = useState(null)
   const [theme, setTheme] = useState('light')
   const [showRooms, setShowRooms] = useState(false)
+  const [userProfile, setUserProfile] = useState(null)
 
-  const handleUsernameSubmit = (submittedUsername) => {
-    setUsername(submittedUsername)
+  const handleUsernameSubmit = (profileOrUsername, avatar) => {
+    if (typeof profileOrUsername === 'object' && profileOrUsername !== null) {
+      setUserProfile(profileOrUsername)
+      setUsername(profileOrUsername.username)
+    } else {
+      setUsername(profileOrUsername)
+      setUserProfile({ username: profileOrUsername, avatar })
+    }
     // Push a new state to the browser history
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }
@@ -96,7 +103,7 @@ function Index() {
           >
             ← Change profile
           </button>
-          <PlayerStats theme={theme} />
+          <PlayerStats theme={theme} userProfile={userProfile} />
           <Leaderboard theme={theme} />
         </>
       )}
