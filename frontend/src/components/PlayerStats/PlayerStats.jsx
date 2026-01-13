@@ -18,11 +18,21 @@ const DEFAULT_STATS = {
   losses: 0,
 }
 
-function PlayerStats({ theme }) {
+function PlayerStats({ theme, userProfile }) {
   const [stats, setStats] = useState(DEFAULT_STATS)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (userProfile) {
+      setStats({
+        ...DEFAULT_STATS,
+        name: userProfile.username || DEFAULT_STATS.name,
+        avatar: userProfile.avatar || DEFAULT_STATS.avatar,
+      })
+      setLoading(false)
+      return
+    }
+
     const fetchStats = async () => {
       try {
         const res = await fetch(`${API_URL}/api/player/stats`, {
@@ -38,7 +48,7 @@ function PlayerStats({ theme }) {
     }
 
     fetchStats()
-  }, [])
+  }, [userProfile])
 
   if (loading) {
     return (

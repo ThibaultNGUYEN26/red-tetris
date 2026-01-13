@@ -71,19 +71,23 @@ function ProfileMenu({ onSubmit, theme }) {
           body: JSON.stringify(profileData),
         })
 
+        const data = await response.json()
+        console.log('Backend response:', data)
         console.log('Profile sent successfully')
         console.log('Response status:', response.status)
-
-        // Uncomment when backend exists:
-        // const data = await response.json()
-        // console.log('Backend response:', data)
-
+        // Fallback if backend response is missing username
+        const safeData = {
+          username: data.username || username,
+          avatar: data.avatar || profileData.avatar,
+          ...data
+        }
+        onSubmit(safeData)
       } catch (error) {
         console.error('Failed to send profile to backend:', error.message)
         console.log('This is expected since backend is not running yet')
+        // fallback: pass local data
+        onSubmit({ username, avatar: profileData.avatar })
       }
-
-      onSubmit(username, currentAvatar)
     }
   }
 
