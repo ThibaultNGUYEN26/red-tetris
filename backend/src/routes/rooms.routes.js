@@ -3,13 +3,25 @@ import { pool } from "../config/db.js";
 
 const router = express.Router();
 
+function generateRoomName() {
+  const adjectives = ["Red", "Blue", "Fast", "Crazy", "Happy", "Silent"];
+  const nouns = ["Tetris", "Block", "Stack", "Line", "Drop", "Game"];
+
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+
+  // 4-char alphanumeric suffix
+  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+  return `${adj}${noun}-${randomSuffix}`;
+}
 
 // Create a new room
 router.post("/", async (req, res) => {
   try {
-    const { name, gameMode, host } = req.body;
+    const { gameMode, host } = req.body;
 
-    if (!name || !gameMode || !host) {
+    if (!gameMode || !host) {
       return res.status(400).json({ error: "Missing data" });
     }
 
@@ -18,24 +30,37 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Invalid game mode" });
     }
 
-    const query = `
-      INSERT INTO rooms (name, game_mode, host, player_count, players)
-      VALUES ($1, $2, $3, 1, $4)
-      RETURNING *;
-    `;
+    let room;
+    let attempts = 0;
 
-    const values = [name, gameMode, host, JSON.stringify([host])];
+    while (!room && attempts < 5) {
+      const name = generateRoomName();
 
-    const result = await pool.query(query, values);
+      const query = `
+        INSERT INTO rooms (name, game_mode, host, player_count, players)
+        VALUES ($1, $2, $3, 1, $4)
+        ON CONFLICT (name) DO NOTHING
+        RETURNING *;
+      `;
 
-    res.status(200).json(result.rows[0]);
+      const values = [name, gameMode, host, JSON.stringify([host])];
+      const result = await pool.query(query, values);
+
+      if (result.rowCount > 0) {
+        room = result.rows[0];
+      } else {
+        attempts++;
+      }
+    }
+
+    if (!room) {
+      return res.status(500).json({ error: "Failed to generate unique room name" });
+    }
+
+    res.status(200).json(room);
   } catch (err) {
     console.error("Failed to create room:", err);
-
-    if (err.code === "23505") {
-      return res.status(400).json({ error: "Room name already exists" });
-    }
-    res.status(400).json({ error: "Server error" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -109,6 +134,7 @@ router.post("/:roomId/join", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 
 // Leave room
 router.post("/:roomId/leave", async (req, res) => {
