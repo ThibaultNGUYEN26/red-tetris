@@ -15,8 +15,8 @@ function Rooms({ theme, onBack, username }) {
 
   const fetchRooms = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/rooms/available`)
-      const data = await response.json()
+      const res = await fetch(`${API_URL}/api/rooms/available`)
+      const data = await res.json()
       setRooms(data)
     } catch (err) {
       console.error('Failed to fetch rooms:', err)
@@ -39,27 +39,24 @@ function Rooms({ theme, onBack, username }) {
   const handleRoomCreated = async (roomId) => {
     localStorage.setItem('currentRoomId', roomId)
     setCurrentRoomId(roomId)
-    await fetchRooms() // 👈 VERY IMPORTANT
+    await fetchRooms() // ✅ NOW IT EXISTS
   }
 
   /* ---------------- JOIN ROOM ---------------- */
 
   const handleJoinRoom = async (roomId) => {
     try {
-      const response = await fetch(`${API_URL}/api/rooms/${roomId}/join`, {
+      await fetch(`${API_URL}/api/rooms/${roomId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId, username }),
       })
 
-      if (!response.ok) throw new Error('Join failed')
-
-      await response.json()
-
       localStorage.setItem('currentRoomId', roomId)
       setCurrentRoomId(roomId)
-    } catch (error) {
-      console.error('Failed to join room:', error.message)
+      await fetchRooms()
+    } catch (err) {
+      console.error('Join failed:', err)
     }
   }
 
@@ -69,15 +66,11 @@ function Rooms({ theme, onBack, username }) {
     const roomId = localStorage.getItem('currentRoomId')
 
     if (roomId) {
-      try {
-        await fetch(`${API_URL}/api/rooms/${roomId}/leave`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId, username }),
-        })
-      } catch (error) {
-        console.error('Failed to leave room:', error.message)
-      }
+      await fetch(`${API_URL}/api/rooms/${roomId}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId, username }),
+      })
     }
 
     localStorage.removeItem('currentRoomId')
@@ -95,9 +88,9 @@ function Rooms({ theme, onBack, username }) {
         username={username}
         existingRooms={rooms}
         roomId={currentRoomId}
-        mode={showCreateRoom ? 'create' : 'join'}   // 👈 KEY FIX
+        mode={showCreateRoom ? 'create' : 'join'}
         onBack={handleLeaveRoom}
-        onRoomCreated={handleRoomCreated}          // 👈 KEY FIX
+        onRoomCreated={handleRoomCreated}
       />
     )
   }
@@ -119,10 +112,7 @@ function Rooms({ theme, onBack, username }) {
           <p className="no-rooms">No rooms available. Create one!</p>
         ) : (
           rooms.map((room) => {
-            const isInRoom =
-              room.players &&
-              Array.isArray(room.players) &&
-              room.players.includes(username)
+            const isInRoom = room.players?.includes(username)
 
             return (
               <div key={room.id} className="room-entry">
@@ -132,23 +122,15 @@ function Rooms({ theme, onBack, username }) {
                 </div>
 
                 <div className="room-players">
-                  <span className="player-count">
-                    {room.player_count}/{room.maxPlayers || 6}
-                  </span>
+                  {room.player_count}/{room.maxPlayers || 6}
                 </div>
 
                 <button
                   className="join-button"
+                  disabled={room.player_count >= 6 || isInRoom}
                   onClick={() => handleJoinRoom(room.id)}
-                  disabled={
-                    room.player_count >= (room.maxPlayers || 6) || isInRoom
-                  }
                 >
-                  {room.player_count >= (room.maxPlayers || 6)
-                    ? 'Full'
-                    : isInRoom
-                    ? 'Joined'
-                    : 'Join'}
+                  {isInRoom ? 'Joined' : room.player_count >= 6 ? 'Full' : 'Join'}
                 </button>
               </div>
             )

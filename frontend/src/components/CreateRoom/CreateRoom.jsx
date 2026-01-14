@@ -8,8 +8,8 @@ function CreateRoom({
   onBack,
   existingRooms = [],
   username,
-  mode = 'create',     // 👈 NEW
-  roomId: joinedRoomId, // 👈 NEW (when joining)
+  mode = 'create',
+  roomId: joinedRoomId,
   onRoomCreated
 }) {
   const [roomName, setRoomName] = useState('')
@@ -52,7 +52,8 @@ function CreateRoom({
         name: roomName,
         gameMode: selectedMode,
         maxPlayers: 6,
-        username, // backend decides host
+        host: username,
+        playerCount: 1
       }
 
       try {
