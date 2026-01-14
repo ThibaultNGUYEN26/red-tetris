@@ -27,13 +27,11 @@ export default function setupSockets(io) {
   io.on("connection", (socket) => {
     console.log(`Socket connected: ${socket.id}`);
 
-    // Example: listen for a joinRoom event
     socket.on("joinRoom", ({ roomId, username }) => {
       console.log("socket_join_room", { socketId: socket.id, roomId, username });
-      // your DB logic to add the player
+      // DB logic to add the player
     });
 
-    // Example: fetch available rooms
     socket.on("getAvailableRooms", async () => {
       const MAX_PLAYERS = 6;
       const result = await pool.query(
@@ -47,7 +45,7 @@ export default function setupSockets(io) {
     });
 
     socket.on("disconnect", () => {
-      console.log(`🔴 Socket disconnected: ${socket.id}`);
+      console.log(`Socket disconnected: ${socket.id}`);
     });
   });
 }
