@@ -18,6 +18,7 @@ function Rooms({ theme, onBack, username }) {
       const response = await fetch(`${API_URL}/api/rooms/available`)
       const data = await response.json()
       setRooms(data)
+      // Log after state update (async, so use effect below for actual state)
     } catch (err) {
       console.error('Failed to fetch rooms:', err)
     }
