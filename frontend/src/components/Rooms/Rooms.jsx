@@ -18,7 +18,6 @@ function Rooms({ theme, onBack, username }) {
       const response = await fetch(`${API_URL}/api/rooms/available`)
       const data = await response.json()
       setRooms(data)
-      // Log after state update (async, so use effect below for actual state)
     } catch (err) {
       console.error('Failed to fetch rooms:', err)
     }
@@ -32,8 +31,15 @@ function Rooms({ theme, onBack, username }) {
 
   /* ---------------- CREATE ROOM ---------------- */
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
+    await fetchRooms()
     setShowCreateRoom(true)
+  }
+
+  const handleRoomCreated = async (roomId) => {
+    localStorage.setItem('currentRoomId', roomId)
+    setCurrentRoomId(roomId)
+    await fetchRooms() // 👈 VERY IMPORTANT
   }
 
   /* ---------------- JOIN ROOM ---------------- */
@@ -87,9 +93,11 @@ function Rooms({ theme, onBack, username }) {
       <CreateRoom
         theme={theme}
         username={username}
-        roomId={currentRoomId}
         existingRooms={rooms}
+        roomId={currentRoomId}
+        mode={showCreateRoom ? 'create' : 'join'}   // 👈 KEY FIX
         onBack={handleLeaveRoom}
+        onRoomCreated={handleRoomCreated}          // 👈 KEY FIX
       />
     )
   }
