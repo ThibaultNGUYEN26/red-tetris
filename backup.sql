@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict llW3u6MhbknAi3PhvphcVRAGMLwkhPc22VrXtBvcWdS9HPyX4dwC3g284baN4by
+\restrict qH3v8CeBT1RxKnITge45TxBytWo9AJpe1r5YymXFevXv8iZtKiSGtsWPYfBPKSv
 
 -- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
 -- Dumped by pg_dump version 15.15 (Debian 15.15-1.pgdg13+1)
@@ -28,11 +28,12 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.rooms (
     id integer NOT NULL,
-    name text NOT NULL,
-    game_mode text NOT NULL,
-    host text NOT NULL,
-    player_count integer NOT NULL,
+    name character varying(100) NOT NULL,
+    game_mode character varying(20) NOT NULL,
+    host character varying(100) NOT NULL,
+    player_count integer DEFAULT 1 NOT NULL,
     players jsonb NOT NULL,
+    status character varying(20) DEFAULT 'waiting'::character varying,
     created_at timestamp without time zone DEFAULT now()
 );
 
@@ -67,9 +68,8 @@ ALTER SEQUENCE public.rooms_id_seq OWNED BY public.rooms.id;
 
 CREATE TABLE public.users (
     id integer NOT NULL,
-    username character varying(50) NOT NULL,
-    avatar jsonb NOT NULL,
-    created_at timestamp without time zone DEFAULT now()
+    username character varying(100) NOT NULL,
+    avatar jsonb NOT NULL
 );
 
 
@@ -115,7 +115,7 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 -- Data for Name: rooms; Type: TABLE DATA; Schema: public; Owner: riri
 --
 
-COPY public.rooms (id, name, game_mode, host, player_count, players, created_at) FROM stdin;
+COPY public.rooms (id, name, game_mode, host, player_count, players, status, created_at) FROM stdin;
 \.
 
 
@@ -123,7 +123,7 @@ COPY public.rooms (id, name, game_mode, host, player_count, players, created_at)
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: riri
 --
 
-COPY public.users (id, username, avatar, created_at) FROM stdin;
+COPY public.users (id, username, avatar) FROM stdin;
 \.
 
 
@@ -131,14 +131,14 @@ COPY public.users (id, username, avatar, created_at) FROM stdin;
 -- Name: rooms_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.rooms_id_seq', 1, false);
+SELECT pg_catalog.setval('public.rooms_id_seq', 5, true);
 
 
 --
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 1, false);
+SELECT pg_catalog.setval('public.users_id_seq', 3, true);
 
 
 --
@@ -177,5 +177,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict llW3u6MhbknAi3PhvphcVRAGMLwkhPc22VrXtBvcWdS9HPyX4dwC3g284baN4by
+\unrestrict qH3v8CeBT1RxKnITge45TxBytWo9AJpe1r5YymXFevXv8iZtKiSGtsWPYfBPKSv
 

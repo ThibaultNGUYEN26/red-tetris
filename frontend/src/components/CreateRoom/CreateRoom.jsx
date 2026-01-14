@@ -52,12 +52,15 @@ function CreateRoom({ theme, onBack, onCreateRoom, existingRooms = [], username 
       }
 
       console.log('Creating room on backend:', JSON.stringify(roomData, null, 2))
-
+      console.log('Frontend: creating room', roomData)
       try {
+        let token = null
+        if (window.lastBackendToken) token = window.lastBackendToken
         const response = await fetch(`${API_URL}/api/rooms`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
           body: JSON.stringify(roomData),
         })
