@@ -215,7 +215,7 @@ router.get("/available", async (req, res) => {
     const MAX_PLAYERS = 6;
 
     const query = `
-      SELECT id, name, game_mode, host, player_count, players, status
+      SELECT id, name, game_mode, host, player_count, players
       FROM rooms
       WHERE player_count < $1
       ORDER BY created_at ASC;
