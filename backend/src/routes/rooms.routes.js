@@ -169,7 +169,7 @@ router.post("/:roomId/leave", async (req, res) => {
 // Start game
 router.post("/:roomId/start", async (req, res) => {
   const { roomId } = req.params;
-  const { username } = req.body; // who is trying to start the game
+  const { username } = req.body;
 
   if (!username) return res.status(400).json({ error: "Missing username" });
 
