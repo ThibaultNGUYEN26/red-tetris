@@ -6,6 +6,9 @@ frontend:
 backend:
 	cd backend && npm run dev
 
+create-db:
+	docker compose --env-file .env up -d 
+
 db:
 	docker exec -it red_tetris_postgre psql -h localhost -U riri -d red_tetris_db
 
