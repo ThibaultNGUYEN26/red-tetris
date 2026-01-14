@@ -40,9 +40,7 @@ function CreateRoom({
 
     const createRoomOnBackend = async () => {
       const roomData = {
-        name: roomName,
         gameMode: selectedMode,
-        maxPlayers: 6,
         host: username
       }
 
@@ -108,7 +106,6 @@ function CreateRoom({
           body: JSON.stringify({
             name: roomName.trim(),
             gameMode: selectedMode,
-            maxPlayers: 6,
           }),
         })
       } catch (error) {
