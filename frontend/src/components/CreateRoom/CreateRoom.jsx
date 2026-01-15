@@ -1,5 +1,6 @@
 import './CreateRoom.css'
 import { useState, useEffect, useRef } from 'react'
+import { socket } from '../../socket'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -65,6 +66,14 @@ function CreateRoom({
     hasCreatedRoom.current = true
   }, [roomName, selectedMode, mode, username])
 
+  /* ---------------- JOIN SOCKET ROOM (AFTER CREATION) ---------------- */
+
+  useEffect(() => {
+    if (roomId && mode === 'create' && username) {
+      socket.emit('joinRoom', { roomId, username });
+    }
+  }, [roomId, mode, username]);
+
   /* ---------------- FETCH ROOM DATA (SOURCE OF TRUTH) ---------------- */
 
   useEffect(() => {
@@ -93,6 +102,34 @@ function CreateRoom({
     fetchRoom()
   }, [roomId])
 
+  /* ---------------- FETCH ROOM STATE VIA SOCKET.IO ---------------- */
+
+  useEffect(() => {
+    if (!roomId) return
+    socket.emit('getRoomState', { roomId })
+    const handleRoomState = (room) => {
+      setRoomName(room.name)
+      setSelectedMode(room.game_mode)
+      setPlayers(
+        room.players.map((name, index) => ({
+          id: index + 1,
+          name,
+          isHost: name === room.host,
+        }))
+      )
+    }
+    socket.on('roomState', handleRoomState)
+    return () => {
+      socket.off('roomState', handleRoomState)
+    }
+  }, [roomId])
+
+  // Always request latest room state when players change
+  useEffect(() => {
+    if (!roomId) return;
+    socket.emit('getRoomState', { roomId });
+  }, [roomId, players.length]);
+
   /* ---------------- UPDATE ROOM NAME (HOST ONLY) ---------------- */
 
   useEffect(() => {
@@ -115,6 +152,60 @@ function CreateRoom({
 
     return () => clearTimeout(timeoutId)
   }, [roomName, selectedMode, roomId, mode])
+
+  /* ---------------- LOG ROOM STATE ON JOIN ---------------- */
+
+  // Log to console when a new player joins (roomState changes)
+  useEffect(() => {
+    if (!roomId) return;
+    const handleRoomStateLog = (room) => {
+      console.log('Room state updated:', room);
+    };
+    socket.on('roomState', handleRoomStateLog);
+    return () => {
+      socket.off('roomState', handleRoomStateLog);
+    };
+  }, [roomId]);
+
+  /* ---------------- ENSURE SOCKET JOINS ROOM ---------------- */
+
+  // Ensure socket always joins the room (host or joiner) on mount and reconnect
+  useEffect(() => {
+    if (!roomId || !username) return;
+    const join = () => socket.emit('joinRoom', { roomId, username });
+    join();
+    socket.on('connect', join);
+    return () => {
+      socket.off('connect', join);
+    };
+  }, [roomId, username]);
+
+  /* ---------------- ALWAYS KEEP PLAYER LIST UPDATED VIA SOCKETS ---------------- */
+
+  useEffect(() => {
+    if (!roomId) return;
+    const handleRoomStateUpdate = (room) => {
+      setRoomName(room.name);
+      setSelectedMode(room.game_mode);
+      setPlayers(
+        room.players.map((name, index) => ({
+          id: index + 1,
+          name,
+          isHost: name === room.host,
+        }))
+      );
+      console.log('Room state updated:', room);
+    };
+    socket.on('roomState', handleRoomStateUpdate);
+    // Request latest state every 2s
+    const interval = setInterval(() => {
+      socket.emit('getRoomState', { roomId });
+    }, 2000);
+    return () => {
+      socket.off('roomState', handleRoomStateUpdate);
+      clearInterval(interval);
+    };
+  }, [roomId]);
 
   /* ---------------- UI HANDLERS (UNCHANGED) ---------------- */
 
