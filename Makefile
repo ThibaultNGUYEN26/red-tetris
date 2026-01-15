@@ -63,9 +63,8 @@ setup:
 		echo "No backup.sql found, skipping DB restore"; \
 	fi
 
-install:
+install: setup
 	npm install --prefix frontend
 	npm install --prefix backend
-	docker-compose --env-file .env up -d
 
 .PHONY: frontend backend db setup-frontend install
