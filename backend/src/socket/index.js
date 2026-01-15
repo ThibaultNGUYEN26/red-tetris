@@ -1,26 +1,3 @@
-// // src/socket/index.js
-// import Game from "../game/Game.js";
-
-// const games = new Map(); // socket.id → Game instance
-
-// export default function setupSockets(io) {
-//   io.on("connection", (socket) => {
-//     console.log("Client connected:", socket.id);
-
-//     const game = new Game(socket.id);
-//     games.set(socket.id, game);
-
-//     socket.on("player_input", (input) => {
-//       game.handleInput(input);
-//     });
-
-//     socket.on("disconnect", () => {
-//       games.delete(socket.id);
-//       console.log("Client disconnected:", socket.id);
-//     });
-//   });
-// }
-
 import { pool } from "../config/db.js";
 
 export default function setupSockets(io) {
@@ -42,6 +19,26 @@ export default function setupSockets(io) {
         [MAX_PLAYERS]
       );
       socket.emit("availableRooms", result.rows);
+    });
+
+    socket.on("getRoomState", async ({ roomId }) => {
+      try {
+        const result = await pool.query(
+          `SELECT id, name, game_mode, host, player_count, players
+          FROM rooms
+          WHERE id = $1`,
+          [roomId]
+        );
+
+        if (result.rowCount === 0) {
+          return socket.emit("error", { message: "Room not found" });
+        }
+
+        socket.emit("roomState", result.rows[0]);
+      } catch (err) {
+        console.error("getRoomState failed:", err);
+        socket.emit("error", { message: "Server error" });
+      }
     });
 
     socket.on("disconnect", () => {
