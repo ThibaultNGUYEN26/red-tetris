@@ -17,7 +17,7 @@ To set up and run the frontend application, follow these steps:
 
    First, checkout the backend branch where the server code lives:
    ```bash
-   git checkout backend
+   git checkout -b backend origin/backend
    ```
 
    Then merge the frontend branch to combine both frontend and backend code:
