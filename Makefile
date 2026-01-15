@@ -16,6 +16,17 @@ db:
 update-db:
 	docker exec -it red_tetris_postgres pg_dump -U ${DB_USER} ${DB_NAME} > backup.sql
 
+delete-db:
+	rm -rf backup.sql
+
+wait-db:
+	@echo "Waiting for Postgres to be ready..."
+	@until docker exec red_tetris_postgres \
+		pg_isready -h localhost -p 5432 -U $(DB_USER) > /dev/null 2>&1; do \
+		sleep 1; \
+	done
+	@echo "Postgres is ready !"
+
 down:
 	@echo "Backing up database..."
 	@$(MAKE) update-db
@@ -24,11 +35,8 @@ down:
 	@echo "Removing containers (keeping volumes)..."
 	docker compose rm -f
 
-delete-db:
-	rm -rf backup.sql
-
 prune:
-	@echo "Resetting database (this will DELETE all data)..."
+	@echo "Resetting pgsql containers..."
 	@echo "Stopping and removing containers + volumes..."
 	docker compose down -v
 	@echo "Pruning unused Docker resources..."
@@ -43,6 +51,7 @@ setup:
 	  echo "frontend/.env already exists"; \
 	fi
 	@$(MAKE) create-db
+	@$(MAKE) wait-db
 	@if [ -f backup.sql ]; then \
 		echo "Restoring database from backup.sql..."; \
 		docker exec -i red_tetris_postgres \
