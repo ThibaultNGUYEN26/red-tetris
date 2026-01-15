@@ -234,28 +234,4 @@ router.post("/:roomId/start", async (req, res) => {
   }
 });
 
-
-// List all available rooms
-router.get("/available", async (req, res) => {
-  try {
-    const MAX_PLAYERS = 6;
-
-    const query = `
-      SELECT id, name, game_mode, host, player_count, players
-      FROM rooms
-      WHERE player_count < $1
-      ORDER BY created_at ASC;
-    `;
-
-    const result = await pool.query(query, [MAX_PLAYERS]);
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Failed to list available rooms:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-
-
 export default router;
