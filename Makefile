@@ -1,4 +1,6 @@
-# Makefile for Red Tetris
+include .env
+export
+
 frontend:
 	cd frontend && npm run dev
 
@@ -9,10 +11,10 @@ create-db:
 	docker compose --env-file .env up -d
 
 db:
-	docker exec -it red_tetris_postgres psql -h localhost -U riri -d red_tetris_db
+	docker exec -it red_tetris_postgres psql -h localhost -U ${DB_USER} -d ${DB_NAME}
 
 update-db:
-	docker exec -it red_tetris_postgres pg_dump -U riri red_tetris_db > backup.sql
+	docker exec -it red_tetris_postgres pg_dump -U ${DB_USER} ${DB_NAME} > backup.sql
 
 down:
 	@echo "Backing up database..."
@@ -22,15 +24,15 @@ down:
 	@echo "Removing containers (keeping volumes)..."
 	docker compose rm -f
 
+delete-db:
+	rm -rf backup.sql
+
 prune:
 	@echo "Resetting database (this will DELETE all data)..."
 	@echo "Stopping and removing containers + volumes..."
 	docker compose down -v
 	@echo "Pruning unused Docker resources..."
 	docker system prune -f
-	@echo "Removing local backup..."
-	rm -f backup.sql
-	@echo "Database reset complete."
 
 setup:
 	./get_ip.sh
@@ -40,13 +42,16 @@ setup:
 	else \
 	  echo "frontend/.env already exists"; \
 	fi
+	@$(MAKE) create-db
 	@if [ -f backup.sql ]; then \
-	  echo "Restoring database from backup.sql..."; \
-	  docker exec -i red_tetris_postgres \
-	    psql -U $$DB_USER $$DB_NAME < backup.sql; \
-	  echo "Database restored"; \
+		echo "Restoring database from backup.sql..."; \
+		docker exec -i red_tetris_postgres \
+			env PGPASSWORD=$(DB_PASSWORD) \
+			psql -h localhost -U $(DB_USER) $(DB_NAME) < backup.sql && \
+		echo "Database restored" || \
+		echo "Database restore FAILED"; \
 	else \
-	  echo "No backup.sql found, skipping DB restore"; \
+		echo "No backup.sql found, skipping DB restore"; \
 	fi
 
 install:
