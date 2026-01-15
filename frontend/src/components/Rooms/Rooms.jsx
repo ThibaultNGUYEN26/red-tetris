@@ -1,5 +1,6 @@
 import './Rooms.css'
 import { useState, useEffect } from 'react'
+import { socket } from '../../socket'
 import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -13,33 +14,38 @@ function Rooms({ theme, onBack, username }) {
 
   /* ---------------- FETCH ROOMS ---------------- */
 
-  const fetchRooms = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/rooms/available`)
-      const data = await res.json()
-      setRooms(data)
-    } catch (err) {
-      console.error('Failed to fetch rooms:', err)
-    }
-  }
-
+  // --- SOCKET.IO ROOMS FETCH ---
   useEffect(() => {
-    fetchRooms()
-    const interval = setInterval(fetchRooms, 2000)
-    return () => clearInterval(interval)
+    // Request available rooms on mount
+    socket.emit('getAvailableRooms')
+
+    // Listen for availableRooms event
+    const handleAvailableRooms = (data) => {
+      setRooms(data)
+    }
+    socket.on('availableRooms', handleAvailableRooms)
+
+    // Optionally poll every 2s for updates
+    const interval = setInterval(() => {
+      socket.emit('getAvailableRooms')
+    }, 2000)
+
+    return () => {
+      socket.off('availableRooms', handleAvailableRooms)
+      clearInterval(interval)
+    }
   }, [])
 
   /* ---------------- CREATE ROOM ---------------- */
 
-  const handleCreateRoom = async () => {
-    await fetchRooms()
+  const handleCreateRoom = () => {
+    // No fetchRooms, just show the create room UI
     setShowCreateRoom(true)
   }
 
   const handleRoomCreated = async (roomId) => {
     localStorage.setItem('currentRoomId', roomId)
     setCurrentRoomId(roomId)
-    await fetchRooms() // ✅ NOW IT EXISTS
   }
 
   /* ---------------- JOIN ROOM ---------------- */
@@ -54,7 +60,6 @@ function Rooms({ theme, onBack, username }) {
 
       localStorage.setItem('currentRoomId', roomId)
       setCurrentRoomId(roomId)
-      await fetchRooms()
     } catch (err) {
       console.error('Join failed:', err)
     }

@@ -15,9 +15,10 @@ function CreateRoom({
   const [roomName, setRoomName] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
   const [selectedMode, setSelectedMode] = useState('classic')
-  const [players, setPlayers] = useState([
-    { id: 1, name: username || 'You', isHost: true }
-  ])
+  const [players, setPlayers] = useState(mode === 'create'
+    ? [{ id: 1, name: username, isHost: true }]
+    : []
+  )
   const [roomId, setRoomId] = useState(joinedRoomId || null)
 
   const hasCreatedRoom = useRef(false)
@@ -28,18 +29,8 @@ function CreateRoom({
 
   useEffect(() => {
     if (mode !== 'create') return
-
-    const existingRoomNames = existingRooms.map(room => room.name)
-    let roomNumber = 1
-    let defaultName = `Room ${roomNumber}`
-
-    while (existingRoomNames.includes(defaultName)) {
-      roomNumber++
-      defaultName = `Room ${roomNumber}`
-    }
-
-    setRoomName(defaultName)
-  }, [existingRooms, mode])
+    setRoomName('Room 1')
+  }, [mode])
 
   /* ---------------- CREATE ROOM (ONLY ON CREATE) ---------------- */
 
@@ -49,11 +40,8 @@ function CreateRoom({
 
     const createRoomOnBackend = async () => {
       const roomData = {
-        name: roomName,
         gameMode: selectedMode,
-        maxPlayers: 6,
-        host: username,
-        playerCount: 1
+        host: username
       }
 
       try {
@@ -67,9 +55,7 @@ function CreateRoom({
         setRoomId(data.roomId)
         localStorage.setItem('currentRoomId', data.roomId)
 
-        if (onRoomCreated) {
-          onRoomCreated() // 👈 FORCE ROOMS REFRESH
-        }
+        if (onRoomCreated) onRoomCreated(data.roomId)
       } catch (error) {
         console.error('Failed to create room:', error.message)
       }
@@ -79,7 +65,35 @@ function CreateRoom({
     hasCreatedRoom.current = true
   }, [roomName, selectedMode, mode, username])
 
-  /* ---------------- UPDATE ROOM NAME (SAFE) ---------------- */
+  /* ---------------- FETCH ROOM DATA (SOURCE OF TRUTH) ---------------- */
+
+  useEffect(() => {
+    if (!roomId) return
+
+    const fetchRoom = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/rooms/${roomId}`)
+        const room = await res.json()
+
+        setRoomName(room.name)
+        setSelectedMode(room.game_mode)
+
+        setPlayers(
+          room.players.map((name, index) => ({
+            id: index + 1,
+            name,
+            isHost: name === room.host, // ✅ ONLY REAL HOST
+          }))
+        )
+      } catch (err) {
+        console.error('Failed to fetch room:', err)
+      }
+    }
+
+    fetchRoom()
+  }, [roomId])
+
+  /* ---------------- UPDATE ROOM NAME (HOST ONLY) ---------------- */
 
   useEffect(() => {
     if (!roomId || mode !== 'create') return
@@ -92,7 +106,6 @@ function CreateRoom({
           body: JSON.stringify({
             name: roomName.trim(),
             gameMode: selectedMode,
-            maxPlayers: 6,
           }),
         })
       } catch (error) {
@@ -106,14 +119,10 @@ function CreateRoom({
   /* ---------------- UI HANDLERS (UNCHANGED) ---------------- */
 
   const handleRoomNameChange = (e) => {
-    if (e.target.value.length <= 15) {
-      setRoomName(e.target.value)
-    }
+    if (e.target.value.length <= 15) setRoomName(e.target.value)
   }
 
-  const handleModeChange = (e) => {
-    setSelectedMode(e.target.value)
-  }
+  const handleModeChange = (e) => setSelectedMode(e.target.value)
 
   const handleEditClick = () => setIsEditingName(true)
 
@@ -214,7 +223,7 @@ function CreateRoom({
           </select>
         </div>
 
-        {/* Players List (UI KEPT) */}
+        {/* Players List */}
         <div className="players-section">
           <h3>Players ({players.length}/6)</h3>
 
@@ -231,28 +240,7 @@ function CreateRoom({
             {players.length < 6 && (
               <div className="player-item waiting">
                 <span className="player-name waiting-text">
-                  <span className="wave-text">W</span>
-                  <span className="wave-text">a</span>
-                  <span className="wave-text">i</span>
-                  <span className="wave-text">t</span>
-                  <span className="wave-text">i</span>
-                  <span className="wave-text">n</span>
-                  <span className="wave-text">g</span>
-                  <span className="wave-text"> </span>
-                  <span className="wave-text">f</span>
-                  <span className="wave-text">o</span>
-                  <span className="wave-text">r</span>
-                  <span className="wave-text"> </span>
-                  <span className="wave-text">p</span>
-                  <span className="wave-text">l</span>
-                  <span className="wave-text">a</span>
-                  <span className="wave-text">y</span>
-                  <span className="wave-text">e</span>
-                  <span className="wave-text">r</span>
-                  <span className="wave-text">s</span>
-                  <span className="wave-text">.</span>
-                  <span className="wave-text">.</span>
-                  <span className="wave-text">.</span>
+                  Waiting for players...
                 </span>
               </div>
             )}
