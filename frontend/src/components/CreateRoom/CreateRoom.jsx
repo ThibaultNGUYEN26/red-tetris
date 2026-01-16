@@ -112,6 +112,7 @@ function CreateRoom({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: roomName.trim(),
+            username: username,
           }),
         })
       } catch (err) {
