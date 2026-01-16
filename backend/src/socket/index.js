@@ -2,9 +2,18 @@ import { pool } from "../config/db.js";
 
 export default function setupSockets(io) {
   io.on("connection", (socket) => {
-    socket.on("getAvailableRooms", async () => {
-      console.log(`Socket getAvailableRooms: ${socket.id}`);
+    socket.on("joinRoom", ({ roomId }) => {
+      socket.join(String(roomId));
+      console.log(`${socket.id} joined room ${roomId}`);
+    });
 
+    socket.on("leaveRoom", ({ roomId }) => {
+      socket.leave(String(roomId));
+      console.log(`${socket.id} left room ${roomId}`);
+    });
+
+    // Helper function to emit availableRooms to all clients
+    async function broadcastAvailableRooms() {
       const MAX_PLAYERS = 6;
       const result = await pool.query(
         `SELECT id, name, game_mode, host, player_count, players
@@ -13,7 +22,12 @@ export default function setupSockets(io) {
          ORDER BY created_at ASC;`,
         [MAX_PLAYERS]
       );
-      socket.emit("availableRooms", result.rows);
+      io.emit("availableRooms", result.rows);
+    }
+
+    socket.on("getAvailableRooms", async () => {
+      // Only emit once on request, not on interval
+      await broadcastAvailableRooms();
     });
 
     socket.on("getRoomState", async ({ roomId }) => {
@@ -30,7 +44,8 @@ export default function setupSockets(io) {
           return socket.emit("error", { message: "Room not found" });
         }
 
-        socket.emit("roomState", result.rows[0]);
+        // Emit to all sockets in the room, not just the requester
+        io.to(String(roomId)).emit("roomState", result.rows[0]);
       } catch (err) {
         console.error("getRoomState failed:", err);
         socket.emit("error", { message: "Server error" });

@@ -22,6 +22,7 @@ function CreateRoom({
       : []
   )
   const [roomId, setRoomId] = useState(joinedRoomId || null)
+  const [hostName, setHostName] = useState('')
 
   const hasCreatedRoom = useRef(false)
   const hasEditedName = useRef(false)
@@ -63,28 +64,20 @@ function CreateRoom({
     createRoom()
   }, [])
 
-  /* ---------------- JOIN SOCKET ROOM ---------------- */
-
-  // Only joinRoom via socket if mode is 'create' (host), not for join mode
-  useEffect(() => {
-    if (!roomId || !username) return
-    if (mode !== 'create') return
-    socket.emit('joinRoom', {
-      roomId: String(roomId),
-      username,
-    })
-  }, [roomId, username, mode])
-
   /* ---------------- SOCKET ROOM STATE (SOURCE OF TRUTH) ---------------- */
 
   useEffect(() => {
     if (!roomId) return
+
+    socket.emit("joinRoom", { roomId: String(roomId) });
+    console.log('Emitting getRoomState', roomId);
 
     const handleRoomState = (room) => {
       console.log('🟢 Room updated:', room)
 
       setRoomName(room.name)
       setSelectedMode(room.game_mode)
+      setHostName(room.host)
       setPlayers(
         room.players.map((name, index) => ({
           id: index + 1,
@@ -100,7 +93,9 @@ function CreateRoom({
     socket.emit('getRoomState', { roomId: String(roomId) })
 
     return () => {
-      socket.off('roomState', handleRoomState)
+      socket.off('roomState', handleRoomState);
+      console.log("🔴 Leaving room:", roomId);
+      socket.emit("leaveRoom", { roomId: String(roomId) });
     }
   }, [roomId])
 
