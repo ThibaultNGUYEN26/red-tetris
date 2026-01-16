@@ -65,14 +65,15 @@ function CreateRoom({
 
   /* ---------------- JOIN SOCKET ROOM ---------------- */
 
+  // Only joinRoom via socket if mode is 'create' (host), not for join mode
   useEffect(() => {
     if (!roomId || !username) return
-
+    if (mode !== 'create') return
     socket.emit('joinRoom', {
       roomId: String(roomId),
       username,
     })
-  }, [roomId, username])
+  }, [roomId, username, mode])
 
   /* ---------------- SOCKET ROOM STATE (SOURCE OF TRUTH) ---------------- */
 

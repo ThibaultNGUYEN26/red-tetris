@@ -51,19 +51,40 @@ function Rooms({ theme, onBack, username }) {
   /* ---------------- JOIN ROOM ---------------- */
 
   const handleJoinRoom = async (roomId) => {
+    // Join room via HTTP only
     try {
       await fetch(`${API_URL}/api/rooms/${roomId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId, username }),
       })
-
       localStorage.setItem('currentRoomId', roomId)
       setCurrentRoomId(roomId)
     } catch (err) {
       console.error('Join failed:', err)
     }
   }
+  // Listen for roomState updates (when someone joins/leaves)
+  useEffect(() => {
+    const handleRoomState = (room) => {
+      // If the user is in this room, update the current room state
+      if (room.players && room.players.includes(username)) {
+        setRooms((prevRooms) => {
+          // Update the room in the rooms list
+          const updatedRooms = prevRooms.map((r) => (r.id === room.id ? room : r))
+          // If room not in list, add it
+          if (!updatedRooms.find((r) => r.id === room.id)) {
+            updatedRooms.push(room)
+          }
+          return updatedRooms
+        })
+      }
+    }
+    socket.on('roomState', handleRoomState)
+    return () => {
+      socket.off('roomState', handleRoomState)
+    }
+  }, [username])
 
   /* ---------------- LEAVE ROOM ---------------- */
 
