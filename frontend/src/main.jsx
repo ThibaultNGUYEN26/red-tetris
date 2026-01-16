@@ -4,7 +4,7 @@ import './index.css'
 import Index from './index.jsx'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
+  <>
     <Index />
-  </StrictMode>,
+  </>,
 )

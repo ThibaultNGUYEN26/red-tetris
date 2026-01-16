@@ -49,6 +49,7 @@ const io = new Server(httpServer, {
   },
 });
 
+app.set("io", io);
 setupSockets(io);
 
 httpServer.listen(3000, async () => {
