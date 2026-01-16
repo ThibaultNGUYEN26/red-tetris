@@ -220,6 +220,9 @@ router.post("/:roomId/leave", async (req, res) => {
     const values = [roomId, JSON.stringify(updatedPlayers), updatedPlayers.length, newHost];
     const result = await pool.query(updateQuery, values);
 
+    const io = req.app.get("io");
+    io.to(String(roomId)).emit("roomState", result.rows[0]);
+    
     res.json(result.rows[0]);
   } catch (err) {
     console.error("Leave room failed:", err);
