@@ -61,7 +61,7 @@ function CreateRoom({
     }
 
     createRoom()
-  }, [mode, selectedMode, username])
+  }, [])
 
   /* ---------------- JOIN SOCKET ROOM ---------------- */
 
