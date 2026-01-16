@@ -247,7 +247,6 @@
 .wave-text {
   display: inline-block;
   animation: wave 3s ease-in-out infinite;
-  margin: 0 1px;
 }
 
 .wave-text:nth-child(1) { animation-delay: 0s; }

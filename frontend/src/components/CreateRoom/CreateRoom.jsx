@@ -179,6 +179,26 @@ function CreateRoom({
     onBack()
   }
 
+  /* ---------------- LEAVE ROOM ON TAB CLOSE/REFRESH ---------------- */
+
+  useEffect(() => {
+    if (!roomId || !username) return;
+
+    const handleBeforeUnload = (e) => {
+      // Use sendBeacon for reliable leave on refresh/close
+      const url = `${API_URL}/api/rooms/${roomId}/leave`;
+      const data = JSON.stringify({ roomId, username });
+      const blob = new Blob([data], { type: 'application/json' });
+      navigator.sendBeacon(url, blob);
+      localStorage.removeItem("currentRoomId");
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [roomId, username]);
+
   /* ---------------- RENDER ---------------- */
 
   return (
@@ -246,12 +266,10 @@ function CreateRoom({
 
             {players.length < 6 && (
               <div className="player-item waiting">
-                <span
-                  key={players.length}
-                  className="player-name waiting-text"
-                >
-                  Waiting for players...
-                </span>
+                {/* Animated waiting text */}
+                {Array.from('Waiting for players...').map((char, i) => (
+                  <span key={i} className="wave-text">{char}</span>
+                ))}
               </div>
             )}
           </div>
