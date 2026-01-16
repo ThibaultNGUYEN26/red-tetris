@@ -21,6 +21,24 @@ router.post("/", async (req, res) => {
   try {
     const { gameMode, host } = req.body;
 
+    const checkUserQuery = `
+      SELECT id
+      FROM rooms
+      WHERE players @> $1::jsonb
+      LIMIT 1;
+    `;
+
+    const checkResult = await pool.query(
+      checkUserQuery,
+      [JSON.stringify([host])]
+    );
+
+    if (checkResult.rowCount > 0) {
+      return res.status(400).json({
+        error: "User is already in a room"
+      });
+    }
+
     if (!gameMode || !host) {
       return res.status(400).json({ error: "Missing data" });
     }
@@ -94,6 +112,24 @@ router.patch("/:roomId/name", async (req, res) => {
 router.post("/:roomId/join", async (req, res) => {
   const { roomId } = req.params;
   const { username } = req.body;
+
+  const checkUserQuery = `
+      SELECT id
+      FROM rooms
+      WHERE players @> $1::jsonb
+      LIMIT 1;
+    `;
+
+    const checkResult = await pool.query(
+      checkUserQuery,
+      [JSON.stringify([username])]
+    );
+
+    if (checkResult.rowCount > 0) {
+      return res.status(400).json({
+        error: "User is already in a room"
+      });
+    }
 
   if (!username) return res.status(400).json({ error: "Missing username" });
 
