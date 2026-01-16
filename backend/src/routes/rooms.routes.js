@@ -120,6 +120,9 @@ router.patch("/:roomId/name", async (req, res) => {
       [name, roomId]
     );
 
+    const io = req.app.get("io");
+    io.to(String(roomId)).emit("roomState", result.rows[0]);
+
     res.json(updateResult.rows[0]);
 
   } catch (err) {
