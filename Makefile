@@ -44,12 +44,6 @@ prune:
 
 setup:
 	./get_ip.sh
-	@if [ ! -f frontend/.env ]; then \
-	  echo "VITE_API_URL=http://localhost:3000" > frontend/.env; \
-	  echo "Created frontend/.env"; \
-	else \
-	  echo "frontend/.env already exists"; \
-	fi
 	@$(MAKE) create-db
 	@$(MAKE) wait-db
 	@if [ -f backup.sql ]; then \
