@@ -99,6 +99,31 @@ function CreateRoom({
     }
   }, [roomId])
 
+    /* ---------------- UPDATE ROOM NAME (ONLY AFTER USER EDIT) ---------------- */
+
+  useEffect(() => {
+    if (!roomId || mode !== 'create') return;
+    if (!hasEditedName.current) return;
+    if (roomName.trim().length === 0) return; // Prevent PATCH if name is empty
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        await fetch(`${API_URL}/api/rooms/${roomId}/name`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: roomName.trim(),
+            username: username,
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to update room name:', err);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [roomName, roomId, mode, username]);
+  
   /* ---------------- UI HANDLERS ---------------- */
 
   const handleRoomNameChange = (e) => {
