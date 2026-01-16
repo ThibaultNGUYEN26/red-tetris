@@ -1,90 +1,101 @@
 import './Rooms.css'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { socket } from '../../socket'
 import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-function Rooms({ theme, onBack, username }) {
+function Rooms({ theme, onBack, username, joinRoomName }) {
   const [rooms, setRooms] = useState([])
   const [showCreateRoom, setShowCreateRoom] = useState(false)
   const [currentRoomId, setCurrentRoomId] = useState(
     localStorage.getItem('currentRoomId')
   )
 
-  /* ---------------- FETCH ROOMS ---------------- */
+  const hasJoinedRef = useRef(false)
 
-  // --- SOCKET.IO ROOMS FETCH ---
+  /* ---------------- SOCKET: AVAILABLE ROOMS ---------------- */
+
   useEffect(() => {
-    // Request available rooms on mount
     socket.emit('getAvailableRooms')
 
-    // Listen for availableRooms event
     const handleAvailableRooms = (data) => {
       setRooms(data)
     }
-    socket.on('availableRooms', handleAvailableRooms)
 
-    // Optionally poll every 2s for updates
-    const interval = setInterval(() => {
-      socket.emit('getAvailableRooms')
-    }, 2000)
+    socket.on('availableRooms', handleAvailableRooms)
 
     return () => {
       socket.off('availableRooms', handleAvailableRooms)
-      clearInterval(interval)
     }
+  }, [])
+
+  /* ---------------- AUTO JOIN VIA URL ---------------- */
+
+  useEffect(() => {
+    if (!joinRoomName || !username) return
+    if (!rooms.length) return
+    if (hasJoinedRef.current) return
+
+    const foundRoom = rooms.find((r) => r.name === joinRoomName)
+    if (!foundRoom) return
+
+    hasJoinedRef.current = true
+    joinRoom(foundRoom.id)
+  }, [joinRoomName, rooms, username])
+
+  /* ---------------- JOIN ROOM (SHARED) ---------------- */
+
+  const joinRoom = async (roomId) => {
+    try {
+      // 1️⃣ Join room in DB
+      await fetch(`${API_URL}/api/rooms/${roomId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      })
+
+      // 2️⃣ Join socket room
+      socket.emit('joinRoom', { roomId: String(roomId) })
+
+      // 3️⃣ Sync room state
+      socket.emit('getRoomState', { roomId: String(roomId) })
+
+      localStorage.setItem('currentRoomId', roomId)
+      setCurrentRoomId(roomId)
+    } catch (err) {
+      console.error('Join failed:', err)
+      hasJoinedRef.current = false
+    }
+  }
+
+  /* ---------------- ROOM STATE UPDATES ---------------- */
+
+  useEffect(() => {
+    const handleRoomState = (room) => {
+      setRooms((prev) => {
+        const exists = prev.find((r) => r.id === room.id)
+        if (exists) {
+          return prev.map((r) => (r.id === room.id ? room : r))
+        }
+        return [...prev, room]
+      })
+    }
+
+    socket.on('roomState', handleRoomState)
+    return () => socket.off('roomState', handleRoomState)
   }, [])
 
   /* ---------------- CREATE ROOM ---------------- */
 
   const handleCreateRoom = () => {
-    // No fetchRooms, just show the create room UI
     setShowCreateRoom(true)
   }
 
-  const handleRoomCreated = async (roomId) => {
+  const handleRoomCreated = (roomId) => {
     localStorage.setItem('currentRoomId', roomId)
     setCurrentRoomId(roomId)
   }
-
-  /* ---------------- JOIN ROOM ---------------- */
-
-  const handleJoinRoom = async (roomId) => {
-    // Join room via HTTP only
-    try {
-      await fetch(`${API_URL}/api/rooms/${roomId}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId, username }),
-      })
-      localStorage.setItem('currentRoomId', roomId)
-      setCurrentRoomId(roomId)
-    } catch (err) {
-      console.error('Join failed:', err)
-    }
-  }
-  // Listen for roomState updates (when someone joins/leaves)
-  useEffect(() => {
-    const handleRoomState = (room) => {
-      // If the user is in this room, update the current room state
-      if (room.players && room.players.includes(username)) {
-        setRooms((prevRooms) => {
-          // Update the room in the rooms list
-          const updatedRooms = prevRooms.map((r) => (r.id === room.id ? room : r))
-          // If room not in list, add it
-          if (!updatedRooms.find((r) => r.id === room.id)) {
-            updatedRooms.push(room)
-          }
-          return updatedRooms
-        })
-      }
-    }
-    socket.on('roomState', handleRoomState)
-    return () => {
-      socket.off('roomState', handleRoomState)
-    }
-  }, [username])
 
   /* ---------------- LEAVE ROOM ---------------- */
 
@@ -95,13 +106,16 @@ function Rooms({ theme, onBack, username }) {
       await fetch(`${API_URL}/api/rooms/${roomId}/leave`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId, username }),
+        body: JSON.stringify({ username }),
       })
+
+      socket.emit('leaveRoom', { roomId: String(roomId) })
     }
 
     localStorage.removeItem('currentRoomId')
     setCurrentRoomId(null)
     setShowCreateRoom(false)
+    hasJoinedRef.current = false
     onBack()
   }
 
@@ -154,7 +168,7 @@ function Rooms({ theme, onBack, username }) {
                 <button
                   className="join-button"
                   disabled={room.player_count >= 6 || isInRoom}
-                  onClick={() => handleJoinRoom(room.id)}
+                  onClick={() => joinRoom(room.id)}
                 >
                   {isInRoom ? 'Joined' : room.player_count >= 6 ? 'Full' : 'Join'}
                 </button>

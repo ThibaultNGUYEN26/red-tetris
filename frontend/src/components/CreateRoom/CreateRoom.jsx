@@ -138,7 +138,7 @@ function CreateRoom({
           body: JSON.stringify({
             mode: selectedMode,
             username: username,
-          }), 
+          }),
         });
       } catch (err) {
         console.error('Failed to update game mode:', err);

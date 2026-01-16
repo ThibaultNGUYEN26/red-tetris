@@ -1,17 +1,32 @@
+// NOTE: This component must only be used as a child of a <Route> inside a <BrowserRouter>.
 import './index.css'
 import { useState, useEffect, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
 import ProfileMenu from './components/ProfileMenu/ProfileMenu.jsx'
 import ModeMenuSelector from './components/ModeMenuSelector/ModeMenuSelector.jsx'
 import Leaderboard from './components/Leaderboard/Leaderboard.jsx'
 import PlayerStats from './components/PlayerStats/PlayerStats.jsx'
+import Rooms from './components/Rooms/Rooms.jsx'
 
 function Index() {
-  const [username, setUsername] = useState(null)
+  // ✅ Hooks MUST be called unconditionally
+  const { roomName, username: urlUsername } = useParams()
+  const navigate = useNavigate()
+
+  const [username, setUsername] = useState(urlUsername || null)
   const [theme, setTheme] = useState('light')
   const [showRooms, setShowRooms] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
+  const [joinedRoomName, setJoinedRoomName] = useState(roomName || null)
+
+  // Sync URL params → state
+  useEffect(() => {
+    if (urlUsername && !username) setUsername(urlUsername)
+    if (roomName && !joinedRoomName) setJoinedRoomName(roomName)
+  }, [urlUsername, roomName])
 
   const handleUsernameSubmit = (profileOrUsername, avatar) => {
     if (typeof profileOrUsername === 'object' && profileOrUsername !== null) {
@@ -21,6 +36,7 @@ function Index() {
       setUsername(profileOrUsername)
       setUserProfile({ username: profileOrUsername, avatar })
     }
+
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }
 
@@ -32,7 +48,8 @@ function Index() {
     setUsername(null)
     setShowRooms(false)
     setUserProfile(null)
-    window.history.replaceState({}, '', window.location.pathname)
+    setJoinedRoomName(null)
+    navigate('/')
   }
 
   // Handle browser back button
@@ -46,9 +63,12 @@ function Index() {
 
     window.addEventListener('popstate', handlePopState)
 
-    // Set initial state
     if (username) {
-      window.history.replaceState({ hasUsername: true }, '', window.location.pathname)
+      window.history.replaceState(
+        { hasUsername: true },
+        '',
+        window.location.pathname
+      )
     }
 
     return () => {
@@ -56,6 +76,7 @@ function Index() {
     }
   }, [username])
 
+  // Stars animation (dark theme)
   const starsRef = useRef(null)
 
   useEffect(() => {
@@ -68,24 +89,29 @@ function Index() {
         `${Math.random() * 100}% ${Math.random() * 100}%`
       ).join(', ')
 
-      // Remove animation temporarily
       starsRef.current.style.animation = 'none'
-      // Update positions
       starsRef.current.style.backgroundPosition = positions
-      // Force reflow
-      starsRef.current.offsetHeight
-      // Restart animation
+      starsRef.current.offsetHeight // force reflow
       starsRef.current.style.animation = 'fadeInOut 3s ease-in-out infinite'
     }
 
-    // Start with initial positions
     updateStarPositions()
-
-    // Update positions every 3 seconds (synchronized with animation)
     const interval = setInterval(updateStarPositions, 3000)
 
     return () => clearInterval(interval)
   }, [theme])
+
+  // Auto-join room via URL
+  if (joinedRoomName && username) {
+    return (
+      <Rooms
+        theme={theme}
+        username={username}
+        joinRoomName={joinedRoomName}
+        onBack={handleReturnToProfile}
+      />
+    )
+  }
 
   return (
     <>
@@ -107,11 +133,17 @@ function Index() {
           <Leaderboard theme={theme} />
         </>
       )}
-      <div className='content-wrapper'>
+
+      <div className="content-wrapper">
         {!username ? (
           <ProfileMenu onSubmit={handleUsernameSubmit} theme={theme} />
         ) : (
-          <ModeMenuSelector theme={theme} onThemeChange={handleThemeChange} onShowRooms={setShowRooms} username={username} />
+          <ModeMenuSelector
+            theme={theme}
+            onThemeChange={handleThemeChange}
+            onShowRooms={setShowRooms}
+            username={username}
+          />
         )}
       </div>
     </>
