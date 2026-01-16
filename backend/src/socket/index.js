@@ -13,8 +13,9 @@ export default function setupSockets(io) {
           `UPDATE rooms SET players = array_append(players, $1), player_count = player_count + 1 WHERE id = $2 AND NOT (players @> ARRAY[$1])`,
           [username, roomId]
         );
+        const roomKey = String(roomId);
         // Join the socket.io room
-        socket.join(roomId);
+        socket.join(roomKey);
         // Fetch updated room state
         const result = await pool.query(
           `SELECT id, name, game_mode, host, player_count, players FROM rooms WHERE id = $1`,
@@ -22,7 +23,7 @@ export default function setupSockets(io) {
         );
         const room = result.rows[0];
         // Emit to all sockets in the room
-        io.to(roomId).emit("roomState", room);
+        io.emit("roomState", room);
       } catch (err) {
         console.error("joinRoom failed:", err);
         socket.emit("error", { message: "Failed to join room" });

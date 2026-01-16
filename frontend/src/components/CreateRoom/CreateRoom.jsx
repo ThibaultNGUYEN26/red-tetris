@@ -16,98 +16,72 @@ function CreateRoom({
   const [roomName, setRoomName] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
   const [selectedMode, setSelectedMode] = useState('classic')
-  const [players, setPlayers] = useState(mode === 'create'
-    ? [{ id: 1, name: username, isHost: true }]
-    : []
+  const [players, setPlayers] = useState(
+    mode === 'create'
+      ? [{ id: 1, name: username, isHost: true }]
+      : []
   )
   const [roomId, setRoomId] = useState(joinedRoomId || null)
 
   const hasCreatedRoom = useRef(false)
+  const hasEditedName = useRef(false)
 
   const gameModes = ['classic', 'speed', 'cooperative']
 
-  /* ---------------- DEFAULT ROOM NAME (CREATE ONLY) ---------------- */
+  /* ---------------- CREATE ROOM (HOST) ---------------- */
 
   useEffect(() => {
     if (mode !== 'create') return
-    setRoomName('Room 1')
-  }, [mode])
+    if (hasCreatedRoom.current) return
 
-  /* ---------------- CREATE ROOM (ONLY ON CREATE) ---------------- */
-
-  useEffect(() => {
-    if (mode !== 'create') return
-    if (!roomName || hasCreatedRoom.current) return
-
-    const createRoomOnBackend = async () => {
-      const roomData = {
-        gameMode: selectedMode,
-        host: username
-      }
-
+    const createRoom = async () => {
       try {
         const response = await fetch(`${API_URL}/api/rooms`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(roomData),
+          body: JSON.stringify({
+            gameMode: selectedMode,
+            host: username,
+          }),
         })
 
-        const data = await response.json()
-        setRoomId(data.roomId)
-        localStorage.setItem('currentRoomId', data.roomId)
+        const room = await response.json()
 
-        if (onRoomCreated) onRoomCreated(data.roomId)
-      } catch (error) {
-        console.error('Failed to create room:', error.message)
-      }
-    }
+        setRoomId(room.id)
+        setRoomName(room.name)              // ✅ backend name
+        setSelectedMode(room.game_mode)     // ✅ backend mode
 
-    createRoomOnBackend()
-    hasCreatedRoom.current = true
-  }, [roomName, selectedMode, mode, username])
+        localStorage.setItem('currentRoomId', room.id)
+        onRoomCreated?.(room.id)
 
-  /* ---------------- JOIN SOCKET ROOM (AFTER CREATION) ---------------- */
-
-  useEffect(() => {
-    if (roomId && mode === 'create' && username) {
-      socket.emit('joinRoom', { roomId, username });
-    }
-  }, [roomId, mode, username]);
-
-  /* ---------------- FETCH ROOM DATA (SOURCE OF TRUTH) ---------------- */
-
-  useEffect(() => {
-    if (!roomId) return
-
-    const fetchRoom = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/rooms/${roomId}`)
-        const room = await res.json()
-
-        setRoomName(room.name)
-        setSelectedMode(room.game_mode)
-
-        setPlayers(
-          room.players.map((name, index) => ({
-            id: index + 1,
-            name,
-            isHost: name === room.host, // ✅ ONLY REAL HOST
-          }))
-        )
+        hasCreatedRoom.current = true
       } catch (err) {
-        console.error('Failed to fetch room:', err)
+        console.error('Failed to create room:', err)
       }
     }
 
-    fetchRoom()
-  }, [roomId])
+    createRoom()
+  }, [mode, selectedMode, username])
 
-  /* ---------------- FETCH ROOM STATE VIA SOCKET.IO ---------------- */
+  /* ---------------- JOIN SOCKET ROOM ---------------- */
+
+  useEffect(() => {
+    if (!roomId || !username) return
+
+    socket.emit('joinRoom', {
+      roomId: String(roomId),
+      username,
+    })
+  }, [roomId, username])
+
+  /* ---------------- SOCKET ROOM STATE (SOURCE OF TRUTH) ---------------- */
 
   useEffect(() => {
     if (!roomId) return
-    socket.emit('getRoomState', { roomId })
+
     const handleRoomState = (room) => {
+      console.log('🟢 Room updated:', room)
+
       setRoomName(room.name)
       setSelectedMode(room.game_mode)
       setPlayers(
@@ -118,22 +92,22 @@ function CreateRoom({
         }))
       )
     }
+
     socket.on('roomState', handleRoomState)
+
+    // initial sync
+    socket.emit('getRoomState', { roomId: String(roomId) })
+
     return () => {
       socket.off('roomState', handleRoomState)
     }
   }, [roomId])
 
-  // Always request latest room state when players change
-  useEffect(() => {
-    if (!roomId) return;
-    socket.emit('getRoomState', { roomId });
-  }, [roomId, players.length]);
-
-  /* ---------------- UPDATE ROOM NAME (HOST ONLY) ---------------- */
+  /* ---------------- UPDATE ROOM NAME (ONLY AFTER USER EDIT) ---------------- */
 
   useEffect(() => {
     if (!roomId || mode !== 'create') return
+    if (!hasEditedName.current) return
 
     const timeoutId = setTimeout(async () => {
       try {
@@ -142,84 +116,34 @@ function CreateRoom({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: roomName.trim(),
-            gameMode: selectedMode,
           }),
         })
-      } catch (error) {
-        console.error('Failed to update room name:', error.message)
+      } catch (err) {
+        console.error('Failed to update room name:', err)
       }
     }, 500)
 
     return () => clearTimeout(timeoutId)
-  }, [roomName, selectedMode, roomId, mode])
+  }, [roomName, roomId, mode])
 
-  /* ---------------- LOG ROOM STATE ON JOIN ---------------- */
-
-  // Log to console when a new player joins (roomState changes)
-  useEffect(() => {
-    if (!roomId) return;
-    const handleRoomStateLog = (room) => {
-      console.log('Room state updated:', room);
-    };
-    socket.on('roomState', handleRoomStateLog);
-    return () => {
-      socket.off('roomState', handleRoomStateLog);
-    };
-  }, [roomId]);
-
-  /* ---------------- ENSURE SOCKET JOINS ROOM ---------------- */
-
-  // Ensure socket always joins the room (host or joiner) on mount and reconnect
-  useEffect(() => {
-    if (!roomId || !username) return;
-    const join = () => socket.emit('joinRoom', { roomId, username });
-    join();
-    socket.on('connect', join);
-    return () => {
-      socket.off('connect', join);
-    };
-  }, [roomId, username]);
-
-  /* ---------------- ALWAYS KEEP PLAYER LIST UPDATED VIA SOCKETS ---------------- */
-
-  useEffect(() => {
-    if (!roomId) return;
-    const handleRoomStateUpdate = (room) => {
-      setRoomName(room.name);
-      setSelectedMode(room.game_mode);
-      setPlayers(
-        room.players.map((name, index) => ({
-          id: index + 1,
-          name,
-          isHost: name === room.host,
-        }))
-      );
-      console.log('Room state updated:', room);
-    };
-    socket.on('roomState', handleRoomStateUpdate);
-    // Request latest state every 2s
-    const interval = setInterval(() => {
-      socket.emit('getRoomState', { roomId });
-    }, 2000);
-    return () => {
-      socket.off('roomState', handleRoomStateUpdate);
-      clearInterval(interval);
-    };
-  }, [roomId]);
-
-  /* ---------------- UI HANDLERS (UNCHANGED) ---------------- */
+  /* ---------------- UI HANDLERS ---------------- */
 
   const handleRoomNameChange = (e) => {
-    if (e.target.value.length <= 15) setRoomName(e.target.value)
+    if (e.target.value.length <= 15) {
+      setRoomName(e.target.value)
+    }
   }
 
   const handleModeChange = (e) => setSelectedMode(e.target.value)
 
-  const handleEditClick = () => setIsEditingName(true)
+  const handleEditClick = () => {
+    hasEditedName.current = true
+    setIsEditingName(true)
+  }
 
   const handleNameBlur = () => {
     setIsEditingName(false)
-    if (roomName.trim().length === 0 && mode === 'create') {
+    if (roomName.trim().length === 0) {
       setRoomName('Room')
     }
   }
@@ -235,14 +159,10 @@ function CreateRoom({
       await fetch(`${API_URL}/api/rooms/${roomId}/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomId,
-          roomName,
-          gameMode: selectedMode,
-        }),
+        body: JSON.stringify({ username }),
       })
-    } catch (error) {
-      console.error('Failed to start game:', error.message)
+    } catch (err) {
+      console.error('Failed to start game:', err)
     }
   }
 
@@ -252,10 +172,10 @@ function CreateRoom({
         await fetch(`${API_URL}/api/rooms/${roomId}/leave`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId, username }),
+          body: JSON.stringify({ username }),
         })
-      } catch (error) {
-        console.error('Failed to leave room:', error.message)
+      } catch (err) {
+        console.error('Failed to leave room:', err)
       }
     }
 
@@ -263,7 +183,7 @@ function CreateRoom({
     onBack()
   }
 
-  /* ---------------- RENDER (UNCHANGED STRUCTURE) ---------------- */
+  /* ---------------- RENDER ---------------- */
 
   return (
     <div className={`create-room-card ${theme === 'dark' ? 'dark' : ''}`}>
@@ -306,15 +226,15 @@ function CreateRoom({
             className="mode-select"
             disabled={mode !== 'create'}
           >
-            {gameModes.map((mode) => (
-              <option key={mode} value={mode}>
-                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+            {gameModes.map((m) => (
+              <option key={m} value={m}>
+                {m.charAt(0).toUpperCase() + m.slice(1)}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Players List */}
+        {/* Players */}
         <div className="players-section">
           <h3>Players ({players.length}/6)</h3>
 
@@ -330,7 +250,10 @@ function CreateRoom({
 
             {players.length < 6 && (
               <div className="player-item waiting">
-                <span className="player-name waiting-text">
+                <span
+                  key={players.length}
+                  className="player-name waiting-text"
+                >
                   Waiting for players...
                 </span>
               </div>
@@ -338,7 +261,6 @@ function CreateRoom({
           </div>
         </div>
 
-        {/* Start Button */}
         <button
           className="start-button"
           onClick={handleStartGame}
@@ -347,7 +269,6 @@ function CreateRoom({
           🎮 Start Game
         </button>
 
-        {/* Back Button */}
         <button className="back-button" onClick={handleBack}>
           ← Back
         </button>
