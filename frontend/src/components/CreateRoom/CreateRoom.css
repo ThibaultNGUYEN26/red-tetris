@@ -238,15 +238,26 @@
 .player-item.waiting {
   opacity: 0.6;
   border-style: dashed;
+  justify-content: center;
+  text-align: center;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .waiting-text {
+  width: auto;
   display: inline-block;
+  text-align: center;
+  margin: 0 auto;
 }
 
 .wave-text {
-  display: inline-block;
+  font-weight: bold;
+  color: #1a4088;
+  display: inline;
   animation: wave 3s ease-in-out infinite;
+  margin: 0 0.15em;
+  padding: 0;
 }
 
 .wave-text:nth-child(1) { animation-delay: 0s; }
