@@ -53,7 +53,7 @@ function CreateRoom({
         setSelectedMode(room.game_mode)     // ✅ backend mode
 
         localStorage.setItem('currentRoomId', room.id)
-        onRoomCreated?.(room.id)
+        onRoomCreated?.(room.id, room.name)
 
         hasCreatedRoom.current = true
       } catch (err) {

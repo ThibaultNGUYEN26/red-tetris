@@ -1,4 +1,3 @@
-// NOTE: This component must only be used as a child of a <Route> inside a <BrowserRouter>.
 import './index.css'
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -12,21 +11,23 @@ import PlayerStats from './components/PlayerStats/PlayerStats.jsx'
 import Rooms from './components/Rooms/Rooms.jsx'
 
 function Index() {
-  // ✅ Hooks MUST be called unconditionally
-  const { roomName, username: urlUsername } = useParams()
+  const { roomName: urlRoomName, username: urlUsername } = useParams()
   const navigate = useNavigate()
 
   const [username, setUsername] = useState(urlUsername || null)
   const [theme, setTheme] = useState('light')
   const [showRooms, setShowRooms] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
-  const [joinedRoomName, setJoinedRoomName] = useState(roomName || null)
+  const [joinedRoomName, setJoinedRoomName] = useState(urlRoomName || null)
 
-  // Sync URL params → state
+  /* ---------------- SYNC URL PARAMS ---------------- */
+
   useEffect(() => {
     if (urlUsername && !username) setUsername(urlUsername)
-    if (roomName && !joinedRoomName) setJoinedRoomName(roomName)
-  }, [urlUsername, roomName])
+    if (urlRoomName && !joinedRoomName) setJoinedRoomName(urlRoomName)
+  }, [urlUsername, urlRoomName])
+
+  /* ---------------- PROFILE ---------------- */
 
   const handleUsernameSubmit = (profileOrUsername, avatar) => {
     if (typeof profileOrUsername === 'object' && profileOrUsername !== null) {
@@ -40,9 +41,7 @@ function Index() {
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }
 
-  const handleThemeChange = (newTheme) => {
-    setTheme(newTheme)
-  }
+  const handleThemeChange = (newTheme) => setTheme(newTheme)
 
   const handleReturnToProfile = () => {
     setUsername(null)
@@ -52,7 +51,17 @@ function Index() {
     navigate('/')
   }
 
-  // Handle browser back button
+  /* ---------------- UPDATE URL WHEN ROOM IS CREATED ---------------- */
+
+  const handleRoomCreated = (roomId, roomName) => {
+    setJoinedRoomName(roomName)
+
+    // 🔥 Update URL without reload
+    navigate(`/${roomName}/${username}`, { replace: true })
+  }
+
+  /* ---------------- BACK BUTTON ---------------- */
+
   useEffect(() => {
     const handlePopState = (event) => {
       if (username && !event.state?.hasUsername) {
@@ -71,79 +80,79 @@ function Index() {
       )
     }
 
-    return () => {
-      window.removeEventListener('popstate', handlePopState)
-    }
+    return () => window.removeEventListener('popstate', handlePopState)
   }, [username])
 
-  // Stars animation (dark theme)
+  /* ---------------- STARS (DARK MODE) ---------------- */
+
   const starsRef = useRef(null)
 
   useEffect(() => {
     if (theme !== 'dark' || !starsRef.current) return
 
     const updateStarPositions = () => {
-      if (!starsRef.current) return
-
       const positions = Array.from({ length: 25 }, () =>
         `${Math.random() * 100}% ${Math.random() * 100}%`
       ).join(', ')
 
       starsRef.current.style.animation = 'none'
       starsRef.current.style.backgroundPosition = positions
-      starsRef.current.offsetHeight // force reflow
+      starsRef.current.offsetHeight
       starsRef.current.style.animation = 'fadeInOut 3s ease-in-out infinite'
     }
 
     updateStarPositions()
     const interval = setInterval(updateStarPositions, 3000)
-
     return () => clearInterval(interval)
   }, [theme])
 
-  // Auto-join room via URL
-  if (joinedRoomName && username) {
-    return (
-      <Rooms
-        theme={theme}
-        username={username}
-        joinRoomName={joinedRoomName}
-        onBack={handleReturnToProfile}
-      />
-    )
-  }
+  /* ---------------- RENDER ---------------- */
 
   return (
     <>
+      {/* Background always rendered */}
       <div className={`sky-background ${theme === 'dark' ? 'dark' : ''}`}>
         {theme === 'dark' && <div ref={starsRef} className="stars" />}
         <GoodClouds />
         <TetriminosClouds />
       </div>
 
-      {username && !showRooms && (
-        <>
-          <button
-            className="return-profile-btn"
-            onClick={handleReturnToProfile}
-          >
-            ← Change profile
-          </button>
-          <PlayerStats theme={theme} userProfile={userProfile} />
-          <Leaderboard theme={theme} />
-        </>
-      )}
-
+      {/* Content wrapper always rendered */}
       <div className="content-wrapper">
-        {!username ? (
-          <ProfileMenu onSubmit={handleUsernameSubmit} theme={theme} />
-        ) : (
-          <ModeMenuSelector
+        {joinedRoomName && username ? (
+          <Rooms
             theme={theme}
-            onThemeChange={handleThemeChange}
-            onShowRooms={setShowRooms}
             username={username}
+            joinRoomName={joinedRoomName}
+            onBack={handleReturnToProfile}
+            onRoomCreated={handleRoomCreated}
           />
+        ) : (
+          <>
+            {username && !showRooms && (
+              <>
+                <button
+                  className="return-profile-btn"
+                  onClick={handleReturnToProfile}
+                >
+                  ← Change profile
+                </button>
+                <PlayerStats theme={theme} userProfile={userProfile} />
+                <Leaderboard theme={theme} />
+              </>
+            )}
+
+            {!username ? (
+              <ProfileMenu onSubmit={handleUsernameSubmit} theme={theme} />
+            ) : (
+              <ModeMenuSelector
+                theme={theme}
+                onThemeChange={handleThemeChange}
+                onShowRooms={setShowRooms}
+                username={username}
+              />
+            )}
+          </>
         )}
       </div>
     </>
