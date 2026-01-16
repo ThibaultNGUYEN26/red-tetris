@@ -120,10 +120,68 @@ router.patch("/:roomId/name", async (req, res) => {
       [name, roomId]
     );
 
+    const io = req.app.get("io");
+    io.to(String(roomId)).emit("roomState", result.rows[0]);
+
     res.json(updateResult.rows[0]);
 
   } catch (err) {
     console.error("Failed to rename room:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+// Update Room Mode
+router.patch("/:roomId/mode", async (req, res) => {
+  const { roomId } = req.params;
+  const { mode, username } = req.body;
+
+  if (!mode) {
+    return res.status(400).json({ error: "Missing new room mode" });
+  }
+
+  const allowedModes = ["classic", "speed", "cooperative"];
+  const normalizedMode = mode.toLowerCase();
+
+  if (!allowedModes.includes(normalizedMode)) {
+    return res.status(400).json({
+      error: "Invalid game mode. Allowed: classic, speed, cooperative",
+    });
+  }
+
+  try {
+    const roomResult = await pool.query(
+      `SELECT host FROM rooms WHERE id = $1`,
+      [roomId]
+    );
+
+    if (!roomResult.rowCount) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    const { host } = roomResult.rows[0];
+
+    if (host !== username) {
+      return res.status(403).json({
+        error: "Only the host can rename the room"
+      });
+    }
+
+    const updateResult = await pool.query(
+      `
+      UPDATE rooms
+      SET game_mode = $1
+      WHERE id = $2
+      RETURNING *;
+      `,
+      [normalizedMode, roomId]
+    );
+
+    res.json(updateResult.rows[0]);
+
+  } catch (err) {
+    console.error("Failed to change room mode:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
