@@ -21,6 +21,24 @@ router.post("/", async (req, res) => {
   try {
     const { gameMode, host } = req.body;
 
+    const checkUserQuery = `
+      SELECT id
+      FROM rooms
+      WHERE players @> $1::jsonb
+      LIMIT 1;
+    `;
+
+    const checkResult = await pool.query(
+      checkUserQuery,
+      [JSON.stringify([host])]
+    );
+
+    if (checkResult.rowCount > 0) {
+      return res.status(400).json({
+        error: "User is already in a room"
+      });
+    }
+
     if (!gameMode || !host) {
       return res.status(400).json({ error: "Missing data" });
     }
@@ -94,6 +112,24 @@ router.patch("/:roomId/name", async (req, res) => {
 router.post("/:roomId/join", async (req, res) => {
   const { roomId } = req.params;
   const { username } = req.body;
+
+  const checkUserQuery = `
+      SELECT id
+      FROM rooms
+      WHERE players @> $1::jsonb
+      LIMIT 1;
+    `;
+
+    const checkResult = await pool.query(
+      checkUserQuery,
+      [JSON.stringify([username])]
+    );
+
+    if (checkResult.rowCount > 0) {
+      return res.status(400).json({
+        error: "User is already in a room"
+      });
+    }
 
   if (!username) return res.status(400).json({ error: "Missing username" });
 
@@ -233,29 +269,5 @@ router.post("/:roomId/start", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-
-// List all available rooms
-router.get("/available", async (req, res) => {
-  try {
-    const MAX_PLAYERS = 6;
-
-    const query = `
-      SELECT id, name, game_mode, host, player_count, players
-      FROM rooms
-      WHERE player_count < $1
-      ORDER BY created_at ASC;
-    `;
-
-    const result = await pool.query(query, [MAX_PLAYERS]);
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Failed to list available rooms:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-
 
 export default router;
