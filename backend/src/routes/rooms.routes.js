@@ -120,11 +120,14 @@ router.patch("/:roomId/name", async (req, res) => {
       [name, roomId]
     );
 
+    const updatedRoom = updateResult.rows[0];
+
     const io = req.app.get("io");
-    io.to(String(roomId)).emit("roomState", res.rows[0]);
+    if (io) {
+      io.to(String(roomId)).emit("roomState", updatedRoom);
+    }
 
-    res.json(updateResult.rows[0]);
-
+    res.json(updatedRoom);
   } catch (err) {
     console.error("Failed to rename room:", err);
     res.status(500).json({ error: "Server error" });
@@ -178,8 +181,14 @@ router.patch("/:roomId/mode", async (req, res) => {
       [normalizedMode, roomId]
     );
 
-    res.json(updateResult.rows[0]);
+    const updatedRoom = updateResult.rows[0];
 
+    const io = req.app.get("io");
+    if (io) {
+      io.to(String(roomId)).emit("roomState", updatedRoom);
+    }
+
+    res.json(updatedRoom);
   } catch (err) {
     console.error("Failed to change room mode:", err);
     res.status(500).json({ error: "Server error" });
