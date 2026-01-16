@@ -146,7 +146,17 @@ function CreateRoom({
   }
 
   const handleNameKeyDown = (e) => {
-    if (e.key === 'Enter') e.target.blur()
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (roomName.trim().length > 0 && mode === 'create' && hasEditedName.current) {
+        fetch(`${API_URL}/api/rooms/${roomId}/name`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: roomName.trim(), username: username }),
+        }).catch(err => console.error('Failed to update room name:', err));
+      }
+      e.target.blur(); // Triggers handleNameBlur
+    }
   }
 
   const handleStartGame = async () => {
