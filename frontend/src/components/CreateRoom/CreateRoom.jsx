@@ -123,7 +123,31 @@ function CreateRoom({
 
     return () => clearTimeout(timeoutId);
   }, [roomName, roomId, mode, username]);
-  
+
+  // Update game mode (only host)
+  useEffect(() => {
+    if (!roomId || mode !== 'create') return;
+    if (hostName !== username) return; // Only host can change
+    if (!selectedMode) return;
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        await fetch(`${API_URL}/api/rooms/${roomId}/mode`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mode: selectedMode,
+            username: username,
+          }), 
+        });
+      } catch (err) {
+        console.error('Failed to update game mode:', err);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [selectedMode, roomId, mode, username, hostName]);
+
   /* ---------------- UI HANDLERS ---------------- */
 
   const handleRoomNameChange = (e) => {
