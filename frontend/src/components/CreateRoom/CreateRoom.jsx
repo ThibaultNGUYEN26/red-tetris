@@ -99,30 +99,6 @@ function CreateRoom({
     }
   }, [roomId])
 
-  /* ---------------- UPDATE ROOM NAME (ONLY AFTER USER EDIT) ---------------- */
-
-  useEffect(() => {
-    if (!roomId || mode !== 'create') return
-    if (!hasEditedName.current) return
-
-    const timeoutId = setTimeout(async () => {
-      try {
-        await fetch(`${API_URL}/api/rooms/${roomId}/name`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: roomName.trim(),
-            username: username,
-          }),
-        })
-      } catch (err) {
-        console.error('Failed to update room name:', err)
-      }
-    }, 500)
-
-    return () => clearTimeout(timeoutId)
-  }, [roomName, roomId, mode])
-
   /* ---------------- UI HANDLERS ---------------- */
 
   const handleRoomNameChange = (e) => {
@@ -143,19 +119,21 @@ function CreateRoom({
     if (roomName.trim().length === 0) {
       setRoomName('Room')
     }
+    // Do NOT send PATCH on blur
   }
 
   const handleNameKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
+      // Only send PATCH if not empty
       if (roomName.trim().length > 0 && mode === 'create' && hasEditedName.current) {
         fetch(`${API_URL}/api/rooms/${roomId}/name`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: roomName.trim(), username: username }),
+          body: JSON.stringify({ name: roomName.trim() }),
         }).catch(err => console.error('Failed to update room name:', err));
       }
-      e.target.blur(); // Triggers handleNameBlur
+      e.target.blur(); // Triggers handleNameBlur, but does NOT send PATCH
     }
   }
 
