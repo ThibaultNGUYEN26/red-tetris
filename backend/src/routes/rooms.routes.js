@@ -86,22 +86,49 @@ router.post("/", async (req, res) => {
 // Update Room Name
 router.patch("/:roomId/name", async (req, res) => {
   const { roomId } = req.params;
-  const { name } = req.body;
+  const { name, username } = req.body;
 
-  if (!name) return res.status(400).json({ error: "Missing new room name" });
+  if (!name) {
+    return res.status(400).json({ error: "Missing new room name" });
+  }
 
   try {
-    const query = `
+    const roomResult = await pool.query(
+      `SELECT host FROM rooms WHERE id = $1`,
+      [roomId]
+    );
+
+    if (!roomResult.rowCount) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    const { host } = roomResult.rows[0];
+
+    if (host !== username) {
+      return res.status(403).json({
+        error: "Only the host can rename the room"
+      });
+    }
+
+    const updateResult = await pool.query(
+      `
       UPDATE rooms
       SET name = $1
       WHERE id = $2
       RETURNING *;
-    `;
-    const result = await pool.query(query, [name, roomId]);
+      `,
+      [name, roomId]
+    );
 
-    if (!result.rowCount) return res.status(404).json({ error: "Room not found" });
-    res.json(result.rows[0]);
+    res.json(updateResult.rows[0]);
+
   } catch (err) {
+    if (err.code === "23505") {
+      return res.status(400).json({
+        error: "Room name already exists"
+      });
+    }
+
     console.error("Failed to rename room:", err);
     res.status(500).json({ error: "Server error" });
   }
