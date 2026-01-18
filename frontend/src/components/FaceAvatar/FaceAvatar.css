@@ -12,6 +12,11 @@
   height: 50px;
 }
 
+.face-leaderboard {
+  width: 34px;
+  height: 34px;
+}
+
 .face-medium {
   width: 100px;
   height: 100px;
@@ -58,6 +63,7 @@
 }
 
 .face-small .eye { width: 6px; height: 6px; }
+.face-leaderboard .eye { width: 4px; height: 4px; }
 .face-medium .eye { width: 16px; height: 16px; }
 .face-large .eye { width: 26px; height: 26px; }
 
@@ -121,6 +127,27 @@
 .face-small .eye-dead {
   width: 38px;
   height: 24px;
+}
+
+.face-leaderboard .eye-uwu,
+.face-leaderboard .eye-sad,
+.face-leaderboard .eye-very_sad,
+.face-leaderboard .eye-crying,
+.face-leaderboard .eye-normal,
+.face-leaderboard .eye-happy,
+.face-leaderboard .eye-joy,
+.face-leaderboard .eye-cute,
+.face-leaderboard .eye-love,
+.face-leaderboard .eye-blink,
+.face-leaderboard .eye-close,
+.face-leaderboard .eye-soft,
+.face-leaderboard .eye-dizzy,
+.face-leaderboard .eye-fear,
+.face-leaderboard .eye-cold_fear,
+.face-leaderboard .eye-panic,
+.face-leaderboard .eye-dead {
+  width: 26px;
+  height: 16px;
 }
 
 .face-medium .eye-uwu,
@@ -188,6 +215,11 @@
 .face-small .mouth-image {
   width: 38px;
   height: 24px;
+}
+
+.face-leaderboard .mouth-image {
+  width: 26px;
+  height: 16px;
 }
 
 .face-medium .mouth-image {

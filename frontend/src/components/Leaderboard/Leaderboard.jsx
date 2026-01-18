@@ -39,7 +39,7 @@ function Leaderboard({ theme }) {
           <div key={entry.rank} className={`leaderboard-entry ${entry.rank <= 3 ? `top-${entry.rank}` : ''}`}>
             <span className="rank">{entry.rank}</span>
             <span className="avatar-icon">
-              <FaceAvatar faceConfig={entry.avatar} size="small" />
+              <FaceAvatar faceConfig={entry.avatar} size="leaderboard" />
             </span>
             <span className="name">{entry.name}</span>
             <span className="score">{entry.score.toLocaleString()}</span>
