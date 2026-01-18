@@ -3,13 +3,13 @@ import { useState } from 'react'
 import Options from './Options.jsx/Options.jsx'
 import Rooms from '../Rooms/Rooms.jsx'
 
-function ModeMenuSelector({ theme, onThemeChange, onShowRooms, username }) {
+function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, username }) {
   const [showOptions, setShowOptions] = useState(false)
   const [showRooms, setShowRooms] = useState(false)
 
   const handleSolo = () => {
     console.log('Solo mode selected')
-    // Add your solo game logic here
+    onShowGame(true)
   }
 
   const handleMultiplayer = () => {

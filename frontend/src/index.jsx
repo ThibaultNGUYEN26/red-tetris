@@ -9,6 +9,7 @@ import ModeMenuSelector from './components/ModeMenuSelector/ModeMenuSelector.jsx
 import Leaderboard from './components/Leaderboard/Leaderboard.jsx'
 import PlayerStats from './components/PlayerStats/PlayerStats.jsx'
 import Rooms from './components/Rooms/Rooms.jsx'
+import Game from './components/Game/Game.jsx'
 
 function Index() {
   const { roomName: urlRoomName, username: urlUsername } = useParams()
@@ -17,6 +18,7 @@ function Index() {
   const [username, setUsername] = useState(urlUsername || null)
   const [theme, setTheme] = useState('light')
   const [showRooms, setShowRooms] = useState(false)
+  const [showGame, setShowGame] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
   const [joinedRoomName, setJoinedRoomName] = useState(urlRoomName || null)
 
@@ -46,6 +48,7 @@ function Index() {
   const handleReturnToProfile = () => {
     setUsername(null)
     setShowRooms(false)
+    setShowGame(false)
     setUserProfile(null)
     setJoinedRoomName(null)
     navigate('/')
@@ -130,7 +133,7 @@ function Index() {
           />
         ) : (
           <>
-            {username && !showRooms && (
+            {username && !showRooms && !showGame && (
               <>
                 <button
                   className="return-profile-btn"
@@ -146,12 +149,17 @@ function Index() {
             {!username ? (
               <ProfileMenu onSubmit={handleUsernameSubmit} theme={theme} />
             ) : (
-              <ModeMenuSelector
-                theme={theme}
-                onThemeChange={handleThemeChange}
-                onShowRooms={setShowRooms}
-                username={username}
-              />
+              showGame ? (
+                <Game onBack={() => setShowGame(false)} />
+              ) : (
+                <ModeMenuSelector
+                  theme={theme}
+                  onThemeChange={handleThemeChange}
+                  onShowRooms={setShowRooms}
+                  onShowGame={setShowGame}
+                  username={username}
+                />
+              )
             )}
           </>
         )}
