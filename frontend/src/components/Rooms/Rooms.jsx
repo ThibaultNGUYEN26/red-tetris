@@ -5,7 +5,7 @@ import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-function Rooms({ theme, onBack, username, joinRoomName }) {
+function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
   const [rooms, setRooms] = useState([])
   const [showCreateRoom, setShowCreateRoom] = useState(false)
   const [currentRoomId, setCurrentRoomId] = useState(
@@ -126,6 +126,7 @@ function Rooms({ theme, onBack, username, joinRoomName }) {
       <CreateRoom
         theme={theme}
         username={username}
+        userProfile={userProfile}
         existingRooms={rooms}
         roomId={currentRoomId}
         mode={showCreateRoom ? 'create' : 'join'}

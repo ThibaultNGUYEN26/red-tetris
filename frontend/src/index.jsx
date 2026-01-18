@@ -123,6 +123,7 @@ function Index() {
           <Rooms
             theme={theme}
             username={username}
+            userProfile={userProfile}
             joinRoomName={joinedRoomName}
             onBack={handleReturnToProfile}
             onRoomCreated={handleRoomCreated}

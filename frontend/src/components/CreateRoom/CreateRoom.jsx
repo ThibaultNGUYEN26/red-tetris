@@ -1,5 +1,6 @@
 import './CreateRoom.css'
 import { useState, useEffect, useRef } from 'react'
+import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { socket } from '../../socket'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
@@ -9,16 +10,28 @@ function CreateRoom({
   onBack,
   existingRooms = [],
   username,
+  userProfile,
   mode = 'create',
   roomId: joinedRoomId,
   onRoomCreated
 }) {
+  const defaultAvatar = {
+    skinColor: '#cccccc',
+    eyeType: 'normal',
+    mouthType: 'neutral',
+  }
+
   const [roomName, setRoomName] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
   const [selectedMode, setSelectedMode] = useState('classic')
   const [players, setPlayers] = useState(
     mode === 'create'
-      ? [{ id: 1, name: username, isHost: true }]
+      ? [{
+        id: 1,
+        name: username,
+        isHost: true,
+        avatar: userProfile?.avatar || defaultAvatar,
+      }]
       : []
   )
   const [roomId, setRoomId] = useState(joinedRoomId || null)
@@ -75,6 +88,8 @@ function CreateRoom({
     const handleRoomState = (room) => {
       console.log('🟢 Room updated:', room)
 
+      const avatars = room.player_avatars || {}
+
       setRoomName(room.name)
       setSelectedMode(room.game_mode)
       setHostName(room.host)
@@ -83,6 +98,7 @@ function CreateRoom({
           id: index + 1,
           name,
           isHost: name === room.host,
+          avatar: avatars[name] || resolveAvatar(name),
         }))
       )
     }
@@ -157,6 +173,11 @@ function CreateRoom({
   }
 
   const handleModeChange = (e) => setSelectedMode(e.target.value)
+
+  const resolveAvatar = (name) => {
+    if (name === username && userProfile?.avatar) return userProfile.avatar
+    return defaultAvatar
+  }
 
   const handleEditClick = () => {
     hasEditedName.current = true
@@ -294,11 +315,12 @@ function CreateRoom({
 
           <div className="players-list">
             {players.map((player) => (
-              <div key={player.id} className="player-item">
+              <div key={player.id} className="player-item has-avatar">
+                <FaceAvatar faceConfig={player.avatar} size="small" />
                 <span className="player-name">
-                  {player.name} {player.isHost && '👑'}
+                  {player.name}
+                  {player.isHost && <span className="host-crown">{'\u{1F451}'}</span>}
                 </span>
-                <span className="player-status">Ready</span>
               </div>
             ))}
 

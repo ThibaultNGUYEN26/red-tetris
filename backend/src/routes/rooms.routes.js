@@ -3,6 +3,27 @@ import { pool } from "../config/db.js";
 
 const router = express.Router();
 
+async function attachPlayerAvatars(room) {
+  const players = Array.isArray(room.players) ? room.players : [];
+  if (players.length === 0) {
+    return { ...room, player_avatars: {} };
+  }
+
+  const result = await pool.query(
+    `SELECT username, avatar
+     FROM users
+     WHERE username = ANY($1::text[])`,
+    [players]
+  );
+
+  const player_avatars = {};
+  for (const row of result.rows) {
+    player_avatars[row.username] = row.avatar;
+  }
+
+  return { ...room, player_avatars };
+}
+
 function generateRoomName() {
   const adjectives = ["Red", "Blue", "Fast", "Crazy", "Happy", "Silent"];
   const nouns = ["Tetris", "Block", "Stack", "Line", "Drop", "Game"];
@@ -121,13 +142,14 @@ router.patch("/:roomId/name", async (req, res) => {
     );
 
     const updatedRoom = updateResult.rows[0];
+    const roomWithAvatars = await attachPlayerAvatars(updatedRoom);
 
     const io = req.app.get("io");
     if (io) {
-      io.to(String(roomId)).emit("roomState", updatedRoom);
+      io.to(String(roomId)).emit("roomState", roomWithAvatars);
     }
 
-    res.json(updatedRoom);
+    res.json(roomWithAvatars);
   } catch (err) {
     console.error("Failed to rename room:", err);
     res.status(500).json({ error: "Server error" });
@@ -182,13 +204,14 @@ router.patch("/:roomId/mode", async (req, res) => {
     );
 
     const updatedRoom = updateResult.rows[0];
+    const roomWithAvatars = await attachPlayerAvatars(updatedRoom);
 
     const io = req.app.get("io");
     if (io) {
-      io.to(String(roomId)).emit("roomState", updatedRoom);
+      io.to(String(roomId)).emit("roomState", roomWithAvatars);
     }
 
-    res.json(updatedRoom);
+    res.json(roomWithAvatars);
   } catch (err) {
     console.error("Failed to change room mode:", err);
     res.status(500).json({ error: "Server error" });
@@ -307,11 +330,12 @@ router.post("/:roomId/leave", async (req, res) => {
     `;
     const values = [roomId, JSON.stringify(updatedPlayers), updatedPlayers.length, newHost];
     const result = await pool.query(updateQuery, values);
+    const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
 
     const io = req.app.get("io");
-    io.to(String(roomId)).emit("roomState", result.rows[0]);
+    io.to(String(roomId)).emit("roomState", roomWithAvatars);
     
-    res.json(result.rows[0]);
+    res.json(roomWithAvatars);
   } catch (err) {
     console.error("Leave room failed:", err);
     res.status(500).json({ error: "Server error" });

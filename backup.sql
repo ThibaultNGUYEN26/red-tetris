@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict k5gEiaoGNpVpsCrB8VZJ1d6ssvfgaxEMAMJXgWyAmebDdRtyih8frvqSxrPFhZk
+\restrict UX130ZEdBgZeq7oV5T3Qwig10qcu9d4FggqWlCytUy3kR8hLTEAstWAka2RCYmT
 
 -- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
 -- Dumped by pg_dump version 15.15 (Debian 15.15-1.pgdg13+1)
@@ -116,9 +116,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 COPY public.rooms (id, name, game_mode, host, player_count, players, status, created_at) FROM stdin;
-1	Room 1	classic	riri	1	["riri"]	waiting	2026-01-14 17:07:12.836332
-2	Room 2	classic	titi	1	["titi"]	waiting	2026-01-14 17:16:00.203234
-3	Room 3	classic	riri	1	["riri"]	waiting	2026-01-14 17:17:54.565217
 \.
 
 
@@ -127,8 +124,6 @@ COPY public.rooms (id, name, game_mode, host, player_count, players, status, cre
 --
 
 COPY public.users (id, username, avatar) FROM stdin;
-2	titi	{"eyeType": "crying", "mouthType": "smile", "skinColor": "#70d470"}
-1	riri	{"eyeType": "close", "mouthType": "not_smile", "skinColor": "#d47070"}
 \.
 
 
@@ -143,7 +138,7 @@ SELECT pg_catalog.setval('public.rooms_id_seq', 3, true);
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 3, true);
+SELECT pg_catalog.setval('public.users_id_seq', 5, true);
 
 
 --
@@ -182,4 +177,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict k5gEiaoGNpVpsCrB8VZJ1d6ssvfgaxEMAMJXgWyAmebDdRtyih8frvqSxrPFhZk
+\unrestrict UX130ZEdBgZeq7oV5T3Qwig10qcu9d4FggqWlCytUy3kR8hLTEAstWAka2RCYmT
+
