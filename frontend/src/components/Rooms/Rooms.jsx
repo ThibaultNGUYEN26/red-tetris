@@ -103,19 +103,31 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
     const roomId = localStorage.getItem('currentRoomId')
 
     if (roomId) {
-      await fetch(`${API_URL}/api/rooms/${roomId}/leave`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
-      })
-
-      socket.emit('leaveRoom', { roomId: String(roomId) })
+      try {
+        // First emit socket leave
+        socket.emit('leaveRoom', { roomId: String(roomId) })
+        
+        // Then call API to leave
+        await fetch(`${API_URL}/api/rooms/${roomId}/leave`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        })
+        
+        // Request updated rooms list
+        socket.emit('getAvailableRooms')
+      } catch (err) {
+        console.error('Failed to leave room:', err)
+      }
     }
 
     localStorage.removeItem('currentRoomId')
     setCurrentRoomId(null)
     setShowCreateRoom(false)
     hasJoinedRef.current = false
+  }
+
+  const handleBackToMenu = () => {
     onBack()
   }
 
@@ -179,7 +191,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
         )}
       </div>
 
-      <button className="back-button" onClick={onBack}>
+      <button className="back-button" onClick={handleBackToMenu}>
         ← Back
       </button>
     </div>

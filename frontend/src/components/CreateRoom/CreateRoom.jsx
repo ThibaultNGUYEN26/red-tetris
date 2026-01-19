@@ -40,7 +40,29 @@ function CreateRoom({
   const hasCreatedRoom = useRef(false)
   const hasEditedName = useRef(false)
 
-  const gameModes = ['classic', 'speed', 'cooperative']
+  // Define available game modes
+  const availableGameModes = [
+    { value: 'classic', label: 'Classic', maxPlayers: 6 },
+    { value: 'speed', label: 'Speed', maxPlayers: 6 },
+    { value: 'cooperative', label: 'Cooperative', maxPlayers: 2 }
+  ]
+
+  // Filter modes based on current player count
+  const getAvailableModes = () => {
+    return availableGameModes.filter(mode => {
+      // If we're in this mode already, keep it available (even if over limit)
+      if (mode.value === selectedMode) return true
+      // Otherwise, check if adding players would exceed limit
+      return players.length <= mode.maxPlayers
+    })
+  }
+
+  const isModeDisabled = (mode) => {
+    // If we're already in this mode, never disable it
+    if (mode.value === selectedMode) return false
+    // Disable if current player count exceeds the mode's max
+    return players.length > mode.maxPlayers
+  }
 
   /* ---------------- CREATE ROOM (HOST) ---------------- */
 
@@ -172,7 +194,18 @@ function CreateRoom({
     }
   }
 
-  const handleModeChange = (e) => setSelectedMode(e.target.value)
+  const handleModeChange = (e) => {
+    const newMode = e.target.value
+    const modeConfig = availableGameModes.find(m => m.value === newMode)
+    
+    // Check if the new mode supports current player count
+    if (modeConfig && players.length > modeConfig.maxPlayers) {
+      alert(`${modeConfig.label} mode supports a maximum of ${modeConfig.maxPlayers} players. Current players: ${players.length}`)
+      return
+    }
+    
+    setSelectedMode(newMode)
+  }
 
   const resolveAvatar = (name) => {
     if (name === username && userProfile?.avatar) return userProfile.avatar
@@ -222,19 +255,6 @@ function CreateRoom({
   }
 
   const handleBack = async () => {
-    if (roomId) {
-      try {
-        await fetch(`${API_URL}/api/rooms/${roomId}/leave`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username }),
-        })
-      } catch (err) {
-        console.error('Failed to leave room:', err)
-      }
-    }
-
-    localStorage.removeItem('currentRoomId')
     onBack()
   }
 
@@ -301,17 +321,24 @@ function CreateRoom({
             className="mode-select"
             disabled={mode !== 'create'}
           >
-            {gameModes.map((m) => (
-              <option key={m} value={m}>
-                {m.charAt(0).toUpperCase() + m.slice(1)}
+            {availableGameModes.map((m) => (
+              <option 
+                key={m.value} 
+                value={m.value}
+                disabled={isModeDisabled(m)}
+              >
+                {m.label} {isModeDisabled(m) ? `(Max ${m.maxPlayers} players)` : ''}
               </option>
             ))}
           </select>
+          {mode === 'create' && players.length > 2 && selectedMode === 'cooperative' && (
+            <p className="mode-warning">⚠️ Cooperative mode supports max 2 players</p>
+          )}
         </div>
 
         {/* Players */}
         <div className="players-section">
-          <h3>Players ({players.length}/6)</h3>
+          <h3>Players ({players.length}/{availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 6})</h3>
 
           <div className="players-list">
             {players.map((player) => (
@@ -324,7 +351,7 @@ function CreateRoom({
               </div>
             ))}
 
-            {players.length < 6 && (
+            {players.length < (availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 6) && (
               <div className="player-item waiting">
                 {/* Animated waiting text */}
                 {Array.from('Waiting for players...').map((char, i) => (
