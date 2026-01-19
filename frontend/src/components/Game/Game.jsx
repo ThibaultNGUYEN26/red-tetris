@@ -213,16 +213,28 @@ function Game({ onBack }) {
   }, [board, activePiece])
 
   const nextPreview = useMemo(() => {
-    const preview = Array.from({ length: 4 }, () =>
-      Array.from({ length: 4 }, () => 'empty')
-    )
     const shape = SHAPES[nextType][0]
+    // Find bounding box
+    const rows = shape.map(([r]) => r)
+    const cols = shape.map(([, c]) => c)
+    const minRow = Math.min(...rows)
+    const maxRow = Math.max(...rows)
+    const minCol = Math.min(...cols)
+    const maxCol = Math.max(...cols)
+    
+    // Create grid with only the needed size
+    const height = maxRow - minRow + 1
+    const width = maxCol - minCol + 1
+    const preview = Array.from({ length: height }, () =>
+      Array.from({ length: width }, () => 'empty')
+    )
+    
+    // Fill in the shape, adjusted for the bounding box
     shape.forEach(([r, c]) => {
-      if (preview[r] && preview[r][c] !== undefined) {
-        preview[r][c] = nextType
-      }
+      preview[r - minRow][c - minCol] = nextType
     })
-    return preview
+    
+    return { grid: preview, width, height }
   }, [nextType])
 
   return (
@@ -268,14 +280,23 @@ function Game({ onBack }) {
           <div className="side-panel">
             <h3>Next</h3>
             <div className="next-grid" role="grid" aria-label="Next piece">
-              {nextPreview.map((row, rowIndex) =>
-                row.map((cell, colIndex) => (
-                  <div
-                    key={`next-${rowIndex}-${colIndex}`}
-                    className={`cell cell-${cell}`}
-                  />
-                ))
-              )}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${nextPreview.width}, var(--cell-size))`,
+                  gridTemplateRows: `repeat(${nextPreview.height}, var(--cell-size))`,
+                  gap: '2px'
+                }}
+              >
+                {nextPreview.grid.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => (
+                    <div
+                      key={`next-${rowIndex}-${colIndex}`}
+                      className={`cell cell-${cell}`}
+                    />
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>

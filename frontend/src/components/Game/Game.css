@@ -179,18 +179,21 @@
 /* make next grid match light UI */
 .next-grid {
   --cell-size: clamp(16px, calc((100vh - 240px) / 30), 20px);
-  display: grid;
-  grid-template-columns: repeat(4, var(--cell-size));
-  grid-template-rows: repeat(4, var(--cell-size));
-  gap: 2px;
-  place-content: center;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.5rem;
-  width: fit-content;
+  width: 100px;
+  height: 100px;
 
   background: rgba(255, 255, 255, 0.75);
   border-radius: 12px;
   border: 2px solid rgba(42, 82, 152, 0.2);
+}
+
+.next-grid > div {
+  display: grid;
+  gap: 2px;
 }
 
 .next-grid .cell {
