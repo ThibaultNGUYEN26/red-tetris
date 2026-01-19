@@ -61,4 +61,12 @@ install: setup
 	npm install --prefix frontend
 	npm install --prefix backend
 
-.PHONY: frontend backend db setup-frontend install
+test-frontend:
+	cd frontend && npm run test:coverage
+
+test-backend:
+	cd backend && npm test
+
+test: test-frontend test-backend
+
+.PHONY: frontend backend db setup-frontend install test-frontend test-backend test
