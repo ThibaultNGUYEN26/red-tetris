@@ -10,6 +10,7 @@ import Leaderboard from './components/Leaderboard/Leaderboard.jsx'
 import PlayerStats from './components/PlayerStats/PlayerStats.jsx'
 import Rooms from './components/Rooms/Rooms.jsx'
 import Game from './components/Game/Game.jsx'
+import Title from './components/Title/Title.jsx'
 
 function Index() {
   const { roomName: urlRoomName, username: urlUsername } = useParams()
@@ -149,17 +150,20 @@ function Index() {
             {!username ? (
               <ProfileMenu onSubmit={handleUsernameSubmit} theme={theme} />
             ) : (
-              showGame ? (
-                <Game theme={theme} onBack={() => setShowGame(false)} />
-              ) : (
-                <ModeMenuSelector
-                  theme={theme}
-                  onThemeChange={handleThemeChange}
-                  onShowRooms={setShowRooms}
-                  onShowGame={setShowGame}
-                  username={username}
-                />
-              )
+              <>
+                {!showGame && <Title />}
+                {showGame ? (
+                  <Game theme={theme} onBack={() => setShowGame(false)} />
+                ) : (
+                  <ModeMenuSelector
+                    theme={theme}
+                    onThemeChange={handleThemeChange}
+                    onShowRooms={setShowRooms}
+                    onShowGame={setShowGame}
+                    username={username}
+                  />
+                )}
+              </>
             )}
           </>
         )}

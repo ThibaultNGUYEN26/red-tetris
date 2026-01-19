@@ -1,0 +1,41 @@
+.red-tetris-title {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  padding: 0.5rem 2rem;
+  z-index: 10;
+}
+
+.red-tetris-title h1 {
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2a5298;
+  text-shadow: 
+    2px 2px 4px rgba(255, 255, 255, 0.8),
+    0 0 20px rgba(255, 255, 255, 0.5),
+    0 0 30px rgba(42, 82, 152, 0.3);
+  filter: drop-shadow(2px 4px 8px rgba(0, 0, 0, 0.2));
+  transition: transform 0.3s ease;
+}
+
+.red-tetris-title h1:hover {
+  transform: scale(1.05);
+  text-shadow: 
+    2px 2px 6px rgba(255, 255, 255, 0.9),
+    0 0 25px rgba(255, 255, 255, 0.6),
+    0 0 40px rgba(42, 82, 152, 0.4);
+}
+
+
+/* Dark mode adjustments for better visibility */
+.sky-background.dark ~ * .red-tetris-title h1 {
+  color: #f0f5ff;
+  text-shadow: 
+    2px 2px 4px rgba(20, 40, 80, 0.8),
+    0 0 20px rgba(120, 150, 255, 0.5),
+    0 0 40px rgba(120, 150, 255, 0.3);
+}
