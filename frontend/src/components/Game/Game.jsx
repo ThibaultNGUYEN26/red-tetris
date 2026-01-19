@@ -72,6 +72,7 @@ function Game({ theme, onBack }) {
     col: 3,
   }))
   const [nextType, setNextType] = useState(pieceQueue[1])
+  const [isPaused, setIsPaused] = useState(false)
 
   const getCells = (piece) =>
     SHAPES[piece.type][piece.rotation].map(([r, c]) => [
@@ -178,6 +179,7 @@ function Game({ theme, onBack }) {
   useEffect(() => {
     const timer = setInterval(() => {
       setActivePiece((prev) => {
+        if (isPaused) return prev
         const next = { ...prev, row: prev.row + 1 }
         if (isValidPosition(next)) {
           return next
@@ -187,11 +189,16 @@ function Game({ theme, onBack }) {
     }, DROP_MS)
 
     return () => clearInterval(timer)
-  }, [pieceQueue])
+  }, [pieceQueue, isPaused])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.repeat) return
+      if (event.key === 'Escape') {
+        setIsPaused(true)
+        return
+      }
+      if (isPaused) return
       if (event.key === 'ArrowLeft') {
         tryMove(0, -1)
       } else if (event.key === 'ArrowRight') {
@@ -207,7 +214,7 @@ function Game({ theme, onBack }) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [isPaused])
 
   const boardWithActive = useMemo(() => {
     const grid = board.map((row) => row.slice())
@@ -251,9 +258,12 @@ function Game({ theme, onBack }) {
       <div className="game-card">
         <div className="game-header">
           <div className="game-title">
-            <h2>Game</h2>
-            <button className="game-back" onClick={onBack}>
-              Back to menu
+            <button
+              className="game-options"
+              onClick={() => setIsPaused(true)}
+              disabled={isPaused}
+            >
+              Options
             </button>
           </div>
           <div className="game-stats">
@@ -307,6 +317,25 @@ function Game({ theme, onBack }) {
             </div>
           </div>
         </div>
+
+        {isPaused && (
+          <div className="pause-overlay" role="dialog" aria-modal="true">
+            <div className="pause-card">
+              <h3>Paused</h3>
+              <div className="pause-actions">
+                <button
+                  className="resume-button"
+                  onClick={() => setIsPaused(false)}
+                >
+                  Resume
+                </button>
+                <button className="back-button" onClick={onBack}>
+                  Back to menu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
