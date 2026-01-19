@@ -8,30 +8,26 @@ const DROP_MS = 500
 
 const SHAPES = {
   i: [
+    [[0, 1], [1, 1], [2, 1], [3, 1]],
     [[1, 0], [1, 1], [1, 2], [1, 3]],
     [[0, 2], [1, 2], [2, 2], [3, 2]],
     [[2, 0], [2, 1], [2, 2], [2, 3]],
-    [[0, 1], [1, 1], [2, 1], [3, 1]],
   ],
   o: [
-    [[1, 1], [1, 2], [2, 1], [2, 2]],
+    [[0, 1], [0, 2], [1, 1], [1, 2]],
   ],
   t: [
+    [[0, 1], [1, 0], [1, 1], [1, 2]],
+    [[0, 1], [1, 1], [1, 2], [2, 1]],
     [[1, 0], [1, 1], [1, 2], [2, 1]],
-    [[0, 1], [1, 1], [2, 1], [1, 2]],
-    [[1, 0], [1, 1], [1, 2], [0, 1]],
-    [[0, 1], [1, 1], [2, 1], [1, 0]],
+    [[0, 1], [1, 0], [1, 1], [2, 1]],
   ],
   s: [
-    [[1, 1], [1, 2], [2, 0], [2, 1]],
-    [[0, 1], [1, 1], [1, 2], [2, 2]],
-    [[1, 1], [1, 2], [2, 0], [2, 1]],
+    [[0, 1], [0, 2], [1, 0], [1, 1]],
     [[0, 1], [1, 1], [1, 2], [2, 2]],
   ],
   z: [
-    [[1, 0], [1, 1], [2, 1], [2, 2]],
-    [[0, 2], [1, 1], [1, 2], [2, 1]],
-    [[1, 0], [1, 1], [2, 1], [2, 2]],
+    [[0, 0], [0, 1], [1, 1], [1, 2]],
     [[0, 2], [1, 1], [1, 2], [2, 1]],
   ],
   j: [
@@ -270,27 +266,16 @@ function Game({ onBack }) {
           </div>
 
           <div className="side-panel">
-            <div className="panel">
-              <h3>Next</h3>
-              <div className="next-grid" role="grid" aria-label="Next piece">
-                {nextPreview.map((row, rowIndex) =>
-                  row.map((cell, colIndex) => (
-                    <div
-                      key={`next-${rowIndex}-${colIndex}`}
-                      className={`cell cell-${cell}`}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="panel">
-              <h3>Controls</h3>
-              <div className="controls">
-                <span>Move: Arrow Keys</span>
-                <span>Rotate: Up</span>
-                <span>Drop: Space</span>
-              </div>
+            <h3>Next</h3>
+            <div className="next-grid" role="grid" aria-label="Next piece">
+              {nextPreview.map((row, rowIndex) =>
+                row.map((cell, colIndex) => (
+                  <div
+                    key={`next-${rowIndex}-${colIndex}`}
+                    className={`cell cell-${cell}`}
+                  />
+                ))
+              )}
             </div>
           </div>
         </div>
