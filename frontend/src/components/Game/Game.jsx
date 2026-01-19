@@ -51,7 +51,7 @@ const makeEmptyBoard = () =>
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
-function Game({ onBack }) {
+function Game({ theme, onBack }) {
   const pieceQueue = useMemo(
     () => 'soiltzjsoiltzjsoiltzjsoiltzjsoiltzj'.split(''),
     []
@@ -238,7 +238,7 @@ function Game({ onBack }) {
   }, [nextType])
 
   return (
-    <div className="game-screen">
+    <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
       <TetriminosClouds />
 
       <div className="game-card">

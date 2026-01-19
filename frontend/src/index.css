@@ -121,6 +121,7 @@ html, body, #root {
 
   backdrop-filter: blur(10px);
   font-weight: 700;
+  color: #2a5298;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -130,14 +131,14 @@ html, body, #root {
 }
 
 /* DARK MODE */
-.sky-background.dark + .return-profile-btn,
-.dark .return-profile-btn {
+.sky-background.dark ~ .content-wrapper .return-profile-btn {
   background: linear-gradient(
     135deg,
     rgba(30, 30, 60, 0.6),
     rgba(20, 20, 40, 0.6)
   );
-  color: #ffffff;
   border-color: rgba(120, 150, 255, 0.6);
+  color: #f0f5ff !important;
   box-shadow: 0 0 12px rgba(120, 150, 255, 0.4);
+  text-shadow: 0 0 10px rgba(150, 180, 255, 0.8);
 }

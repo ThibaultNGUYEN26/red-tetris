@@ -150,7 +150,7 @@ function Index() {
               <ProfileMenu onSubmit={handleUsernameSubmit} theme={theme} />
             ) : (
               showGame ? (
-                <Game onBack={() => setShowGame(false)} />
+                <Game theme={theme} onBack={() => setShowGame(false)} />
               ) : (
                 <ModeMenuSelector
                   theme={theme}
