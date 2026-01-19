@@ -475,6 +475,16 @@
   border-color: rgba(100, 100, 200, 0.4);
 }
 
+.create-room-card.dark .room-name-text {
+  color: #d0e0ff;
+  text-shadow: 0 0 10px rgba(100, 150, 255, 0.6);
+}
+
+.create-room-card.dark .wave-text {
+  color: #c4d6ff;
+  text-shadow: 0 0 8px rgba(100, 150, 255, 0.4);
+}
+
 .create-room-card.dark .start-button {
   background: linear-gradient(135deg, rgba(80, 180, 80, 0.6) 0%, rgba(40, 130, 40, 0.6) 100%);
   border-color: rgba(40, 130, 40, 0.7);

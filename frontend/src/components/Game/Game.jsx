@@ -98,6 +98,31 @@ function Game({ theme, onBack }) {
     return nextGrid
   }
 
+  const finalizePiece = (piece) => {
+    const locked = lockPiece(piece, boardRef.current)
+    const nextBoard = clearLines(locked)
+    boardRef.current = nextBoard
+    setBoard(nextBoard)
+
+    const spawned = spawnPiece()
+    if (!isValidPosition(spawned, nextBoard)) {
+      const resetBoard = makeEmptyBoard()
+      setBoard(resetBoard)
+      boardRef.current = resetBoard
+      queueIndexRef.current = 2
+      nextTypeRef.current = pieceQueue[1]
+      setNextType(pieceQueue[1])
+      return {
+        type: pieceQueue[0],
+        rotation: 0,
+        row: 0,
+        col: 3,
+      }
+    }
+
+    return spawned
+  }
+
   const clearLines = (grid) => {
     const remaining = grid.filter((row) => row.some((cell) => cell === 'empty'))
     const cleared = HEIGHT - remaining.length
@@ -142,7 +167,7 @@ function Game({ theme, onBack }) {
       while (isValidPosition({ ...next, row: next.row + 1 })) {
         next = { ...next, row: next.row + 1 }
       }
-      return next
+      return finalizePiece(next)
     })
   }
 
@@ -157,29 +182,7 @@ function Game({ theme, onBack }) {
         if (isValidPosition(next)) {
           return next
         }
-
-        const locked = lockPiece(prev, boardRef.current)
-        const nextBoard = clearLines(locked)
-        boardRef.current = nextBoard
-        setBoard(nextBoard)
-
-        const spawned = spawnPiece()
-        if (!isValidPosition(spawned, nextBoard)) {
-          const resetBoard = makeEmptyBoard()
-          setBoard(resetBoard)
-          boardRef.current = resetBoard
-          queueIndexRef.current = 2
-          nextTypeRef.current = pieceQueue[1]
-          setNextType(pieceQueue[1])
-          return {
-            type: pieceQueue[0],
-            rotation: 0,
-            row: 0,
-            col: 3,
-          }
-        }
-
-        return spawned
+        return finalizePiece(prev)
       })
     }, DROP_MS)
 
