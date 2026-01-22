@@ -5,6 +5,7 @@ import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
 const WIDTH = 10
 const HEIGHT = 20
 const DROP_MS = 500
+const SOFT_DROP_MS = 60
 
 const SHAPES = {
   i: [
@@ -63,6 +64,7 @@ function Game({ theme, onBack }) {
   const queueIndexRef = useRef(2)
   const nextTypeRef = useRef(pieceQueue[1])
   const boardRef = useRef(makeEmptyBoard())
+  const softDropTimerRef = useRef(null)
 
   const [board, setBoard] = useState(makeEmptyBoard)
   const [activePiece, setActivePiece] = useState(() => ({
@@ -176,6 +178,27 @@ function Game({ theme, onBack }) {
     boardRef.current = board
   }, [board])
 
+  const stopSoftDrop = () => {
+    if (softDropTimerRef.current) {
+      clearInterval(softDropTimerRef.current)
+      softDropTimerRef.current = null
+    }
+  }
+
+  const startSoftDrop = () => {
+    if (softDropTimerRef.current) return
+    softDropTimerRef.current = setInterval(() => {
+      setActivePiece((prev) => {
+        if (isPaused) return prev
+        const next = { ...prev, row: prev.row + 1 }
+        if (isValidPosition(next)) {
+          return next
+        }
+        return finalizePiece(prev)
+      })
+    }, SOFT_DROP_MS)
+  }
+
   useEffect(() => {
     const timer = setInterval(() => {
       setActivePiece((prev) => {
@@ -196,6 +219,7 @@ function Game({ theme, onBack }) {
       if (event.repeat) return
       if (event.key === 'Escape') {
         setIsPaused(true)
+        stopSoftDrop()
         return
       }
       if (isPaused) return
@@ -205,6 +229,7 @@ function Game({ theme, onBack }) {
         tryMove(0, 1)
       } else if (event.key === 'ArrowDown') {
         tryMove(1, 0)
+        startSoftDrop()
       } else if (event.key === 'ArrowUp') {
         tryMove(0, 0, 1)
       } else if (event.key === ' ') {
@@ -212,12 +237,45 @@ function Game({ theme, onBack }) {
       }
     }
 
+    const handleKeyUp = (event) => {
+      if (event.key === 'ArrowDown') {
+        stopSoftDrop()
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      stopSoftDrop()
+    }
+  }, [isPaused])
+
+  useEffect(() => {
+    if (isPaused) {
+      stopSoftDrop()
+    }
   }, [isPaused])
 
   const boardWithActive = useMemo(() => {
     const grid = board.map((row) => row.slice())
+    const ghost = (() => {
+      let next = { ...activePiece }
+      while (isValidPosition({ ...next, row: next.row + 1 })) {
+        next = { ...next, row: next.row + 1 }
+      }
+      return next
+    })()
+
+    getCells(ghost).forEach(([r, c]) => {
+      if (r >= 0 && r < HEIGHT && c >= 0 && c < WIDTH) {
+        if (grid[r][c] === 'empty') {
+          grid[r][c] = 'ghost'
+        }
+      }
+    })
+
     getCells(activePiece).forEach(([r, c]) => {
       if (r >= 0 && r < HEIGHT && c >= 0 && c < WIDTH) {
         grid[r][c] = activePiece.type
