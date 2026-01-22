@@ -104,7 +104,7 @@ function CreateRoom({
   useEffect(() => {
     if (!roomId) return
 
-    socket.emit("joinRoom", { roomId: String(roomId) });
+    socket.emit("joinRoom", { roomId: String(roomId), username });
     console.log('Emitting getRoomState', roomId);
 
     const handleRoomState = (room) => {

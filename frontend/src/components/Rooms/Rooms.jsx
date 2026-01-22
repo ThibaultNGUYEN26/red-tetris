@@ -56,7 +56,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
       })
 
       // 2️⃣ Join socket room
-      socket.emit('joinRoom', { roomId: String(roomId) })
+      socket.emit('joinRoom', { roomId: String(roomId), username })
 
       // 3️⃣ Sync room state
       socket.emit('getRoomState', { roomId: String(roomId) })
