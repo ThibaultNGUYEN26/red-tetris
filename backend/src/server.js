@@ -11,6 +11,8 @@ import roomRoutes from "./routes/rooms.routes.js";
 import setupSockets from "./socket/index.js";
 import { pool } from "./config/db.js";
 
+import { createGame, getGame } from "./game/gameManager.js";
+
 // App and HTTP Server
 const app = express();
 const httpServer = createServer(app);
@@ -51,6 +53,50 @@ const io = new Server(httpServer, {
 
 app.set("io", io);
 setupSockets(io);
+
+io.on("connection", (socket) => {
+  console.log(`🟢 Socket connected: ${socket.id}`);
+
+  socket.on("startGame", async ({ roomId, username }) => {
+    // Ensure player is host, fetch room from DB if needed
+    const room = await pool.query("SELECT host, players FROM rooms WHERE id=$1", [roomId]);
+    if (!room.rowCount) return;
+    if (room.rows[0].host !== username) return;
+
+    const game = createGame(roomId, room.rows[0].players.map(u => ({ username: u, socketId: null })));
+    game.start();
+
+    io.to(roomId).emit("gameStarted", { roomId });
+  });
+
+  socket.on("movePiece", ({ roomId, username, action }) => {
+    const game = getGame(roomId);
+    if (!game || !game.isRunning) return;
+
+    const player = game.getPlayer(username);
+    if (!player || !player.isAlive) return;
+
+    game.movePlayer(username, action);
+
+    if (game.checkGameOver()) {
+      game.isRunning = false;
+
+      io.to(roomId).emit("gameOver", {
+        winner:
+          game.mode === "multiplayer"
+            ? game.players.find(p => p.isAlive)?.username ?? null
+            : null
+      });
+      return;
+    }
+
+    io.to(roomId).emit("gameState", game.serialize());
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`🔴 Socket disconnected: ${socket.id}`);
+  });
+});
 
 httpServer.listen(3000, async () => {
   console.log("Backend running on port 3000");

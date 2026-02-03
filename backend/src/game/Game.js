@@ -1,39 +1,61 @@
-import { TICK_RATE } from "../config/constants.js";
-
 export default class Game {
-  constructor(playerId) {
-    this.playerId = playerId;
-    this.state = this.createInitialState();
+  constructor(roomId, players) {
+    this.roomId = roomId;
+    this.players = players;
+    this.mode = mode;
 
-    this.interval = setInterval(() => {
-      this.tick();
-    }, TICK_RATE);
+    this.sequence = new SequenceGenerator();
+    this.running = false;
   }
 
-  createInitialState() {
-    return {
-      grid: Array.from({ length: 20 }, () => Array(10).fill(0)),
-      activePiece: null,
-      score: 0,
-      gameOver: false,
-    };
+  getPlayer(username) {
+    return this.players.find(p => p.username === username);
   }
 
-  handleInput(input) {
-    // validate input type
-    // update state safely
+  start() {
+    this.isRunning = true;
+
+    const first = this.sequence.next();
+    const second = this.sequence.next();
+
+    for (const player of this.players) {
+      player.spawnPiece(first);
+      player.setNextPiece(second);
+    }
   }
 
-  tick() {
-    if (this.state.gameOver) return;
+  movePlayer(username, action) {
+    const player = this.getPlayer(username);
+    if (!player || !player.isAlive) return;
 
-    // gravity
-    // collision
-    // lock piece
-    // clear lines
+    const piece = player.currentPiece;
+
+    switch (action) {
+      case "left":
+        piece.x -= 1;
+        break;
+      case "right":
+        piece.x += 1;
+        break;
+      case "rotate":
+        piece.rotate();
+        break;
+      case "drop":
+        piece.y += 1;
+        break;
+    }
+
+    return player;
   }
 
-  destroy() {
-    clearInterval(this.interval);
+  checkGameOver() {
+    // SOLO: one player dies → game over
+    if (this.mode === GAME_MODES.SOLO) {
+      return !this.players[0].isAlive;
+    }
+
+    // MULTI: one or zero players left alive
+    const alive = this.players.filter(p => p.isAlive);
+    return alive.length <= 1;
   }
 }
