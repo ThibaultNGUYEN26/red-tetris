@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict UX130ZEdBgZeq7oV5T3Qwig10qcu9d4FggqWlCytUy3kR8hLTEAstWAka2RCYmT
+\restrict Ks7d14Lg6G20MMaD9g6QeJjKgsuPC4zBrsyz8AKphWsG1b9KnChcqpvTAQA9MIb
 
 -- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
 -- Dumped by pg_dump version 15.15 (Debian 15.15-1.pgdg13+1)
@@ -131,14 +131,14 @@ COPY public.users (id, username, avatar) FROM stdin;
 -- Name: rooms_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.rooms_id_seq', 3, true);
+SELECT pg_catalog.setval('public.rooms_id_seq', 4, true);
 
 
 --
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 5, true);
+SELECT pg_catalog.setval('public.users_id_seq', 8, true);
 
 
 --
@@ -177,5 +177,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict UX130ZEdBgZeq7oV5T3Qwig10qcu9d4FggqWlCytUy3kR8hLTEAstWAka2RCYmT
+\unrestrict Ks7d14Lg6G20MMaD9g6QeJjKgsuPC4zBrsyz8AKphWsG1b9KnChcqpvTAQA9MIb
 
