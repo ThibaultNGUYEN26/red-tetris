@@ -22,6 +22,9 @@ function Index() {
   const [showGame, setShowGame] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
   const [joinedRoomName, setJoinedRoomName] = useState(urlRoomName || null)
+  const [soloRoomId, setSoloRoomId] = useState(null)
+
+  const API_URL = import.meta.env.VITE_API_URL || ''
 
   /* ---------------- SYNC URL PARAMS ---------------- */
 
@@ -52,6 +55,7 @@ function Index() {
     setShowGame(false)
     setUserProfile(null)
     setJoinedRoomName(null)
+    setSoloRoomId(null)
     navigate('/')
   }
 
@@ -62,6 +66,22 @@ function Index() {
 
     // 🔥 Update URL without reload
     navigate(`/${roomName}/${username}`, { replace: true })
+  }
+
+  const handleExitSolo = async () => {
+    if (soloRoomId && username) {
+      try {
+        await fetch(`${API_URL}/api/rooms/${soloRoomId}/leave`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        })
+      } catch (err) {
+        console.error('Failed to leave solo room:', err)
+      }
+    }
+    setSoloRoomId(null)
+    setShowGame(false)
   }
 
   /* ---------------- BACK BUTTON ---------------- */
@@ -153,13 +173,20 @@ function Index() {
               <>
                 {!showGame && !showRooms && <Title />}
                 {showGame ? (
-                  <Game theme={theme} onBack={() => setShowGame(false)} />
+                  <Game
+                    theme={theme}
+                    onBack={handleExitSolo}
+                    roomId={soloRoomId}
+                    username={username}
+                    isMultiplayer={false}
+                  />
                 ) : (
                   <ModeMenuSelector
                     theme={theme}
                     onThemeChange={handleThemeChange}
                     onShowRooms={setShowRooms}
                     onShowGame={setShowGame}
+                    onStartSolo={setSoloRoomId}
                     username={username}
                   />
                 )}

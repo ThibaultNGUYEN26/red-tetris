@@ -160,6 +160,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
         onBack={handleExitGame}
         roomId={currentRoomId}
         username={username}
+        isMultiplayer={true}
       />
     )
   }

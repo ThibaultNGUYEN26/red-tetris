@@ -3,13 +3,45 @@ import { useState } from 'react'
 import Options from './Options.jsx/Options.jsx'
 import Rooms from '../Rooms/Rooms.jsx'
 
-function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, username }) {
+const API_URL = import.meta.env.VITE_API_URL || ''
+
+function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, onStartSolo, username }) {
   const [showOptions, setShowOptions] = useState(false)
   const [showRooms, setShowRooms] = useState(false)
 
-  const handleSolo = () => {
+  const handleSolo = async () => {
     console.log('Solo mode selected')
-    onShowGame(true)
+    try {
+      const createResponse = await fetch(`${API_URL}/api/rooms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gameMode: 'classic',
+          host: username,
+        }),
+      })
+
+      if (!createResponse.ok) {
+        throw new Error('Failed to create solo room')
+      }
+
+      const room = await createResponse.json()
+
+      const startResponse = await fetch(`${API_URL}/api/rooms/${room.id}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      })
+
+      if (!startResponse.ok) {
+        throw new Error('Failed to start solo game')
+      }
+
+      onStartSolo?.(room.id)
+      onShowGame(true)
+    } catch (err) {
+      console.error('Solo start failed:', err)
+    }
   }
 
   const handleMultiplayer = () => {

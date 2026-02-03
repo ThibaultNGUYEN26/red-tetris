@@ -58,8 +58,8 @@ const makeEmptyBoard = () =>
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
-function Game({ theme, onBack, roomId, username }) {
-  const isMultiplayer = Boolean(roomId)
+function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerProp }) {
+  const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
   const pieceQueue = useMemo(
     () => 'soiltzjsoiltzjsoiltzjsoiltzjsoiltzj'.split(''),
     []
