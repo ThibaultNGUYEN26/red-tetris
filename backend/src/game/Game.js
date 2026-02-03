@@ -1,11 +1,12 @@
-import SequenceGenerator from "./sequenceGenerator.js";
-
 export default class Game {
   constructor(roomId, players) {
     this.roomId = roomId;
     this.players = players;
-
     this.sequence = new SequenceGenerator();
+  }
+
+  getPlayer(username) {
+    return this.players.find(p => p.username === username);
   }
 
   start() {
@@ -18,9 +19,27 @@ export default class Game {
     }
   }
 
-  giveNextPiece(player) {
-      player.promoteNextPiece();
-      const nextType = this.sequence.next();
-      player.setNextPiece(nextType);
+  movePlayer(username, action) {
+    const player = this.getPlayer(username);
+    if (!player || !player.isAlive) return;
+
+    const piece = player.currentPiece;
+
+    switch (action) {
+      case "left":
+        piece.x -= 1;
+        break;
+      case "right":
+        piece.x += 1;
+        break;
+      case "rotate":
+        piece.rotate();
+        break;
+      case "drop":
+        piece.y += 1;
+        break;
     }
+
+    return player;
+  }
 }

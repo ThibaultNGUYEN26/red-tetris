@@ -25,4 +25,27 @@ export default class Player {
     this.currentPiece = this.nextPiece;
     this.nextPiece = null;
   }
+
+  serialize() {
+    return {
+      username: this.username,
+      isAlive: this.isAlive,
+      score: this.score,
+      lines: this.lines,
+      currentPiece: this.currentPiece
+        ? {
+            type: this.currentPiece.type,
+            x: this.currentPiece.x,
+            y: this.currentPiece.y,
+            shape: this.currentPiece.shape,
+          }
+        : null,
+      nextPiece: this.nextPiece
+        ? {
+            type: this.nextPiece.type,
+            shape: this.nextPiece.shape,
+          }
+        : null,
+    };
+  }
 }
