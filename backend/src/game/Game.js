@@ -9,18 +9,18 @@ export default class Game {
   }
 
   start() {
-    // Everyone gets the SAME pieces
-    for (const player of this.players) {
-      const first = this.sequence.next();
-      const second = this.sequence.next();
+    const first = this.sequence.next();
+    const second = this.sequence.next();
 
+    for (const player of this.players) {
       player.spawnPiece(first);
       player.setNextPiece(second);
     }
   }
 
   giveNextPiece(player) {
-    const nextType = this.sequence.next();
-    player.setNextPiece(nextType);
-  }
+      player.promoteNextPiece();
+      const nextType = this.sequence.next();
+      player.setNextPiece(nextType);
+    }
 }
