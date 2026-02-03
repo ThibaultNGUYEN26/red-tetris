@@ -242,13 +242,10 @@ function CreateRoom({
 
   const handleStartGame = async () => {
     if (players.length < 2) return
+    if (hostName && hostName !== username) return
 
     try {
-      await fetch(`${API_URL}/api/rooms/${roomId}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
-      })
+      socket.emit('startGame', { roomId: String(roomId), username })
     } catch (err) {
       console.error('Failed to start game:', err)
     }
@@ -365,7 +362,7 @@ function CreateRoom({
         <button
           className="start-button"
           onClick={handleStartGame}
-          disabled={players.length < 2 || mode !== 'create'}
+          disabled={players.length < 2 || (hostName && hostName !== username)}
         >
           🎮 Start Game
         </button>

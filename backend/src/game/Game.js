@@ -1,5 +1,24 @@
+import { GAME_MODES } from "../config/constants.js";
+
+class SequenceGenerator {
+  constructor() {
+    this.bag = [];
+    this.index = 0;
+  }
+
+  next() {
+    if (this.index >= this.bag.length) {
+      this.bag = ["I", "O", "T", "L", "J", "S", "Z"].sort(() => Math.random() - 0.5);
+      this.index = 0;
+    }
+    const piece = this.bag[this.index];
+    this.index += 1;
+    return piece;
+  }
+}
+
 export default class Game {
-  constructor(roomId, players) {
+  constructor(roomId, players, mode) {
     this.roomId = roomId;
     this.players = players;
     this.mode = mode;

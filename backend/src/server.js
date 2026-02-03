@@ -59,7 +59,7 @@ io.on("connection", (socket) => {
 
   socket.on("startGame", async ({ roomId, username }) => {
     const room = await pool.query(
-      "SELECT host, players, status FROM rooms WHERE id=$1",
+      "SELECT host, players, status, game_mode FROM rooms WHERE id=$1",
       [roomId]
     );
     if (!room.rowCount) return;
@@ -69,7 +69,12 @@ io.on("connection", (socket) => {
     if (r.status === "started") return; // already started
 
     // create Game instance
-    const game = createGame(roomId, r.players.map(u => ({ username: u, socketId: null })), "multiplayer");
+    const gameMode = r.game_mode || "multiplayer";
+    const game = createGame(
+      roomId,
+      r.players.map(u => ({ username: u, socketId: null })),
+      gameMode
+    );
 
     game.start(); // spawn first pieces
 
