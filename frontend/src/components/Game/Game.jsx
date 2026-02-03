@@ -1,6 +1,7 @@
 import './Game.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
+import { socket } from '../../socket'
 
 const WIDTH = 10
 const HEIGHT = 20
@@ -56,7 +57,7 @@ const makeEmptyBoard = () =>
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
-function Game({ theme, onBack }) {
+function Game({ theme, onBack, roomId, username }) {
   const pieceQueue = useMemo(
     () => 'soiltzjsoiltzjsoiltzjsoiltzjsoiltzj'.split(''),
     []
@@ -65,6 +66,8 @@ function Game({ theme, onBack }) {
   const nextTypeRef = useRef(pieceQueue[1])
   const boardRef = useRef(makeEmptyBoard())
   const softDropTimerRef = useRef(null)
+  const piecesPlayedInSequence = useRef(0) // Track pieces in current 7-piece sequence
+  const hasSentPing = useRef(false) // Track if we sent ping for current sequence
 
   const [board, setBoard] = useState(makeEmptyBoard)
   const [activePiece, setActivePiece] = useState(() => ({
@@ -107,6 +110,26 @@ function Game({ theme, onBack }) {
     boardRef.current = nextBoard
     setBoard(nextBoard)
 
+    // Track pieces played and send ping after 4th piece in each sequence
+    piecesPlayedInSequence.current += 1
+    console.log(`Pieces played in sequence: ${piecesPlayedInSequence.current}/7`)
+
+    if (piecesPlayedInSequence.current === 4 && !hasSentPing.current) {
+      // Send ping to backend after 4th piece
+      console.log('Ping sent: requesting next 7-piece batch')
+      if (roomId && username) {
+        socket.emit('requestNextBatch', { roomId, username })
+      }
+      hasSentPing.current = true
+    }
+
+    // Reset counter and ping flag after 7 pieces
+    if (piecesPlayedInSequence.current >= 7) {
+      piecesPlayedInSequence.current = 0
+      hasSentPing.current = false
+      console.log('Sequence reset: starting new 7-piece batch')
+    }
+
     const spawned = spawnPiece()
     if (!isValidPosition(spawned, nextBoard)) {
       const resetBoard = makeEmptyBoard()
@@ -115,6 +138,8 @@ function Game({ theme, onBack }) {
       queueIndexRef.current = 2
       nextTypeRef.current = pieceQueue[1]
       setNextType(pieceQueue[1])
+      piecesPlayedInSequence.current = 0
+      hasSentPing.current = false
       return {
         type: pieceQueue[0],
         rotation: 0,
@@ -293,19 +318,19 @@ function Game({ theme, onBack }) {
     const maxRow = Math.max(...rows)
     const minCol = Math.min(...cols)
     const maxCol = Math.max(...cols)
-    
+
     // Create grid with only the needed size
     const height = maxRow - minRow + 1
     const width = maxCol - minCol + 1
     const preview = Array.from({ length: height }, () =>
       Array.from({ length: width }, () => 'empty')
     )
-    
+
     // Fill in the shape, adjusted for the bounding box
     shape.forEach(([r, c]) => {
       preview[r - minRow][c - minCol] = nextType
     })
-    
+
     return { grid: preview, width, height }
   }, [nextType])
 
