@@ -58,15 +58,29 @@ io.on("connection", (socket) => {
   console.log(`🟢 Socket connected: ${socket.id}`);
 
   socket.on("startGame", async ({ roomId, username }) => {
-    // Ensure player is host, fetch room from DB if needed
-    const room = await pool.query("SELECT host, players FROM rooms WHERE id=$1", [roomId]);
+    const room = await pool.query(
+      "SELECT host, players, status FROM rooms WHERE id=$1",
+      [roomId]
+    );
     if (!room.rowCount) return;
-    if (room.rows[0].host !== username) return;
+    const r = room.rows[0];
+    
+    if (r.host !== username) return;
+    if (r.status === "started") return; // already started
 
-    const game = createGame(roomId, room.rows[0].players.map(u => ({ username: u, socketId: null })));
-    game.start();
+    // create Game instance
+    const game = createGame(roomId, r.players.map(u => ({ username: u, socketId: null })), "multiplayer");
 
+    game.start(); // spawn first pieces
+
+    // notify clients
     io.to(roomId).emit("gameStarted", { roomId });
+
+    // optionally update DB
+    await pool.query(
+      `UPDATE rooms SET status='started' WHERE id=$1`,
+      [roomId]
+    );
   });
 
   socket.on("movePiece", ({ roomId, username, action }) => {
