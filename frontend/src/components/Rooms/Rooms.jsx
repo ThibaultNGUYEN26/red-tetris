@@ -2,12 +2,14 @@ import './Rooms.css'
 import { useState, useEffect, useRef } from 'react'
 import { socket } from '../../socket'
 import CreateRoom from '../CreateRoom/CreateRoom.jsx'
+import Game from '../Game/Game.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
   const [rooms, setRooms] = useState([])
   const [showCreateRoom, setShowCreateRoom] = useState(false)
+  const [showGame, setShowGame] = useState(false)
   const [currentRoomId, setCurrentRoomId] = useState(
     localStorage.getItem('currentRoomId')
   )
@@ -86,6 +88,19 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
     return () => socket.off('roomState', handleRoomState)
   }, [])
 
+  /* ---------------- GAME START ---------------- */
+
+  useEffect(() => {
+    const handleGameStarted = ({ roomId }) => {
+      if (!roomId) return
+      if (String(roomId) !== String(currentRoomId)) return
+      setShowGame(true)
+    }
+
+    socket.on('gameStarted', handleGameStarted)
+    return () => socket.off('gameStarted', handleGameStarted)
+  }, [currentRoomId])
+
   /* ---------------- CREATE ROOM ---------------- */
 
   const handleCreateRoom = () => {
@@ -124,7 +139,12 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
     localStorage.removeItem('currentRoomId')
     setCurrentRoomId(null)
     setShowCreateRoom(false)
+    setShowGame(false)
     hasJoinedRef.current = false
+  }
+
+  const handleExitGame = async () => {
+    await handleLeaveRoom()
   }
 
   const handleBackToMenu = () => {
@@ -132,6 +152,17 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
   }
 
   /* ---------------- ROOM LOBBY ---------------- */
+
+  if (showGame && currentRoomId) {
+    return (
+      <Game
+        theme={theme}
+        onBack={handleExitGame}
+        roomId={currentRoomId}
+        username={username}
+      />
+    )
+  }
 
   if (showCreateRoom || currentRoomId) {
     return (

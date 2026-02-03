@@ -24,6 +24,19 @@ async function attachPlayerAvatars(room) {
   return { ...room, player_avatars };
 }
 
+async function emitAvailableRooms(io) {
+  if (!io) return;
+  const MAX_PLAYERS = 6;
+  const result = await pool.query(
+    `SELECT id, name, game_mode, host, player_count, players
+     FROM rooms
+     WHERE player_count < $1
+     ORDER BY created_at ASC;`,
+    [MAX_PLAYERS]
+  );
+  io.emit("availableRooms", result.rows);
+}
+
 function generateRoomName() {
   const adjectives = ["Red", "Blue", "Fast", "Crazy", "Happy", "Silent"];
   const nouns = ["Tetris", "Block", "Stack", "Line", "Drop", "Game"];
@@ -96,6 +109,9 @@ router.post("/", async (req, res) => {
       return res.status(500).json({ error: "Failed to generate unique room name" });
     }
 
+    const io = req.app.get("io");
+    await emitAvailableRooms(io);
+
     res.status(200).json(room);
   } catch (err) {
     console.error("Failed to create room:", err);
@@ -147,6 +163,7 @@ router.patch("/:roomId/name", async (req, res) => {
     const io = req.app.get("io");
     if (io) {
       io.to(String(roomId)).emit("roomState", roomWithAvatars);
+      await emitAvailableRooms(io);
     }
 
     res.json(roomWithAvatars);
@@ -209,6 +226,7 @@ router.patch("/:roomId/mode", async (req, res) => {
     const io = req.app.get("io");
     if (io) {
       io.to(String(roomId)).emit("roomState", roomWithAvatars);
+      await emitAvailableRooms(io);
     }
 
     res.json(roomWithAvatars);
@@ -275,6 +293,9 @@ router.post("/:roomId/join", async (req, res) => {
     const values = [roomId, JSON.stringify([username])];
     const result = await pool.query(updateQuery, values);
 
+    const io = req.app.get("io");
+    await emitAvailableRooms(io);
+
     res.json(result.rows[0]);
   } catch (err) {
     console.error("Join room failed:", err);
@@ -316,6 +337,8 @@ router.post("/:roomId/leave", async (req, res) => {
 
     if (updatedPlayers.length === 0) {
       await pool.query(`DELETE FROM rooms WHERE id = $1`, [roomId]);
+      const io = req.app.get("io");
+      await emitAvailableRooms(io);
       return res.json({ message: "Room deleted" });
     }
 
@@ -334,6 +357,7 @@ router.post("/:roomId/leave", async (req, res) => {
 
     const io = req.app.get("io");
     io.to(String(roomId)).emit("roomState", roomWithAvatars);
+    await emitAvailableRooms(io);
     
     res.json(roomWithAvatars);
   } catch (err) {
@@ -377,6 +401,9 @@ router.post("/:roomId/start", async (req, res) => {
       RETURNING *;
     `;
     const result = await pool.query(updateQuery, [roomId]);
+
+    const io = req.app.get("io");
+    io.to(String(roomId)).emit("gameStarted", { roomId: String(roomId) });
 
     res.json(result.rows[0]);
   } catch (err) {

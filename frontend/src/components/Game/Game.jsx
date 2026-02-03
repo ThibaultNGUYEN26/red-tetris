@@ -1,6 +1,7 @@
 import './Game.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
+import ShadowBoards from '../ShadowBoards/ShadowBoards'
 import { socket } from '../../socket'
 
 const WIDTH = 10
@@ -58,6 +59,7 @@ const makeEmptyBoard = () =>
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
 function Game({ theme, onBack, roomId, username }) {
+  const isMultiplayer = Boolean(roomId)
   const pieceQueue = useMemo(
     () => 'soiltzjsoiltzjsoiltzjsoiltzjsoiltzj'.split(''),
     []
@@ -78,6 +80,9 @@ function Game({ theme, onBack, roomId, username }) {
   }))
   const [nextType, setNextType] = useState(pieceQueue[1])
   const [isPaused, setIsPaused] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+  const [opponentBoards, setOpponentBoards] = useState([])
+  const lastBoardSentRef = useRef(0)
 
   const getCells = (piece) =>
     SHAPES[piece.type][piece.rotation].map(([r, c]) => [
@@ -242,9 +247,13 @@ function Game({ theme, onBack, roomId, username }) {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.repeat) return
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isMultiplayer) {
         setIsPaused(true)
         stopSoftDrop()
+        return
+      }
+      if (event.key === 'Escape' && isMultiplayer) {
+        setShowMenu(true)
         return
       }
       if (isPaused) return
@@ -309,6 +318,30 @@ function Game({ theme, onBack, roomId, username }) {
     return grid
   }, [board, activePiece])
 
+  useEffect(() => {
+    if (!isMultiplayer || !roomId || !username) return
+    const now = Date.now()
+    if (now - lastBoardSentRef.current < 120) return
+    lastBoardSentRef.current = now
+    socket.emit('playerBoard', { roomId, username, board: boardWithActive })
+  }, [boardWithActive, isMultiplayer, roomId, username])
+
+  useEffect(() => {
+    if (!isMultiplayer) return
+
+    const handlePlayerBoard = ({ username: sender, board }) => {
+      if (!sender || !Array.isArray(board)) return
+      if (sender === username) return
+      setOpponentBoards((prev) => {
+        const filtered = prev.filter((p) => p.username !== sender)
+        return [...filtered, { username: sender, board }]
+      })
+    }
+
+    socket.on('playerBoard', handlePlayerBoard)
+    return () => socket.off('playerBoard', handlePlayerBoard)
+  }, [isMultiplayer, username])
+
   const nextPreview = useMemo(() => {
     const shape = SHAPES[nextType][0]
     // Find bounding box
@@ -343,7 +376,13 @@ function Game({ theme, onBack, roomId, username }) {
           <div className="game-title">
             <button
               className="game-options"
-              onClick={() => setIsPaused(true)}
+              onClick={() => {
+                if (isMultiplayer) {
+                  setShowMenu(true)
+                  return
+                }
+                setIsPaused(true)
+              }}
               disabled={isPaused}
             >
               Options
@@ -398,10 +437,11 @@ function Game({ theme, onBack, roomId, username }) {
                 )}
               </div>
             </div>
+            {isMultiplayer && <ShadowBoards boards={opponentBoards} />}
           </div>
         </div>
 
-        {isPaused && (
+        {!isMultiplayer && isPaused && (
           <div className="pause-overlay" role="dialog" aria-modal="true">
             <div className="pause-card">
               <h3>Paused</h3>
@@ -414,6 +454,25 @@ function Game({ theme, onBack, roomId, username }) {
                 </button>
                 <button className="back-button" onClick={onBack}>
                   Back to menu
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isMultiplayer && showMenu && (
+          <div className="pause-overlay" role="dialog" aria-modal="true">
+            <div className="pause-card">
+              <h3>Leave game?</h3>
+              <div className="pause-actions">
+                <button
+                  className="resume-button"
+                  onClick={() => setShowMenu(false)}
+                >
+                  Continue
+                </button>
+                <button className="back-button" onClick={onBack}>
+                  Leave
                 </button>
               </div>
             </div>

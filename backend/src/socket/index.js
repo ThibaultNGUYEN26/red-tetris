@@ -20,6 +20,12 @@ export default function setupSockets(io) {
       console.log(`${socket.id} left room ${roomId}`);
     });
 
+    socket.on("playerBoard", ({ roomId, username, board }) => {
+      if (!roomId || !username) return;
+      if (!Array.isArray(board)) return;
+      socket.to(String(roomId)).emit("playerBoard", { username, board });
+    });
+
     // Helper function to emit availableRooms to all clients
     async function broadcastAvailableRooms() {
       const MAX_PLAYERS = 6;
