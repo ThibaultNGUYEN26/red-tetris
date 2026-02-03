@@ -71,12 +71,26 @@ io.on("connection", (socket) => {
 
   socket.on("movePiece", ({ roomId, username, action }) => {
     const game = getGame(roomId);
-    if (!game) return;
+    if (!game || !game.isRunning) return;
 
-    const player = game.movePlayer(username, action);
-    if (!player) return;
+    const player = game.getPlayer(username);
+    if (!player || !player.isAlive) return;
 
-    io.to(roomId).emit("playerUpdate", player.serialize());
+    game.movePlayer(username, action);
+
+    if (game.checkGameOver()) {
+      game.isRunning = false;
+
+      io.to(roomId).emit("gameOver", {
+        winner:
+          game.mode === "multiplayer"
+            ? game.players.find(p => p.isAlive)?.username ?? null
+            : null
+      });
+      return;
+    }
+
+    io.to(roomId).emit("gameState", game.serialize());
   });
 
   socket.on("disconnect", () => {

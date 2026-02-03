@@ -3,7 +3,7 @@ import Player from "./Player.js";
 
 const games = new Map();
 
-export function createGame(roomId, playersData) {
+export function createGame(roomId, playersData, mode) {
   if (games.has(roomId)) {
     return games.get(roomId);
   }
@@ -12,7 +12,7 @@ export function createGame(roomId, playersData) {
     p => new Player(p.username, p.socketId)
   );
 
-  const game = new Game(roomId, players);
+  const game = new Game(roomId, players, mode);
   games.set(roomId, game);
 
   return game;
@@ -20,8 +20,4 @@ export function createGame(roomId, playersData) {
 
 export function getGame(roomId) {
   return games.get(roomId);
-}
-
-export function removeGame(roomId) {
-  games.delete(roomId);
 }

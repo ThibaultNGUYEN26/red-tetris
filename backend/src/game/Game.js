@@ -2,7 +2,10 @@ export default class Game {
   constructor(roomId, players) {
     this.roomId = roomId;
     this.players = players;
+    this.mode = mode;
+
     this.sequence = new SequenceGenerator();
+    this.running = false;
   }
 
   getPlayer(username) {
@@ -10,6 +13,8 @@ export default class Game {
   }
 
   start() {
+    this.isRunning = true;
+
     const first = this.sequence.next();
     const second = this.sequence.next();
 
@@ -41,5 +46,16 @@ export default class Game {
     }
 
     return player;
+  }
+
+  checkGameOver() {
+    // SOLO: one player dies → game over
+    if (this.mode === GAME_MODES.SOLO) {
+      return !this.players[0].isAlive;
+    }
+
+    // MULTI: one or zero players left alive
+    const alive = this.players.filter(p => p.isAlive);
+    return alive.length <= 1;
   }
 }
