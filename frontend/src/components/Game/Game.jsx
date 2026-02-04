@@ -222,17 +222,27 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
         const mappedSequence = initialSequence.map(p => p.toLowerCase());
         setPieceQueue(mappedSequence);
         setQueueInitialized(true);
-        queueIndexRef.current = 0;
+        
         if (mappedSequence.length > 0) {
-          nextTypeRef.current = mappedSequence[0];
+          // Set active piece to first piece
           setActivePiece({
             type: mappedSequence[0],
             rotation: 0,
             row: 0,
             col: 3,
           });
+          
+          // Initialize refs for spawning:
+          // nextTypeRef = what to spawn next (piece 1)
+          // queueIndexRef = index of nextTypeRef in the queue
+          queueIndexRef.current = 1; // nextTypeRef points to index 1
+          nextTypeRef.current = mappedSequence[1] || mappedSequence[0];
+          
+          // Set next piece display
           if (mappedSequence.length > 1) {
             setNextType(mappedSequence[1]);
+          } else {
+            setNextType(mappedSequence[0]);
           }
         }
       }

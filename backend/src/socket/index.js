@@ -199,7 +199,7 @@ export default function setupSockets(io) {
     socket.on("movePiece", ({ roomId, username, action }) => {
       console.log(`🎮 movePiece received:`, { socketId: socket.id, roomId, username, action });
       try {
-        const game = getGame(roomId);
+        const game = getGame(String(roomId));
         if (!game || !game.isRunning) {
           console.log(`   ❌ Game not running for room ${roomId}`);
           return;
@@ -235,7 +235,7 @@ export default function setupSockets(io) {
     socket.on("requestNextBatch", async ({ roomId, username }) => {
       console.log(`🎯 requestNextBatch received:`, { socketId: socket.id, roomId, username });
       try {
-        const game = getGame(roomId);
+        const game = getGame(String(roomId));
         if (!game || !game.isRunning) {
           console.log(`   ❌ Game not running for room ${roomId}`);
           return;
