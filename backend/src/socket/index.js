@@ -190,13 +190,21 @@ export default function setupSockets(io) {
     });
 
     socket.on("movePiece", ({ roomId, username, action }) => {
+      console.log(`🎮 movePiece received:`, { socketId: socket.id, roomId, username, action });
       try {
         const game = getGame(roomId);
-        if (!game || !game.isRunning) return;
+        if (!game || !game.isRunning) {
+          console.log(`   ❌ Game not running for room ${roomId}`);
+          return;
+        }
 
         const player = game.getPlayer(username);
-        if (!player || !player.isAlive) return;
+        if (!player || !player.isAlive) {
+          console.log(`   ❌ Player ${username} not found or dead`);
+          return;
+        }
 
+        console.log(`   ✅ Player ${username} moving: ${action}`);
         game.movePlayer(username, action);
 
         if (game.checkGameOver()) {

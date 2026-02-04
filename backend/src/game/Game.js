@@ -47,7 +47,7 @@ export default class Game {
     const player = this.getPlayer(username);
     if (!player || !player.isAlive) return;
 
-    const piece = player.currentPiece;
+     const piece = player.currentPiece;
 
     switch (action) {
       case "left":
@@ -76,5 +76,14 @@ export default class Game {
     // MULTI: one or zero players left alive
     const alive = this.players.filter(p => p.isAlive);
     return alive.length <= 1;
+  }
+
+  serialize() {
+    return {
+      roomId: this.roomId,
+      mode: this.mode,
+      isRunning: this.isRunning,
+      players: this.players.map(p => p.serialize()),
+    };
   }
 }

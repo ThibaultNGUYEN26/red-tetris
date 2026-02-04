@@ -208,6 +208,36 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     boardRef.current = board
   }, [board])
 
+  /* Socket listeners for multiplayer game events */
+  useEffect(() => {
+    if (!isMultiplayer) return;
+
+    const handleGameStarted = ({ roomId: startedRoomId }) => {
+      console.log('🎮 Game started from backend for room:', startedRoomId);
+      // Game has started, pieces are already spawned by backend
+    };
+
+    const handleGameState = (gameState) => {
+      console.log('📊 Received game state from backend:', gameState);
+      // Update game state from backend if needed
+    };
+
+    const handleGameOver = ({ winner }) => {
+      console.log('🏁 Game over! Winner:', winner);
+      // Handle game over
+    };
+
+    socket.on('gameStarted', handleGameStarted);
+    socket.on('gameState', handleGameState);
+    socket.on('gameOver', handleGameOver);
+
+    return () => {
+      socket.off('gameStarted', handleGameStarted);
+      socket.off('gameState', handleGameState);
+      socket.off('gameOver', handleGameOver);
+    };
+  }, [isMultiplayer, roomId]);
+
   const stopSoftDrop = () => {
     if (softDropTimerRef.current) {
       clearInterval(softDropTimerRef.current)
@@ -257,17 +287,30 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
         return
       }
       if (isPaused) return
+      
+      let action = null;
+      
       if (event.key === 'ArrowLeft') {
         tryMove(0, -1)
+        action = 'left'
       } else if (event.key === 'ArrowRight') {
         tryMove(0, 1)
+        action = 'right'
       } else if (event.key === 'ArrowDown') {
         tryMove(1, 0)
         startSoftDrop()
+        action = 'drop'
       } else if (event.key === 'ArrowUp') {
         tryMove(0, 0, 1)
+        action = 'rotate'
       } else if (event.key === ' ') {
         hardDrop()
+        action = 'hardDrop'
+      }
+      
+      // Emit move to backend for multiplayer
+      if (action && isMultiplayer && roomId && username) {
+        socket.emit('movePiece', { roomId: String(roomId), username, action })
       }
     }
 
@@ -284,7 +327,7 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       window.removeEventListener('keyup', handleKeyUp)
       stopSoftDrop()
     }
-  }, [isPaused])
+  }, [isPaused, isMultiplayer, roomId, username])
 
   useEffect(() => {
     if (isPaused) {
