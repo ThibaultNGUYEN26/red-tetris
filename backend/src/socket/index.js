@@ -86,6 +86,13 @@ export default function setupSockets(io) {
 
         // Emit to all sockets in the room, not just the requester
         io.to(String(roomId)).emit("roomState", roomWithAvatars);
+
+        // If game has started, send the initial sequence to this client (late joiner)
+        const game = getGame(roomId);
+        if (game && game.isRunning && game.initialSequence) {
+          console.log(`   📢 Sending initial sequence to late joiner: ${game.initialSequence.join(',')}`);
+          socket.emit("gameStarted", { roomId, initialSequence: game.initialSequence });
+        }
       } catch (err) {
         console.error("getRoomState failed:", err);
         socket.emit("error", { message: "Server error" });
@@ -172,11 +179,11 @@ export default function setupSockets(io) {
           gameMode
         );
 
-        game.start(); // spawn first pieces
+        const { initialSequence } = game.start(); // spawn first pieces and get sequence
 
-        // notify clients
-        console.log(`   📢 Emitting gameStarted to room ${roomId}`);
-        io.to(String(roomId)).emit("gameStarted", { roomId });
+        // notify clients with initial sequence
+        console.log(`   📢 Emitting gameStarted to room ${roomId} with sequence: ${initialSequence.join(',')}`);
+        io.to(String(roomId)).emit("gameStarted", { roomId, initialSequence });
 
         // optionally update DB
         await pool.query(
@@ -222,6 +229,28 @@ export default function setupSockets(io) {
         io.to(String(roomId)).emit("gameState", game.serialize());
       } catch (err) {
         console.error("movePiece failed:", err);
+      }
+    });
+
+    socket.on("requestNextBatch", async ({ roomId, username }) => {
+      console.log(`🎯 requestNextBatch received:`, { socketId: socket.id, roomId, username });
+      try {
+        const game = getGame(roomId);
+        if (!game || !game.isRunning) {
+          console.log(`   ❌ Game not running for room ${roomId}`);
+          return;
+        }
+
+        // Generate next 7-piece sequence
+        const nextBatch = [];
+        for (let i = 0; i < 7; i++) {
+          nextBatch.push(game.sequence.next());
+        }
+
+        console.log(`   📢 Sending next batch to room ${roomId}: ${nextBatch.join(',')}`);
+        io.to(String(roomId)).emit("nextPieceBatch", { nextBatch });
+      } catch (err) {
+        console.error("requestNextBatch failed:", err);
       }
     });
 

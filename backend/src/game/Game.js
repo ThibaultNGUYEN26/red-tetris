@@ -24,7 +24,8 @@ export default class Game {
     this.mode = mode;
 
     this.sequence = new SequenceGenerator();
-    this.running = false;
+    this.isRunning = false;
+    this.initialSequence = null; // Store initial sequence for late joiners
   }
 
   getPlayer(username) {
@@ -41,6 +42,15 @@ export default class Game {
       player.spawnPiece(first);
       player.setNextPiece(second);
     }
+
+    // Store initial sequence for late joiners (first 2 pieces + next 5)
+    this.initialSequence = [first, second];
+    for (let i = 0; i < 5; i++) {
+      this.initialSequence.push(this.sequence.next());
+    }
+
+    // Return the pieces used so we can use them in socket handler too
+    return { first, second, initialSequence: this.initialSequence };
   }
 
   movePlayer(username, action) {

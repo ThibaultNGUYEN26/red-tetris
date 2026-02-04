@@ -39,6 +39,7 @@ function CreateRoom({
 
   const hasCreatedRoom = useRef(false)
   const hasEditedName = useRef(false)
+  const hasStartedGame = useRef(false)
 
   // Define available game modes
   const availableGameModes = [
@@ -132,8 +133,6 @@ function CreateRoom({
 
     return () => {
       socket.off('roomState', handleRoomState);
-      console.log("🔴 Leaving room:", roomId);
-      socket.emit("leaveRoom", { roomId: String(roomId) });
     }
   }, [roomId])
 
@@ -243,12 +242,15 @@ function CreateRoom({
   const handleStartGame = async () => {
     if (players.length < 2) return
     if (hostName && hostName !== username) return
+    if (hasStartedGame.current) return // Prevent duplicate submissions
 
     try {
+      hasStartedGame.current = true
       console.log('🎮 Emitting startGame event:', { roomId: String(roomId), username });
       socket.emit('startGame', { roomId: String(roomId), username })
     } catch (err) {
       console.error('Failed to start game:', err)
+      hasStartedGame.current = false
     }
   }
 
