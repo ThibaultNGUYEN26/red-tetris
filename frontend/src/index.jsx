@@ -64,7 +64,7 @@ function Index() {
   const handleRoomCreated = (roomId, roomName) => {
     setJoinedRoomName(roomName)
 
-    // 🔥 Update URL without reload
+    // Update URL without reload
     navigate(`/${roomName}/${username}`, { replace: true })
   }
 

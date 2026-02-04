@@ -245,6 +245,7 @@ function CreateRoom({
     if (hostName && hostName !== username) return
 
     try {
+      console.log('🎮 Emitting startGame event:', { roomId: String(roomId), username });
       socket.emit('startGame', { roomId: String(roomId), username })
     } catch (err) {
       console.error('Failed to start game:', err)
