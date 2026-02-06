@@ -1,9 +1,10 @@
 import { pool } from "../config/db.js";
 import { createGame, getGame } from "../game/gameManager.js";
+import Player from "../game/Player.js";
 
 export default function setupSockets(io) {
   io.on("connection", (socket) => {
-    console.log("Socket connected: ${socket.id}");
+    console.log(`Socket connected: ${socket.id}`);
     
     socket.on("joinRoom", ({ roomId, username }) => {
       socket.join(String(roomId));
@@ -11,7 +12,7 @@ export default function setupSockets(io) {
         socket.data.roomId = String(roomId);
         socket.data.username = username;
       }
-      console.log("${socket.id} joined room ${roomId}");
+      console.log(`${socket.id} joined room ${roomId}`);
     });
 
     socket.on("leaveRoom", ({ roomId }) => {
@@ -20,7 +21,7 @@ export default function setupSockets(io) {
         socket.data.roomId = null;
         socket.data.username = null;
       }
-      console.log("${socket.id} left room ${roomId}");
+      console.log(`${socket.id} left room ${roomId}`);
     });
 
     socket.on("playerBoard", ({ roomId, username, board }) => {
@@ -175,7 +176,7 @@ export default function setupSockets(io) {
         console.log("Creating game with mode: ${gameMode}");
         const game = createGame(
           roomId,
-          r.players.map(u => ({ username: u, socketId: null })),
+          r.players.map(u => new Player(u, null)),
           gameMode
         );
 
@@ -214,15 +215,11 @@ export default function setupSockets(io) {
         console.log("Player ${username} moving: ${action}");
         game.movePlayer(username, action);
 
-        if (game.checkGameOver()) {
-          game.isRunning = false;
+        const status = game.checkGameOver();
 
-          io.to(String(roomId)).emit("gameOver", {
-            winner:
-              game.mode === "multiplayer"
-                ? game.players.find(p => p.isAlive)?.username ?? null
-                : null
-          });
+        if (status.over) {
+          const payload = game.endGame();
+          io.to(String(roomId)).emit("gameOver", payload);
           return;
         }
 

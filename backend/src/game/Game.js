@@ -27,7 +27,10 @@ export default class Game {
     }
 
     this.players.forEach(player => {
-      player.spawnPiece(this.initialSequence[0]);
+      const ok = player.spawnPiece(this.initialSequence[0]);
+      if (!ok) {
+        player.die();
+      }
     });
 
     return { initialSequence: this.initialSequence };
@@ -41,7 +44,7 @@ export default class Game {
         this.cachedNextBatch.push(this.sequence.next());
       }
       this.batchRequestCount = 0;
-      console.log("Generated new batch: ${this.cachedNextBatch.join(',')}");
+      console.log(`Generated new batch: ${this.cachedNextBatch.join(',')}`);
     }
     
     // Increment request count
@@ -54,7 +57,7 @@ export default class Game {
   consumeBatch() {
     // Once all players have requested, clear the cache for the next batch
     if (this.batchRequestCount >= this.players.length) {
-      console.log("Batch consumed by all ${this.players.length} players, clearing cache");
+      console.log(`Batch consumed by all ${this.players.length} players, clearing cache`);
       this.cachedNextBatch = null;
       this.batchRequestCount = 0;
     }
@@ -64,7 +67,8 @@ export default class Game {
     const player = this.getPlayer(username);
     if (!player || !player.isAlive) return;
 
-     const piece = player.currentPiece;
+    const piece = player.currentPiece;
+    if (!piece) return;
 
     switch (action) {
       case "left":
@@ -80,19 +84,28 @@ export default class Game {
         piece.y += 1;
         break;
     }
-
-    return player;
   }
 
   checkGameOver() {
-    // SOLO: one player dies → game over
     if (this.mode === GAME_MODES.SOLO) {
-      return !this.players[0].isAlive;
+      if (!this.players[0].isAlive) {
+        return {
+          over: true,
+          winner: null
+        };
+      }
     }
 
-    // MULTI: one or zero players left alive
     const alive = this.players.filter(p => p.isAlive);
-    return alive.length == 1;
+
+    if (this.mode === GAME_MODES.MULTI && alive.length <= 1) {
+      return {
+        over: true,
+        winner: alive[0]?.username ?? null
+      };
+    }
+
+    return { over: false };
   }
 
   serialize() {
@@ -101,6 +114,38 @@ export default class Game {
       mode: this.mode,
       isRunning: this.isRunning,
       players: this.players.map(p => p.serialize()),
+    };
+  }
+
+  spawnNextPiece(username, type, board) {
+    const player = this.getPlayer(username);
+    if (!player || !this.isRunning) return;
+
+    const success = player.spawnPiece(type, board);
+
+    if (!success) {
+      player.die();
+    }
+  }
+
+  endGame() {
+    this.isRunning = false;
+
+    const alive = this.players.filter(p => p.isAlive);
+
+    return {
+      roomId: this.roomId,
+      mode: this.mode,
+      winner:
+        this.mode === GAME_MODES.MULTI
+          ? alive[0]?.username ?? null
+          : null,
+      results: this.players.map(p => ({
+        username: p.username,
+        score: p.score,
+        lines: p.lines,
+        isAlive: p.isAlive
+      }))
     };
   }
 }

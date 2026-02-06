@@ -83,6 +83,33 @@ export default class Piece {
     this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
   }
 
+  canSpawn(board) {
+    for (let y = 0; y < this.shape.length; y++) {
+      for (let x = 0; x < this.shape[y].length; x++) {
+        if (this.shape[y][x] === 0) continue;
+
+        const boardX = this.x + x;
+        const boardY = this.y + y;
+
+        // Outside board
+        if (
+          boardX < 0 ||
+          boardX >= 10 ||
+          boardY < 0 ||
+          boardY >= 20
+        ) {
+          return false;
+        }
+
+        // Collision with existing blocks
+        if (board[boardY][boardX] !== 0) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   rotate() {
     const rotations = SHAPES[this.type];
     this.rotation = (this.rotation + 1) % rotations.length;
