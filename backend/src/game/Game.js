@@ -1,21 +1,5 @@
 import { GAME_MODES } from "../config/constants.js";
-
-class SequenceGenerator {
-  constructor() {
-    this.bag = [];
-    this.index = 0;
-  }
-
-  next() {
-    if (this.index >= this.bag.length) {
-      this.bag = ["I", "O", "T", "L", "J", "S", "Z"].sort(() => Math.random() - 0.5);
-      this.index = 0;
-    }
-    const piece = this.bag[this.index];
-    this.index += 1;
-    return piece;
-  }
-}
+import SequenceGenerator from "./sequenceGenerator.js";
 
 export default class Game {
   constructor(roomId, players, mode) {
@@ -25,7 +9,9 @@ export default class Game {
 
     this.sequence = new SequenceGenerator();
     this.isRunning = false;
-    this.initialSequence = null; // Store initial sequence for late joiners
+    this.initialSequence = null;
+    this.cachedNextBatch = null;
+    this.batchRequestCount = 0;
   }
 
   getPlayer(username) {
@@ -34,23 +20,44 @@ export default class Game {
 
   start() {
     this.isRunning = true;
+    this.initialSequence = [];
 
-    const first = this.sequence.next();
-    const second = this.sequence.next();
-
-    for (const player of this.players) {
-      player.spawnPiece(first);
-      player.setNextPiece(second);
-    }
-
-    // Store initial sequence for late joiners (first 2 pieces + next 5)
-    this.initialSequence = [first, second];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 7; i++) {
       this.initialSequence.push(this.sequence.next());
     }
 
-    // Return the pieces used so we can use them in socket handler too
-    return { first, second, initialSequence: this.initialSequence };
+    this.players.forEach(player => {
+      player.spawnPiece(this.initialSequence[0]);
+    });
+
+    return { initialSequence: this.initialSequence };
+  }
+
+  getNextBatch() {
+    // If no cached batch exists, generate one and cache it
+    if (!this.cachedNextBatch) {
+      this.cachedNextBatch = [];
+      for (let i = 0; i < 7; i++) {
+        this.cachedNextBatch.push(this.sequence.next());
+      }
+      this.batchRequestCount = 0;
+      console.log("Generated new batch: ${this.cachedNextBatch.join(',')}");
+    }
+    
+    // Increment request count
+    this.batchRequestCount += 1;
+    
+    // Return the cached batch
+    return this.cachedNextBatch;
+  }
+
+  consumeBatch() {
+    // Once all players have requested, clear the cache for the next batch
+    if (this.batchRequestCount >= this.players.length) {
+      console.log("Batch consumed by all ${this.players.length} players, clearing cache");
+      this.cachedNextBatch = null;
+      this.batchRequestCount = 0;
+    }
   }
 
   movePlayer(username, action) {
@@ -85,7 +92,7 @@ export default class Game {
 
     // MULTI: one or zero players left alive
     const alive = this.players.filter(p => p.isAlive);
-    return alive.length <= 1;
+    return alive.length == 1;
   }
 
   serialize() {

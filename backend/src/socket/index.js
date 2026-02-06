@@ -3,7 +3,7 @@ import { createGame, getGame } from "../game/gameManager.js";
 
 export default function setupSockets(io) {
   io.on("connection", (socket) => {
-    console.log(`🟢 Socket connected: ${socket.id}`);
+    console.log("Socket connected: ${socket.id}");
     
     socket.on("joinRoom", ({ roomId, username }) => {
       socket.join(String(roomId));
@@ -11,7 +11,7 @@ export default function setupSockets(io) {
         socket.data.roomId = String(roomId);
         socket.data.username = username;
       }
-      console.log(`${socket.id} joined room ${roomId}`);
+      console.log("${socket.id} joined room ${roomId}");
     });
 
     socket.on("leaveRoom", ({ roomId }) => {
@@ -20,7 +20,7 @@ export default function setupSockets(io) {
         socket.data.roomId = null;
         socket.data.username = null;
       }
-      console.log(`${socket.id} left room ${roomId}`);
+      console.log("${socket.id} left room ${roomId}");
     });
 
     socket.on("playerBoard", ({ roomId, username, board }) => {
@@ -69,12 +69,12 @@ export default function setupSockets(io) {
     };
 
     socket.on("getRoomState", async ({ roomId }) => {
-      console.log(`Socket getRoomState: ${socket.id}`);
+      console.log("Socket getRoomState: ${socket.id}");
       try {
         const result = await pool.query(
           `SELECT id, name, game_mode, host, player_count, players
-          FROM rooms
-          WHERE id = $1`,
+           FROM rooms
+           WHERE id = $1`,
           [roomId]
         );
 
@@ -90,7 +90,7 @@ export default function setupSockets(io) {
         // If game has started, send the initial sequence to this client (late joiner)
         const game = getGame(roomId);
         if (game && game.isRunning && game.initialSequence) {
-          console.log(`   📢 Sending initial sequence to late joiner: ${game.initialSequence.join(',')}`);
+          console.log("Sending initial sequence to late joiner: ${game.initialSequence.join(',')}");
           socket.emit("gameStarted", { roomId, initialSequence: game.initialSequence });
         }
       } catch (err) {
@@ -120,7 +120,7 @@ export default function setupSockets(io) {
         }
 
         if (updatedPlayers.length === 0) {
-          await pool.query(`DELETE FROM rooms WHERE id = $1`, [roomId]);
+          await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
           return;
         }
 
@@ -147,32 +147,32 @@ export default function setupSockets(io) {
     };
 
     socket.on("startGame", async ({ roomId, username }) => {
-      console.log(`📡 startGame event received:`, { socketId: socket.id, roomId, username });
+      console.log("startGame event received:", { socketId: socket.id, roomId, username });
       try {
         const room = await pool.query(
           "SELECT host, players, status, game_mode FROM rooms WHERE id=$1",
           [roomId]
         );
-        console.log(`   Room query result:`, { rowCount: room.rowCount, roomData: room.rows[0] });
+        console.log("Room query result:", { rowCount: room.rowCount, roomData: room.rows[0] });
         
         if (!room.rowCount) {
-          console.log(`   ❌ Room not found`);
+          console.log("Room not found");
           return;
         }
         const r = room.rows[0];
         
         if (r.host !== username) {
-          console.log(`   ❌ User is not host. Host: ${r.host}, User: ${username}`);
+          console.log("User is not host. Host: ${r.host}, User: ${username}");
           return;
         }
         if (r.status === "started") {
-          console.log(`   ❌ Game already started`);
-          return; // already started
+          console.log("Game already started");
+          return;
         }
 
         // create Game instance
         const gameMode = r.game_mode || "multiplayer";
-        console.log(`   ✅ Creating game with mode: ${gameMode}`);
+        console.log("Creating game with mode: ${gameMode}");
         const game = createGame(
           roomId,
           r.players.map(u => ({ username: u, socketId: null })),
@@ -182,36 +182,36 @@ export default function setupSockets(io) {
         const { initialSequence } = game.start(); // spawn first pieces and get sequence
 
         // notify clients with initial sequence
-        console.log(`   📢 Emitting gameStarted to room ${roomId} with sequence: ${initialSequence.join(',')}`);
+        console.log("Emitting gameStarted to room ${roomId} with sequence: ${initialSequence.join(',')}");
         io.to(String(roomId)).emit("gameStarted", { roomId, initialSequence });
 
         // optionally update DB
         await pool.query(
-          `UPDATE rooms SET status='started' WHERE id=$1`,
+          "UPDATE rooms SET status='started' WHERE id=$1",
           [roomId]
         );
-        console.log(`   ✅ Game started successfully`);
+        console.log("Game started successfully");
       } catch (err) {
         console.error("startGame failed:", err);
       }
     });
 
     socket.on("movePiece", ({ roomId, username, action }) => {
-      console.log(`🎮 movePiece received:`, { socketId: socket.id, roomId, username, action });
+      console.log("movePiece received:", { socketId: socket.id, roomId, username, action });
       try {
         const game = getGame(String(roomId));
         if (!game || !game.isRunning) {
-          console.log(`   ❌ Game not running for room ${roomId}`);
+          console.log("Game not running for room ${roomId}");
           return;
         }
 
         const player = game.getPlayer(username);
         if (!player || !player.isAlive) {
-          console.log(`   ❌ Player ${username} not found or dead`);
+          console.log("Player ${username} not found or dead");
           return;
         }
 
-        console.log(`   ✅ Player ${username} moving: ${action}`);
+        console.log("Player ${username} moving: ${action}");
         game.movePlayer(username, action);
 
         if (game.checkGameOver()) {
@@ -233,22 +233,22 @@ export default function setupSockets(io) {
     });
 
     socket.on("requestNextBatch", async ({ roomId, username }) => {
-      console.log(`🎯 requestNextBatch received:`, { socketId: socket.id, roomId, username });
+      console.log("requestNextBatch received:", { socketId: socket.id, roomId, username });
       try {
         const game = getGame(String(roomId));
         if (!game || !game.isRunning) {
-          console.log(`   ❌ Game not running for room ${roomId}`);
+          console.log("Game not running for room ${roomId}");
           return;
         }
 
-        // Generate next 7-piece sequence
-        const nextBatch = [];
-        for (let i = 0; i < 7; i++) {
-          nextBatch.push(game.sequence.next());
-        }
-
-        console.log(`   📢 Sending next batch to room ${roomId}: ${nextBatch.join(',')}`);
+        // Get next batch (cached so all players get the same one)
+        const nextBatch = game.getNextBatch();
+        
+        console.log("Sending next batch to room ${roomId}: ${nextBatch.join(',')}");
         io.to(String(roomId)).emit("nextPieceBatch", { nextBatch });
+        
+        // Mark that this player has requested the batch
+        game.consumeBatch();
       } catch (err) {
         console.error("requestNextBatch failed:", err);
       }
@@ -256,7 +256,7 @@ export default function setupSockets(io) {
 
     socket.on("disconnect", () => {
       removePlayerFromRoom(socket.data.roomId, socket.data.username);
-      console.log(`Socket disconnected: ${socket.id}`);
+      console.log("Socket disconnected: ${socket.id}");
     });
   });
 }

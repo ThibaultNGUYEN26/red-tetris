@@ -37,13 +37,13 @@ const SHAPES = {
     [[0, 0], [0, 1], [1, 1], [1, 2]],
     [[0, 2], [1, 1], [1, 2], [2, 1]],
   ],
-  j: [
+    l: [
     [[0, 0], [1, 0], [1, 1], [1, 2]],
     [[0, 1], [0, 2], [1, 1], [2, 1]],
     [[1, 0], [1, 1], [1, 2], [2, 2]],
     [[0, 1], [1, 1], [2, 0], [2, 1]],
   ],
-  l: [
+  j: [
     [[0, 2], [1, 0], [1, 1], [1, 2]],
     [[0, 1], [1, 1], [2, 1], [2, 2]],
     [[1, 0], [1, 1], [1, 2], [2, 0]],
@@ -61,13 +61,11 @@ const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerProp }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
   const [pieceQueue, setPieceQueue] = useState([])
-  const [queueInitialized, setQueueInitialized] = useState(false)
-  const queueIndexRef = useRef(0)
-  const nextTypeRef = useRef(null)
+
   const boardRef = useRef(makeEmptyBoard())
   const softDropTimerRef = useRef(null)
-  const piecesPlayedInSequence = useRef(0) // Track pieces in current 7-piece sequence
-  const hasSentPing = useRef(false) // Track if we sent ping for current sequence
+  const lastBoardSentRef = useRef(0)
+  const joinedRef = useRef(false)
 
   const [board, setBoard] = useState(makeEmptyBoard)
   const [activePiece, setActivePiece] = useState(null)
@@ -75,7 +73,6 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
   const [isPaused, setIsPaused] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [opponentBoards, setOpponentBoards] = useState([])
-  const lastBoardSentRef = useRef(0)
 
   const getCells = (piece) =>
     SHAPES[piece.type][piece.rotation].map(([r, c]) => [
@@ -102,51 +99,39 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     return nextGrid
   }
 
+  const advanceQueue = () => {
+    setPieceQueue(prev => {
+      const nextQueue = prev.slice(1)
+
+      if (nextQueue.length === 0) {
+        console.error('Queue empty — backend desync')
+        return prev
+      }
+
+      const nextPiece = {
+        type: nextQueue[0],
+        rotation: 0,
+        row: 0,
+        col: 3,
+      }
+
+      setActivePiece(nextPiece)
+      setNextType(nextQueue[1] ?? null)
+
+      if (isMultiplayer && nextQueue.length <= 3) {
+        socket.emit('requestNextBatch', { roomId, username })
+      }
+
+      return nextQueue
+    })
+  }
+
   const finalizePiece = (piece) => {
     const locked = lockPiece(piece, boardRef.current)
     const nextBoard = clearLines(locked)
     boardRef.current = nextBoard
     setBoard(nextBoard)
-
-    // Track pieces played and send ping after 4th piece in each sequence
-    piecesPlayedInSequence.current += 1
-    console.log(`Pieces played in sequence: ${piecesPlayedInSequence.current}/7`)
-
-    if (piecesPlayedInSequence.current === 4 && !hasSentPing.current) {
-      // Send ping to backend after 4th piece
-      console.log('Ping sent: requesting next 7-piece batch')
-      if (roomId && username) {
-        socket.emit('requestNextBatch', { roomId, username })
-      }
-      hasSentPing.current = true
-    }
-
-    // Reset counter and ping flag after 7 pieces
-    if (piecesPlayedInSequence.current >= 7) {
-      piecesPlayedInSequence.current = 0
-      hasSentPing.current = false
-      console.log('Sequence reset: starting new 7-piece batch')
-    }
-
-    const spawned = spawnPiece()
-    if (!isValidPosition(spawned, nextBoard)) {
-      const resetBoard = makeEmptyBoard()
-      setBoard(resetBoard)
-      boardRef.current = resetBoard
-      queueIndexRef.current = 0
-      nextTypeRef.current = pieceQueue[0]
-      setNextType(pieceQueue[1] || pieceQueue[0])
-      piecesPlayedInSequence.current = 0
-      hasSentPing.current = false
-      return {
-        type: pieceQueue[0],
-        rotation: 0,
-        row: 0,
-        col: 3,
-      }
-    }
-
-    return spawned
+    advanceQueue()
   }
 
   const clearLines = (grid) => {
@@ -157,25 +142,6 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       Array.from({ length: WIDTH }, () => 'empty')
     )
     return [...newRows, ...remaining]
-  }
-
-  const spawnPiece = () => {
-    if (pieceQueue.length === 0 || nextTypeRef.current === null) {
-      throw new Error('Backend error: No pieces in queue. Backend sequence generator failed.')
-    }
-
-    const type = nextTypeRef.current
-    const nextIndex = (queueIndexRef.current + 1) % pieceQueue.length
-    const upcoming = pieceQueue[nextIndex]
-    queueIndexRef.current = nextIndex
-    nextTypeRef.current = upcoming
-    setNextType(upcoming)
-    return {
-      type,
-      rotation: 0,
-      row: -1,
-      col: 3,
-    }
   }
 
   const tryMove = (deltaRow, deltaCol, rotationDelta = 0) => {
@@ -196,10 +162,12 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     setActivePiece((prev) => {
       if (!prev) return prev
       let next = { ...prev }
-      while (isValidPosition({ ...next, row: next.row + 1 })) {
+      const grid = boardRef.current
+      while (isValidPosition({ ...next, row: next.row + 1 }, grid)) {
         next = { ...next, row: next.row + 1 }
       }
-      return finalizePiece(next)
+      finalizePiece(next)
+      return null
     })
   }
 
@@ -211,9 +179,18 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
   useEffect(() => {
     if (!isMultiplayer) return;
 
+    if (joinedRef.current) return;
+    joinedRef.current = true;
+
     // Set up listeners FIRST before joining
     const handleGameStarted = ({ roomId: startedRoomId, initialSequence }) => {
-      console.log('🎮 Game started from backend for room:', startedRoomId, 'with sequence:', initialSequence);
+      boardRef.current = makeEmptyBoard()
+      setBoard(makeEmptyBoard())
+      setOpponentBoards([])
+      setIsPaused(false)
+      setShowMenu(false)
+
+      console.log('Game started from backend for room:', startedRoomId, 'with sequence:', initialSequence);
       // Mark that game has started so CreateRoom doesn't leave on unmount
       sessionStorage.setItem(`gameStarted_${startedRoomId}`, 'true');
       
@@ -221,23 +198,16 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
         // Map uppercase letters to lowercase for SHAPES lookup
         const mappedSequence = initialSequence.map(p => p.toLowerCase());
         setPieceQueue(mappedSequence);
-        setQueueInitialized(true);
         
         if (mappedSequence.length > 0) {
-          // Set active piece to first piece
+          // Set active piece to first piece in sequence
           setActivePiece({
             type: mappedSequence[0],
             rotation: 0,
             row: 0,
             col: 3,
           });
-          
-          // Initialize refs for spawning:
-          // nextTypeRef = what to spawn next (piece 1)
-          // queueIndexRef = index of nextTypeRef in the queue
-          queueIndexRef.current = 1; // nextTypeRef points to index 1
-          nextTypeRef.current = mappedSequence[1] || mappedSequence[0];
-          
+
           // Set next piece display
           if (mappedSequence.length > 1) {
             setNextType(mappedSequence[1]);
@@ -249,20 +219,24 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     };
 
     const handleGameState = (gameState) => {
-      console.log('📊 Received game state from backend:', gameState);
-      // Update game state from backend if needed
+      console.log('Received game state from backend:', gameState);
     };
 
     const handleGameOver = ({ winner }) => {
-      console.log('🏁 Game over! Winner:', winner);
-      // Handle game over
+      console.log('Game over! Winner:', winner);
     };
 
     const handleNextPieceBatch = ({ nextBatch }) => {
-      console.log('📦 Received next piece batch from backend:', nextBatch);
+      console.log('Received next piece batch from backend:', nextBatch);
+
       if (nextBatch && Array.isArray(nextBatch)) {
         const mappedBatch = nextBatch.map(p => p.toLowerCase());
-        setPieceQueue(prev => [...prev, ...mappedBatch]);
+
+        setPieceQueue(prev => {
+          const newQueue = [...prev, ...mappedBatch];
+          console.log(`   New queue length: ${newQueue.length}, mapped batch: ${mappedBatch.join(',')}`);
+          return newQueue;
+        });
       }
     };
 
@@ -271,9 +245,9 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     socket.on('gameOver', handleGameOver);
     socket.on('nextPieceBatch', handleNextPieceBatch);
 
-    // NOW join the room since listeners are set up
+    // Join the room since listeners are set up
     socket.emit("joinRoom", { roomId: String(roomId), username });
-    console.log(`🎮 Game component joined room: ${roomId}`);
+    console.log(`Game component joined room: ${roomId}`);
 
     // Request room state to trigger late-joiner gameStarted event if game already started
     socket.emit('getRoomState', { roomId: String(roomId) });
@@ -299,18 +273,14 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       setActivePiece((prev) => {
         if (!prev || isPaused) return prev
         const next = { ...prev, row: prev.row + 1 }
-        if (isValidPosition(next)) {
-          return next
-        }
-        return finalizePiece(prev)
+        if (isValidPosition(next)) return next
+        finalizePiece(prev)
+        return null
       })
     }, SOFT_DROP_MS)
   }
 
   useEffect(() => {
-    // Don't start the game loop until pieces are loaded
-    if (!queueInitialized || pieceQueue.length === 0) return;
-
     const timer = setInterval(() => {
       setActivePiece((prev) => {
         if (!prev || isPaused) return prev
@@ -318,12 +288,13 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
         if (isValidPosition(next)) {
           return next
         }
-        return finalizePiece(prev)
+        finalizePiece(prev)
+        return null
       })
     }, DROP_MS)
 
     return () => clearInterval(timer)
-  }, [pieceQueue, isPaused, queueInitialized])
+  }, [isPaused])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -337,7 +308,6 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
         setShowMenu(true)
         return
       }
-      if (isPaused || !queueInitialized) return // Don't allow moves until game is initialized
       
       let action = null;
       
@@ -378,7 +348,7 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       window.removeEventListener('keyup', handleKeyUp)
       stopSoftDrop()
     }
-  }, [isPaused, isMultiplayer, roomId, username, queueInitialized])
+  }, [isPaused, isMultiplayer, roomId, username])
 
   useEffect(() => {
     if (isPaused) {
