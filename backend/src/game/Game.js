@@ -1,4 +1,3 @@
-import { GAME_MODES } from "../config/constants.js";
 import SequenceGenerator from "./sequenceGenerator.js";
 
 export default class Game {
@@ -90,7 +89,6 @@ export default class Game {
   checkGameOver() {
     const alive = this.players.filter(p => p.isAlive);
     console.log("Alive players:", alive.map(p => p.username));
-    console.log("Game mode:", this.mode, "Mode player:", this.mode_player);
 
     if (this.mode_player === 'solo' && !this.players[0].isAlive) {
       return { over: true, winner: null };
@@ -114,6 +112,16 @@ export default class Game {
     }
   }
 
+  serialize() {
+    return {
+      roomId: this.roomId,
+      mode: this.mode,
+      mode_player: this.mode_player,
+      isRunning: this.isRunning,
+      players: this.players.map(player => player.serialize())
+    };
+  }
+
   endGame() {
     this.isRunning = false;
 
@@ -123,7 +131,7 @@ export default class Game {
       roomId: this.roomId,
       mode: this.mode,
       winner:
-        this.mode === GAME_MODES.MULTI
+        this.mode_player === 'multi'
           ? alive[0]?.username ?? null
           : null,
       results: this.players.map(p => ({

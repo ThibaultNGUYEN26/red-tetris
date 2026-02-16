@@ -1,6 +1,5 @@
 import { pool } from "../config/db.js";
-import { createGame, getGame } from "../game/gameManager.js";
-import Player from "../game/Player.js";
+import { createGame, getGame, removeGame } from "../game/gameManager.js";
 
 export default function setupSockets(io) {
   io.on("connection", (socket) => {
@@ -147,7 +146,7 @@ export default function setupSockets(io) {
         if (result.over) {
           console.log("Game over! Winner:", result.winner);
           io.to(String(roomId)).emit("gameOver", { winner: result.winner });
-          game.endGame();
+          removeGame(roomId);
         }
       }
 
@@ -287,21 +286,22 @@ export default function setupSockets(io) {
           console.log(`Game not running for room ${roomId}`);
           return;
         }
-
+        
         const player = game.getPlayer(username);
         if (!player || !player.isAlive) {
           console.log(`Player ${username} not found or dead`);
           return;
         }
-
+        
         console.log(`Player ${username} moving: ${action}`);
         game.movePlayer(username, action);
-
+        
         const status = game.checkGameOver();
 
         if (status.over) {
           const payload = game.endGame();
           io.to(String(roomId)).emit("gameOver", payload);
+          removeGame(roomId);
           return;
         }
 
