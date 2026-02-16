@@ -1,30 +1,17 @@
-import { GAME_MODES } from "../config/constants.js";
-
-class SequenceGenerator {
-  constructor() {
-    this.bag = [];
-    this.index = 0;
-  }
-
-  next() {
-    if (this.index >= this.bag.length) {
-      this.bag = ["I", "O", "T", "L", "J", "S", "Z"].sort(() => Math.random() - 0.5);
-      this.index = 0;
-    }
-    const piece = this.bag[this.index];
-    this.index += 1;
-    return piece;
-  }
-}
+import SequenceGenerator from "./sequenceGenerator.js";
 
 export default class Game {
-  constructor(roomId, players, mode) {
+  constructor(roomId, players, mode, mode_player) {
     this.roomId = roomId;
     this.players = players;
     this.mode = mode;
+    this.mode_player = mode_player;
 
     this.sequence = new SequenceGenerator();
-    this.running = false;
+    this.isRunning = false;
+    this.initialSequence = null;
+    this.cachedNextBatch = null;
+    this.batchRequestCount = 0;
   }
 
   getPlayer(username) {
@@ -33,13 +20,46 @@ export default class Game {
 
   start() {
     this.isRunning = true;
+    this.initialSequence = [];
 
-    const first = this.sequence.next();
-    const second = this.sequence.next();
+    for (let i = 0; i < 7; i++) {
+      this.initialSequence.push(this.sequence.next());
+    }
 
-    for (const player of this.players) {
-      player.spawnPiece(first);
-      player.setNextPiece(second);
+    this.players.forEach(player => {
+      const ok = player.spawnPiece(this.initialSequence[0]);
+      if (!ok) {
+        player.die();
+      }
+    });
+
+    return { initialSequence: this.initialSequence };
+  }
+
+  getNextBatch() {
+    // If no cached batch exists, generate one and cache it
+    if (!this.cachedNextBatch) {
+      this.cachedNextBatch = [];
+      for (let i = 0; i < 7; i++) {
+        this.cachedNextBatch.push(this.sequence.next());
+      }
+      this.batchRequestCount = 0;
+      console.log(`Generated new batch: ${this.cachedNextBatch.join(',')}`);
+    }
+    
+    // Increment request count
+    this.batchRequestCount += 1;
+    
+    // Return the cached batch
+    return this.cachedNextBatch;
+  }
+
+  consumeBatch() {
+    // Once all players have requested, clear the cache for the next batch
+    if (this.batchRequestCount >= this.players.length) {
+      console.log(`Batch consumed by all ${this.players.length} players, clearing cache`);
+      this.cachedNextBatch = null;
+      this.batchRequestCount = 0;
     }
   }
 
@@ -48,6 +68,7 @@ export default class Game {
     if (!player || !player.isAlive) return;
 
     const piece = player.currentPiece;
+    if (!piece) return;
 
     switch (action) {
       case "left":
@@ -63,18 +84,62 @@ export default class Game {
         piece.y += 1;
         break;
     }
-
-    return player;
   }
 
   checkGameOver() {
-    // SOLO: one player dies → game over
-    if (this.mode === GAME_MODES.SOLO) {
-      return !this.players[0].isAlive;
+    const alive = this.players.filter(p => p.isAlive);
+    console.log("Alive players:", alive.map(p => p.username));
+
+    if (this.mode_player === 'solo' && !this.players[0].isAlive) {
+      return { over: true, winner: null };
     }
 
-    // MULTI: one or zero players left alive
+    if (this.mode_player === 'multi' && alive.length <= 1) {
+      return { over: true, winner: alive[0]?.username ?? null };
+    }
+
+    return { over: false };
+  }
+
+  spawnNextPiece(username, type, board) {
+    const player = this.getPlayer(username);
+    if (!player || !this.isRunning) return;
+
+    const success = player.spawnPiece(type, board);
+
+    if (!success) {
+      player.die();
+    }
+  }
+
+  serialize() {
+    return {
+      roomId: this.roomId,
+      mode: this.mode,
+      mode_player: this.mode_player,
+      isRunning: this.isRunning,
+      players: this.players.map(player => player.serialize())
+    };
+  }
+
+  endGame() {
+    this.isRunning = false;
+
     const alive = this.players.filter(p => p.isAlive);
-    return alive.length <= 1;
+
+    return {
+      roomId: this.roomId,
+      mode: this.mode,
+      winner:
+        this.mode_player === 'multi'
+          ? alive[0]?.username ?? null
+          : null,
+      results: this.players.map(p => ({
+        username: p.username,
+        score: p.score,
+        lines: p.lines,
+        isAlive: p.isAlive
+      }))
+    };
   }
 }

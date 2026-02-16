@@ -11,10 +11,21 @@ export default class Player {
     this.isAlive = true;
     this.score = 0;
     this.lines = 0;
+
+    this.board = Array.from({ length: 20 }, () =>
+      Array(10).fill(0)
+    );
   }
 
-  spawnPiece(type) {
-    this.currentPiece = new Piece(type);
+  spawnPiece(type, board) {
+    const piece = new Piece(type);
+
+    if (!piece.canSpawn(this.board)) {
+      return false;
+    }
+
+    this.currentPiece = piece;
+    return true;
   }
 
   setNextPiece(type) {
@@ -47,5 +58,9 @@ export default class Player {
           }
         : null,
     };
+  }
+
+  die() {
+    this.isAlive = false;
   }
 }

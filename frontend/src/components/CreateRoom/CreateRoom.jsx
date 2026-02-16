@@ -198,13 +198,13 @@ function CreateRoom({
   const handleModeChange = (e) => {
     const newMode = e.target.value
     const modeConfig = availableGameModes.find(m => m.value === newMode)
-    
+
     // Check if the new mode supports current player count
     if (modeConfig && players.length > modeConfig.maxPlayers) {
       alert(`${modeConfig.label} mode supports a maximum of ${modeConfig.maxPlayers} players. Current players: ${players.length}`)
       return
     }
-    
+
     setSelectedMode(newMode)
   }
 
@@ -248,18 +248,8 @@ function CreateRoom({
 
     try {
       hasStartedGame.current = true
-      console.log('🎮 Starting game via backend:', { roomId: String(roomId), username });
-
-      const response = await fetch(`${API_URL}/api/rooms/${roomId}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
-      })
-
-      if (!response.ok) {
-        const errBody = await response.json().catch(() => null)
-        throw new Error(errBody?.error || 'Failed to start game')
-      }
+      console.log('🎮 Emitting startGame event:', { roomId: String(roomId), username });
+      socket.emit('startGame', { roomId: String(roomId), username })
     } catch (err) {
       console.error('Failed to start game:', err)
       hasStartedGame.current = false
@@ -334,8 +324,8 @@ function CreateRoom({
             disabled={mode !== 'create'}
           >
             {availableGameModes.map((m) => (
-              <option 
-                key={m.value} 
+              <option
+                key={m.value}
                 value={m.value}
                 disabled={isModeDisabled(m)}
               >
