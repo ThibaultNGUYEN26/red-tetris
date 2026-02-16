@@ -40,10 +40,8 @@ function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, onSta
 
       const room = await createResponse.json()
 
-      socket.emit('joinRoom', { roomId: String(room.id), username })
       socket.emit('startGame', { roomId: String(room.id), username })
 
-      console.log('[ModeMenu] Solo room created', { roomId: room.id, username })
       console.log('[ModeMenu] Solo game started', { roomId: room.id, username })
 
       onStartSolo?.(room.id)
