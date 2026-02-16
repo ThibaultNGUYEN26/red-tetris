@@ -13,6 +13,17 @@ function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, onSta
   const handleSolo = async () => {
     console.log('Solo mode selected')
     try {
+      // If user is already in a room, leave it before creating a solo room
+      const existingRoomId = localStorage.getItem('currentRoomId')
+      if (existingRoomId && username) {
+        await fetch(`${API_URL}/api/rooms/${existingRoomId}/leave`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username }),
+        })
+        localStorage.removeItem('currentRoomId')
+      }
+
       const createResponse = await fetch(`${API_URL}/api/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -23,7 +34,8 @@ function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, onSta
       })
 
       if (!createResponse.ok) {
-        throw new Error('Failed to create solo room')
+        const errBody = await createResponse.json().catch(() => null)
+        throw new Error(errBody?.error || 'Failed to create solo room')
       }
 
       const room = await createResponse.json()
