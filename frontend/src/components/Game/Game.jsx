@@ -450,7 +450,9 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       if (sender === username) return
       setOpponentBoards((prev) => {
         const filtered = prev.filter((p) => p.username !== sender)
-        return [...filtered, { username: sender, board }]
+        const next = [...filtered, { username: sender, board }]
+        next.sort((a, b) => a.username.localeCompare(b.username))
+        return next
       })
     }
 
