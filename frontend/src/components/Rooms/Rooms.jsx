@@ -57,6 +57,8 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
         body: JSON.stringify({ username }),
       })
 
+      console.log('[Rooms] Joined room', { roomId, username })
+
       // 2️⃣ Join socket room
       socket.emit('joinRoom', { roomId: String(roomId), username })
 
@@ -94,6 +96,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
     const handleGameStarted = ({ roomId }) => {
       if (!roomId) return
       if (String(roomId) !== String(currentRoomId)) return
+      console.log('[Rooms] Game started', { roomId, username })
       setShowGame(true)
     }
 
@@ -104,10 +107,12 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
   /* ---------------- CREATE ROOM ---------------- */
 
   const handleCreateRoom = () => {
+    console.log('[Rooms] Create room clicked', { username })
     setShowCreateRoom(true)
   }
 
   const handleRoomCreated = (roomId) => {
+    console.log('[Rooms] Room created', { roomId, username })
     localStorage.setItem('currentRoomId', roomId)
     setCurrentRoomId(roomId)
   }
@@ -128,7 +133,9 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username }),
         })
-        
+
+        console.log('[Rooms] Left room', { roomId, username })
+
         // Request updated rooms list
         socket.emit('getAvailableRooms')
       } catch (err) {
@@ -144,6 +151,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
   }
 
   const handleExitGame = async () => {
+    console.log('[Rooms] Exiting game', { roomId: currentRoomId, username })
     await handleLeaveRoom()
   }
 

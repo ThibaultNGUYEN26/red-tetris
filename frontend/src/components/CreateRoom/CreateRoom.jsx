@@ -72,6 +72,7 @@ function CreateRoom({
 
     const createRoom = async () => {
       try {
+        console.log('[CreateRoom] Creating room', { username, gameMode: selectedMode })
         const response = await fetch(`${API_URL}/api/rooms`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -82,6 +83,7 @@ function CreateRoom({
         })
 
         const room = await response.json()
+        console.log('[CreateRoom] Room created', { roomId: room.id, name: room.name })
 
         setRoomId(room.id)
         setRoomName(room.name)              // ✅ backend name

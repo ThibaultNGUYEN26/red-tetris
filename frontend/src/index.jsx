@@ -76,11 +76,13 @@ function Index() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username }),
         })
+        console.log('[Index] Left solo room', { roomId: soloRoomId, username })
       } catch (err) {
         console.error('Failed to leave solo room:', err)
       }
     }
     setSoloRoomId(null)
+    console.log('[Index] Exited solo game', { username })
     setShowGame(false)
   }
 
