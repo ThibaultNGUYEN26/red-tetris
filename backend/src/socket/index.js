@@ -88,23 +88,51 @@ export default function setupSockets(io) {
     };
     
     // Joining room Socket
-    socket.on("joinRoom", ({ roomId, username }) => {
-      socket.join(String(roomId));
-      if (roomId && username) {
+    socket.on("joinRoom", async ({ roomId, username }) => {
+      if (!roomId || !username) return;
+
+      try {
+        socket.join(String(roomId));
         socket.data.roomId = String(roomId);
         socket.data.username = username;
+
+        // Fetch current room state
+        const result = await pool.query(
+          "SELECT players, player_count, status FROM rooms WHERE id = $1",
+          [roomId]
+        );
+
+        if (!result.rowCount) return socket.emit("error", { message: "Room not found" });
+        const room = result.rows[0];
+
+        if (room.status === "started") return socket.emit("error", { message: "Game already started" });
+
+        // Add new player if not already in list
+        let updatedPlayers = room.players;
+        if (!room.players.includes(username)) {
+          updatedPlayers = [...room.players, username];
+          await pool.query(
+            "UPDATE rooms SET players = $2::jsonb, player_count = $3 WHERE id = $1",
+            [roomId, JSON.stringify(updatedPlayers), updatedPlayers.length]
+          );
+        }
+
+        const roomWithAvatars = await attachPlayerAvatars({ ...room, players: updatedPlayers });
+
+        // Emit to ALL players in room AFTER socket joined
+        io.to(String(roomId)).emit("roomState", roomWithAvatars);
+
+      } catch (err) {
+        console.error("joinRoom failed:", err);
+        socket.emit("error", { message: "Server error" });
       }
-      console.log(`${socket.id} joined room ${roomId}`);
     });
 
     // Leaving room Socket
-    socket.on("leaveRoom", ({ roomId }) => {
+    socket.on("leaveRoom", async ({ roomId }) => {
+      const username = socket.data.username;
+      await removePlayerFromRoom(roomId, username);
       socket.leave(String(roomId));
-      if (socket.data.roomId === String(roomId)) {
-        socket.data.roomId = null;
-        socket.data.username = null;
-      }
-      console.log(`${socket.id} left room ${roomId}`);
     });
 
     // Player board updates Socket
@@ -121,30 +149,35 @@ export default function setupSockets(io) {
 
     // getRoomState Socket
     socket.on("getRoomState", async ({ roomId }) => {
-      console.log(`Socket getRoomState: ${socket.id}`);
       try {
         const result = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players
-           FROM rooms
-           WHERE id = $1`,
+          `SELECT id, name, game_mode, host, player_count, players, status
+          FROM rooms WHERE id = $1`,
           [roomId]
         );
 
-        if (result.rowCount === 0) {
+        if (!result.rowCount) {
           return socket.emit("error", { message: "Room not found" });
         }
 
-        const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
+        const room = result.rows[0];
+        const roomWithAvatars = await attachPlayerAvatars(room);
 
-        // Emit to all sockets in the room
-        io.to(String(roomId)).emit("roomState", roomWithAvatars);
-
-        // If game has started, send the initial sequence to this client (late joiner)
-        const game = getGame(roomId);
-        if (game && game.isRunning && game.initialSequence) {
-          console.log(`Sending initial sequence to late joiner: ${game.initialSequence.join(',')}`);
-          socket.emit("gameStarted", { roomId, initialSequence: game.initialSequence });
+        // If game hasn't started, send room state
+        if (room.status !== "started") {
+          socket.emit("roomState", roomWithAvatars);
+          return;
         }
+
+        // If game already started, send initial sequence for late joiner
+        const game = getGame(String(roomId));
+        if (!game) return; // or recreate the game instance if needed
+
+        socket.emit("gameStarted", {
+          roomId,
+          initialSequence: game.initialSequence
+        });
+
       } catch (err) {
         console.error("getRoomState failed:", err);
         socket.emit("error", { message: "Server error" });
@@ -152,58 +185,70 @@ export default function setupSockets(io) {
     });
 
     // startGame Socket and update room status in DB
-    socket.on("startGame", async ({ roomId, username }) => {
-      console.log("startGame event received:", { socketId: socket.id, roomId, username });
+    socket.on("startGame", async ({ roomId }) => {
+      const username = socket.data.username;
+      if (!roomId || !username) return;
+
       try {
-        const room = await pool.query(
+        // Fetch current room
+        const roomResult = await pool.query(
           "SELECT host, players, status, game_mode FROM rooms WHERE id=$1",
           [roomId]
         );
-        console.log("Room query result:", { rowCount: room.rowCount, roomData: room.rows[0] });
-        
-        if (!room.rowCount) {
-          console.log("Room not found");
-          return;
-        }
-        const r = room.rows[0];
-        
-        if (r.host !== username) {
-          console.log("User is not host. Host: ${r.host}, User: ${username}");
-          return;
-        }
-        if (r.status === "started") {
-          console.log("Game already started");
+        if (!roomResult.rowCount) return;
+
+        const room = roomResult.rows[0];
+
+        // Only host can start
+        if (room.host !== username) {
+          console.log(`User is not host. Host: ${room.host}, User: ${username}`);
           return;
         }
 
-        // create Game instance
-        const gameMode = r.game_mode || "multiplayer";
-        console.log(`Creating game with mode: ${gameMode}`);
+        // Prevent restarting an already started game
+        if (room.status === "started") return;
+
+        // Create and store game instance
+        const gameMode = room.game_mode || "classic";
         const game = createGame(
           roomId,
-          r.players.map(u => new Player(u, null)),
+          room.players.map(u => new Player(u, null)),
           gameMode
         );
 
+        // Start game and generate initial sequence
         const { initialSequence } = game.start();
+        console.log("Initial sequence generated:", initialSequence);
 
-        // Notify clients with initial sequence
-        console.log(`Emitting gameStarted to room ${roomId} with sequence: ${initialSequence.join(',')}`);
-        io.to(String(roomId)).emit("gameStarted", { roomId, initialSequence });
+        // Update DB to mark room as started
+        await pool.query("UPDATE rooms SET status='started' WHERE id=$1", [roomId]);
 
-        await pool.query(
-          "UPDATE rooms SET status='started' WHERE id=$1",
+        // Fetch latest room info (including avatars)
+        const latestRoom = await pool.query(
+          "SELECT id, name, players, host, game_mode, status FROM rooms WHERE id=$1",
           [roomId]
         );
-        console.log("Game started successfully");
+
+        const roomWithAvatars = await attachPlayerAvatars(latestRoom.rows[0]);
+
+        // Emit updated room state to all players
+        io.to(String(roomId)).emit("roomState", roomWithAvatars);
+
+        // Emit initial sequence to all players
+        io.to(String(roomId)).emit("gameStarted", { roomId, initialSequence });
+
+        console.log(`Game started in room ${roomId} by host ${username}`);
+
       } catch (err) {
         console.error("startGame failed:", err);
       }
     });
 
     // movePiece during game Socket
-    socket.on("movePiece", ({ roomId, username, action }) => {
+    socket.on("movePiece", ({ roomId, action }) => {
+      const username = socket.data.username;
       console.log("movePiece received:", { socketId: socket.id, roomId, username, action });
+
       try {
         const game = getGame(String(roomId));
         if (!game || !game.isRunning) {
