@@ -248,8 +248,18 @@ function CreateRoom({
 
     try {
       hasStartedGame.current = true
-      console.log('🎮 Emitting startGame event:', { roomId: String(roomId), username });
-      socket.emit('startGame', { roomId: String(roomId), username })
+      console.log('🎮 Starting game via backend:', { roomId: String(roomId), username });
+
+      const response = await fetch(`${API_URL}/api/rooms/${roomId}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      })
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => null)
+        throw new Error(errBody?.error || 'Failed to start game')
+      }
     } catch (err) {
       console.error('Failed to start game:', err)
       hasStartedGame.current = false

@@ -2,7 +2,6 @@ import './ModeMenuSelector.css'
 import { useState } from 'react'
 import Options from './Options.jsx/Options.jsx'
 import Rooms from '../Rooms/Rooms.jsx'
-import { socket } from '../../socket'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -40,7 +39,16 @@ function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, onSta
 
       const room = await createResponse.json()
 
-      socket.emit('startGame', { roomId: String(room.id), username })
+      const startResponse = await fetch(`${API_URL}/api/rooms/${room.id}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      })
+
+      if (!startResponse.ok) {
+        const errBody = await startResponse.json().catch(() => null)
+        throw new Error(errBody?.error || 'Failed to start solo game')
+      }
 
       console.log('[ModeMenu] Solo game started', { roomId: room.id, username })
 

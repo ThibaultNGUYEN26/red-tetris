@@ -50,23 +50,23 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
 
   const joinRoom = async (roomId) => {
     try {
-      // 1️⃣ Join room in DB
-      await fetch(`${API_URL}/api/rooms/${roomId}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
+      // Join room via socket (DB + socket room)
+      socket.emit('joinGame', { roomId: String(roomId), username }, (res) => {
+        if (!res?.ok) {
+          console.error('Join failed:', res?.error || 'Failed to join room')
+          hasJoinedRef.current = false
+          return
+        }
+
+        console.log('[Rooms] Joined room', { roomId, username })
+
+        // Sync room state (in case of late listeners)
+        socket.emit('getRoomState', { roomId: String(roomId) })
+
+        localStorage.setItem('currentRoomId', roomId)
+        setCurrentRoomId(roomId)
       })
 
-      console.log('[Rooms] Joined room', { roomId, username })
-
-      // 2️⃣ Join socket room
-      socket.emit('joinRoom', { roomId: String(roomId), username })
-
-      // 3️⃣ Sync room state
-      socket.emit('getRoomState', { roomId: String(roomId) })
-
-      localStorage.setItem('currentRoomId', roomId)
-      setCurrentRoomId(roomId)
     } catch (err) {
       console.error('Join failed:', err)
       hasJoinedRef.current = false
@@ -214,7 +214,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
                   <span className="room-host">Host: {room.host}</span>
                 </div>
 
-                <div className="room-players">
+                <div className="room-players player-count">
                   {room.player_count}/{room.maxPlayers || 6}
                 </div>
 
