@@ -131,8 +131,40 @@ export default function setupSockets(io) {
     // Leaving room Socket
     socket.on("leaveRoom", async ({ roomId }) => {
       const username = socket.data.username;
-      await removePlayerFromRoom(roomId, username);
+
+      console.log("leaveRoom received from", username);
+
+      // Remove player from Game instance
+      const game = getGame(roomId);
+      if (game) {
+        const player = game.getPlayer(username);
+        if (player) {
+          player.isAlive = false;
+          console.log(`${username} marked as dead in game`);
+        }
+
+        const result = game.checkGameOver();
+        if (result.over) {
+          console.log("Game over! Winner:", result.winner);
+          io.to(String(roomId)).emit("gameOver", { winner: result.winner });
+          game.endGame();
+        }
+      }
+
+      // Leave socket room
       socket.leave(String(roomId));
+
+      // Optionally update DB but avoid constraints for host mid-game
+      await removePlayerFromRoom(roomId, username);
+
+      // Broadcast updated room state
+      const roomResult = await pool.query(
+        "SELECT id, name, players, host, game_mode, status FROM rooms WHERE id=$1",
+        [roomId]
+      );
+      if (roomResult.rowCount) {
+        io.to(String(roomId)).emit("roomState", roomResult.rows[0]);
+      }
     });
 
     // Player board updates Socket
@@ -212,7 +244,7 @@ export default function setupSockets(io) {
         const gameMode = room.game_mode || "classic";
         const game = createGame(
           roomId,
-          room.players.map(u => new Player(u, null)),
+          room.players,
           gameMode
         );
 

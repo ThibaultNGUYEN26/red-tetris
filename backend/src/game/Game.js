@@ -2,10 +2,11 @@ import { GAME_MODES } from "../config/constants.js";
 import SequenceGenerator from "./sequenceGenerator.js";
 
 export default class Game {
-  constructor(roomId, players, mode) {
+  constructor(roomId, players, mode, mode_player) {
     this.roomId = roomId;
     this.players = players;
     this.mode = mode;
+    this.mode_player = mode_player;
 
     this.sequence = new SequenceGenerator();
     this.isRunning = false;
@@ -87,34 +88,19 @@ export default class Game {
   }
 
   checkGameOver() {
-    if (this.mode === GAME_MODES.SOLO) {
-      if (!this.players[0].isAlive) {
-        return {
-          over: true,
-          winner: null
-        };
-      }
+    const alive = this.players.filter(p => p.isAlive);
+    console.log("Alive players:", alive.map(p => p.username));
+    console.log("Game mode:", this.mode, "Mode player:", this.mode_player);
+
+    if (this.mode_player === 'solo' && !this.players[0].isAlive) {
+      return { over: true, winner: null };
     }
 
-    const alive = this.players.filter(p => p.isAlive);
-
-    if (this.mode === GAME_MODES.MULTI && alive.length <= 1) {
-      return {
-        over: true,
-        winner: alive[0]?.username ?? null
-      };
+    if (this.mode_player === 'multi' && alive.length <= 1) {
+      return { over: true, winner: alive[0]?.username ?? null };
     }
 
     return { over: false };
-  }
-
-  serialize() {
-    return {
-      roomId: this.roomId,
-      mode: this.mode,
-      isRunning: this.isRunning,
-      players: this.players.map(p => p.serialize()),
-    };
   }
 
   spawnNextPiece(username, type, board) {
