@@ -16,21 +16,71 @@
 
 .shadow-boards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(2, 140px);
   gap: 0.75rem;
   width: 100%;
   justify-items: center;
+  justify-content: center;
 }
+
+.shadow-boards-grid.count-1 {
+  grid-template-columns: 140px;
+}
+
+.shadow-boards-grid.count-2 {
+  grid-template-columns: repeat(2, 140px);
+}
+
+.shadow-boards-grid.count-3 {
+  grid-template-columns: repeat(2, 140px);
+  grid-template-areas:
+    "a b"
+    ". c";
+}
+
+.shadow-boards-grid.count-4 {
+  grid-template-columns: repeat(2, 140px);
+  grid-template-areas:
+    "a b"
+    "c d";
+}
+
+.shadow-boards-grid.count-5 {
+  grid-template-columns: repeat(3, 140px);
+  grid-template-areas:
+    "a b c"
+    "d e .";
+}
+
+.shadow-boards-grid.count-3 .shadow-board-card:nth-child(1) { grid-area: a; }
+.shadow-boards-grid.count-3 .shadow-board-card:nth-child(2) { grid-area: b; }
+.shadow-boards-grid.count-3 .shadow-board-card:nth-child(3) { grid-area: c; }
+
+.shadow-boards-grid.count-4 .shadow-board-card:nth-child(1) { grid-area: a; }
+.shadow-boards-grid.count-4 .shadow-board-card:nth-child(2) { grid-area: b; }
+.shadow-boards-grid.count-4 .shadow-board-card:nth-child(3) { grid-area: c; }
+.shadow-boards-grid.count-4 .shadow-board-card:nth-child(4) { grid-area: d; }
+
+.shadow-boards-grid.count-5 .shadow-board-card:nth-child(1) { grid-area: a; }
+.shadow-boards-grid.count-5 .shadow-board-card:nth-child(2) { grid-area: b; }
+.shadow-boards-grid.count-5 .shadow-board-card:nth-child(3) { grid-area: c; }
+.shadow-boards-grid.count-5 .shadow-board-card:nth-child(4) { grid-area: d; }
+.shadow-boards-grid.count-5 .shadow-board-card:nth-child(5) { grid-area: e; }
 
 .shadow-board-card {
   background: rgba(255, 255, 255, 0.65);
   border-radius: 12px;
   border: 2px solid rgba(42, 82, 152, 0.2);
-  padding: 0.5rem 0.6rem 0.6rem;
+  padding: 0.45rem 0.6rem 0.6rem;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
   gap: 0.4rem;
-  width: 120px;
+  width: 140px;
+  --shadow-cell-size: 9px;
+  --shadow-grid-gap: 1px;
+  --shadow-grid-padding: 0.7rem;
+  --shadow-grid-border: 2px;
 }
 
 .shadow-board-name {
@@ -41,17 +91,30 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  width: 100%;
+  padding: 0.2rem 0.4rem;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  border: 2px solid rgba(42, 82, 152, 0.2);
 }
 
 .shadow-board-grid-inner {
-  --cell-size: 10px;
+  --cell-size: var(--shadow-cell-size);
   display: grid;
   grid-template-columns: repeat(10, var(--cell-size));
   grid-template-rows: repeat(20, var(--cell-size));
-  gap: 1px;
-  background: rgba(255, 255, 255, 0.7);
-  padding: 0.35rem;
-  border-radius: 8px;
+  gap: var(--shadow-grid-gap);
+  justify-content: center;
+  align-content: center;
+  background: rgba(255, 255, 255, 0.65);
+  padding: var(--shadow-grid-padding);
+  border-radius: 12px;
+  border: var(--shadow-grid-border) solid rgba(42, 82, 152, 0.2);
+  width: 100%;
+  margin: 0;
+  box-shadow:
+    inset 0 0 12px rgba(255, 255, 255, 0.6),
+    0 6px 14px rgba(0, 0, 0, 0.08);
 }
 
 .shadow-board-grid-inner .cell {
@@ -59,6 +122,16 @@
   height: var(--cell-size);
   border-radius: 3px;
   box-shadow: none;
+}
+
+.shadow-board-grid-inner .cell-spectrum {
+  background: rgba(120, 130, 150, 0.7);
+  box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+.shadow-board-grid-inner .cell-empty {
+  background: rgba(42, 82, 152, 0.08);
+  box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.35);
 }
 
 .game-screen.dark .shadow-boards h3 {

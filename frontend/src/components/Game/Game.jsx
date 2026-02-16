@@ -8,6 +8,8 @@ const WIDTH = 10
 const HEIGHT = 20
 const DROP_MS = 500
 const SOFT_DROP_MS = 60
+const DAS_MS = 220
+const ARR_MS = 60
 
 const SHAPES = {
   i: [
@@ -37,13 +39,13 @@ const SHAPES = {
     [[0, 0], [0, 1], [1, 1], [1, 2]],
     [[0, 2], [1, 1], [1, 2], [2, 1]],
   ],
-  j: [
+    l: [
     [[0, 0], [1, 0], [1, 1], [1, 2]],
     [[0, 1], [0, 2], [1, 1], [2, 1]],
     [[1, 0], [1, 1], [1, 2], [2, 2]],
     [[0, 1], [1, 1], [2, 0], [2, 1]],
   ],
-  l: [
+  j: [
     [[0, 2], [1, 0], [1, 1], [1, 2]],
     [[0, 1], [1, 1], [2, 1], [2, 2]],
     [[1, 0], [1, 1], [1, 2], [2, 0]],
@@ -60,29 +62,22 @@ const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
 function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerProp }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
-  const pieceQueue = useMemo(
-    () => 'soiltzjsoiltzjsoiltzjsoiltzjsoiltzj'.split(''),
-    []
-  )
-  const queueIndexRef = useRef(2)
-  const nextTypeRef = useRef(pieceQueue[1])
+  const [pieceQueue, setPieceQueue] = useState([])
+
   const boardRef = useRef(makeEmptyBoard())
   const softDropTimerRef = useRef(null)
-  const piecesPlayedInSequence = useRef(0) // Track pieces in current 7-piece sequence
-  const hasSentPing = useRef(false) // Track if we sent ping for current sequence
+  const dasTimerRef = useRef(null)
+  const arrTimerRef = useRef(null)
+  const heldDirectionRef = useRef(null)
+  const lastBoardSentRef = useRef(0)
+  const joinedRef = useRef(false)
 
   const [board, setBoard] = useState(makeEmptyBoard)
-  const [activePiece, setActivePiece] = useState(() => ({
-    type: pieceQueue[0],
-    rotation: 0,
-    row: 0,
-    col: 3,
-  }))
-  const [nextType, setNextType] = useState(pieceQueue[1])
+  const [activePiece, setActivePiece] = useState(null)
+  const [nextType, setNextType] = useState(null)
   const [isPaused, setIsPaused] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [opponentBoards, setOpponentBoards] = useState([])
-  const lastBoardSentRef = useRef(0)
 
   const getCells = (piece) =>
     SHAPES[piece.type][piece.rotation].map(([r, c]) => [
@@ -109,51 +104,39 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     return nextGrid
   }
 
+  const advanceQueue = () => {
+    setPieceQueue(prev => {
+      const nextQueue = prev.slice(1)
+
+      if (nextQueue.length === 0) {
+        console.error('Queue empty — backend desync')
+        return prev
+      }
+
+      const nextPiece = {
+        type: nextQueue[0],
+        rotation: 0,
+        row: 0,
+        col: 3,
+      }
+
+      setActivePiece(nextPiece)
+      setNextType(nextQueue[1] ?? null)
+
+      if (isMultiplayer && nextQueue.length <= 3) {
+        socket.emit('requestNextBatch', { roomId, username })
+      }
+
+      return nextQueue
+    })
+  }
+
   const finalizePiece = (piece) => {
     const locked = lockPiece(piece, boardRef.current)
     const nextBoard = clearLines(locked)
     boardRef.current = nextBoard
     setBoard(nextBoard)
-
-    // Track pieces played and send ping after 4th piece in each sequence
-    piecesPlayedInSequence.current += 1
-    console.log(`Pieces played in sequence: ${piecesPlayedInSequence.current}/7`)
-
-    if (piecesPlayedInSequence.current === 4 && !hasSentPing.current) {
-      // Send ping to backend after 4th piece
-      console.log('Ping sent: requesting next 7-piece batch')
-      if (roomId && username) {
-        socket.emit('requestNextBatch', { roomId, username })
-      }
-      hasSentPing.current = true
-    }
-
-    // Reset counter and ping flag after 7 pieces
-    if (piecesPlayedInSequence.current >= 7) {
-      piecesPlayedInSequence.current = 0
-      hasSentPing.current = false
-      console.log('Sequence reset: starting new 7-piece batch')
-    }
-
-    const spawned = spawnPiece()
-    if (!isValidPosition(spawned, nextBoard)) {
-      const resetBoard = makeEmptyBoard()
-      setBoard(resetBoard)
-      boardRef.current = resetBoard
-      queueIndexRef.current = 2
-      nextTypeRef.current = pieceQueue[1]
-      setNextType(pieceQueue[1])
-      piecesPlayedInSequence.current = 0
-      hasSentPing.current = false
-      return {
-        type: pieceQueue[0],
-        rotation: 0,
-        row: 0,
-        col: 3,
-      }
-    }
-
-    return spawned
+    advanceQueue()
   }
 
   const clearLines = (grid) => {
@@ -166,23 +149,9 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     return [...newRows, ...remaining]
   }
 
-  const spawnPiece = () => {
-    const type = nextTypeRef.current
-    const nextIndex = queueIndexRef.current % pieceQueue.length
-    const upcoming = pieceQueue[nextIndex]
-    queueIndexRef.current = (nextIndex + 1) % pieceQueue.length
-    nextTypeRef.current = upcoming
-    setNextType(upcoming)
-    return {
-      type,
-      rotation: 0,
-      row: -1,
-      col: 3,
-    }
-  }
-
   const tryMove = (deltaRow, deltaCol, rotationDelta = 0) => {
     setActivePiece((prev) => {
+      if (!prev) return prev
       const rotations = SHAPES[prev.type].length
       const next = {
         ...prev,
@@ -196,17 +165,105 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
 
   const hardDrop = () => {
     setActivePiece((prev) => {
+      if (!prev) return prev
       let next = { ...prev }
-      while (isValidPosition({ ...next, row: next.row + 1 })) {
+      const grid = boardRef.current
+      while (isValidPosition({ ...next, row: next.row + 1 }, grid)) {
         next = { ...next, row: next.row + 1 }
       }
-      return finalizePiece(next)
+      finalizePiece(next)
+      return null
     })
   }
 
   useEffect(() => {
     boardRef.current = board
   }, [board])
+
+  /* Socket listeners for multiplayer game events */
+  useEffect(() => {
+    if (!isMultiplayer) return;
+
+    if (joinedRef.current) return;
+    joinedRef.current = true;
+
+    // Set up listeners FIRST before joining
+    const handleGameStarted = ({ roomId: startedRoomId, initialSequence }) => {
+      boardRef.current = makeEmptyBoard()
+      setBoard(makeEmptyBoard())
+      setOpponentBoards([])
+      setIsPaused(false)
+      setShowMenu(false)
+
+      console.log('Game started from backend for room:', startedRoomId, 'with sequence:', initialSequence);
+      // Mark that game has started so CreateRoom doesn't leave on unmount
+      sessionStorage.setItem(`gameStarted_${startedRoomId}`, 'true');
+      
+      if (initialSequence && Array.isArray(initialSequence)) {
+        // Map uppercase letters to lowercase for SHAPES lookup
+        const mappedSequence = initialSequence.map(p => p.toLowerCase());
+        setPieceQueue(mappedSequence);
+        
+        if (mappedSequence.length > 0) {
+          // Set active piece to first piece in sequence
+          setActivePiece({
+            type: mappedSequence[0],
+            rotation: 0,
+            row: 0,
+            col: 3,
+          });
+
+          // Set next piece display
+          if (mappedSequence.length > 1) {
+            setNextType(mappedSequence[1]);
+          } else {
+            setNextType(mappedSequence[0]);
+          }
+        }
+      }
+    };
+
+    const handleGameState = (gameState) => {
+      console.log('Received game state from backend:', gameState);
+    };
+
+    const handleGameOver = ({ winner }) => {
+      console.log('Game over! Winner:', winner);
+    };
+
+    const handleNextPieceBatch = ({ nextBatch }) => {
+      console.log('Received next piece batch from backend:', nextBatch);
+
+      if (nextBatch && Array.isArray(nextBatch)) {
+        const mappedBatch = nextBatch.map(p => p.toLowerCase());
+
+        setPieceQueue(prev => {
+          const newQueue = [...prev, ...mappedBatch];
+          console.log(`   New queue length: ${newQueue.length}, mapped batch: ${mappedBatch.join(',')}`);
+          return newQueue;
+        });
+      }
+    };
+
+    socket.on('gameStarted', handleGameStarted);
+    socket.on('gameState', handleGameState);
+    socket.on('gameOver', handleGameOver);
+    socket.on('nextPieceBatch', handleNextPieceBatch);
+
+    // Join the room since listeners are set up
+    socket.emit("joinRoom", { roomId: String(roomId), username });
+    console.log(`Game component joined room: ${roomId}`);
+
+    // Request room state to trigger late-joiner gameStarted event if game already started
+    socket.emit('getRoomState', { roomId: String(roomId) });
+
+    return () => {
+      socket.off('gameStarted', handleGameStarted);
+      socket.off('gameState', handleGameState);
+      socket.off('gameOver', handleGameOver);
+      socket.off('nextPieceBatch', handleNextPieceBatch);
+    };
+  }, [isMultiplayer, roomId, username]);
 
   const stopSoftDrop = () => {
     if (softDropTimerRef.current) {
@@ -215,16 +272,52 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     }
   }
 
+  const stopHorizontalAutoMove = () => {
+    if (dasTimerRef.current) {
+      clearTimeout(dasTimerRef.current)
+      dasTimerRef.current = null
+    }
+    if (arrTimerRef.current) {
+      clearInterval(arrTimerRef.current)
+      arrTimerRef.current = null
+    }
+    heldDirectionRef.current = null
+  }
+
+  const emitMove = (action) => {
+    if (!action || !isMultiplayer || !roomId || !username) return
+    socket.emit('movePiece', { roomId: String(roomId), username, action })
+  }
+
+  const startHorizontalAutoMove = (direction) => {
+    if (isPaused) return
+    if (heldDirectionRef.current === direction) return
+    stopHorizontalAutoMove()
+    heldDirectionRef.current = direction
+
+    const action = direction < 0 ? 'left' : 'right'
+    tryMove(0, direction)
+    emitMove(action)
+
+    dasTimerRef.current = setTimeout(() => {
+      if (heldDirectionRef.current !== direction) return
+      arrTimerRef.current = setInterval(() => {
+        if (heldDirectionRef.current !== direction) return
+        tryMove(0, direction)
+        emitMove(action)
+      }, ARR_MS)
+    }, DAS_MS)
+  }
+
   const startSoftDrop = () => {
     if (softDropTimerRef.current) return
     softDropTimerRef.current = setInterval(() => {
       setActivePiece((prev) => {
-        if (isPaused) return prev
+        if (!prev || isPaused) return prev
         const next = { ...prev, row: prev.row + 1 }
-        if (isValidPosition(next)) {
-          return next
-        }
-        return finalizePiece(prev)
+        if (isValidPosition(next)) return next
+        finalizePiece(prev)
+        return null
       })
     }, SOFT_DROP_MS)
   }
@@ -232,17 +325,18 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
   useEffect(() => {
     const timer = setInterval(() => {
       setActivePiece((prev) => {
-        if (isPaused) return prev
+        if (!prev || isPaused) return prev
         const next = { ...prev, row: prev.row + 1 }
         if (isValidPosition(next)) {
           return next
         }
-        return finalizePiece(prev)
+        finalizePiece(prev)
+        return null
       })
     }, DROP_MS)
 
     return () => clearInterval(timer)
-  }, [pieceQueue, isPaused])
+  }, [isPaused])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -256,24 +350,40 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
         setShowMenu(true)
         return
       }
-      if (isPaused) return
+      
+      let action = null;
+      
       if (event.key === 'ArrowLeft') {
-        tryMove(0, -1)
+        startHorizontalAutoMove(-1)
+        return
       } else if (event.key === 'ArrowRight') {
-        tryMove(0, 1)
+        startHorizontalAutoMove(1)
+        return
       } else if (event.key === 'ArrowDown') {
         tryMove(1, 0)
         startSoftDrop()
+        action = 'drop'
       } else if (event.key === 'ArrowUp') {
         tryMove(0, 0, 1)
+        action = 'rotate'
       } else if (event.key === ' ') {
         hardDrop()
+        action = 'hardDrop'
       }
+      
+      // Emit move to backend for multiplayer
+      emitMove(action)
     }
 
     const handleKeyUp = (event) => {
       if (event.key === 'ArrowDown') {
         stopSoftDrop()
+      }
+      if (
+        (event.key === 'ArrowLeft' && heldDirectionRef.current === -1) ||
+        (event.key === 'ArrowRight' && heldDirectionRef.current === 1)
+      ) {
+        stopHorizontalAutoMove()
       }
     }
 
@@ -283,8 +393,9 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
       stopSoftDrop()
+      stopHorizontalAutoMove()
     }
-  }, [isPaused])
+  }, [isPaused, isMultiplayer, roomId, username])
 
   useEffect(() => {
     if (isPaused) {
@@ -294,6 +405,11 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
 
   const boardWithActive = useMemo(() => {
     const grid = board.map((row) => row.slice())
+    
+    if (!activePiece) {
+      return grid
+    }
+
     const ghost = (() => {
       let next = { ...activePiece }
       while (isValidPosition({ ...next, row: next.row + 1 })) {
@@ -323,7 +439,7 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     const now = Date.now()
     if (now - lastBoardSentRef.current < 120) return
     lastBoardSentRef.current = now
-    socket.emit('playerBoard', { roomId, username, board: boardWithActive })
+    socket.emit('playerBoard', { roomId, username, board: boardRef.current })
   }, [boardWithActive, isMultiplayer, roomId, username])
 
   useEffect(() => {
@@ -343,6 +459,10 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
   }, [isMultiplayer, username])
 
   const nextPreview = useMemo(() => {
+    if (!nextType) {
+      return { grid: [], width: 0, height: 0 }
+    }
+    
     const shape = SHAPES[nextType][0]
     // Find bounding box
     const rows = shape.map(([r]) => r)
