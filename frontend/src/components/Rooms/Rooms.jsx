@@ -196,18 +196,25 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
         {rooms.length === 0 ? (
           <p className="no-rooms">No rooms available. Create one!</p>
         ) : (
-          rooms.map((room) => {
+          rooms.map((room, index) => {
             const isInRoom = room.players?.includes(username)
 
             return (
-              <div key={room.id} className="room-entry">
+              <div key={`room-${room.id ?? index}`} className="room-entry">
                 <div className="room-info">
                   <span className="room-name">{room.name}</span>
                   <span className="room-host">Host: {room.host}</span>
                 </div>
 
                 <div className="room-players">
-                  {room.player_count}/{room.maxPlayers || 6}
+                  {room.players?.map((p, i) => (
+                    <span key={`player-${p}-${i}`} className="player-name">
+                      {p}
+                    </span>
+                  ))}
+                  <span>
+                    {room.player_count}/{room.maxPlayers || 6}
+                  </span>
                 </div>
 
                 <button
