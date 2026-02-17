@@ -1,5 +1,6 @@
 import './ModeMenuSelector.css'
 import { useState } from 'react'
+import { socket } from '../../socket'
 import Options from './Options.jsx/Options.jsx'
 import Rooms from '../Rooms/Rooms.jsx'
 
@@ -15,10 +16,10 @@ function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, onSta
       // If user is already in a room, leave it before creating a solo room
       const existingRoomId = localStorage.getItem('currentRoomId')
       if (existingRoomId && username) {
-        await fetch(`${API_URL}/api/rooms/${existingRoomId}/leave`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username }),
+        await new Promise((resolve) => {
+          socket.emit('leaveRoom', { roomId: String(existingRoomId), username }, () => {
+            resolve()
+          })
         })
         localStorage.removeItem('currentRoomId')
       }
@@ -39,18 +40,18 @@ function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, onSta
 
       const room = await createResponse.json()
 
-      const startResponse = await fetch(`${API_URL}/api/rooms/${room.id}/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
+      await new Promise((resolve, reject) => {
+        socket.emit('joinRoom', { roomId: String(room.id), username }, (res) => {
+          if (!res?.ok) {
+            reject(new Error(res?.error || 'Failed to join solo room'))
+            return
+          }
+          socket.emit('startGame', { roomId: String(room.id), username })
+          resolve()
+        })
       })
 
-      if (!startResponse.ok) {
-        const errBody = await startResponse.json().catch(() => null)
-        throw new Error(errBody?.error || 'Failed to start solo game')
-      }
-
-      console.log('[ModeMenu] Solo game started', { roomId: room.id, username })
+      console.log('[ModeMenu] Solo game started (socket)', { roomId: room.id, username })
 
       onStartSolo?.(room.id)
       onShowGame(true)

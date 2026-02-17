@@ -1,6 +1,44 @@
 import './ShadowBoards.css'
+import { useEffect, useRef, useState } from 'react'
+import { socket } from '../../socket'
 
-function ShadowBoards({ boards = [] }) {
+function ShadowBoards({ board, isMultiplayer, roomId, username }) {
+  const [boards, setBoards] = useState([])
+  const lastBoardSentRef = useRef(0)
+
+  useEffect(() => {
+    if (!isMultiplayer) return
+
+    const handlePlayerBoard = ({ username: playerName, board: remoteBoard }) => {
+      if (!playerName || playerName === username) return
+      if (!Array.isArray(remoteBoard)) return
+      setBoards((prev) => {
+        const exists = prev.find((entry) => entry.username === playerName)
+        if (exists) {
+          return prev.map((entry) =>
+            entry.username === playerName ? { username: playerName, board: remoteBoard } : entry
+          )
+        }
+        return [...prev, { username: playerName, board: remoteBoard }]
+      })
+    }
+
+    socket.on('playerBoard', handlePlayerBoard)
+    return () => {
+      socket.off('playerBoard', handlePlayerBoard)
+    }
+  }, [isMultiplayer, username])
+
+  useEffect(() => {
+    if (!isMultiplayer || !roomId || !username) return
+    if (!Array.isArray(board)) return
+    const now = Date.now()
+    if (now - lastBoardSentRef.current < 120) return
+    lastBoardSentRef.current = now
+    socket.emit('playerBoard', { roomId: String(roomId), username, board })
+  }, [board, isMultiplayer, roomId, username])
+
+  if (!isMultiplayer) return null
   if (!boards.length) return null
 
   const getSpectrumMap = (board) => {

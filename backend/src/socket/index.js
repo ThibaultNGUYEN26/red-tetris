@@ -147,18 +147,19 @@ export default function setupSockets(io) {
     });
 
     // Leaving room Socket
-    socket.on("leaveRoom", async ({ roomId }) => {
-      const username = socket.data.username;
+    socket.on("leaveRoom", async ({ roomId, username }, callback) => {
+      const ack = typeof callback === "function" ? callback : null;
+      const effectiveUsername = username || socket.data.username;
 
-      console.log("leaveRoom received from", username);
+      console.log("leaveRoom received from", effectiveUsername);
 
       // Remove player from Game instance
       const game = getGame(roomId);
       if (game) {
-        const player = game.getPlayer(username);
+        const player = game.getPlayer(effectiveUsername);
         if (player) {
           player.isAlive = false;
-          console.log(`${username} marked as dead in game`);
+          console.log(`${effectiveUsername} marked as dead in game`);
         }
 
         const result = game.checkGameOver();
@@ -173,7 +174,7 @@ export default function setupSockets(io) {
       socket.leave(String(roomId));
 
       // Optionally update DB but avoid constraints for host mid-game
-      await removePlayerFromRoom(roomId, username);
+      await removePlayerFromRoom(roomId, effectiveUsername);
 
       // Broadcast updated room state
       const roomResult = await pool.query(
@@ -183,6 +184,8 @@ export default function setupSockets(io) {
       if (roomResult.rowCount) {
         io.to(String(roomId)).emit("roomState", roomResult.rows[0]);
       }
+      await broadcastAvailableRooms();
+      if (ack) ack({ ok: true });
     });
 
     // Player board updates Socket

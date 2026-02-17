@@ -62,13 +62,16 @@ const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
 function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerProp }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
+  const useSockets = Boolean(roomId)
   // Server currently only provides piece sequences; client drives gravity/rendering.
   const usesServer = false
   const [pieceQueue, setPieceQueue] = useState([])
 
   const boardRef = useRef(makeEmptyBoard())
   const softDropTimerRef = useRef(null)
-  const lastBoardSentRef = useRef(0)
+  const dasTimerRef = useRef(null)
+  const arrTimerRef = useRef(null)
+  const heldDirectionRef = useRef(null)
   const joinedRef = useRef(false)
 
   const [board, setBoard] = useState(makeEmptyBoard)
@@ -76,15 +79,12 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
   const [nextType, setNextType] = useState(null)
   const [isPaused, setIsPaused] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
-  const [opponentBoards, setOpponentBoards] = useState([])
 
   const getCells = (piece) =>
     SHAPES[piece.type][piece.rotation].map(([r, c]) => [
       piece.row + r,
       piece.col + c,
     ])
-
-  const buildBoardSnapshot = () => boardRef.current.map((row) => row.slice())
 
   const isValidPosition = (piece, grid = boardRef.current) => {
     if (!grid) return false
@@ -124,9 +124,9 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       setActivePiece(nextPiece)
       setNextType(nextQueue[1] ?? null)
 
-      if (isMultiplayer && nextQueue.length <= 3) {
-        socket.emit('requestNextBatch', { roomId, username })
-      }
+    if (useSockets && nextQueue.length <= 3) {
+      socket.emit('requestNextBatch', { roomId, username })
+    }
 
       return nextQueue
     })
@@ -187,7 +187,7 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
 
   /* Socket listeners for multiplayer game events */
   useEffect(() => {
-    if (!isMultiplayer) return;
+    if (!useSockets) return;
 
     if (joinedRef.current) return;
     joinedRef.current = true;
@@ -196,7 +196,6 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     const handleGameStarted = ({ roomId: startedRoomId, initialSequence }) => {
       boardRef.current = makeEmptyBoard()
       setBoard(makeEmptyBoard())
-      setOpponentBoards([])
       setIsPaused(false)
       setShowMenu(false)
 
@@ -254,20 +253,6 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     socket.on('gameState', handleGameState);
     socket.on('gameOver', handleGameOver);
     socket.on('nextPieceBatch', handleNextPieceBatch);
-    const handlePlayerBoard = ({ username: playerName, board }) => {
-      if (!playerName || playerName === username) return
-      if (!Array.isArray(board)) return
-      setOpponentBoards((prev) => {
-        const exists = prev.find((entry) => entry.username === playerName)
-        if (exists) {
-          return prev.map((entry) =>
-            entry.username === playerName ? { username: playerName, board } : entry
-          )
-        }
-        return [...prev, { username: playerName, board }]
-      })
-    }
-    socket.on('playerBoard', handlePlayerBoard);
 
     // Join the room since listeners are set up
     socket.emit("joinRoom", { roomId: String(roomId), username });
@@ -281,18 +266,8 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       socket.off('gameState', handleGameState);
       socket.off('gameOver', handleGameOver);
       socket.off('nextPieceBatch', handleNextPieceBatch);
-      socket.off('playerBoard', handlePlayerBoard);
     };
-  }, [isMultiplayer, roomId, username]);
-
-  useEffect(() => {
-    if (!isMultiplayer || !roomId || !username) return
-    const now = Date.now()
-    if (now - lastBoardSentRef.current < 120) return
-    lastBoardSentRef.current = now
-    const snapshot = buildBoardSnapshot()
-    socket.emit('playerBoard', { roomId: String(roomId), username, board: snapshot })
-  }, [board, activePiece, isMultiplayer, roomId, username])
+  }, [useSockets, roomId, username]);
 
   const stopSoftDrop = () => {
     if (softDropTimerRef.current) {
@@ -579,7 +554,12 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
                 )}
               </div>
             </div>
-            {isMultiplayer && <ShadowBoards boards={opponentBoards} />}
+            <ShadowBoards
+              board={board}
+              isMultiplayer={isMultiplayer}
+              roomId={roomId}
+              username={username}
+            />
           </div>
         </div>
 

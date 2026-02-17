@@ -11,6 +11,7 @@ import PlayerStats from './components/PlayerStats/PlayerStats.jsx'
 import Rooms from './components/Rooms/Rooms.jsx'
 import Game from './components/Game/Game.jsx'
 import Title from './components/Title/Title.jsx'
+import { socket } from './socket'
 
 function Index() {
   const { roomName: urlRoomName, username: urlUsername } = useParams()
@@ -71,10 +72,10 @@ function Index() {
   const handleExitSolo = async () => {
     if (soloRoomId && username) {
       try {
-        await fetch(`${API_URL}/api/rooms/${soloRoomId}/leave`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username }),
+        await new Promise((resolve) => {
+          socket.emit('leaveRoom', { roomId: String(soloRoomId), username }, () => {
+            resolve()
+          })
         })
         console.log('[Index] Left solo room', { roomId: soloRoomId, username })
       } catch (err) {

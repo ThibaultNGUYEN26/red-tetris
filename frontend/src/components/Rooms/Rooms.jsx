@@ -90,6 +90,44 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
     return () => socket.off('roomState', handleRoomState)
   }, [])
 
+  /* ---------------- STALE ROOM GUARD ---------------- */
+
+  useEffect(() => {
+    if (!currentRoomId) return
+
+    const clearCurrentRoom = () => {
+      localStorage.removeItem('currentRoomId')
+      setCurrentRoomId(null)
+      setShowCreateRoom(false)
+    }
+
+    const handleRoomState = (room) => {
+      if (String(room.id) === String(currentRoomId)) {
+        clearTimeout(timeoutId)
+      }
+    }
+
+    const handleSocketError = (err) => {
+      if (err?.message === 'Room not found') {
+        clearCurrentRoom()
+      }
+    }
+
+    socket.on('roomState', handleRoomState)
+    socket.on('error', handleSocketError)
+    socket.emit('getRoomState', { roomId: String(currentRoomId) })
+
+    const timeoutId = setTimeout(() => {
+      clearCurrentRoom()
+    }, 1500)
+
+    return () => {
+      clearTimeout(timeoutId)
+      socket.off('roomState', handleRoomState)
+      socket.off('error', handleSocketError)
+    }
+  }, [currentRoomId])
+
   /* ---------------- GAME START ---------------- */
 
   useEffect(() => {
@@ -124,20 +162,14 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
 
     if (roomId) {
       try {
-        // First emit socket leave
-        socket.emit('leaveRoom', { roomId: String(roomId) })
-
-        // Then call API to leave
-        await fetch(`${API_URL}/api/rooms/${roomId}/leave`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username }),
+        socket.emit('leaveRoom', { roomId: String(roomId), username }, (res) => {
+          if (!res?.ok) {
+            console.error('Failed to leave room:', res?.error || 'Unknown error')
+            return
+          }
+          console.log('[Rooms] Left room', { roomId, username })
+          socket.emit('getAvailableRooms')
         })
-
-        console.log('[Rooms] Left room', { roomId, username })
-
-        // Request updated rooms list
-        socket.emit('getAvailableRooms')
       } catch (err) {
         console.error('Failed to leave room:', err)
       }
