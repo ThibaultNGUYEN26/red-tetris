@@ -247,12 +247,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
                 </div>
 
                 <div className="room-players">
-                  {room.players?.map((p, i) => (
-                    <span key={`player-${p}-${i}`} className="player-name">
-                      {p}
-                    </span>
-                  ))}
-                  <span>
+                  <span className="player-count">
                     {room.player_count}/{room.maxPlayers || 6}
                   </span>
                 </div>

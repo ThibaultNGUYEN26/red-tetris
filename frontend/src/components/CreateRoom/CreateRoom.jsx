@@ -141,7 +141,8 @@ function CreateRoom({
     /* ---------------- UPDATE ROOM NAME (ONLY AFTER USER EDIT) ---------------- */
 
   useEffect(() => {
-    if (!roomId || mode !== 'create') return;
+    if (!roomId) return;
+    if (hostName !== username) return;
     if (!hasEditedName.current) return;
     if (roomName.trim().length === 0) return; // Prevent PATCH if name is empty
 
@@ -165,7 +166,7 @@ function CreateRoom({
 
   // Update game mode (only host)
   useEffect(() => {
-    if (!roomId || mode !== 'create') return;
+    if (!roomId) return;
     if (hostName !== username) return; // Only host can change
     if (!selectedMode) return;
 
@@ -288,7 +289,7 @@ function CreateRoom({
 
         {/* Room Name */}
         <div className="form-group room-name-section">
-          {isEditingName && mode === 'create' ? (
+          {isEditingName && hostName === username ? (
             <div className="room-name-container">
               <input
                 type="text"
@@ -305,7 +306,7 @@ function CreateRoom({
           ) : (
             <div className="room-name-display">
               <span className="room-name-text">{roomName}</span>
-              {mode === 'create' && (
+              {hostName === username && (
                 <button className="edit-button" onClick={handleEditClick}>
                   ✏️
                 </button>
@@ -321,7 +322,7 @@ function CreateRoom({
             value={selectedMode}
             onChange={handleModeChange}
             className="mode-select"
-            disabled={mode !== 'create'}
+            disabled={hostName && hostName !== username}
           >
             {availableGameModes.map((m) => (
               <option
@@ -333,7 +334,7 @@ function CreateRoom({
               </option>
             ))}
           </select>
-          {mode === 'create' && players.length > 2 && selectedMode === 'cooperative' && (
+          {hostName === username && players.length > 2 && selectedMode === 'cooperative' && (
             <p className="mode-warning">⚠️ Cooperative mode supports max 2 players</p>
           )}
         </div>

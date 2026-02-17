@@ -176,13 +176,14 @@ export default function setupSockets(io) {
       // Optionally update DB but avoid constraints for host mid-game
       await removePlayerFromRoom(roomId, effectiveUsername);
 
-      // Broadcast updated room state
+      // Broadcast updated room state (including new host if changed)
       const roomResult = await pool.query(
         "SELECT id, name, players, host, game_mode, status FROM rooms WHERE id=$1",
         [roomId]
       );
       if (roomResult.rowCount) {
-        io.to(String(roomId)).emit("roomState", roomResult.rows[0]);
+        const roomWithAvatars = await attachPlayerAvatars(roomResult.rows[0]);
+        io.to(String(roomId)).emit("roomState", roomWithAvatars);
       }
       await broadcastAvailableRooms();
       if (ack) ack({ ok: true });
