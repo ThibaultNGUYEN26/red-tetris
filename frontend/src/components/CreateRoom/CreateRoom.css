@@ -208,17 +208,6 @@
   color: #999;
 }
 
-.mode-warning {
-  margin: 0.3rem 0 0 0;
-  padding: 0.5rem 0.8rem;
-  background: rgba(255, 150, 0, 0.15);
-  border-left: 3px solid rgba(255, 150, 0, 0.6);
-  border-radius: 4px;
-  color: #d97706;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
 .players-section {
   display: flex;
   flex-direction: column;
@@ -454,12 +443,6 @@
 .create-room-card.dark .mode-select option:disabled {
   opacity: 0.4;
   color: #666;
-}
-
-.create-room-card.dark .mode-warning {
-  background: rgba(255, 150, 0, 0.2);
-  border-left-color: rgba(255, 150, 0, 0.8);
-  color: #ffa726;
 }
 
 .create-room-card.dark .room-name-input::placeholder {

@@ -15,7 +15,11 @@ export default function setupSockets(io) {
          ORDER BY created_at ASC;`,
         [MAX_PLAYERS]
       );
-      io.emit("availableRooms", result.rows);
+      const rows = result.rows.map((room) => ({
+        ...room,
+        maxPlayers: room.game_mode === "cooperative" ? 2 : 6,
+      }));
+      io.emit("availableRooms", rows);
     }
 
     const attachPlayerAvatars = async (room) => {
