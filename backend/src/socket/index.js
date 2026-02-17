@@ -87,8 +87,12 @@ export default function setupSockets(io) {
     };
     
     // Joining room Socket
-    socket.on("joinRoom", async ({ roomId, username }) => {
-      if (!roomId || !username) return;
+    socket.on("joinRoom", async ({ roomId, username }, callback) => {
+      const ack = typeof callback === "function" ? callback : null;
+      if (!roomId || !username) {
+        if (ack) ack({ ok: false, error: "Missing roomId or username" });
+        return;
+      }
 
       try {
         socket.join(String(roomId));
@@ -97,14 +101,27 @@ export default function setupSockets(io) {
 
         // Fetch current room state
         const result = await pool.query(
-          "SELECT players, player_count, status FROM rooms WHERE id = $1",
+          `SELECT id, name, game_mode, host, player_count, players, status
+           FROM rooms WHERE id = $1`,
           [roomId]
         );
 
-        if (!result.rowCount) return socket.emit("error", { message: "Room not found" });
+        if (!result.rowCount) {
+          if (ack) ack({ ok: false, error: "Room not found" });
+          return socket.emit("error", { message: "Room not found" });
+        }
         const room = result.rows[0];
 
-        if (room.status === "started") return socket.emit("error", { message: "Game already started" });
+        if (room.status === "started") {
+          if (ack) ack({ ok: false, error: "Game already started" });
+          return socket.emit("error", { message: "Game already started" });
+        }
+
+        const MAX_PLAYERS = 6;
+        if (room.player_count >= MAX_PLAYERS) {
+          if (ack) ack({ ok: false, error: "Room is full" });
+          return socket.emit("error", { message: "Room is full" });
+        }
 
         // Add new player if not already in list
         let updatedPlayers = room.players;
@@ -120,10 +137,12 @@ export default function setupSockets(io) {
 
         // Emit to ALL players in room AFTER socket joined
         io.to(String(roomId)).emit("roomState", roomWithAvatars);
+        if (ack) ack({ ok: true });
 
       } catch (err) {
         console.error("joinRoom failed:", err);
         socket.emit("error", { message: "Server error" });
+        if (ack) ack({ ok: false, error: "Server error" });
       }
     });
 

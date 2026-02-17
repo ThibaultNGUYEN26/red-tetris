@@ -11,18 +11,25 @@ import roomRoutes from "./routes/rooms.routes.js";
 import setupSockets from "./socket/index.js";
 import { pool } from "./config/db.js";
 
-const HOST = process.env.HOST || process.env.DB_HOST || "localhost";
+const HOST = process.env.HOST || "localhost";
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || `http://${HOST}:5173`;
+const DEV_ORIGINS = [
+  FRONTEND_ORIGIN,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+];
 
 // App and HTTP Server
 const app = express();
 const httpServer = createServer(app);
 
-app.use(cors({
-  origin: FRONTEND_ORIGIN,
-  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: DEV_ORIGINS,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
@@ -48,7 +55,7 @@ app.get("/health", (req, res) => {
 
 const io = new Server(httpServer, {
   cors: {
-    origin: FRONTEND_ORIGIN,
+    origin: DEV_ORIGINS,
   },
 });
 

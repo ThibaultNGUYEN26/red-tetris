@@ -51,7 +51,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
   const joinRoom = async (roomId) => {
     try {
       // Join room via socket (DB + socket room)
-      socket.emit('joinGame', { roomId: String(roomId), username }, (res) => {
+      socket.emit('joinRoom', { roomId: String(roomId), username }, (res) => {
         if (!res?.ok) {
           console.error('Join failed:', res?.error || 'Failed to join room')
           hasJoinedRef.current = false

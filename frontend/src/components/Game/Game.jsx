@@ -62,6 +62,8 @@ const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
 function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerProp }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
+  // Server currently only provides piece sequences; client drives gravity/rendering.
+  const usesServer = false
   const [pieceQueue, setPieceQueue] = useState([])
 
   const boardRef = useRef(makeEmptyBoard())
@@ -81,6 +83,8 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       piece.row + r,
       piece.col + c,
     ])
+
+  const buildBoardSnapshot = () => boardRef.current.map((row) => row.slice())
 
   const isValidPosition = (piece, grid = boardRef.current) => {
     if (!grid) return false
@@ -250,6 +254,20 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     socket.on('gameState', handleGameState);
     socket.on('gameOver', handleGameOver);
     socket.on('nextPieceBatch', handleNextPieceBatch);
+    const handlePlayerBoard = ({ username: playerName, board }) => {
+      if (!playerName || playerName === username) return
+      if (!Array.isArray(board)) return
+      setOpponentBoards((prev) => {
+        const exists = prev.find((entry) => entry.username === playerName)
+        if (exists) {
+          return prev.map((entry) =>
+            entry.username === playerName ? { username: playerName, board } : entry
+          )
+        }
+        return [...prev, { username: playerName, board }]
+      })
+    }
+    socket.on('playerBoard', handlePlayerBoard);
 
     // Join the room since listeners are set up
     socket.emit("joinRoom", { roomId: String(roomId), username });
@@ -263,8 +281,18 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       socket.off('gameState', handleGameState);
       socket.off('gameOver', handleGameOver);
       socket.off('nextPieceBatch', handleNextPieceBatch);
+      socket.off('playerBoard', handlePlayerBoard);
     };
   }, [isMultiplayer, roomId, username]);
+
+  useEffect(() => {
+    if (!isMultiplayer || !roomId || !username) return
+    const now = Date.now()
+    if (now - lastBoardSentRef.current < 120) return
+    lastBoardSentRef.current = now
+    const snapshot = buildBoardSnapshot()
+    socket.emit('playerBoard', { roomId: String(roomId), username, board: snapshot })
+  }, [board, activePiece, isMultiplayer, roomId, username])
 
   const stopSoftDrop = () => {
     if (softDropTimerRef.current) {
