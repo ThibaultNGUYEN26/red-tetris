@@ -166,6 +166,7 @@ export default function setupSockets(io) {
         if (result.over) {
           console.log("Game over! Winner:", result.winner);
           io.to(String(roomId)).emit("gameOver", { winner: result.winner });
+          await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
           removeGame(roomId);
         }
       }
@@ -322,9 +323,6 @@ export default function setupSockets(io) {
         const status = game.checkGameOver();
 
         if (status.over) {
-          const payload = game.endGame();
-          io.to(String(roomId)).emit("gameOver", payload);
-          removeGame(roomId);
           return;
         }
 
