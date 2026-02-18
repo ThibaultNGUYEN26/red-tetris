@@ -103,13 +103,15 @@ export default class Game {
 
   spawnNextPiece(username, type, board) {
     const player = this.getPlayer(username);
-    if (!player || !this.isRunning) return;
+    if (!player || !this.isRunning) return false;
 
     const success = player.spawnPiece(type, board);
 
     if (!success) {
       player.die();
+      return false;
     }
+    return true;
   }
 
   applyLineClear(username, clearedLines) {

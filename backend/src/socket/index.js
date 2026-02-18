@@ -374,31 +374,6 @@ export default function setupSockets(io) {
         const status = game.checkGameOver();
 
         if (status.over) {
-          return;
-        }
-
-        io.to(String(roomId)).emit("gameState", game.serialize());
-      } catch (err) {
-        console.error("playerLost failed:", err);
-      }
-    });
-
-    // playerLost Socket - client notifies loss (e.g., spawn blocked)
-    socket.on("playerLost", ({ roomId }) => {
-      const username = socket.data.username;
-      if (!roomId || !username) return;
-
-      try {
-        const game = getGame(String(roomId));
-        if (!game || !game.isRunning) return;
-
-        const player = game.getPlayer(username);
-        if (!player || !player.isAlive) return;
-
-        player.die();
-        const status = game.checkGameOver();
-
-        if (status.over) {
           const payload = game.endGame();
           io.to(String(roomId)).emit("gameOver", payload);
           removeGame(roomId);
