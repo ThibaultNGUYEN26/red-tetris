@@ -45,14 +45,8 @@ export default function setupSockets(io) {
       return { ...room, player_avatars };
     };
 
-    const removePlayerFromRoom = async () => {
-      const roomId = socket.data.roomId;
-      const username = socket.data.username;
-
-      if (!roomId || !username || isNaN(Number(roomId))) {
-        console.log("removePlayerFromRoom invalid params:", { roomId, username });
-        return;
-      }
+    const removePlayerFromRoom = async (roomId, username) => {
+      if (!roomId || !username) return;
 
       try {
         const id = Number(roomId);
