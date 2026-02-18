@@ -334,9 +334,6 @@ function CreateRoom({
               </option>
             ))}
           </select>
-          {hostName === username && players.length > 2 && selectedMode === 'cooperative' && (
-            <p className="mode-warning">⚠️ Cooperative mode supports max 2 players</p>
-          )}
         </div>
 
         {/* Players */}

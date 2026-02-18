@@ -25,6 +25,19 @@ async function attachPlayerAvatars(room) {
   return { ...room, player_avatars };
 }
 
+async function emitAvailableRooms(io) {
+  if (!io) return;
+  const MAX_PLAYERS = 6;
+  const result = await pool.query(
+    `SELECT id, name, game_mode, host, player_count, players
+     FROM rooms
+     WHERE player_count < $1
+     ORDER BY created_at ASC;`,
+    [MAX_PLAYERS]
+  );
+  io.emit("availableRooms", result.rows);
+}
+
 function generateRoomName() {
   const adjectives = ["Red", "Blue", "Fast", "Crazy", "Happy", "Silent"];
   const nouns = ["Tetris", "Block", "Stack", "Line", "Drop", "Game"];
