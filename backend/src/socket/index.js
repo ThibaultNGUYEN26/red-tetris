@@ -245,6 +245,7 @@ export default function setupSockets(io) {
           roomId,
           initialSequence: game.initialSequence
         });
+        socket.emit("gameState", game.serialize());
 
       } catch (err) {
         console.error("getRoomState failed:", err);
@@ -304,6 +305,8 @@ export default function setupSockets(io) {
 
         // Emit initial sequence to all players
         io.to(String(roomId)).emit("gameStarted", { roomId, initialSequence });
+        // Emit initial game state (scores/lines/levels)
+        io.to(String(roomId)).emit("gameState", game.serialize());
 
         console.log(`Game started in room ${roomId} by host ${username}`);
 

@@ -390,10 +390,10 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       let action = null;
 
       if (event.key === 'ArrowLeft') {
-        tryMove(0, -1)
+        startHorizontalAutoMove(-1)
         action = 'left'
       } else if (event.key === 'ArrowRight') {
-        tryMove(0, 1)
+        startHorizontalAutoMove(1)
         action = 'right'
       } else if (event.key === 'ArrowDown') {
         startSoftDrop()
