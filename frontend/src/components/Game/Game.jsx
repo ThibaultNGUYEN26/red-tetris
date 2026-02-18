@@ -79,6 +79,7 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
   const [nextType, setNextType] = useState(null)
   const [isPaused, setIsPaused] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
+  const [stats, setStats] = useState({ score: 0, lines: 0, level: 1 })
 
   const getCells = (piece) =>
     SHAPES[piece.type][piece.rotation].map(([r, c]) => [
@@ -134,20 +135,30 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
 
   const finalizePiece = (piece) => {
     const locked = lockPiece(piece, boardRef.current)
-    const nextBoard = clearLines(locked)
+    const { board: nextBoard, cleared } = clearLines(locked)
     boardRef.current = nextBoard
     setBoard(nextBoard)
+
+    if (useSockets && cleared > 0) {
+      socket.emit('playerBoard', {
+        roomId: String(roomId),
+        username,
+        board: nextBoard,
+        clearedLines: cleared,
+      })
+    }
+
     advanceQueue()
   }
 
   const clearLines = (grid) => {
     const remaining = grid.filter((row) => row.some((cell) => cell === 'empty'))
     const cleared = HEIGHT - remaining.length
-    if (cleared === 0) return grid
+    if (cleared === 0) return { board: grid, cleared: 0 }
     const newRows = Array.from({ length: cleared }, () =>
       Array.from({ length: WIDTH }, () => 'empty')
     )
-    return [...newRows, ...remaining]
+    return { board: [...newRows, ...remaining], cleared }
   }
 
   const tryMove = (deltaRow, deltaCol, rotationDelta = 0) => {
@@ -198,6 +209,7 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       setBoard(makeEmptyBoard())
       setIsPaused(false)
       setShowMenu(false)
+      setStats({ score: 0, lines: 0, level: 1 })
 
       console.log('Game started from backend for room:', startedRoomId, 'with sequence:', initialSequence);
       // Mark that game has started so CreateRoom doesn't leave on unmount
@@ -229,6 +241,14 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
 
     const handleGameState = (gameState) => {
       console.log('Received game state from backend:', gameState);
+      const me = gameState?.players?.find((p) => p.username === username)
+      if (me) {
+        setStats({
+          score: me.score ?? 0,
+          lines: me.lines ?? 0,
+          level: me.level ?? 1,
+        })
+      }
     };
 
     const handleGameOver = ({ winner }) => {
@@ -508,15 +528,15 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
           <div className="game-stats">
             <div className="stat">
               <span className="stat-label">Score</span>
-              <span className="stat-value">12,480</span>
+              <span className="stat-value">{stats.score.toLocaleString()}</span>
             </div>
             <div className="stat">
               <span className="stat-label">Lines</span>
-              <span className="stat-value">18</span>
+              <span className="stat-value">{stats.lines.toLocaleString()}</span>
             </div>
             <div className="stat">
               <span className="stat-label">Level</span>
-              <span className="stat-value">4</span>
+              <span className="stat-value">{stats.level.toLocaleString()}</span>
             </div>
           </div>
         </div>

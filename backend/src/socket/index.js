@@ -194,10 +194,20 @@ export default function setupSockets(io) {
     });
 
     // Player board updates Socket
-    socket.on("playerBoard", ({ roomId, username, board }) => {
+    socket.on("playerBoard", ({ roomId, username, board, clearedLines }) => {
       if (!roomId || !username) return;
       if (!Array.isArray(board)) return;
       socket.to(String(roomId)).emit("playerBoard", { username, board });
+
+      if (Number.isInteger(clearedLines) && clearedLines > 0) {
+        const game = getGame(String(roomId));
+        if (!game || !game.isRunning) return;
+
+        const result = game.applyLineClear(username, clearedLines);
+        if (result) {
+          io.to(String(roomId)).emit("gameState", game.serialize());
+        }
+      }
     });
 
     // getAvailableRooms Socket
@@ -335,6 +345,34 @@ export default function setupSockets(io) {
         io.to(String(roomId)).emit("gameState", game.serialize());
       } catch (err) {
         console.error("movePiece failed:", err);
+      }
+    });
+
+    // playerLost Socket - client notifies loss (e.g., spawn blocked)
+    socket.on("playerLost", ({ roomId }) => {
+      const username = socket.data.username;
+      if (!roomId || !username) return;
+
+      try {
+        const game = getGame(String(roomId));
+        if (!game || !game.isRunning) return;
+
+        const player = game.getPlayer(username);
+        if (!player || !player.isAlive) return;
+
+        player.die();
+        const status = game.checkGameOver();
+
+        if (status.over) {
+          const payload = game.endGame();
+          io.to(String(roomId)).emit("gameOver", payload);
+          removeGame(roomId);
+          return;
+        }
+
+        io.to(String(roomId)).emit("gameState", game.serialize());
+      } catch (err) {
+        console.error("playerLost failed:", err);
       }
     });
 

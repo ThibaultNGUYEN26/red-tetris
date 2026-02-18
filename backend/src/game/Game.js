@@ -112,6 +112,13 @@ export default class Game {
     }
   }
 
+  applyLineClear(username, clearedLines) {
+    const player = this.getPlayer(username);
+    if (!player || !player.isAlive || !this.isRunning) return null;
+
+    return player.applyLineClear(clearedLines);
+  }
+
   serialize() {
     return {
       roomId: this.roomId,
@@ -138,6 +145,7 @@ export default class Game {
         username: p.username,
         score: p.score,
         lines: p.lines,
+        level: p.level,
         isAlive: p.isAlive
       }))
     };

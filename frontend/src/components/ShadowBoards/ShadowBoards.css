@@ -35,7 +35,7 @@
   grid-template-columns: repeat(2, 140px);
   grid-template-areas:
     "a b"
-    ". c";
+    "c c";
 }
 
 .shadow-boards-grid.count-4 {
@@ -49,12 +49,12 @@
   grid-template-columns: repeat(3, 140px);
   grid-template-areas:
     "a b c"
-    "d e .";
+    ". d e";
 }
 
 .shadow-boards-grid.count-3 .shadow-board-card:nth-child(1) { grid-area: a; }
 .shadow-boards-grid.count-3 .shadow-board-card:nth-child(2) { grid-area: b; }
-.shadow-boards-grid.count-3 .shadow-board-card:nth-child(3) { grid-area: c; }
+.shadow-boards-grid.count-3 .shadow-board-card:nth-child(3) { grid-area: c; justify-self: center; }
 
 .shadow-boards-grid.count-4 .shadow-board-card:nth-child(1) { grid-area: a; }
 .shadow-boards-grid.count-4 .shadow-board-card:nth-child(2) { grid-area: b; }
