@@ -122,8 +122,19 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
         col: 3,
       }
 
-      setActivePiece(nextPiece)
-      setNextType(nextQueue[1] ?? null)
+      if (!isValidPosition(nextPiece, boardRef.current)) {
+        // Game over: cannot spawn new piece
+        setActivePiece(null)
+        setNextType(null)
+        stopSoftDrop()
+        stopHorizontalAutoMove()
+        if (useSockets && roomId && username) {
+          socket.emit('playerLost', { roomId: String(roomId), username })
+        }
+      } else {
+        setActivePiece(nextPiece)
+        setNextType(nextQueue[1] ?? null)
+      }
 
     if (useSockets && nextQueue.length <= 3) {
       socket.emit('requestNextBatch', { roomId, username })
