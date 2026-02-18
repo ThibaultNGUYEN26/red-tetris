@@ -45,15 +45,25 @@ export default function setupSockets(io) {
       return { ...room, player_avatars };
     };
 
-    const removePlayerFromRoom = async (roomId, username) => {
-      if (!roomId || !username) return;
+    const removePlayerFromRoom = async () => {
+      const roomId = socket.data.roomId;
+      const username = socket.data.username;
+
+      if (!roomId || !username || isNaN(Number(roomId))) {
+        console.log("removePlayerFromRoom invalid params:", { roomId, username });
+        return;
+      }
+
       try {
+        const id = Number(roomId);
+
         const roomResult = await pool.query(
           `SELECT id, name, game_mode, host, player_count, players
-           FROM rooms
-           WHERE id = $1`,
-          [roomId]
+          FROM rooms
+          WHERE id = $1`,
+          [id]
         );
+        
         if (!roomResult.rowCount) return;
 
         const room = roomResult.rows[0];
@@ -66,7 +76,7 @@ export default function setupSockets(io) {
         }
 
         if (updatedPlayers.length === 0) {
-          await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
+          await pool.query("DELETE FROM rooms WHERE id = $1", [id]);
           return;
         }
 
@@ -78,15 +88,18 @@ export default function setupSockets(io) {
           WHERE id = $1
           RETURNING *;
         `;
+
         const values = [
-          roomId,
+          id,
           JSON.stringify(updatedPlayers),
           updatedPlayers.length,
           newHost,
         ];
         const result = await pool.query(updateQuery, values);
         const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
+
         io.to(String(roomId)).emit("roomState", roomWithAvatars);
+
       } catch (err) {
         console.error("removePlayerFromRoom failed:", err);
       }
