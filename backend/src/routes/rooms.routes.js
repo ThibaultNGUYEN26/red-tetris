@@ -1,5 +1,6 @@
 import express from "express";
 import { pool } from "../config/db.js";
+import { broadcastAvailableRooms } from "../socket/index.js";
 
 const router = express.Router();
 
@@ -22,19 +23,6 @@ async function attachPlayerAvatars(room) {
   }
 
   return { ...room, player_avatars };
-}
-
-async function emitAvailableRooms(io) {
-  if (!io) return;
-  const MAX_PLAYERS = 6;
-  const result = await pool.query(
-    `SELECT id, name, game_mode, host, player_count, players
-     FROM rooms
-     WHERE player_count < $1
-     ORDER BY created_at ASC;`,
-    [MAX_PLAYERS]
-  );
-  io.emit("availableRooms", result.rows);
 }
 
 function generateRoomName() {
@@ -110,7 +98,9 @@ router.post("/", async (req, res) => {
     }
 
     const io = req.app.get("io");
-    await emitAvailableRooms(io);
+    if (io) {
+      await broadcastAvailableRooms(io);
+    }
 
     res.status(200).json(room);
   } catch (err) {
@@ -163,7 +153,7 @@ router.patch("/:roomId/name", async (req, res) => {
     const io = req.app.get("io");
     if (io) {
       io.to(String(roomId)).emit("roomState", roomWithAvatars);
-      await emitAvailableRooms(io);
+      await broadcastAvailableRooms(io);
     }
 
     res.json(roomWithAvatars);
@@ -226,7 +216,7 @@ router.patch("/:roomId/mode", async (req, res) => {
     const io = req.app.get("io");
     if (io) {
       io.to(String(roomId)).emit("roomState", roomWithAvatars);
-      await emitAvailableRooms(io);
+      await broadcastAvailableRooms(io);
     }
 
     res.json(roomWithAvatars);
@@ -235,74 +225,6 @@ router.patch("/:roomId/mode", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
-
-// Join room
-router.post("/:roomId/join", async (req, res) => {
-  const { roomId } = req.params;
-  const { username } = req.body;
-
-  const checkUserQuery = `
-      SELECT id
-      FROM rooms
-      WHERE players @> $1::jsonb
-      LIMIT 1;
-    `;
-
-    const checkResult = await pool.query(
-      checkUserQuery,
-      [JSON.stringify([username])]
-    );
-
-    if (checkResult.rowCount > 0) {
-      return res.status(400).json({
-        error: "User is already in a room"
-      });
-    }
-
-  if (!username) return res.status(400).json({ error: "Missing username" });
-
-  try {
-    // Fetch current room info first
-    const roomQuery = `SELECT player_count, players FROM rooms WHERE id = $1`;
-    const roomResult = await pool.query(roomQuery, [roomId]);
-
-    if (!roomResult.rowCount) return res.status(404).json({ error: "Room not found" });
-
-    const room = roomResult.rows[0];
-
-    // Check if already max players
-    const MAX_PLAYERS = 6;
-    if (room.player_count >= MAX_PLAYERS) {
-      return res.status(400).json({ error: "Room is full" });
-    }
-
-    // Check if user is already in the room
-    if (room.players.includes(username)) {
-      return res.status(400).json({ error: "User already in room" });
-    }
-
-    // Add player
-    const updateQuery = `
-      UPDATE rooms
-      SET players = players || $2::jsonb,
-          player_count = player_count + 1
-      WHERE id = $1
-      RETURNING *;
-    `;
-    const values = [roomId, JSON.stringify([username])];
-    const result = await pool.query(updateQuery, values);
-
-    const io = req.app.get("io");
-    await emitAvailableRooms(io);
-
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error("Join room failed:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
 
 // Leave room
 router.post("/:roomId/leave", async (req, res) => {
@@ -338,7 +260,9 @@ router.post("/:roomId/leave", async (req, res) => {
     if (updatedPlayers.length === 0) {
       await pool.query(`DELETE FROM rooms WHERE id = $1`, [roomId]);
       const io = req.app.get("io");
-      await emitAvailableRooms(io);
+      if (io) {
+        await broadcastAvailableRooms(io);
+      }
       return res.json({ message: "Room deleted" });
     }
 
@@ -356,8 +280,10 @@ router.post("/:roomId/leave", async (req, res) => {
     const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
 
     const io = req.app.get("io");
-    io.to(String(roomId)).emit("roomState", roomWithAvatars);
-    await emitAvailableRooms(io);
+    if (io) {
+      io.to(String(roomId)).emit("roomState", roomWithAvatars);
+      await broadcastAvailableRooms(io);
+    }
     
     res.json(roomWithAvatars);
   } catch (err) {

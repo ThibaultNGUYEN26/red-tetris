@@ -1,23 +1,23 @@
 import { pool } from "../config/db.js";
 import { createGame, getGame, removeGame } from "../game/gameManager.js";
 
+export async function broadcastAvailableRooms(io) {
+  const MAX_PLAYERS = 6;
+  const result = await pool.query(
+    `SELECT id, name, game_mode, host, player_count, players
+      FROM rooms
+      WHERE player_count < $1 AND status = 'waiting'
+      ORDER BY created_at ASC;`,
+    [MAX_PLAYERS]
+  );
+  io.emit("availableRooms", result.rows);
+}
+
 export default function setupSockets(io) {
   io.on("connection", (socket) => {
     console.log(`Socket connected: ${socket.id}`);
 
     // Helper functions
-    async function broadcastAvailableRooms() {
-      const MAX_PLAYERS = 6;
-      const result = await pool.query(
-        `SELECT id, name, game_mode, host, player_count, players
-         FROM rooms
-         WHERE player_count < $1
-         ORDER BY created_at ASC;`,
-        [MAX_PLAYERS]
-      );
-      io.emit("availableRooms", result.rows);
-    }
-
     const attachPlayerAvatars = async (room) => {
       const players = Array.isArray(room.players) ? room.players : [];
       if (players.length === 0) {
@@ -185,7 +185,7 @@ export default function setupSockets(io) {
         const roomWithAvatars = await attachPlayerAvatars(roomResult.rows[0]);
         io.to(String(roomId)).emit("roomState", roomWithAvatars);
       }
-      await broadcastAvailableRooms();
+      await broadcastAvailableRooms(io);
       if (ack) ack({ ok: true });
     });
 
@@ -198,7 +198,7 @@ export default function setupSockets(io) {
 
     // getAvailableRooms Socket
     socket.on("getAvailableRooms", async () => {
-      await broadcastAvailableRooms();
+      await broadcastAvailableRooms(io);
     });
 
     // getRoomState Socket
