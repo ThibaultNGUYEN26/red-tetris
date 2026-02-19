@@ -8,6 +8,9 @@ export default class Player {
 
     this.currentPiece = null;
     this.nextPiece = null;
+    this.inputQueue = [];
+    this.sequenceIndex = 0;
+    this.dropAccumulator = 0;
 
     this.isAlive = true;
     this.score = 0;
@@ -15,7 +18,7 @@ export default class Player {
     this.level = 1;
 
     this.board = Array.from({ length: 20 }, () =>
-      Array(10).fill(0)
+      Array(10).fill("empty")
     );
   }
 
@@ -46,20 +49,7 @@ export default class Player {
       score: this.score,
       lines: this.lines,
       level: this.level,
-      currentPiece: this.currentPiece
-        ? {
-            type: this.currentPiece.type,
-            x: this.currentPiece.x,
-            y: this.currentPiece.y,
-            shape: this.currentPiece.shape,
-          }
-        : null,
-      nextPiece: this.nextPiece
-        ? {
-            type: this.nextPiece.type,
-            shape: this.nextPiece.shape,
-          }
-        : null,
+      nextType: this.nextPiece ? this.nextPiece.type.toLowerCase() : null,
     };
   }
 

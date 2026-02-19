@@ -25,17 +25,26 @@ async function attachPlayerAvatars(room) {
   return { ...room, player_avatars };
 }
 
+function getMaxPlayers(gameMode) {
+  return gameMode === "cooperative" ? 2 : 6;
+}
+
 async function emitAvailableRooms(io) {
   if (!io) return;
-  const MAX_PLAYERS = 6;
   const result = await pool.query(
     `SELECT id, name, game_mode, host, player_count, players
      FROM rooms
-     WHERE player_count < $1
-     ORDER BY created_at ASC;`,
-    [MAX_PLAYERS]
+     ORDER BY created_at ASC;`
   );
-  io.emit("availableRooms", result.rows);
+
+  const rows = result.rows
+    .map((room) => ({
+      ...room,
+      maxPlayers: getMaxPlayers(room.game_mode),
+    }))
+    .filter((room) => room.player_count < room.maxPlayers);
+
+  io.emit("availableRooms", rows);
 }
 
 function generateRoomName() {
