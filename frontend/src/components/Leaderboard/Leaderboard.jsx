@@ -1,21 +1,12 @@
 import './Leaderboard.css'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 
+const API_URL = import.meta.env.VITE_API_URL || ''
+
 function Leaderboard({ theme }) {
-  // Mock data - replace with real data later
-  const [leaderboardData] = useState([
-    { rank: 1, name: 'Player1', score: 15000, avatar: { skinColor: '#70d4d4', eyeType: 'normal', mouthType: 'uwu' } },
-    { rank: 2, name: 'Player2', score: 12500, avatar: { skinColor: '#d4d470', eyeType: 'happy', mouthType: 'smile' } },
-    { rank: 3, name: 'Player3', score: 11000, avatar: { skinColor: '#9966cc', eyeType: 'joy', mouthType: 'laugth' } },
-    { rank: 4, name: 'Player4', score: 9500, avatar: { skinColor: '#70d470', eyeType: 'cute', mouthType: 'neutral' } },
-    { rank: 5, name: 'Player5', score: 8700, avatar: { skinColor: '#d47070', eyeType: 'love', mouthType: 'kiss' } },
-    { rank: 6, name: 'Player6', score: 7800, avatar: { skinColor: '#7070d4', eyeType: 'blink', mouthType: 'smile' } },
-    { rank: 7, name: 'Player7', score: 7200, avatar: { skinColor: '#d49e70', eyeType: 'soft', mouthType: 'not_smile' } },
-    { rank: 8, name: 'Player8', score: 6500, avatar: { skinColor: '#70d4d4', eyeType: 'sad', mouthType: 'sad' } },
-    { rank: 9, name: 'Player9', score: 5900, avatar: { skinColor: '#d4d470', eyeType: 'fear', mouthType: 'scared' } },
-    { rank: 10, name: 'Player10', score: 5200, avatar: { skinColor: '#9966cc', eyeType: 'panic', mouthType: 'scream' } },
-  ])
+  const [leaderboardData, setLeaderboardData] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const [currentPage, setCurrentPage] = useState(0)
   const totalPages = Math.ceil(leaderboardData.length / 10)
@@ -30,21 +21,48 @@ function Leaderboard({ theme }) {
     setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))
   }
 
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/leaderboard/solo`, {
+          credentials: 'include',
+        })
+        if (!res.ok) throw new Error('Failed to fetch leaderboard')
+        const data = await res.json()
+        setLeaderboardData(Array.isArray(data) ? data : [])
+      } catch (err) {
+        console.error('Failed to fetch leaderboard', err)
+        setLeaderboardData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchLeaderboard()
+  }, [])
+
+  if (!loading && leaderboardData.length === 0) {
+    return null
+  }
+
   return (
     <div className={`leaderboard ${theme === 'dark' ? 'dark' : ''}`}>
       <h3 className="leaderboard-title">🏆 Leaderboard</h3>
 
       <div className="leaderboard-list">
-        {displayedData.map((entry) => (
-          <div key={entry.rank} className={`leaderboard-entry ${entry.rank <= 3 ? `top-${entry.rank}` : ''}`}>
-            <span className="rank">{entry.rank}</span>
-            <span className="avatar-icon">
-              <FaceAvatar faceConfig={entry.avatar} size="leaderboard" />
-            </span>
-            <span className="name">{entry.name}</span>
-            <span className="score">{entry.score.toLocaleString()}</span>
-          </div>
-        ))}
+        {loading && <div className="leaderboard-entry">Loading…</div>}
+
+        {!loading &&
+          displayedData.map((entry) => (
+            <div key={entry.rank} className={`leaderboard-entry ${entry.rank <= 3 ? `top-${entry.rank}` : ''}`}>
+              <span className="rank">{entry.rank}</span>
+              <span className="avatar-icon">
+                <FaceAvatar faceConfig={entry.avatar} size="leaderboard" />
+              </span>
+              <span className="name">{entry.name}</span>
+              <span className="score">{entry.score.toLocaleString()}</span>
+            </div>
+          ))}
       </div>
 
       {totalPages > 1 && (

@@ -24,6 +24,24 @@ export default function setupSockets(io) {
     console.log(`Socket connected: ${socket.id}`);
 
     // Helper functions
+    const updateSoloStats = async (game) => {
+      if (!game || game.mode_player !== "solo") return;
+
+      const player = game.players[0];
+      if (!player) return;
+
+      const result = await pool.query(
+        `UPDATE users
+         SET solo_games_played = solo_games_played + 1,
+             highest_solo_score = GREATEST(highest_solo_score, $2)
+         WHERE username = $1`,
+        [player.username, player.score]
+      );
+      if (result.rowCount === 0) {
+        console.warn(`No user row found for solo stats update: ${player.username}`);
+      }
+    };
+
     const attachPlayerAvatars = async (room) => {
       const players = Array.isArray(room.players) ? room.players : [];
       if (players.length === 0) {
@@ -176,11 +194,17 @@ export default function setupSockets(io) {
         }
 
         const result = game.checkGameOver();
+        console.log("Game over check after player left:", result);
+
         if (result.over) {
           console.log("Game over! Winner:", result.winner);
           io.to(String(roomId)).emit("gameOver", { winner: result.winner });
+          await updateSoloStats(game);
           await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
           removeGame(roomId);
+        }
+        else {
+          console.log("Game not over after player left. Broadcasting updated game state.");
         }
       }
 
@@ -207,11 +231,13 @@ export default function setupSockets(io) {
     socket.on("playerBoard", ({ roomId, username, board, clearedLines }) => {
       if (!roomId || !username) return;
       if (!Array.isArray(board)) return;
+      
+      const game = getGame(String(roomId));
+      if (!game || !game.isRunning || game.isOver) return;
+      
       socket.to(String(roomId)).emit("playerBoard", { username, board });
 
       if (Number.isInteger(clearedLines) && clearedLines > 0) {
-        const game = getGame(String(roomId));
-        if (!game || !game.isRunning) return;
 
         const result = game.applyLineClear(username, clearedLines);
         if (result) {
@@ -326,16 +352,16 @@ export default function setupSockets(io) {
     });
 
     // movePiece during game Socket
-    socket.on("movePiece", ({ roomId, action }) => {
-      const username = socket.data.username;
-      console.log("movePiece received:", { socketId: socket.id, roomId, username, action });
-
+    socket.on("movePiece", async ({ roomId, action }) => {
       try {
         const game = getGame(String(roomId));
-        if (!game || !game.isRunning) {
-          console.log(`Game not running for room ${roomId}`);
+        if (!game || !game.isRunning || game.isOver) {
+          console.log(`Game not running or is over for room ${roomId}`);
           return;
         }
+
+        const username = socket.data.username;
+        console.log("movePiece received:", { socketId: socket.id, roomId, username, action });
         
         const player = game.getPlayer(username);
         if (!player || !player.isAlive) {
@@ -346,9 +372,14 @@ export default function setupSockets(io) {
         console.log(`Player ${username} moving: ${action}`);
         game.movePlayer(username, action);
         
-        const status = game.checkGameOver();
+        const result = game.checkGameOver();
 
-        if (status.over) {
+        if (result.over) {
+          console.log("Game over! Winner:", result.winner);
+          io.to(String(roomId)).emit("gameOver", { winner: result.winner });
+          await updateSoloStats(game);
+          await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
+          removeGame(roomId);
           return;
         }
 
@@ -359,23 +390,25 @@ export default function setupSockets(io) {
     });
 
     // playerLost Socket - client notifies loss (e.g., spawn blocked)
-    socket.on("playerLost", ({ roomId }) => {
-      const username = socket.data.username;
-      if (!roomId || !username) return;
-
+    socket.on("playerLost", async ({ roomId }) => {
       try {
         const game = getGame(String(roomId));
-        if (!game || !game.isRunning) return;
+        if (!game || !game.isRunning || game.isOver) return;
+
+        const username = socket.data.username;
+        if (!roomId || !username) return;
 
         const player = game.getPlayer(username);
         if (!player || !player.isAlive) return;
 
         player.die();
-        const status = game.checkGameOver();
+        const result = game.checkGameOver();
 
-        if (status.over) {
-          const payload = game.endGame();
-          io.to(String(roomId)).emit("gameOver", payload);
+        if (result.over) {
+          console.log("Game over! Winner:", result.winner);
+          io.to(String(roomId)).emit("gameOver", { winner: result.winner });
+          await updateSoloStats(game);
+          await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
           removeGame(roomId);
           return;
         }
@@ -388,13 +421,14 @@ export default function setupSockets(io) {
 
     // requestNextBatch of Piece Sequence Socket
     socket.on("requestNextBatch", async ({ roomId, username }) => {
-      console.log("requestNextBatch received:", { socketId: socket.id, roomId, username });
       try {
         const game = getGame(String(roomId));
-        if (!game || !game.isRunning) {
-          console.log(`Game not running for room ${roomId}`);
+        if (!game || !game.isRunning || game.isOver) {
+          console.log(`Game not running or is over for room ${roomId}`);
           return;
         }
+
+        console.log("requestNextBatch received:", { socketId: socket.id, roomId, username });
 
         // Get next batch (cached so all players get the same one)
         const nextBatch = game.getNextBatch();

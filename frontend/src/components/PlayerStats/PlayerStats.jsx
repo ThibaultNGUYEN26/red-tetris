@@ -18,28 +18,51 @@ const DEFAULT_STATS = {
   losses: 0,
 }
 
-function PlayerStats({ theme, userProfile }) {
+function PlayerStats({ theme, userProfile, username }) {
   const [stats, setStats] = useState(DEFAULT_STATS)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (userProfile) {
+    const profileName = userProfile?.username || username
+    const profileAvatar = userProfile?.avatar
+
+    if (userProfile && (userProfile.soloGames != null || userProfile.solo_games_played != null)) {
+      const soloGames =
+        userProfile.soloGames ?? userProfile.solo_games_played ?? DEFAULT_STATS.soloGames
+      const soloTopScore =
+        userProfile.soloTopScore ?? userProfile.highest_solo_score ?? DEFAULT_STATS.soloTopScore
+
       setStats({
         ...DEFAULT_STATS,
-        name: userProfile.username || DEFAULT_STATS.name,
-        avatar: userProfile.avatar || DEFAULT_STATS.avatar,
+        name: profileName || DEFAULT_STATS.name,
+        avatar: profileAvatar || DEFAULT_STATS.avatar,
+        soloGames,
+        soloTopScore,
       })
       setLoading(false)
       return
     }
 
     const fetchStats = async () => {
+      if (!profileName) {
+        setLoading(false)
+        return
+      }
+
       try {
-        const res = await fetch(`${API_URL}/api/player/stats`, {
+        const res = await fetch(
+          `${API_URL}/api/player/stats?username=${encodeURIComponent(profileName)}`,
+          {
           credentials: 'include',
-        })
+          }
+        )
         const data = await res.json()
-        setStats(data)
+        setStats({
+          ...DEFAULT_STATS,
+          ...data,
+          name: data?.name || profileName || DEFAULT_STATS.name,
+          avatar: data?.avatar || profileAvatar || DEFAULT_STATS.avatar,
+        })
       } catch (err) {
         console.error('Failed to fetch player stats', err)
       } finally {
@@ -48,7 +71,7 @@ function PlayerStats({ theme, userProfile }) {
     }
 
     fetchStats()
-  }, [userProfile])
+  }, [userProfile, username])
 
   if (loading) {
     return (

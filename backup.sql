@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict zdpqEtEGAdZeLC9YIps8xIKh85vRzv24NKg7q6jtX8Xeb9gikePh0o7DNul3x8d
+\restrict VgEijbSw8EjSlyAjR7CLq7e3Lh75dOpWC7Qn3wZO92aS6eqEiDu9TZwoTnghlAg
 
--- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
--- Dumped by pg_dump version 15.15 (Debian 15.15-1.pgdg13+1)
+-- Dumped from database version 15.16 (Debian 15.16-1.pgdg13+1)
+-- Dumped by pg_dump version 15.16 (Debian 15.16-1.pgdg13+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -69,7 +69,9 @@ ALTER SEQUENCE public.rooms_id_seq OWNED BY public.rooms.id;
 CREATE TABLE public.users (
     id integer NOT NULL,
     username character varying(100) NOT NULL,
-    avatar jsonb NOT NULL
+    avatar jsonb NOT NULL,
+    solo_games_played integer DEFAULT 0 NOT NULL,
+    highest_solo_score integer DEFAULT 0 NOT NULL
 );
 
 
@@ -116,8 +118,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 COPY public.rooms (id, name, game_mode, host, player_count, players, status, created_at) FROM stdin;
-11	HappyTetris-DQ28	classic	Titi	1	["Titi"]	started	2026-02-03 16:05:19.591082
-12	SilentDrop-YBSS	classic	Riri	1	["Riri"]	waiting	2026-02-03 16:59:09.763906
 \.
 
 
@@ -125,9 +125,7 @@ COPY public.rooms (id, name, game_mode, host, player_count, players, status, cre
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: riri
 --
 
-COPY public.users (id, username, avatar) FROM stdin;
-10	Riri	{"eyeType": "blink", "mouthType": "sad", "skinColor": "#70d4d4"}
-9	Titi	{"eyeType": "dead", "mouthType": "kiss", "skinColor": "#d47070"}
+COPY public.users (id, username, avatar, solo_games_played, highest_solo_score) FROM stdin;
 \.
 
 
@@ -135,14 +133,14 @@ COPY public.users (id, username, avatar) FROM stdin;
 -- Name: rooms_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.rooms_id_seq', 12, true);
+SELECT pg_catalog.setval('public.rooms_id_seq', 17, true);
 
 
 --
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 15, true);
+SELECT pg_catalog.setval('public.users_id_seq', 21, true);
 
 
 --
@@ -181,5 +179,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict zdpqEtEGAdZeLC9YIps8xIKh85vRzv24NKg7q6jtX8Xeb9gikePh0o7DNul3x8d
+\unrestrict VgEijbSw8EjSlyAjR7CLq7e3Lh75dOpWC7Qn3wZO92aS6eqEiDu9TZwoTnghlAg
 

@@ -165,7 +165,11 @@ function Index() {
                 >
                   ← Change profile
                 </button>
-                <PlayerStats theme={theme} userProfile={userProfile} />
+                <PlayerStats
+                  theme={theme}
+                  userProfile={userProfile}
+                  username={username}
+                />
                 <Leaderboard theme={theme} />
               </>
             )}
