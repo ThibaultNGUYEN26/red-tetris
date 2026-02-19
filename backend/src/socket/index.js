@@ -176,11 +176,16 @@ export default function setupSockets(io) {
         }
 
         const result = game.checkGameOver();
+        console.log("Game over check after player left:", result);
+
         if (result.over) {
           console.log("Game over! Winner:", result.winner);
           io.to(String(roomId)).emit("gameOver", { winner: result.winner });
           await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
           removeGame(roomId);
+        }
+        else {
+          console.log("Game not over after player left. Broadcasting updated game state.");
         }
       }
 
@@ -328,7 +333,7 @@ export default function setupSockets(io) {
     });
 
     // movePiece during game Socket
-    socket.on("movePiece", ({ roomId, action }) => {
+    socket.on("movePiece", async ({ roomId, action }) => {
       try {
         const game = getGame(String(roomId));
         if (!game || !game.isRunning || game.isOver) {
@@ -348,9 +353,13 @@ export default function setupSockets(io) {
         console.log(`Player ${username} moving: ${action}`);
         game.movePlayer(username, action);
         
-        const status = game.checkGameOver();
+        const result = game.checkGameOver();
 
-        if (status.over) {
+        if (result.over) {
+          console.log("Game over! Winner:", result.winner);
+          io.to(String(roomId)).emit("gameOver", { winner: result.winner });
+          await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
+          removeGame(roomId);
           return;
         }
 
@@ -361,7 +370,7 @@ export default function setupSockets(io) {
     });
 
     // playerLost Socket - client notifies loss (e.g., spawn blocked)
-    socket.on("playerLost", ({ roomId }) => {
+    socket.on("playerLost", async ({ roomId }) => {
       try {
         const game = getGame(String(roomId));
         if (!game || !game.isRunning || game.isOver) return;
@@ -373,11 +382,12 @@ export default function setupSockets(io) {
         if (!player || !player.isAlive) return;
 
         player.die();
-        const status = game.checkGameOver();
+        const result = game.checkGameOver();
 
-        if (status.over) {
-          const payload = game.endGame();
-          io.to(String(roomId)).emit("gameOver", payload);
+        if (result.over) {
+          console.log("Game over! Winner:", result.winner);
+          io.to(String(roomId)).emit("gameOver", { winner: result.winner });
+          await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
           removeGame(roomId);
           return;
         }
