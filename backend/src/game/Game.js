@@ -9,6 +9,7 @@ export default class Game {
 
     this.sequence = new SequenceGenerator();
     this.isRunning = false;
+    this.isOver = false;
     this.initialSequence = null;
     this.cachedNextBatch = null;
     this.batchRequestCount = 0;
@@ -133,6 +134,7 @@ export default class Game {
 
   endGame() {
     this.isRunning = false;
+    this.isOver = true;
 
     const alive = this.players.filter(p => p.isAlive);
 

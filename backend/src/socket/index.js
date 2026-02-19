@@ -207,11 +207,13 @@ export default function setupSockets(io) {
     socket.on("playerBoard", ({ roomId, username, board, clearedLines }) => {
       if (!roomId || !username) return;
       if (!Array.isArray(board)) return;
+      
+      const game = getGame(String(roomId));
+      if (!game || !game.isRunning || game.isOver) return;
+      
       socket.to(String(roomId)).emit("playerBoard", { username, board });
 
       if (Number.isInteger(clearedLines) && clearedLines > 0) {
-        const game = getGame(String(roomId));
-        if (!game || !game.isRunning) return;
 
         const result = game.applyLineClear(username, clearedLines);
         if (result) {
@@ -327,15 +329,15 @@ export default function setupSockets(io) {
 
     // movePiece during game Socket
     socket.on("movePiece", ({ roomId, action }) => {
-      const username = socket.data.username;
-      console.log("movePiece received:", { socketId: socket.id, roomId, username, action });
-
       try {
         const game = getGame(String(roomId));
-        if (!game || !game.isRunning) {
-          console.log(`Game not running for room ${roomId}`);
+        if (!game || !game.isRunning || game.isOver) {
+          console.log(`Game not running or is over for room ${roomId}`);
           return;
         }
+
+        const username = socket.data.username;
+        console.log("movePiece received:", { socketId: socket.id, roomId, username, action });
         
         const player = game.getPlayer(username);
         if (!player || !player.isAlive) {
@@ -360,12 +362,12 @@ export default function setupSockets(io) {
 
     // playerLost Socket - client notifies loss (e.g., spawn blocked)
     socket.on("playerLost", ({ roomId }) => {
-      const username = socket.data.username;
-      if (!roomId || !username) return;
-
       try {
         const game = getGame(String(roomId));
-        if (!game || !game.isRunning) return;
+        if (!game || !game.isRunning || game.isOver) return;
+
+        const username = socket.data.username;
+        if (!roomId || !username) return;
 
         const player = game.getPlayer(username);
         if (!player || !player.isAlive) return;
@@ -388,13 +390,14 @@ export default function setupSockets(io) {
 
     // requestNextBatch of Piece Sequence Socket
     socket.on("requestNextBatch", async ({ roomId, username }) => {
-      console.log("requestNextBatch received:", { socketId: socket.id, roomId, username });
       try {
         const game = getGame(String(roomId));
-        if (!game || !game.isRunning) {
-          console.log(`Game not running for room ${roomId}`);
+        if (!game || !game.isRunning || game.isOver) {
+          console.log(`Game not running or is over for room ${roomId}`);
           return;
         }
+
+        console.log("requestNextBatch received:", { socketId: socket.id, roomId, username });
 
         // Get next batch (cached so all players get the same one)
         const nextBatch = game.getNextBatch();
