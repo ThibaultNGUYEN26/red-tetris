@@ -1,5 +1,6 @@
 import './Rooms.css'
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { socket } from '../../socket'
 import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 import Game from '../Game/Game.jsx'
@@ -7,9 +8,11 @@ import Game from '../Game/Game.jsx'
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
+  const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
   const [showCreateRoom, setShowCreateRoom] = useState(false)
   const [showGame, setShowGame] = useState(false)
+  const [currentRoomName, setCurrentRoomName] = useState(joinRoomName || null)
   const [currentRoomId, setCurrentRoomId] = useState(
     localStorage.getItem('currentRoomId')
   )
@@ -77,6 +80,9 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
 
   useEffect(() => {
     const handleRoomState = (room) => {
+      if (String(room.id) === String(currentRoomId)) {
+        setCurrentRoomName(room.name)
+      }
       setRooms((prev) => {
         const exists = prev.find((r) => r.id === room.id)
         if (exists) {
@@ -187,6 +193,18 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
     await handleLeaveRoom()
   }
 
+  const handlePlayAgain = () => {
+    if (!currentRoomId) return
+    socket.emit('playAgain', { roomId: String(currentRoomId), username })
+    setShowGame(false)
+  }
+
+  const handleSpectate = () => {
+    if (!currentRoomName) return
+    setShowGame(false)
+    navigate(`/${currentRoomName}/spectate`)
+  }
+
   const handleBackToMenu = () => {
     onBack()
   }
@@ -198,6 +216,8 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
       <Game
         theme={theme}
         onBack={handleExitGame}
+        onPlayAgain={handlePlayAgain}
+        onSpectate={handleSpectate}
         roomId={currentRoomId}
         username={username}
         isMultiplayer={true}

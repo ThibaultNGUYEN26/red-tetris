@@ -131,6 +131,30 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Get room by name (for spectator mode)
+router.get("/by-name/:name", async (req, res) => {
+  try {
+    const { name } = req.params;
+    if (!name) return res.status(400).json({ error: "Missing room name" });
+
+    const result = await pool.query(
+      `SELECT id, name, game_mode, host, player_count, players, status
+       FROM rooms
+       WHERE name = $1`,
+      [name]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Failed to get room by name:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 
 // Update Room Name
 router.patch("/:roomId/name", async (req, res) => {
@@ -278,12 +302,20 @@ router.post("/:roomId/leave", async (req, res) => {
     }
 
     if (updatedPlayers.length === 0) {
-      await pool.query(`DELETE FROM rooms WHERE id = $1`, [roomId]);
+      await pool.query(
+        `UPDATE rooms
+         SET players = $2::jsonb,
+             player_count = 0,
+             status = 'finished',
+             host = NULL
+         WHERE id = $1`,
+        [roomId, JSON.stringify([])]
+      );
       const io = req.app.get("io");
       if (io) {
         await broadcastAvailableRooms(io);
       }
-      return res.json({ message: "Room deleted" });
+      return res.json({ message: "Room finished" });
     }
 
     // Update DB

@@ -2,6 +2,8 @@ import './Game.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
 import ShadowBoards from '../ShadowBoards/ShadowBoards'
+import SpectatorView from '../SpectatorView/SpectatorView.jsx'
+import GameOver from '../GameOver/GameOver'
 import { socket } from '../../socket'
 
 const WIDTH = 10
@@ -39,7 +41,7 @@ const makeEmptyBoard = () =>
     Array.from({ length: WIDTH }, () => 'empty')
   )
 
-function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerProp }) {
+function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMultiplayer: isMultiplayerProp }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
 
   const [board, setBoard] = useState(makeEmptyBoard)
@@ -48,6 +50,10 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
   const [showMenu, setShowMenu] = useState(false)
   const [stats, setStats] = useState({ score: 0, lines: 0, level: 1 })
   const [opponentBoards, setOpponentBoards] = useState([])
+  const [gamePlayers, setGamePlayers] = useState([])
+  const [winner, setWinner] = useState(null)
+  const [isEliminated, setIsEliminated] = useState(false)
+  const [showSpectator, setShowSpectator] = useState(false)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
@@ -57,7 +63,7 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
 
   const emitMove = (action) => {
     if (!action || !roomId || !username) return
-    if (isPaused) return
+    if (isPaused || isEliminated) return
     socket.emit('movePiece', { roomId: String(roomId), action })
   }
 
@@ -115,9 +121,13 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
       setIsPaused(false)
       setShowMenu(false)
       setStats({ score: 0, lines: 0, level: 1 })
+      setWinner(null)
+      setIsEliminated(false)
+      setShowSpectator(false)
     }
 
     const handleGameState = (gameState) => {
+      setGamePlayers(gameState?.players || [])
       const me = gameState?.players?.find((p) => p.username === username)
       if (me) {
         setBoard(me.board || makeEmptyBoard())
@@ -127,6 +137,10 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
           level: me.level ?? 1,
         })
         setNextType(me.nextType || null)
+
+        if (me.isAlive === false) {
+          setIsEliminated(true)
+        }
       }
 
       if (isMultiplayer) {
@@ -142,6 +156,8 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
 
     const handleGameOver = ({ winner }) => {
       console.log('Game over! Winner:', winner)
+      setWinner(winner || null)
+      setIsEliminated(true)
     }
 
     socket.on('gameStarted', handleGameStarted)
@@ -239,11 +255,38 @@ function Game({ theme, onBack, roomId, username, isMultiplayer: isMultiplayerPro
     return { grid: preview, width, height }
   }, [nextType])
 
+  if (isMultiplayer && isEliminated && !winner && showSpectator) {
+    return (
+      <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
+        <TetriminosClouds />
+        <div className="game-card">
+          <SpectatorView players={gamePlayers} onBack={onBack} username={username} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
       <TetriminosClouds />
 
       <div className="game-card">
+        <GameOver
+          winner={winner}
+          isEliminated={isEliminated}
+          isMultiplayer={isMultiplayer}
+          username={username}
+          onBack={onBack}
+          onPlayAgain={onPlayAgain}
+          onSpectate={
+            isMultiplayer && isEliminated && !winner
+              ? () => {
+                  setShowSpectator(true)
+                  onSpectate?.()
+                }
+              : null
+          }
+        />
         <div className="game-header">
           <div className="game-title">
             <button
