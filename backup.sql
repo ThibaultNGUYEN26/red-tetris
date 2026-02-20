@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict VgEijbSw8EjSlyAjR7CLq7e3Lh75dOpWC7Qn3wZO92aS6eqEiDu9TZwoTnghlAg
+\restrict TeXQgekwbkeE3Kje6m4wKcaIFLaGZeSraGZSkoSqEayNPblHTNjGtuyLGHTHBiw
 
--- Dumped from database version 15.16 (Debian 15.16-1.pgdg13+1)
--- Dumped by pg_dump version 15.16 (Debian 15.16-1.pgdg13+1)
+-- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
+-- Dumped by pg_dump version 15.15 (Debian 15.15-1.pgdg13+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -71,7 +71,10 @@ CREATE TABLE public.users (
     username character varying(100) NOT NULL,
     avatar jsonb NOT NULL,
     solo_games_played integer DEFAULT 0 NOT NULL,
-    highest_solo_score integer DEFAULT 0 NOT NULL
+    highest_solo_score integer DEFAULT 0 NOT NULL,
+    multiplayer_games_played integer DEFAULT 0 NOT NULL,
+    multiplayer_wins integer DEFAULT 0 NOT NULL,
+    multiplayer_losses integer DEFAULT 0 NOT NULL
 );
 
 
@@ -118,6 +121,7 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 COPY public.rooms (id, name, game_mode, host, player_count, players, status, created_at) FROM stdin;
+18	RedGame-YO6K	classic	Titi	1	["Titi"]	waiting	2026-02-20 13:24:55.71817
 \.
 
 
@@ -125,7 +129,7 @@ COPY public.rooms (id, name, game_mode, host, player_count, players, status, cre
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: riri
 --
 
-COPY public.users (id, username, avatar, solo_games_played, highest_solo_score) FROM stdin;
+COPY public.users (id, username, avatar, solo_games_played, highest_solo_score, multiplayer_games_played, multiplayer_wins, multiplayer_losses) FROM stdin;
 \.
 
 
@@ -179,5 +183,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict VgEijbSw8EjSlyAjR7CLq7e3Lh75dOpWC7Qn3wZO92aS6eqEiDu9TZwoTnghlAg
+\unrestrict TeXQgekwbkeE3Kje6m4wKcaIFLaGZeSraGZSkoSqEayNPblHTNjGtuyLGHTHBiw
 

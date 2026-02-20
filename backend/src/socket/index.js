@@ -171,6 +171,29 @@ export default function setupSockets(io) {
         console.error("removePlayerFromRoom failed:", err);
       }
     };
+
+    const updateMultiplayerStats = async (summary) => {
+      if (!summary || summary.mode === "cooperative") return;
+
+      const players = Array.isArray(summary.results) ? summary.results : [];
+      if (!players.length) return;
+
+      const winner = summary.winner ?? null;
+
+      for (const player of players) {
+        if (!player?.username) continue;
+        const isWinner = winner && player.username === winner;
+
+        await pool.query(
+          `UPDATE users
+           SET multiplayer_games_played = multiplayer_games_played + 1,
+               multiplayer_wins = multiplayer_wins + $2,
+               multiplayer_losses = multiplayer_losses + $3
+           WHERE username = $1`,
+          [player.username, isWinner ? 1 : 0, isWinner ? 0 : 1]
+        );
+      }
+    };
     
     // Joining room Socket
     socket.on("joinRoom", async ({ roomId, username }, callback) => {
@@ -445,6 +468,7 @@ export default function setupSockets(io) {
               return;
             }
 
+            await updateMultiplayerStats(summary);
             await pool.query(
               "UPDATE rooms SET status = 'finished' WHERE id = $1",
               [roomId]

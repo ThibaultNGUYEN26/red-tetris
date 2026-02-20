@@ -4,6 +4,9 @@ CREATE TABLE users (
   avatar JSONB NOT NULL,
   solo_games_played INT NOT NULL DEFAULT 0,
   highest_solo_score INT NOT NULL DEFAULT 0,
+  multiplayer_games_played INT NOT NULL DEFAULT 0,
+  multiplayer_wins INT NOT NULL DEFAULT 0,
+  multiplayer_losses INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
