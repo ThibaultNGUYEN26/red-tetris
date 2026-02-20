@@ -172,8 +172,9 @@ export default function setupSockets(io) {
       }
     };
 
-    const updateMultiplayerStats = async (summary) => {
+    const updateMultiplayerStats = async (game, summary) => {
       if (!summary || summary.mode === "cooperative") return;
+      if (game?.statsUpdated) return;
 
       const players = Array.isArray(summary.results) ? summary.results : [];
       if (!players.length) return;
@@ -192,6 +193,10 @@ export default function setupSockets(io) {
            WHERE username = $1`,
           [player.username, isWinner ? 1 : 0, isWinner ? 0 : 1]
         );
+      }
+
+      if (game) {
+        game.statsUpdated = true;
       }
     };
     
@@ -305,6 +310,11 @@ export default function setupSockets(io) {
       // Remove player from Game instance
       const game = getGame(roomId);
       if (game) {
+        if (game.isOver) {
+          socket.leave(String(roomId));
+          if (ack) ack({ ok: true });
+          return;
+        }
         const player = game.getPlayer(effectiveUsername);
         if (player) {
           player.isAlive = false;
@@ -468,7 +478,7 @@ export default function setupSockets(io) {
               return;
             }
 
-            await updateMultiplayerStats(summary);
+            await updateMultiplayerStats(game, summary);
             await pool.query(
               "UPDATE rooms SET status = 'finished' WHERE id = $1",
               [roomId]

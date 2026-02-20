@@ -17,6 +17,7 @@ export default class Game {
 
     this.isRunning = false;
     this.isOver = false;
+    this.statsUpdated = false;
 
     this.onTick = null;
     this.onGameOver = null;
@@ -61,6 +62,7 @@ export default class Game {
   start() {
     this.isRunning = true;
     this.isOver = false;
+    this.statsUpdated = false;
 
     this.players.forEach(player => this.resetPlayer(player));
 

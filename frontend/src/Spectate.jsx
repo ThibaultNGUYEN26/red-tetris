@@ -13,6 +13,7 @@ function Spectate() {
   const [roomId, setRoomId] = useState(null)
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [theme] = useState(localStorage.getItem('theme') || 'light')
 
   const username = localStorage.getItem('username')
 
@@ -81,7 +82,9 @@ function Spectate() {
 
   return (
     <div className="content-wrapper">
-      <SpectatorView players={players} onBack={() => navigate('/')} />
+      <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
+        <SpectatorView players={players} onBack={() => navigate('/')} />
+      </div>
     </div>
   )
 }

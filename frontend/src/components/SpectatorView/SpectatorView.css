@@ -53,6 +53,20 @@
   background: rgba(255, 255, 255, 0.9);
 }
 
+.game-screen.dark .spectator-btn {
+  background: rgba(30, 35, 70, 0.9);
+  border-color: rgba(120, 150, 255, 0.5);
+  color: #dbe7ff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.game-screen.dark .spectator-btn:hover:not(:disabled) {
+  background: rgba(45, 55, 100, 0.95);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.45),
+    0 0 10px rgba(120, 150, 255, 0.25);
+}
+
 .spectator-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
