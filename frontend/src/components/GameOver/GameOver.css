@@ -48,14 +48,13 @@
 }
 
 .game-over-actions .resume-button,
-.game-over-actions .pagination-btn,
 .game-over-actions .back-button {
   min-width: 160px;
 }
 
-.game-over-actions .pagination-btn {
-  font-size: 14px;
+.game-over-actions .resume-button {
+  width: 100%;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
   font-weight: 600;
-  text-shadow: none;
-  border-width: 1px;
 }

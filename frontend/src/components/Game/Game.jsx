@@ -53,6 +53,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
   const [gamePlayers, setGamePlayers] = useState([])
   const [winner, setWinner] = useState(null)
   const [isEliminated, setIsEliminated] = useState(false)
+  const [isGameOver, setIsGameOver] = useState(false)
   const [showSpectator, setShowSpectator] = useState(false)
 
   const softDropTimerRef = useRef(null)
@@ -124,6 +125,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       setWinner(null)
       setIsEliminated(false)
       setShowSpectator(false)
+      setIsGameOver(false)
     }
 
     const handleGameState = (gameState) => {
@@ -158,6 +160,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       console.log('Game over! Winner:', winner)
       setWinner(winner || null)
       setIsEliminated(true)
+      setIsGameOver(true)
     }
 
     socket.on('gameStarted', handleGameStarted)
@@ -255,7 +258,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
     return { grid: preview, width, height }
   }, [nextType])
 
-  if (isMultiplayer && isEliminated && !winner && showSpectator) {
+  if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
     return (
       <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
         <TetriminosClouds />
@@ -274,12 +277,13 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
         <GameOver
           winner={winner}
           isEliminated={isEliminated}
+          isGameOver={isGameOver}
           isMultiplayer={isMultiplayer}
           username={username}
           onBack={onBack}
           onPlayAgain={onPlayAgain}
           onSpectate={
-            isMultiplayer && isEliminated && !winner
+            isMultiplayer && isEliminated && !winner && !isGameOver
               ? () => {
                   setShowSpectator(true)
                   onSpectate?.()
