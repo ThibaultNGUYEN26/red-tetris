@@ -14,7 +14,7 @@ const ARR_MS = 60
 
 const SHAPES = {
   i: [
-    [[0, 1], [1, 1], [2, 1], [3, 1]],
+    [[0, 1], [1, 1], [2, 1], [3, 1]], // vertical - match backend rotation 1
   ],
   o: [
     [[0, 1], [0, 2], [1, 1], [1, 2]],
@@ -55,6 +55,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
   const [isEliminated, setIsEliminated] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
   const [showSpectator, setShowSpectator] = useState(false)
+  const [roomStatus, setRoomStatus] = useState(null)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
@@ -111,6 +112,21 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       if (isPaused) return
       emitMove('drop')
     }, SOFT_DROP_MS)
+  }
+
+  const handleLeaveGame = () => {
+    if (!roomId || !username) {
+      onBack?.()
+      return
+    }
+
+    socket.emit(
+      'leaveGame',
+      { roomId: String(roomId), username },
+      () => {
+        onBack?.()
+      }
+    )
   }
 
   useEffect(() => {
@@ -371,8 +387,8 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
                 >
                   Resume
                 </button>
-                <button className="back-button" onClick={onBack}>
-                  Back to menu
+                <button className="back-button" onClick={handleLeaveGame}>
+                  Leave game
                 </button>
               </div>
             </div>
@@ -390,7 +406,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
                 >
                   Resume
                 </button>
-                <button className="back-button" onClick={onBack}>
+                <button className="back-button" onClick={handleLeaveGame}>
                   Leave game
                 </button>
               </div>

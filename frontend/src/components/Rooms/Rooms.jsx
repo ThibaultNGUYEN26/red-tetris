@@ -161,7 +161,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
     setCurrentRoomId(roomId)
   }
 
-  /* ---------------- LEAVE ROOM ---------------- */
+  /* ---------------- LEAVE ROOM (LOBBY) / LEAVE GAME (IN-GAME) ---------------- */
 
   const handleLeaveRoom = async () => {
     const roomId = localStorage.getItem('currentRoomId')
@@ -173,7 +173,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
             console.error('Failed to leave room:', res?.error || 'Unknown error')
             return
           }
-          console.log('[Rooms] Left room', { roomId, username })
+          console.log('[Rooms] Left room (lobby)', { roomId, username })
           socket.emit('getAvailableRooms')
         })
       } catch (err) {
@@ -188,8 +188,39 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
     hasJoinedRef.current = false
   }
 
+  const handleLeaveGame = async () => {
+    const roomId = localStorage.getItem('currentRoomId')
+
+    if (roomId) {
+      try {
+        socket.emit('leaveGame', { roomId: String(roomId), username }, (res) => {
+          if (!res?.ok) {
+            console.error('Failed to leave game:', res?.error || 'Unknown error')
+            return
+          }
+          console.log('[Rooms] Left game', { roomId, username })
+          socket.emit('getAvailableRooms')
+        })
+      } catch (err) {
+        console.error('Failed to leave game:', err)
+      }
+    }
+
+    localStorage.removeItem('currentRoomId')
+    setCurrentRoomId(null)
+    setShowCreateRoom(false)
+    setShowGame(false)
+    hasJoinedRef.current = false
+  }
+
   const handleExitGame = async () => {
     console.log('[Rooms] Exiting game', { roomId: currentRoomId, username })
+    await handleLeaveGame()
+  }
+
+  const handleExitLobby = async () => {
+    // Exit from lobby/waiting stage - use leaveRoom
+    console.log('[Rooms] Exiting lobby', { roomId: currentRoomId, username })
     await handleLeaveRoom()
   }
 
@@ -234,7 +265,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
         existingRooms={rooms}
         roomId={currentRoomId}
         mode={showCreateRoom ? 'create' : 'join'}
-        onBack={handleLeaveRoom}
+        onBack={handleExitLobby}
         onRoomCreated={handleRoomCreated}
       />
     )

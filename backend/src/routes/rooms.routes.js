@@ -25,28 +25,6 @@ async function attachPlayerAvatars(room) {
   return { ...room, player_avatars };
 }
 
-function getMaxPlayers(gameMode) {
-  return gameMode === "cooperative" ? 2 : 6;
-}
-
-async function emitAvailableRooms(io) {
-  if (!io) return;
-  const result = await pool.query(
-    `SELECT id, name, game_mode, host, player_count, players
-     FROM rooms
-     ORDER BY created_at ASC;`
-  );
-
-  const rows = result.rows
-    .map((room) => ({
-      ...room,
-      maxPlayers: getMaxPlayers(room.game_mode),
-    }))
-    .filter((room) => room.player_count < room.maxPlayers);
-
-  io.emit("availableRooms", rows);
-}
-
 function generateRoomName() {
   const adjectives = ["Red", "Blue", "Fast", "Crazy", "Happy", "Silent"];
   const nouns = ["Tetris", "Block", "Stack", "Line", "Drop", "Game"];
@@ -78,17 +56,20 @@ router.post("/", async (req, res) => {
     );
 
     if (checkResult.rowCount > 0) {
+      console.log("User already in a room:", host);
       return res.status(400).json({
         error: "User is already in a room"
       });
     }
 
     if (!gameMode || !host) {
+      console.log("Missing data:", { gameMode, host });
       return res.status(400).json({ error: "Missing data" });
     }
 
     const allowedModes = ["classic", "speed", "cooperative"];
     if (!allowedModes.includes(gameMode)) {
+      console.log("Invalid game mode:", gameMode);
       return res.status(400).json({ error: "Invalid game mode" });
     }
 
