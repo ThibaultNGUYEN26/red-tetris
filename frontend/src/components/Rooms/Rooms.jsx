@@ -163,12 +163,12 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
 
   /* ---------------- LEAVE ROOM ---------------- */
 
-  const handleLeaveRoom = async () => {
+  const handleleaveGame = async () => {
     const roomId = localStorage.getItem('currentRoomId')
 
     if (roomId) {
       try {
-        socket.emit('leaveRoom', { roomId: String(roomId), username }, (res) => {
+        socket.emit('leaveGame', { roomId: String(roomId), username }, (res) => {
           if (!res?.ok) {
             console.error('Failed to leave room:', res?.error || 'Unknown error')
             return
@@ -190,7 +190,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
 
   const handleExitGame = async () => {
     console.log('[Rooms] Exiting game', { roomId: currentRoomId, username })
-    await handleLeaveRoom()
+    await handleleaveGame()
   }
 
   const handlePlayAgain = () => {
@@ -234,7 +234,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
         existingRooms={rooms}
         roomId={currentRoomId}
         mode={showCreateRoom ? 'create' : 'join'}
-        onBack={handleLeaveRoom}
+        onBack={handleleaveGame}
         onRoomCreated={handleRoomCreated}
       />
     )

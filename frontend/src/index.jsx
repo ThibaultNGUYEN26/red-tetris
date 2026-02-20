@@ -86,7 +86,7 @@ function Index() {
     if (soloRoomId && username) {
       try {
         await new Promise((resolve) => {
-          socket.emit('leaveRoom', { roomId: String(soloRoomId), username }, () => {
+          socket.emit('leaveGame', { roomId: String(soloRoomId), username }, () => {
             resolve()
           })
         })

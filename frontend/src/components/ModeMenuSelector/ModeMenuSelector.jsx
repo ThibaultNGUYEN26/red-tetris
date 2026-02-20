@@ -17,7 +17,7 @@ function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, onSta
       const existingRoomId = localStorage.getItem('currentRoomId')
       if (existingRoomId && username) {
         await new Promise((resolve) => {
-          socket.emit('leaveRoom', { roomId: String(existingRoomId), username }, () => {
+          socket.emit('leaveGame', { roomId: String(existingRoomId), username }, () => {
             resolve()
           })
         })
