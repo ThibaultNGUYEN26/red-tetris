@@ -55,7 +55,6 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
   const [isEliminated, setIsEliminated] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
   const [showSpectator, setShowSpectator] = useState(false)
-  const [roomStatus, setRoomStatus] = useState(null)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
