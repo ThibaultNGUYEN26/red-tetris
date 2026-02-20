@@ -178,6 +178,25 @@ export default class Game {
       player.level = 1 + Math.floor(player.lines / LINES_PER_LEVEL);
     }
 
+    // In multiplayer mode, add penalty lines (n-1) to other alive players AFTER line clearing
+    if (this.mode_player === "multi" && cleared > 1) {
+      const penaltyLines = cleared - 1;
+      // Create penalty rows with one empty space to prevent immediate clearing
+      const penaltyRows = Array.from({ length: penaltyLines }, (_, idx) => {
+        const row = Array(BOARD_WIDTH).fill("black");
+        // Add one empty space at a different position for each row to vary the penalty
+        row[idx % BOARD_WIDTH] = "empty";
+        return row;
+      });
+
+      this.players.forEach(otherPlayer => {
+        if (otherPlayer.username !== player.username && otherPlayer.isAlive) {
+          // Remove top rows to make space, then add penalty rows at the bottom
+          otherPlayer.board = [...otherPlayer.board.slice(penaltyLines), ...penaltyRows];
+        }
+      });
+    }
+
     player.sequenceIndex += 1;
     const ok = this.spawnForPlayer(player);
     if (!ok) {
