@@ -1,9 +1,16 @@
+.spectator-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .spectator-title {
   font-weight: 700;
   color: #2c4a63;
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 18px;
 }
 
 .game-screen.dark .spectator-title {
