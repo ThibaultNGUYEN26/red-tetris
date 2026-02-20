@@ -34,6 +34,12 @@ function Index() {
     if (urlRoomName && !joinedRoomName) setJoinedRoomName(urlRoomName)
   }, [urlUsername, urlRoomName])
 
+  useEffect(() => {
+    if (username) {
+      localStorage.setItem('username', username)
+    }
+  }, [username])
+
   /* ---------------- PROFILE ---------------- */
 
   const handleUsernameSubmit = (profileOrUsername, avatar) => {
@@ -44,6 +50,12 @@ function Index() {
       setUsername(profileOrUsername)
       setUserProfile({ username: profileOrUsername, avatar })
     }
+
+    const storedName =
+      typeof profileOrUsername === 'object' && profileOrUsername !== null
+        ? profileOrUsername.username
+        : profileOrUsername
+    if (storedName) localStorage.setItem('username', storedName)
 
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }
@@ -57,6 +69,7 @@ function Index() {
     setUserProfile(null)
     setJoinedRoomName(null)
     setSoloRoomId(null)
+    localStorage.removeItem('username')
     navigate('/')
   }
 

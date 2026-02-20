@@ -1,8 +1,7 @@
 import './Leaderboard.css'
 import { useEffect, useState } from 'react'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
-
-const API_URL = import.meta.env.VITE_API_URL || ''
+import { socket } from '../../socket'
 
 function Leaderboard({ theme }) {
   const [leaderboardData, setLeaderboardData] = useState([])
@@ -22,23 +21,17 @@ function Leaderboard({ theme }) {
   }
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/leaderboard/solo`, {
-          credentials: 'include',
-        })
-        if (!res.ok) throw new Error('Failed to fetch leaderboard')
-        const data = await res.json()
-        setLeaderboardData(Array.isArray(data) ? data : [])
-      } catch (err) {
-        console.error('Failed to fetch leaderboard', err)
-        setLeaderboardData([])
-      } finally {
-        setLoading(false)
-      }
+    const handleLeaderboard = (data) => {
+      setLeaderboardData(Array.isArray(data) ? data : [])
+      setLoading(false)
     }
 
-    fetchLeaderboard()
+    socket.on('leaderboardSolo', handleLeaderboard)
+    socket.emit('getLeaderboardSolo')
+
+    return () => {
+      socket.off('leaderboardSolo', handleLeaderboard)
+    }
   }, [])
 
   if (!loading && leaderboardData.length === 0) {

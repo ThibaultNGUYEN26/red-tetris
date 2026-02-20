@@ -1,0 +1,61 @@
+.spectator-title {
+  font-weight: 700;
+  color: #2c4a63;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-screen.dark .spectator-title {
+  color: #e6f3ff;
+}
+
+.spectator-name {
+  font-weight: 700;
+}
+
+.spectator-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.spectator-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.spectator-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(110, 140, 200, 0.6);
+  background: rgba(255, 255, 255, 0.7);
+  color: #2c4a63;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.spectator-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.spectator-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spectator-btn-icon {
+  font-size: 14px;
+}
+
+.spectator-empty {
+  text-align: center;
+  padding: 24px;
+}

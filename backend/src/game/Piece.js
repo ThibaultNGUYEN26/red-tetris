@@ -102,7 +102,7 @@ export default class Piece {
         }
 
         // Collision with existing blocks
-        if (board[boardY][boardX] !== 0) {
+        if (board[boardY][boardX] !== "empty") {
           return false;
         }
       }
