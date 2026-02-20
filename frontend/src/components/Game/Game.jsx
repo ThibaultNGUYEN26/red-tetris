@@ -54,12 +54,14 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
   const [winner, setWinner] = useState(null)
   const [isEliminated, setIsEliminated] = useState(false)
   const [showSpectator, setShowSpectator] = useState(false)
+  const [suppressGameOver, setSuppressGameOver] = useState(false)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
   const arrTimerRef = useRef(null)
   const heldDirectionRef = useRef(null)
   const joinedRef = useRef(false)
+  const exitingRef = useRef(false)
 
   const emitMove = (action) => {
     if (!action || !roomId || !username) return
@@ -124,11 +126,14 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       setWinner(null)
       setIsEliminated(false)
       setShowSpectator(false)
+      setSuppressGameOver(false)
+      exitingRef.current = false
     }
 
     const handleGameState = (gameState) => {
       setGamePlayers(gameState?.players || [])
       const me = gameState?.players?.find((p) => p.username === username)
+      const isLeavingSolo = !isMultiplayer && exitingRef.current
       if (me) {
         setBoard(me.board || makeEmptyBoard())
         setStats({
@@ -138,7 +143,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
         })
         setNextType(me.nextType || null)
 
-        if (me.isAlive === false) {
+        if (me.isAlive === false && !isLeavingSolo) {
           setIsEliminated(true)
         }
       }
@@ -155,6 +160,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
     }
 
     const handleGameOver = ({ winner }) => {
+      if (!isMultiplayer && exitingRef.current) return
       console.log('Game over! Winner:', winner)
       setWinner(winner || null)
       setIsEliminated(true)
@@ -273,7 +279,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       <div className="game-card">
         <GameOver
           winner={winner}
-          isEliminated={isEliminated}
+          isEliminated={isEliminated && !suppressGameOver}
           isMultiplayer={isMultiplayer}
           username={username}
           onBack={onBack}
@@ -367,7 +373,14 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
                 >
                   Resume
                 </button>
-                <button className="back-button" onClick={onBack}>
+                <button
+                  className="back-button"
+                  onClick={() => {
+                    setSuppressGameOver(true)
+                    exitingRef.current = true
+                    onBack()
+                  }}
+                >
                   Back to menu
                 </button>
               </div>

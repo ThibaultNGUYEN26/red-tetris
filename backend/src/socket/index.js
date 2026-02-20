@@ -269,6 +269,16 @@ export default function setupSockets(io) {
       // Remove player from Game instance
       const game = getGame(roomId);
       if (game) {
+        if (game.mode_player === "solo") {
+          game.stop();
+          removeGame(roomId);
+          await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
+          socket.leave(String(roomId));
+          await broadcastAvailableRooms(io);
+          if (ack) ack({ ok: true });
+          return;
+        }
+
         const player = game.getPlayer(effectiveUsername);
         if (player) {
           player.isAlive = false;

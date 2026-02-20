@@ -51,6 +51,19 @@ function SpectatorView({ players, onBack, username }) {
     return { grid: preview, width, height }
   }, [current?.nextType])
 
+  useEffect(() => {
+    if (!list.length) return
+    const handleKeyDown = (event) => {
+      if (event.key === 'ArrowLeft') {
+        setIndex((prev) => (prev <= 0 ? list.length - 1 : prev - 1))
+      } else if (event.key === 'ArrowRight') {
+        setIndex((prev) => (prev + 1) % list.length)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [list.length])
+
   if (!current) {
     return (
       <div className="spectator-empty">
@@ -147,15 +160,3 @@ function SpectatorView({ players, onBack, username }) {
 }
 
 export default SpectatorView
-  useEffect(() => {
-    if (!list.length) return
-    const handleKeyDown = (event) => {
-      if (event.key === 'ArrowLeft') {
-        setIndex((prev) => (prev <= 0 ? list.length - 1 : prev - 1))
-      } else if (event.key === 'ArrowRight') {
-        setIndex((prev) => (prev + 1) % list.length)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [list.length])
