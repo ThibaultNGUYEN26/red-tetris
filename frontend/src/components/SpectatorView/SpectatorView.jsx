@@ -78,26 +78,28 @@ function SpectatorView({ players, onBack, username }) {
     <>
       <div className="game-header">
         <div className="game-title">
-          <div className="spectator-title">
-            Spectating <span className="spectator-name">{current.username}</span>
-          </div>
-          <div className="spectator-controls">
-            <button
-              className="spectator-btn spectator-btn-prev"
-              onClick={() => setIndex((prev) => (prev <= 0 ? list.length - 1 : prev - 1))}
-              disabled={list.length <= 1}
-            >
-              <span className="spectator-btn-icon">←</span>
-              Prev
-            </button>
-            <button
-              className="spectator-btn spectator-btn-next"
-              onClick={() => setIndex((prev) => (prev + 1) % list.length)}
-              disabled={list.length <= 1}
-            >
-              Next
-              <span className="spectator-btn-icon">→</span>
-            </button>
+          <div className="spectator-info">
+            <div className="spectator-title">
+              Spectating <span className="spectator-name">{current.username}</span>
+            </div>
+            <div className="spectator-controls">
+              <button
+                className="spectator-btn spectator-btn-prev"
+                onClick={() => setIndex((prev) => (prev <= 0 ? list.length - 1 : prev - 1))}
+                disabled={list.length <= 1}
+              >
+                <span className="spectator-btn-icon">←</span>
+                Prev
+              </button>
+              <button
+                className="spectator-btn spectator-btn-next"
+                onClick={() => setIndex((prev) => (prev + 1) % list.length)}
+                disabled={list.length <= 1}
+              >
+                Next
+                <span className="spectator-btn-icon">→</span>
+              </button>
+            </div>
           </div>
         </div>
         <div className="game-stats">

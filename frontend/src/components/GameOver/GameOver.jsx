@@ -11,16 +11,18 @@ function GameOver({ winner, isEliminated, onBack, onPlayAgain, onSpectate, usern
       <div className="game-over-card">
         <h3>{title}</h3>
         <div className="game-over-actions">
-          {onPlayAgain && (
-            <button className="resume-button" onClick={onPlayAgain}>
-              Play again
-            </button>
-          )}
-          {canSpectate && (
-            <button className="pagination-btn" onClick={onSpectate}>
-              Spectate
-            </button>
-          )}
+          <div className="game-over-primary-actions">
+            {onPlayAgain && (
+              <button className="resume-button" onClick={onPlayAgain}>
+                Play again
+              </button>
+            )}
+            {canSpectate && (
+              <button className="pagination-btn" onClick={onSpectate}>
+                Spectate
+              </button>
+            )}
+          </div>
           <button className="back-button" onClick={onBack}>
             Back to menu
           </button>
