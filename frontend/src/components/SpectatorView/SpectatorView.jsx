@@ -1,6 +1,7 @@
 import '../Game/Game.css'
 import './SpectatorView.css'
 import { useEffect, useMemo, useState } from 'react'
+import ShadowBoards from '../ShadowBoards/ShadowBoards'
 
 function SpectatorView({ players, onBack, username }) {
   const [index, setIndex] = useState(0)
@@ -12,6 +13,12 @@ function SpectatorView({ players, onBack, username }) {
   const current = list[safeIndex]
 
   const board = current?.board || []
+  const opponentBoards = list
+    .filter((player) => player?.username && player.username !== current?.username)
+    .map((player) => ({
+      username: player.username,
+      board: player.boardLocked || player.board || [],
+    }))
 
   const nextPreview = useMemo(() => {
     const nextType = current?.nextType
@@ -151,6 +158,7 @@ function SpectatorView({ players, onBack, username }) {
               )}
             </div>
           </div>
+          <ShadowBoards boards={opponentBoards} />
         </div>
       </div>
 
