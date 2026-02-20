@@ -120,35 +120,48 @@ export default function setupSockets(io) {
           newHost = updatedPlayers.length > 0 ? updatedPlayers[0] : null;
         }
 
+        // CASE 1 — No players left → DELETE room
         if (updatedPlayers.length === 0) {
           await pool.query(
-            `UPDATE rooms
-             SET players = $2::jsonb,
-                 player_count = 0,
-                 status = 'finished',
-                 host = NULL
-             WHERE id = $1`,
-            [id, JSON.stringify([])]
+            `DELETE FROM rooms WHERE id = $1`,
+            [id]
           );
+
+          await broadcastAvailableRooms(io);
           return;
         }
 
-        const updateQuery = `
-          UPDATE rooms
+        // CASE 2 — One player left → FINISHED
+        if (updatedPlayers.length === 1) {
+          const result = await pool.query(
+            `UPDATE rooms
+            SET players = $2::jsonb,
+                player_count = 1,
+                host = $3,
+                status = 'finished'
+            WHERE id = $1
+            RETURNING *`,
+            [id, JSON.stringify(updatedPlayers), newHost]
+          );
+
+          const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
+
+          io.to(String(roomId)).emit("roomState", roomWithAvatars);
+          await broadcastAvailableRooms(io);
+          return;
+        }
+
+        // CASE 3 — More than 1 player → Normal update
+        const result = await pool.query(
+          `UPDATE rooms
           SET players = $2::jsonb,
               player_count = $3,
               host = $4
           WHERE id = $1
-          RETURNING *;
-        `;
+          RETURNING *`,
+          [id, JSON.stringify(updatedPlayers), updatedPlayers.length, newHost]
+        );
 
-        const values = [
-          id,
-          JSON.stringify(updatedPlayers),
-          updatedPlayers.length,
-          newHost,
-        ];
-        const result = await pool.query(updateQuery, values);
         const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
 
         io.to(String(roomId)).emit("roomState", roomWithAvatars);
