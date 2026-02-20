@@ -75,7 +75,8 @@ export const SHAPES = {
 export default class Piece {
   constructor(type) {
     this.type = type;
-    this.rotation = 0;
+    // I piece spawns vertically (rotation 1), all others spawn at rotation 0
+    this.rotation = type === 'I' ? 1 : 0;
     this.shape = SHAPES[type][this.rotation];
     this.y = 0;
 

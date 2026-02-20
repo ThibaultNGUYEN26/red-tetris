@@ -14,7 +14,7 @@ const ARR_MS = 60
 
 const SHAPES = {
   i: [
-    [[0, 1], [1, 1], [2, 1], [3, 1]],
+    [[0, 1], [1, 1], [2, 1], [3, 1]], // vertical - match backend rotation 1
   ],
   o: [
     [[0, 1], [0, 2], [1, 1], [1, 2]],
