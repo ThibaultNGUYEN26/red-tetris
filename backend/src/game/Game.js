@@ -147,13 +147,43 @@ export default class Game {
     const piece = player.currentPiece;
     if (!piece) return false;
     const rotations = SHAPES[piece.type];
-    const nextRotation = (piece.rotation + 1) % rotations.length;
-    if (!this.canPlace(piece.type, nextRotation, piece.x, piece.y, player.board)) {
-      return false;
+    const from = piece.rotation;
+    const to = (piece.rotation + 1) % rotations.length;
+
+    const kicksJLSTZ = {
+      "0>1": [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
+      "1>2": [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
+      "2>3": [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
+      "3>0": [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
+    };
+
+    const kicksI = {
+      "0>1": [[0, 0], [-2, 0], [1, 0], [-2, 1], [1, -2]],
+      "1>2": [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]],
+      "2>3": [[0, 0], [2, 0], [-1, 0], [2, -1], [-1, 2]],
+      "3>0": [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]],
+    };
+
+    const key = `${from}>${to}`;
+    const kickTable = piece.type === "I"
+      ? kicksI[key]
+      : piece.type === "O"
+        ? [[0, 0]]
+        : kicksJLSTZ[key];
+
+    if (!kickTable) return false;
+
+    for (const [dx, dy] of kickTable) {
+      if (this.canPlace(piece.type, to, piece.x + dx, piece.y + dy, player.board)) {
+        piece.rotation = to;
+        piece.shape = rotations[to];
+        piece.x += dx;
+        piece.y += dy;
+        return true;
+      }
     }
-    piece.rotation = nextRotation;
-    piece.shape = rotations[nextRotation];
-    return true;
+
+    return false;
   }
 
   lockCurrentPiece(player) {
