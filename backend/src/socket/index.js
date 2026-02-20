@@ -120,7 +120,7 @@ export default function setupSockets(io) {
           newHost = updatedPlayers.length > 0 ? updatedPlayers[0] : null;
         }
 
-        // CASE 1 — No players left → DELETE room
+        // No players left → DELETE room
         if (updatedPlayers.length === 0) {
           await pool.query(
             `DELETE FROM rooms WHERE id = $1`,
@@ -151,7 +151,7 @@ export default function setupSockets(io) {
           return;
         }
 
-        // CASE 3 — More than 1 player → Normal update
+        // More than 1 player → Normal update
         const result = await pool.query(
           `UPDATE rooms
           SET players = $2::jsonb,
