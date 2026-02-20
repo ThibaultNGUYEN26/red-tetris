@@ -42,10 +42,10 @@ router.get("/player/stats", async (req, res) => {
 router.get("/leaderboard/solo", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT username, avatar, highest_solo_score
-       FROM users
-       WHERE highest_solo_score > 0
-       ORDER BY highest_solo_score DESC, id ASC
+      `SELECT s.username, u.avatar, s.score
+       FROM solo_scores s
+       JOIN users u ON u.username = s.username
+       ORDER BY s.score DESC, s.id ASC
        LIMIT 10`
     );
 
@@ -53,7 +53,7 @@ router.get("/leaderboard/solo", async (req, res) => {
       rank: index + 1,
       name: row.username,
       avatar: row.avatar,
-      score: row.highest_solo_score ?? 0,
+      score: row.score ?? 0,
     }));
 
     res.status(200).json(leaderboard);

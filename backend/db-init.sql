@@ -1,3 +1,5 @@
+-- JUST TO REMEMBER THE SCHEMA, NOT USED TO INIT THE DB
+
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(50) UNIQUE NOT NULL,
@@ -17,5 +19,12 @@ CREATE TABLE rooms (
   host TEXT NOT NULL,
   player_count INT NOT NULL,
   players JSONB NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE solo_scores (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) NOT NULL,
+  score INT NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );

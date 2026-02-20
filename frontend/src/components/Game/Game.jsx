@@ -246,6 +246,9 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
     if (isPaused) {
       stopSoftDrop()
     }
+    if (!isMultiplayer && roomId) {
+      socket.emit('pauseGame', { roomId: String(roomId), paused: isPaused })
+    }
   }, [isPaused])
 
   const nextPreview = useMemo(() => {

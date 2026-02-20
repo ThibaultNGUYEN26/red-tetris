@@ -18,6 +18,7 @@ export default class Game {
     this.isRunning = false;
     this.isOver = false;
     this.statsUpdated = false;
+    this.isPaused = false;
 
     this.onTick = null;
     this.onGameOver = null;
@@ -63,6 +64,7 @@ export default class Game {
     this.isRunning = true;
     this.isOver = false;
     this.statsUpdated = false;
+    this.isPaused = false;
 
     this.players.forEach(player => this.resetPlayer(player));
 
@@ -87,6 +89,16 @@ export default class Game {
       clearInterval(this.tickHandle);
       this.tickHandle = null;
     }
+  }
+
+  pause() {
+    if (!this.isRunning || this.isOver) return;
+    this.isPaused = true;
+  }
+
+  resume() {
+    if (!this.isRunning || this.isOver) return;
+    this.isPaused = false;
   }
 
   enqueueInput(username, action) {
@@ -305,6 +317,7 @@ export default class Game {
 
   tick() {
     if (!this.isRunning || this.isOver) return;
+    if (this.isPaused) return;
 
     this.players.forEach(player => {
       if (!player.isAlive) return;

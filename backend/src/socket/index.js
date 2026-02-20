@@ -30,10 +30,10 @@ export default function setupSockets(io) {
     // Helper functions
     const fetchSoloLeaderboard = async () => {
       const result = await pool.query(
-        `SELECT username, avatar, highest_solo_score
-         FROM users
-         WHERE highest_solo_score > 0
-         ORDER BY highest_solo_score DESC, id ASC
+        `SELECT s.username, u.avatar, s.score
+         FROM solo_scores s
+         JOIN users u ON u.username = s.username
+         ORDER BY s.score DESC, s.id ASC
          LIMIT 10`
       );
 
@@ -41,7 +41,7 @@ export default function setupSockets(io) {
         rank: index + 1,
         name: row.username,
         avatar: row.avatar,
-        score: row.highest_solo_score ?? 0,
+        score: row.score ?? 0,
       }));
     };
 
@@ -61,6 +61,12 @@ export default function setupSockets(io) {
       if (result.rowCount === 0) {
         console.warn(`No user row found for solo stats update: ${player.username}`);
       }
+
+      await pool.query(
+        `INSERT INTO solo_scores (username, score)
+         VALUES ($1, $2)`,
+        [player.username, player.score]
+      );
 
       const leaderboard = await fetchSoloLeaderboard();
       io.emit("leaderboardSolo", leaderboard);
@@ -407,6 +413,19 @@ export default function setupSockets(io) {
       }
       await broadcastAvailableRooms(io);
       if (ack) ack({ ok: true });
+    });
+
+    // Pause/resume (solo only)
+    socket.on("pauseGame", ({ roomId, paused }) => {
+      if (!roomId) return;
+      const game = getGame(String(roomId));
+      if (!game || game.isOver || game.mode_player !== "solo") return;
+
+      if (paused) {
+        game.pause();
+      } else {
+        game.resume();
+      }
     });
 
     // Leaving room Socket

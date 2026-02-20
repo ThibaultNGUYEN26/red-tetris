@@ -77,6 +77,14 @@
 .leaderboard.dark .leaderboard-entry {
   background: linear-gradient(135deg, rgba(50, 50, 80, 0.4) 0%, rgba(30, 30, 60, 0.5) 100%);
   border-color: rgba(100, 100, 200, 0.4);
+  color: #dbe7ff;
+}
+
+.leaderboard.dark .leaderboard-entry .rank,
+.leaderboard.dark .leaderboard-entry .name,
+.leaderboard.dark .leaderboard-entry .score {
+  color: #dbe7ff;
+  text-shadow: 0 0 6px rgba(120, 150, 255, 0.35);
 }
 
 .leaderboard-entry:hover {
@@ -86,8 +94,11 @@
 }
 
 .leaderboard.dark .leaderboard-entry:hover {
+  transform: scale(1.03);
   border-color: rgba(150, 150, 255, 0.6);
-  box-shadow: 0 6px 16px rgba(100, 100, 200, 0.3);
+  box-shadow:
+    0 6px 16px rgba(100, 100, 200, 0.3),
+    0 0 12px rgba(100, 150, 255, 0.25);
 }
 
 .leaderboard-entry.top-1 {
