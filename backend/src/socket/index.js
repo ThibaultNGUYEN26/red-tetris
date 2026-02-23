@@ -1,8 +1,8 @@
 import { pool } from "../config/db.js";
 import { createGame, getGame, removeGame } from "../game/gameManager.js";
 
-function getMaxPlayers(gameMode) {
-  return gameMode === "cooperative" ? 2 : 6;
+function getMaxPlayers() {
+  return 2;
 }
 
 export async function broadcastAvailableRooms(io) {
@@ -292,7 +292,7 @@ export default function setupSockets(io) {
           return socket.emit("error", { message: "Game already started" });
         }
 
-        const maxPlayers = room.game_mode === "cooperative" ? 2 : 6;
+        const maxPlayers = getMaxPlayers(room.game_mode);
         if (room.player_count >= maxPlayers) {
           if (ack) ack({ ok: false, error: "Room is full" });
           return socket.emit("error", { message: "Room is full" });
@@ -574,11 +574,16 @@ export default function setupSockets(io) {
 
         // Create and store game instance
         const gameMode = room.game_mode || "classic";
-        const game = createGame(
-          roomId,
-          room.players,
-          gameMode
-        );
+        const maxPlayers = getMaxPlayers(gameMode);
+        const isSoloStart = room.players.length === 1;
+        if (!isSoloStart && room.players.length !== maxPlayers) {
+          socket.emit("error", {
+            message: `This room requires exactly ${maxPlayers} players to start.`,
+          });
+          return;
+        }
+
+        const game = createGame(roomId, room.players, gameMode, room.host);
 
         game.setCallbacks({
           onTick: (state) => {

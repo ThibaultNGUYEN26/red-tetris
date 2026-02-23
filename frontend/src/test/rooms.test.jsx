@@ -173,9 +173,6 @@ describe('Rooms Component', () => {
       if (availableRoomsCallback) {
         availableRoomsCallback([])
       }
-
-      // Should show some indication that no rooms are available
-      // This depends on your implementation
     })
   })
 
@@ -615,9 +612,6 @@ describe('Rooms Component', () => {
       if (availableRoomsCallback) {
         availableRoomsCallback(mockRooms)
       }
-
-      // Should highlight or mark current room differently
-      // This depends on your implementation
     })
   })
 })

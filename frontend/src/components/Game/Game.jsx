@@ -55,7 +55,8 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
   const [isEliminated, setIsEliminated] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
   const [showSpectator, setShowSpectator] = useState(false)
-  const [roomStatus, setRoomStatus] = useState(null)
+  const [gameMode, setGameMode] = useState(null)
+  const [activePlayerUsername, setActivePlayerUsername] = useState(null)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
@@ -66,6 +67,14 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
   const emitMove = (action) => {
     if (!action || !roomId || !username) return
     if (isPaused || isEliminated) return
+    if (
+      isMultiplayer &&
+      gameMode === 'cooperative' &&
+      activePlayerUsername &&
+      activePlayerUsername !== username
+    ) {
+      return
+    }
     socket.emit('movePiece', { roomId: String(roomId), action })
   }
 
@@ -142,9 +151,12 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       setIsEliminated(false)
       setShowSpectator(false)
       setIsGameOver(false)
+      setActivePlayerUsername(null)
     }
 
     const handleGameState = (gameState) => {
+      setGameMode(gameState?.mode || null)
+      setActivePlayerUsername(gameState?.currentTurnUsername || null)
       setGamePlayers(gameState?.players || [])
       const me = gameState?.players?.find((p) => p.username === username)
       if (me) {
@@ -162,13 +174,17 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       }
 
       if (isMultiplayer) {
-        const others = (gameState?.players || [])
-          .filter((p) => p.username !== username)
-          .map((p) => ({
-            username: p.username,
-            board: p.boardLocked || makeEmptyBoard(),
-          }))
-        setOpponentBoards(others)
+        if (gameState?.mode === 'cooperative') {
+          setOpponentBoards([])
+        } else {
+          const others = (gameState?.players || [])
+            .filter((p) => p.username !== username)
+            .map((p) => ({
+              username: p.username,
+              board: p.boardLocked || makeEmptyBoard(),
+            }))
+          setOpponentBoards(others)
+        }
       }
     }
 
@@ -240,7 +256,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       stopSoftDrop()
       stopHorizontalAutoMove()
     }
-  }, [isPaused, isMultiplayer, roomId, username])
+  }, [isPaused, isMultiplayer, roomId, username, gameMode, activePlayerUsername, isEliminated])
 
   useEffect(() => {
     if (isPaused) {
@@ -276,6 +292,13 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
 
     return { grid: preview, width, height }
   }, [nextType])
+
+  const cooperativeTurnLabel =
+    isMultiplayer && gameMode === 'cooperative'
+      ? activePlayerUsername
+        ? `Playing: ${activePlayerUsername}`
+        : 'Playing: ...'
+      : null
 
   if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
     return (
@@ -325,6 +348,9 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
             >
               Options
             </button>
+            {cooperativeTurnLabel && (
+              <div className="turn-indicator">{cooperativeTurnLabel}</div>
+            )}
           </div>
           <div className="game-stats">
             <div className="stat">

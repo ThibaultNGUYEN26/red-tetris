@@ -299,16 +299,16 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
 
                 <div className="room-players">
                   <span className="player-count">
-                    {room.player_count}/{room.maxPlayers || 6}
+                    {room.player_count}/{room.maxPlayers || 2}
                   </span>
                 </div>
 
                 <button
                   className="join-button"
-                  disabled={room.player_count >= 6 || isInRoom}
+                  disabled={room.player_count >= (room.maxPlayers || 2) || isInRoom}
                   onClick={() => joinRoom(room.id)}
                 >
-                  {isInRoom ? 'Joined' : room.player_count >= 6 ? 'Full' : 'Join'}
+                  {isInRoom ? 'Joined' : room.player_count >= (room.maxPlayers || 2) ? 'Full' : 'Join'}
                 </button>
               </div>
             )
