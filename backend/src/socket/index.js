@@ -1,8 +1,15 @@
 import { pool } from "../config/db.js";
 import { createGame, getGame, removeGame } from "../game/gameManager.js";
 
-function getMaxPlayers() {
-  return 2;
+function getMaxPlayers(gameMode = "classic") {
+  switch (gameMode) {
+    case "cooperative":
+      return 2;
+    case "classic":
+    case "speed":
+    default:
+      return 6;
+  }
 }
 
 export async function broadcastAvailableRooms(io) {
@@ -368,14 +375,9 @@ export default function setupSockets(io) {
         return;
       }
 
-      // Remove player from Game instance
+      // Remove player from Game instance (skip in-game logic if already over)
       const game = getGame(roomId);
-      if (game) {
-        if (game.isOver) {
-          socket.leave(String(roomId));
-          if (ack) ack({ ok: true });
-          return;
-        }
+      if (game && !game.isOver) {
         const player = game.getPlayer(effectiveUsername);
         if (player) {
           player.isAlive = false;
@@ -390,8 +392,7 @@ export default function setupSockets(io) {
           if (game.onGameOver) {
             await game.onGameOver(summary);
           }
-        }
-        else {
+        } else {
           console.log("Game not over after player left. Broadcasting updated game state.");
         }
       }
@@ -399,7 +400,7 @@ export default function setupSockets(io) {
       // Leave socket room
       socket.leave(String(roomId));
 
-      // Optionally update DB but avoid constraints for host mid-game
+      // Always update DB membership so users can create new rooms after game over
       await removePlayerFromGame(roomId, effectiveUsername);
 
       // Broadcast updated room state (including new host if changed)

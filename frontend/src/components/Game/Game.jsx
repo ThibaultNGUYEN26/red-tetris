@@ -296,12 +296,16 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
     return { grid: preview, width, height }
   }, [nextType])
 
-  const cooperativeTurnLabel =
-    isMultiplayer && gameMode === 'cooperative'
-      ? activePlayerUsername
+  const isCooperativeMode = isMultiplayer && gameMode === 'cooperative'
+  const isYourTurn =
+    isCooperativeMode && activePlayerUsername && activePlayerUsername === username
+  const cooperativeTurnLabel = isCooperativeMode
+    ? isYourTurn
+      ? 'YOUR TURN'
+      : activePlayerUsername
         ? `Playing: ${activePlayerUsername}`
         : 'Playing: ...'
-      : null
+    : null
 
   if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
     return (
@@ -324,6 +328,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
           isEliminated={isEliminated}
           isGameOver={isGameOver}
           isMultiplayer={isMultiplayer}
+          gameMode={gameMode}
           username={username}
           onBack={onBack}
           onPlayAgain={onPlayAgain}
@@ -338,22 +343,28 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
         />
         <div className="game-header">
           <div className="game-title">
-            <button
-              className="game-options"
-              onClick={() => {
-                if (isMultiplayer) {
-                  setShowMenu(true)
-                  return
-                }
-                setIsPaused(true)
-              }}
-              disabled={isPaused}
-            >
-              Options
-            </button>
-            {cooperativeTurnLabel && (
-              <div className="turn-indicator">{cooperativeTurnLabel}</div>
-            )}
+            <div className="game-options-stack">
+              <button
+                className="game-options"
+                onClick={() => {
+                  if (isMultiplayer) {
+                    setShowMenu(true)
+                    return
+                  }
+                  setIsPaused(true)
+                }}
+                disabled={isPaused}
+              >
+                Options
+              </button>
+              {cooperativeTurnLabel && (
+                <div
+                  className={`turn-indicator${isYourTurn ? ' is-your-turn' : ''}`}
+                >
+                  {cooperativeTurnLabel}
+                </div>
+              )}
+            </div>
           </div>
           <div className="game-stats">
             <div className="stat">

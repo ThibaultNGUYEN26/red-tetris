@@ -19,6 +19,11 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
 
   const hasJoinedRef = useRef(false)
 
+  const getRoomMaxPlayers = (room) => {
+    const gameMode = room?.game_mode || 'classic'
+    return gameMode === 'cooperative' ? 2 : 6
+  }
+
   /* ---------------- SOCKET: AVAILABLE ROOMS ---------------- */
 
   useEffect(() => {
@@ -299,16 +304,16 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
 
                 <div className="room-players">
                   <span className="player-count">
-                    {room.player_count}/{room.maxPlayers || 2}
+                    {room.player_count}/{room.maxPlayers || getRoomMaxPlayers(room)}
                   </span>
                 </div>
 
                 <button
                   className="join-button"
-                  disabled={room.player_count >= (room.maxPlayers || 2) || isInRoom}
+                    disabled={room.player_count >= (room.maxPlayers || getRoomMaxPlayers(room)) || isInRoom}
                   onClick={() => joinRoom(room.id)}
                 >
-                  {isInRoom ? 'Joined' : room.player_count >= (room.maxPlayers || 2) ? 'Full' : 'Join'}
+                    {isInRoom ? 'Joined' : room.player_count >= (room.maxPlayers || getRoomMaxPlayers(room)) ? 'Full' : 'Join'}
                 </button>
               </div>
             )

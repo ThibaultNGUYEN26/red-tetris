@@ -43,8 +43,8 @@ function CreateRoom({
 
   // Define available game modes
   const availableGameModes = [
-    { value: 'classic', label: 'Classic', maxPlayers: 2 },
-    { value: 'speed', label: 'Speed', maxPlayers: 2 },
+    { value: 'classic', label: 'Classic', maxPlayers: 6 },
+    { value: 'speed', label: 'Speed', maxPlayers: 6 },
     { value: 'cooperative', label: 'Cooperative', maxPlayers: 2 }
   ]
 

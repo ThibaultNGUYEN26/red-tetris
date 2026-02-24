@@ -1,9 +1,20 @@
 import './GameOver.css'
 
-function GameOver({ winner, isEliminated, isGameOver, onBack, onPlayAgain, onSpectate, username }) {
+function GameOver({
+  winner,
+  isEliminated,
+  isGameOver,
+  onBack,
+  onPlayAgain,
+  onSpectate,
+  username,
+  isMultiplayer,
+  gameMode,
+}) {
   if (!winner && !isEliminated && !isGameOver) return null
 
-  const title = winner === username ? 'You won' : 'You lost'
+  const useGenericTitle = !isMultiplayer || gameMode === 'cooperative'
+  const title = useGenericTitle ? 'Game Over' : winner === username ? 'You won' : 'You lost'
   const canSpectate = Boolean(onSpectate && isEliminated && !winner && !isGameOver)
   const showPlayAgain = Boolean(onPlayAgain && isGameOver)
 
