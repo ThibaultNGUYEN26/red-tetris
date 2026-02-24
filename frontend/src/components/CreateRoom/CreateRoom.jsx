@@ -43,8 +43,8 @@ function CreateRoom({
 
   // Define available game modes
   const availableGameModes = [
-    { value: 'classic', label: 'Classic', maxPlayers: 6 },
-    { value: 'speed', label: 'Speed', maxPlayers: 6 },
+    { value: 'classic', label: 'Classic', maxPlayers: 2 },
+    { value: 'speed', label: 'Speed', maxPlayers: 2 },
     { value: 'cooperative', label: 'Cooperative', maxPlayers: 2 }
   ]
 
@@ -338,7 +338,7 @@ function CreateRoom({
 
         {/* Players */}
         <div className="players-section">
-          <h3>Players ({players.length}/{availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 6})</h3>
+          <h3>Players ({players.length}/{availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2})</h3>
 
           <div className="players-list">
             {players.map((player) => (
@@ -351,7 +351,7 @@ function CreateRoom({
               </div>
             ))}
 
-            {players.length < (availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 6) && (
+            {players.length < (availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2) && (
               <div className="player-item waiting">
                 {/* Animated waiting text */}
                 {Array.from('Waiting for players...').map((char, i) => (
@@ -365,7 +365,7 @@ function CreateRoom({
         <button
           className="start-button"
           onClick={handleStartGame}
-          disabled={players.length < 2 || (hostName && hostName !== username)}
+          disabled={players.length !== 2 || (hostName && hostName !== username)}
         >
           🎮 Start Game
         </button>

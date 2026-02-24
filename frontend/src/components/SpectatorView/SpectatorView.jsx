@@ -1,6 +1,7 @@
 import '../Game/Game.css'
 import './SpectatorView.css'
 import { useEffect, useMemo, useState } from 'react'
+import ShadowBoards from '../ShadowBoards/ShadowBoards'
 
 function SpectatorView({ players, onBack, username }) {
   const [index, setIndex] = useState(0)
@@ -12,6 +13,12 @@ function SpectatorView({ players, onBack, username }) {
   const current = list[safeIndex]
 
   const board = current?.board || []
+  const opponentBoards = list
+    .filter((player) => player?.username && player.username !== current?.username)
+    .map((player) => ({
+      username: player.username,
+      board: player.boardLocked || player.board || [],
+    }))
 
   const nextPreview = useMemo(() => {
     const nextType = current?.nextType
@@ -78,26 +85,28 @@ function SpectatorView({ players, onBack, username }) {
     <>
       <div className="game-header">
         <div className="game-title">
-          <div className="spectator-title">
-            Spectating <span className="spectator-name">{current.username}</span>
-          </div>
-          <div className="spectator-controls">
-            <button
-              className="spectator-btn spectator-btn-prev"
-              onClick={() => setIndex((prev) => (prev <= 0 ? list.length - 1 : prev - 1))}
-              disabled={list.length <= 1}
-            >
-              <span className="spectator-btn-icon">←</span>
-              Prev
-            </button>
-            <button
-              className="spectator-btn spectator-btn-next"
-              onClick={() => setIndex((prev) => (prev + 1) % list.length)}
-              disabled={list.length <= 1}
-            >
-              Next
-              <span className="spectator-btn-icon">→</span>
-            </button>
+          <div className="spectator-info">
+            <div className="spectator-title">
+              Spectating <span className="spectator-name">{current.username}</span>
+            </div>
+            <div className="spectator-controls">
+              <button
+                className="spectator-btn spectator-btn-prev"
+                onClick={() => setIndex((prev) => (prev <= 0 ? list.length - 1 : prev - 1))}
+                disabled={list.length <= 1}
+              >
+                <span className="spectator-btn-icon">←</span>
+                Prev
+              </button>
+              <button
+                className="spectator-btn spectator-btn-next"
+                onClick={() => setIndex((prev) => (prev + 1) % list.length)}
+                disabled={list.length <= 1}
+              >
+                Next
+                <span className="spectator-btn-icon">→</span>
+              </button>
+            </div>
           </div>
         </div>
         <div className="game-stats">
@@ -149,6 +158,7 @@ function SpectatorView({ players, onBack, username }) {
               )}
             </div>
           </div>
+          <ShadowBoards boards={opponentBoards} />
         </div>
       </div>
 

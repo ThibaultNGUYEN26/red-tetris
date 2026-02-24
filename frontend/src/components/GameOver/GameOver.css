@@ -40,14 +40,21 @@
   justify-items: stretch;
 }
 
-.game-over-actions .resume-button,
-.game-over-actions .back-button {
-  min-width: 180px;
+.game-over-primary-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-@media (min-width: 520px) {
-  .game-over-actions {
-    grid-auto-flow: column;
-    justify-content: center;
-  }
+.game-over-actions .resume-button,
+.game-over-actions .back-button {
+  min-width: 160px;
+}
+
+.game-over-actions .resume-button {
+  width: 100%;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
 }

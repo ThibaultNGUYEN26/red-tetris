@@ -12,7 +12,8 @@ router.get("/player/stats", async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT username, avatar, solo_games_played, highest_solo_score
+      `SELECT username, avatar, solo_games_played, highest_solo_score,
+              multiplayer_games_played, multiplayer_wins, multiplayer_losses
        FROM users
        WHERE username = $1`,
       [username]
@@ -28,9 +29,9 @@ router.get("/player/stats", async (req, res) => {
       avatar: row.avatar,
       soloGames: row.solo_games_played ?? 0,
       soloTopScore: row.highest_solo_score ?? 0,
-      multiGames: 0,
-      wins: 0,
-      losses: 0,
+      multiGames: row.multiplayer_games_played ?? 0,
+      wins: row.multiplayer_wins ?? 0,
+      losses: row.multiplayer_losses ?? 0,
     });
   } catch (err) {
     console.error("Fetch player stats failed:", err);
@@ -41,10 +42,10 @@ router.get("/player/stats", async (req, res) => {
 router.get("/leaderboard/solo", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT username, avatar, highest_solo_score
-       FROM users
-       WHERE highest_solo_score > 0
-       ORDER BY highest_solo_score DESC, id ASC
+      `SELECT s.username, u.avatar, s.score
+       FROM solo_scores s
+       JOIN users u ON u.username = s.username
+       ORDER BY s.score DESC, s.id ASC
        LIMIT 10`
     );
 
@@ -52,7 +53,7 @@ router.get("/leaderboard/solo", async (req, res) => {
       rank: index + 1,
       name: row.username,
       avatar: row.avatar,
-      score: row.highest_solo_score ?? 0,
+      score: row.score ?? 0,
     }));
 
     res.status(200).json(leaderboard);
@@ -75,8 +76,16 @@ router.post("/profile", async (req, res) => {
     }
 
     const query = `
-      INSERT INTO users (username, avatar, solo_games_played, highest_solo_score)
-      VALUES ($1, $2, 0, 0)
+      INSERT INTO users (
+        username,
+        avatar,
+        solo_games_played,
+        highest_solo_score,
+        multiplayer_games_played,
+        multiplayer_wins,
+        multiplayer_losses
+      )
+      VALUES ($1, $2, 0, 0, 0, 0, 0)
       ON CONFLICT (username)
       DO UPDATE SET avatar = EXCLUDED.avatar
       RETURNING id, username, avatar;

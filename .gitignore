@@ -6,7 +6,6 @@ node_modules/
 **/.vite/
 package-lock.json
 package.json
-frontend/vite.config.js
 
 ############################
 # Logs

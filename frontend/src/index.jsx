@@ -40,6 +40,13 @@ function Index() {
     }
   }, [username])
 
+  useEffect(() => {
+    const storedTheme = localStorage.getItem('theme')
+    if (storedTheme === 'dark' || storedTheme === 'light') {
+      setTheme(storedTheme)
+    }
+  }, [])
+
   /* ---------------- PROFILE ---------------- */
 
   const handleUsernameSubmit = (profileOrUsername, avatar) => {
@@ -60,7 +67,10 @@ function Index() {
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }
 
-  const handleThemeChange = (newTheme) => setTheme(newTheme)
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme)
+    localStorage.setItem('theme', newTheme)
+  }
 
   const handleReturnToProfile = () => {
     setUsername(null)
@@ -86,7 +96,7 @@ function Index() {
     if (soloRoomId && username) {
       try {
         await new Promise((resolve) => {
-          socket.emit('leaveRoom', { roomId: String(soloRoomId), username }, () => {
+          socket.emit('leaveGame', { roomId: String(soloRoomId), username }, () => {
             resolve()
           })
         })

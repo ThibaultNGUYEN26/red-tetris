@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict VgEijbSw8EjSlyAjR7CLq7e3Lh75dOpWC7Qn3wZO92aS6eqEiDu9TZwoTnghlAg
+\restrict aCqH8zspAlB72YSruKfCXypI2c0twMLTfyfvSkkqYlFiTJIUCq6dtuMS1hrkxQw
 
--- Dumped from database version 15.16 (Debian 15.16-1.pgdg13+1)
--- Dumped by pg_dump version 15.16 (Debian 15.16-1.pgdg13+1)
+-- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
+-- Dumped by pg_dump version 15.15 (Debian 15.15-1.pgdg13+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -63,6 +63,42 @@ ALTER SEQUENCE public.rooms_id_seq OWNED BY public.rooms.id;
 
 
 --
+-- Name: solo_scores; Type: TABLE; Schema: public; Owner: riri
+--
+
+CREATE TABLE public.solo_scores (
+    id integer NOT NULL,
+    username character varying(50) NOT NULL,
+    score integer NOT NULL,
+    created_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.solo_scores OWNER TO riri;
+
+--
+-- Name: solo_scores_id_seq; Type: SEQUENCE; Schema: public; Owner: riri
+--
+
+CREATE SEQUENCE public.solo_scores_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.solo_scores_id_seq OWNER TO riri;
+
+--
+-- Name: solo_scores_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: riri
+--
+
+ALTER SEQUENCE public.solo_scores_id_seq OWNED BY public.solo_scores.id;
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: riri
 --
 
@@ -71,7 +107,10 @@ CREATE TABLE public.users (
     username character varying(100) NOT NULL,
     avatar jsonb NOT NULL,
     solo_games_played integer DEFAULT 0 NOT NULL,
-    highest_solo_score integer DEFAULT 0 NOT NULL
+    highest_solo_score integer DEFAULT 0 NOT NULL,
+    multiplayer_games_played integer DEFAULT 0 NOT NULL,
+    multiplayer_wins integer DEFAULT 0 NOT NULL,
+    multiplayer_losses integer DEFAULT 0 NOT NULL
 );
 
 
@@ -107,6 +146,13 @@ ALTER TABLE ONLY public.rooms ALTER COLUMN id SET DEFAULT nextval('public.rooms_
 
 
 --
+-- Name: solo_scores id; Type: DEFAULT; Schema: public; Owner: riri
+--
+
+ALTER TABLE ONLY public.solo_scores ALTER COLUMN id SET DEFAULT nextval('public.solo_scores_id_seq'::regclass);
+
+
+--
 -- Name: users id; Type: DEFAULT; Schema: public; Owner: riri
 --
 
@@ -118,6 +164,15 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 COPY public.rooms (id, name, game_mode, host, player_count, players, status, created_at) FROM stdin;
+18	RedGame-YO6K	classic	Titi	1	["Titi"]	waiting	2026-02-20 13:24:55.71817
+\.
+
+
+--
+-- Data for Name: solo_scores; Type: TABLE DATA; Schema: public; Owner: riri
+--
+
+COPY public.solo_scores (id, username, score, created_at) FROM stdin;
 \.
 
 
@@ -125,7 +180,7 @@ COPY public.rooms (id, name, game_mode, host, player_count, players, status, cre
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: riri
 --
 
-COPY public.users (id, username, avatar, solo_games_played, highest_solo_score) FROM stdin;
+COPY public.users (id, username, avatar, solo_games_played, highest_solo_score, multiplayer_games_played, multiplayer_wins, multiplayer_losses) FROM stdin;
 \.
 
 
@@ -134,6 +189,13 @@ COPY public.users (id, username, avatar, solo_games_played, highest_solo_score) 
 --
 
 SELECT pg_catalog.setval('public.rooms_id_seq', 17, true);
+
+
+--
+-- Name: solo_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
+--
+
+SELECT pg_catalog.setval('public.solo_scores_id_seq', 1, false);
 
 
 --
@@ -160,6 +222,14 @@ ALTER TABLE ONLY public.rooms
 
 
 --
+-- Name: solo_scores solo_scores_pkey; Type: CONSTRAINT; Schema: public; Owner: riri
+--
+
+ALTER TABLE ONLY public.solo_scores
+    ADD CONSTRAINT solo_scores_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: riri
 --
 
@@ -179,5 +249,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict VgEijbSw8EjSlyAjR7CLq7e3Lh75dOpWC7Qn3wZO92aS6eqEiDu9TZwoTnghlAg
+\unrestrict aCqH8zspAlB72YSruKfCXypI2c0twMLTfyfvSkkqYlFiTJIUCq6dtuMS1hrkxQw
 

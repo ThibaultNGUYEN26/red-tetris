@@ -1,0 +1,17 @@
+[FIX]
+URL joining game
+Multiple connection on the same user
+Leave room issues
+Indestructible lines
+Unittests
+
+[TODO]
+Other game modes
+Sound
+
+[BONUS]
+Scoring system: Done
+Persist player scores: Done
+New game modes: WIP
+Spectator mode: Done
+Stats + Avatar: Done

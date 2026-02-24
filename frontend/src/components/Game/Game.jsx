@@ -14,7 +14,7 @@ const ARR_MS = 60
 
 const SHAPES = {
   i: [
-    [[0, 1], [1, 1], [2, 1], [3, 1]],
+    [[0, 1], [1, 1], [2, 1], [3, 1]], // vertical - match backend rotation 1
   ],
   o: [
     [[0, 1], [0, 2], [1, 1], [1, 2]],
@@ -53,8 +53,10 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
   const [gamePlayers, setGamePlayers] = useState([])
   const [winner, setWinner] = useState(null)
   const [isEliminated, setIsEliminated] = useState(false)
+  const [isGameOver, setIsGameOver] = useState(false)
   const [showSpectator, setShowSpectator] = useState(false)
-  const [suppressGameOver, setSuppressGameOver] = useState(false)
+  const [gameMode, setGameMode] = useState(null)
+  const [activePlayerUsername, setActivePlayerUsername] = useState(null)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
@@ -66,6 +68,14 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
   const emitMove = (action) => {
     if (!action || !roomId || !username) return
     if (isPaused || isEliminated) return
+    if (
+      isMultiplayer &&
+      gameMode === 'cooperative' &&
+      activePlayerUsername &&
+      activePlayerUsername !== username
+    ) {
+      return
+    }
     socket.emit('movePiece', { roomId: String(roomId), action })
   }
 
@@ -114,6 +124,21 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
     }, SOFT_DROP_MS)
   }
 
+  const handleLeaveGame = () => {
+    if (!roomId || !username) {
+      onBack?.()
+      return
+    }
+
+    socket.emit(
+      'leaveGame',
+      { roomId: String(roomId), username },
+      () => {
+        onBack?.()
+      }
+    )
+  }
+
   useEffect(() => {
     if (joinedRef.current) return
     joinedRef.current = true
@@ -126,11 +151,13 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       setWinner(null)
       setIsEliminated(false)
       setShowSpectator(false)
-      setSuppressGameOver(false)
-      exitingRef.current = false
+      setIsGameOver(false)
+      setActivePlayerUsername(null)
     }
 
     const handleGameState = (gameState) => {
+      setGameMode(gameState?.mode || null)
+      setActivePlayerUsername(gameState?.currentTurnUsername || null)
       setGamePlayers(gameState?.players || [])
       const me = gameState?.players?.find((p) => p.username === username)
       const isLeavingSolo = !isMultiplayer && exitingRef.current
@@ -149,13 +176,17 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       }
 
       if (isMultiplayer) {
-        const others = (gameState?.players || [])
-          .filter((p) => p.username !== username)
-          .map((p) => ({
-            username: p.username,
-            board: p.boardLocked || makeEmptyBoard(),
-          }))
-        setOpponentBoards(others)
+        if (gameState?.mode === 'cooperative') {
+          setOpponentBoards([])
+        } else {
+          const others = (gameState?.players || [])
+            .filter((p) => p.username !== username)
+            .map((p) => ({
+              username: p.username,
+              board: p.boardLocked || makeEmptyBoard(),
+            }))
+          setOpponentBoards(others)
+        }
       }
     }
 
@@ -164,6 +195,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       console.log('Game over! Winner:', winner)
       setWinner(winner || null)
       setIsEliminated(true)
+      setIsGameOver(true)
     }
 
     socket.on('gameStarted', handleGameStarted)
@@ -227,11 +259,14 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       stopSoftDrop()
       stopHorizontalAutoMove()
     }
-  }, [isPaused, isMultiplayer, roomId, username])
+  }, [isPaused, isMultiplayer, roomId, username, gameMode, activePlayerUsername, isEliminated])
 
   useEffect(() => {
     if (isPaused) {
       stopSoftDrop()
+    }
+    if (!isMultiplayer && roomId) {
+      socket.emit('pauseGame', { roomId: String(roomId), paused: isPaused })
     }
   }, [isPaused])
 
@@ -261,7 +296,14 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
     return { grid: preview, width, height }
   }, [nextType])
 
-  if (isMultiplayer && isEliminated && !winner && showSpectator) {
+  const cooperativeTurnLabel =
+    isMultiplayer && gameMode === 'cooperative'
+      ? activePlayerUsername
+        ? `Playing: ${activePlayerUsername}`
+        : 'Playing: ...'
+      : null
+
+  if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
     return (
       <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
         <TetriminosClouds />
@@ -279,13 +321,14 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       <div className="game-card">
         <GameOver
           winner={winner}
-          isEliminated={isEliminated && !suppressGameOver}
+          isEliminated={isEliminated}
+          isGameOver={isGameOver}
           isMultiplayer={isMultiplayer}
           username={username}
           onBack={onBack}
           onPlayAgain={onPlayAgain}
           onSpectate={
-            isMultiplayer && isEliminated && !winner
+            isMultiplayer && isEliminated && !winner && !isGameOver
               ? () => {
                   setShowSpectator(true)
                   onSpectate?.()
@@ -308,6 +351,9 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
             >
               Options
             </button>
+            {cooperativeTurnLabel && (
+              <div className="turn-indicator">{cooperativeTurnLabel}</div>
+            )}
           </div>
           <div className="game-stats">
             <div className="stat">
@@ -373,15 +419,8 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
                 >
                   Resume
                 </button>
-                <button
-                  className="back-button"
-                  onClick={() => {
-                    setSuppressGameOver(true)
-                    exitingRef.current = true
-                    onBack()
-                  }}
-                >
-                  Back to menu
+                <button className="back-button" onClick={handleLeaveGame}>
+                  Leave game
                 </button>
               </div>
             </div>
@@ -399,7 +438,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
                 >
                   Resume
                 </button>
-                <button className="back-button" onClick={onBack}>
+                <button className="back-button" onClick={handleLeaveGame}>
                   Leave game
                 </button>
               </div>

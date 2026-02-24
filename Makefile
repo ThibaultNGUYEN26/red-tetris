@@ -28,8 +28,6 @@ wait-db:
 	@echo "Postgres is ready !"
 
 down:
-	@echo "Backing up database..."
-	@$(MAKE) update-db
 	@echo "Stopping containers..."
 	docker compose stop
 	@echo "Removing containers (keeping volumes)..."
