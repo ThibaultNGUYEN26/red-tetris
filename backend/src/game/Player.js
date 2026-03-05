@@ -17,6 +17,8 @@ export default class Player {
     this.lines = 0;
     this.level = 1;
 
+    this.pendingPenaltyLines = 0;
+
     this.board = Array.from({ length: 20 }, () =>
       Array(10).fill("empty")
     );

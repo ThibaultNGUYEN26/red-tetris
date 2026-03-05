@@ -576,10 +576,18 @@ export default function setupSockets(io) {
         // Create and store game instance
         const gameMode = room.game_mode || "classic";
         const maxPlayers = getMaxPlayers(gameMode);
-        const isSoloStart = room.players.length === 1;
-        if (!isSoloStart && room.players.length !== maxPlayers) {
+        const playerCount = room.players.length;
+        const isSoloStart = playerCount === 1;
+        const isCoop = gameMode === "cooperative";
+        const canStart =
+          isSoloStart ||
+          (isCoop ? playerCount === 2 : playerCount >= 2 && playerCount <= maxPlayers);
+
+        if (!canStart) {
           socket.emit("error", {
-            message: `This room requires exactly ${maxPlayers} players to start.`,
+            message: isCoop
+              ? "Cooperative mode requires exactly 2 players to start."
+              : `This room requires between 2 and ${maxPlayers} players to start.`,
           });
           return;
         }

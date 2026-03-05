@@ -244,6 +244,7 @@ function CreateRoom({
 
   const handleStartGame = async () => {
     if (players.length < 2) return
+    if (selectedMode === 'cooperative' && players.length !== 2) return
     if (hostName && hostName !== username) return
     if (hasStartedGame.current) return // Prevent duplicate submissions
 
@@ -365,7 +366,11 @@ function CreateRoom({
         <button
           className="start-button"
           onClick={handleStartGame}
-          disabled={players.length !== 2 || (hostName && hostName !== username)}
+          disabled={
+            players.length < 2 ||
+            (selectedMode === 'cooperative' && players.length !== 2) ||
+            (hostName && hostName !== username)
+          }
         >
           🎮 Start Game
         </button>

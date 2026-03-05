@@ -125,6 +125,7 @@ export default class Game {
     player.inputQueue = [];
     player.sequenceIndex = 0;
     player.dropAccumulator = 0;
+    player.pendingPenaltyLines = 0;
   }
 
   start() {
@@ -288,8 +289,18 @@ export default class Game {
       }
     }
 
-    const remaining = player.board.filter((row) => row.some((cell) => cell === "empty"));
-    const cleared = BOARD_HEIGHT - remaining.length;
+    let cleared = 0;
+    const remaining = [];
+    for (const row of player.board) {
+      const hasEmpty = row.some((cell) => cell === "empty");
+      const hasBlack = row.some((cell) => cell === "black");
+      // Only clear fully-filled rows that are not indestructible
+      if (!hasEmpty && !hasBlack) {
+        cleared += 1;
+      } else {
+        remaining.push(row);
+      }
+    }
     if (cleared > 0) {
       const newRows = Array.from({ length: cleared }, () =>
         Array(BOARD_WIDTH).fill("empty")
@@ -306,6 +317,26 @@ export default class Game {
       player.score += scoreDelta;
       player.lines += cleared;
       player.level = 1 + Math.floor(player.lines / LINES_PER_LEVEL);
+    }
+
+    // In multiplayer mode, queue penalty lines (n-1) for other alive players
+    if (this.mode_player === "multi" && cleared > 1) {
+      const penaltyLines = cleared - 1;
+      this.players.forEach(otherPlayer => {
+        if (otherPlayer.username !== player.username && otherPlayer.isAlive) {
+          otherPlayer.pendingPenaltyLines += penaltyLines;
+        }
+      });
+    }
+
+    // Apply pending penalties only after the player locks a piece
+    if (this.mode_player === "multi" && player.pendingPenaltyLines > 0) {
+      const penaltyLines = player.pendingPenaltyLines;
+      const penaltyRows = Array.from({ length: penaltyLines }, () =>
+        Array(BOARD_WIDTH).fill("black")
+      );
+      player.board = [...player.board.slice(penaltyLines), ...penaltyRows];
+      player.pendingPenaltyLines = 0;
     }
 
     player.sequenceIndex += 1;
