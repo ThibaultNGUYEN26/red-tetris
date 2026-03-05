@@ -73,6 +73,9 @@ function Index() {
   }
 
   const handleReturnToProfile = () => {
+    if (username) {
+      socket.emit('unregisterUser', { username })
+    }
     setUsername(null)
     setShowRooms(false)
     setShowGame(false)

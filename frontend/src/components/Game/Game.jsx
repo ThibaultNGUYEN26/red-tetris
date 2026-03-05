@@ -215,6 +215,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.repeat) return
+      const isMirrorMode = gameMode === 'speed'
       if (event.key === 'Escape' && !isMultiplayer) {
         setIsPaused(true)
         stopSoftDrop()
@@ -226,26 +227,36 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       }
 
       if (event.key === 'ArrowLeft') {
-        startHorizontalAutoMove(-1)
+        startHorizontalAutoMove(isMirrorMode ? 1 : -1)
       } else if (event.key === 'ArrowRight') {
-        startHorizontalAutoMove(1)
+        startHorizontalAutoMove(isMirrorMode ? -1 : 1)
       } else if (event.key === 'ArrowDown') {
-        startSoftDrop()
-        emitMove('drop')
+        if (isMirrorMode) {
+          emitMove('hardDrop')
+        } else {
+          startSoftDrop()
+          emitMove('drop')
+        }
       } else if (event.key === 'ArrowUp') {
         emitMove('rotate')
       } else if (event.key === ' ') {
-        emitMove('hardDrop')
+        if (isMirrorMode) {
+          startSoftDrop()
+          emitMove('drop')
+        } else {
+          emitMove('hardDrop')
+        }
       }
     }
 
     const handleKeyUp = (event) => {
-      if (event.key === 'ArrowDown') {
+      const isMirrorMode = gameMode === 'speed'
+      if ((!isMirrorMode && event.key === 'ArrowDown') || (isMirrorMode && event.key === ' ')) {
         stopSoftDrop()
       }
       if (
-        (event.key === 'ArrowLeft' && heldDirectionRef.current === -1) ||
-        (event.key === 'ArrowRight' && heldDirectionRef.current === 1)
+        (event.key === 'ArrowLeft' && heldDirectionRef.current === (isMirrorMode ? 1 : -1)) ||
+        (event.key === 'ArrowRight' && heldDirectionRef.current === (isMirrorMode ? -1 : 1))
       ) {
         stopHorizontalAutoMove()
       }

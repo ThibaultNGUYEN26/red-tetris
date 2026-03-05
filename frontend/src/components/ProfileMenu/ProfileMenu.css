@@ -300,6 +300,15 @@
   font-weight: 500;
 }
 
+.username-error {
+  color: #c0392b;
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0.4rem 0 0;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+}
+
 .character-count {
   color: #2a5298;
   font-size: 0.875rem;
@@ -387,6 +396,11 @@
   box-shadow:
     0 6px 16px rgba(100, 100, 200, 0.3),
     0 0 25px rgba(100, 150, 255, 0.5);
+}
+
+.username-card.dark .username-error {
+  color: #ff9c9c;
+  text-shadow: 0 0 6px rgba(255, 120, 120, 0.4);
 }
 
 .username-card.dark .character-count {

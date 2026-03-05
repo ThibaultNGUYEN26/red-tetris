@@ -1,6 +1,32 @@
 import { pool } from "../config/db.js";
 import { createGame, getGame, removeGame } from "../game/gameManager.js";
 
+const activeUsers = new Map();
+
+const registerUsername = (username, socket) => {
+  if (!username) {
+    return { ok: false, error: "Missing username" };
+  }
+  if (socket.data.username && socket.data.username !== username) {
+    unregisterUsername(socket.data.username, socket);
+  }
+  const existing = activeUsers.get(username);
+  if (existing && existing !== socket.id) {
+    return { ok: false, error: "Username already connected" };
+  }
+  activeUsers.set(username, socket.id);
+  socket.data.username = username;
+  return { ok: true };
+};
+
+const unregisterUsername = (username, socket) => {
+  if (!username) return;
+  const existing = activeUsers.get(username);
+  if (existing === socket.id) {
+    activeUsers.delete(username);
+  }
+};
+
 function getMaxPlayers(gameMode = "classic") {
   switch (gameMode) {
     case "cooperative":
@@ -268,6 +294,22 @@ export default function setupSockets(io) {
       }
     });
 
+    // Register user (ensure username is unique per active connection)
+    socket.on("registerUser", ({ username }, callback) => {
+      const ack = typeof callback === "function" ? callback : null;
+      const result = registerUsername(username, socket);
+      if (!result.ok) {
+        socket.emit("usernameTaken", { username });
+      }
+      if (ack) ack(result);
+    });
+
+    socket.on("unregisterUser", ({ username }, callback) => {
+      const ack = typeof callback === "function" ? callback : null;
+      unregisterUsername(username, socket);
+      if (ack) ack({ ok: true });
+    });
+
     // Joining room Socket
     socket.on("joinRoom", async ({ roomId, username }, callback) => {
       const ack = typeof callback === "function" ? callback : null;
@@ -277,9 +319,15 @@ export default function setupSockets(io) {
       }
 
       try {
+        const reg = registerUsername(username, socket);
+        if (!reg.ok) {
+          if (ack) ack(reg);
+          socket.emit("error", { message: reg.error });
+          return;
+        }
+
         socket.join(String(roomId));
         socket.data.roomId = String(roomId);
-        socket.data.username = username;
 
         // Fetch current room state
         const result = await pool.query(
@@ -334,6 +382,13 @@ export default function setupSockets(io) {
       const ack = typeof callback === "function" ? callback : null;
       if (!roomId || !username) {
         if (ack) ack({ ok: false, error: "Missing roomId or username" });
+        return;
+      }
+
+      const reg = registerUsername(username, socket);
+      if (!reg.ok) {
+        if (ack) ack(reg);
+        socket.emit("error", { message: reg.error });
         return;
       }
 
@@ -655,6 +710,7 @@ export default function setupSockets(io) {
 
     // Socket disconnection
     socket.on("disconnect", () => {
+      unregisterUsername(socket.data.username, socket);
       if (!socket.data.isSpectator) {
         removePlayerFromGame(socket.data.roomId, socket.data.username);
         broadcastAvailableRooms(io);

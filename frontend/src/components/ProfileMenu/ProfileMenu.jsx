@@ -1,11 +1,13 @@
 import './ProfileMenu.css'
 import { useState, useEffect, useRef } from 'react'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
+import { socket } from '../../socket'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 function ProfileMenu({ onSubmit, theme }) {
   const [username, setUsername] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
   const inputRef = useRef(null)
 
   // Available options - Tetris piece colors
@@ -50,6 +52,7 @@ function ProfileMenu({ onSubmit, theme }) {
 
   const handleSubmit = async () => {
     if (username.trim().length > 0) {
+      setErrorMessage('')
       const profileData = {
         username: username.trim(),
         avatar: {
@@ -81,11 +84,48 @@ function ProfileMenu({ onSubmit, theme }) {
           avatar: data.avatar || profileData.avatar,
           ...data
         }
+        const regResult = await new Promise((resolve) => {
+          if (!socket?.emit) {
+            resolve({ ok: true })
+            return
+          }
+          socket.timeout(2000).emit('registerUser', { username: safeData.username }, (err, res) => {
+            if (err) {
+              resolve({ ok: false, error: 'Server not responding' })
+              return
+            }
+            resolve(res || { ok: false, error: 'Unknown error' })
+          })
+        })
+
+        if (!regResult?.ok) {
+          setErrorMessage(regResult?.error || 'Username already connected')
+          return
+        }
+
         onSubmit(safeData)
       } catch (error) {
         console.error('Failed to send profile to backend:', error.message)
         console.log('This is expected since backend is not running yet')
         // fallback: pass local data
+        const regResult = await new Promise((resolve) => {
+          if (!socket?.emit) {
+            resolve({ ok: true })
+            return
+          }
+          socket.timeout(2000).emit('registerUser', { username }, (err, res) => {
+            if (err) {
+              resolve({ ok: false, error: 'Server not responding' })
+              return
+            }
+            resolve(res || { ok: false, error: 'Unknown error' })
+          })
+        })
+        if (!regResult?.ok) {
+          setErrorMessage(regResult?.error || 'Username already connected')
+          return
+        }
+
         onSubmit({ username, avatar: profileData.avatar })
       }
     }
@@ -178,6 +218,7 @@ function ProfileMenu({ onSubmit, theme }) {
         maxLength={15}
         className="username-input"
       />
+      {errorMessage && <p className="username-error">{errorMessage}</p>}
       <p className="character-count">{username.length}/15</p>
       <button
         className="submit-button"
