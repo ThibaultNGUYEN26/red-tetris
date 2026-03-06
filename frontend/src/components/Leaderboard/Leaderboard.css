@@ -204,6 +204,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
 }
 
 .leaderboard.dark .rank {
@@ -404,5 +407,76 @@
 @media (max-width: 768px) {
   .leaderboard {
     display: none;
+  }
+}
+
+@media (max-width: 1280px), (max-height: 820px) {
+  .leaderboard {
+    width: 260px;
+    padding: 12px;
+    max-height: 92vh;
+  }
+
+  .leaderboard-title {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  .leaderboard-entry {
+    grid-template-columns: 34px 34px 1fr auto;
+    padding: 6px 10px;
+  }
+
+  .rank {
+    font-size: 16px;
+  }
+
+  .name,
+  .score {
+    font-size: 14px;
+  }
+
+  .leaderboard-entry.top-1 .rank,
+  .leaderboard-entry.top-2 .rank,
+  .leaderboard-entry.top-3 .rank {
+    font-size: 18px;
+  }
+
+  .leaderboard-entry.top-1 .score,
+  .leaderboard-entry.top-2 .score,
+  .leaderboard-entry.top-3 .score {
+    font-size: 15px;
+  }
+
+  .leaderboard-pagination {
+    gap: 12px;
+    padding-top: 12px;
+  }
+
+  .pagination-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+  }
+
+  .page-info {
+    font-size: 14px;
+    min-width: 52px;
+  }
+}
+
+@media (max-height: 740px) {
+  .leaderboard {
+    width: 240px;
+    padding: 10px;
+    max-height: 88vh;
+  }
+
+  .leaderboard-title {
+    font-size: 17px;
+  }
+
+  .leaderboard-entry {
+    padding: 6px 8px;
   }
 }

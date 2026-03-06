@@ -39,3 +39,31 @@
     0 0 20px rgba(120, 150, 255, 0.5),
     0 0 40px rgba(120, 150, 255, 0.3);
 }
+
+@media (max-width: 1280px), (max-height: 820px) {
+  .red-tetris-title {
+    top: 1rem;
+    padding: 0.4rem 1.5rem;
+  }
+
+  .red-tetris-title h1 {
+    font-size: clamp(2rem, 6vw, 3.8rem);
+    letter-spacing: 0.08em;
+  }
+}
+
+@media (max-width: 1400px) and (min-height: 700px) {
+  .red-tetris-title {
+    top: 1.6rem;
+  }
+}
+
+@media (max-height: 740px) {
+  .red-tetris-title {
+    top: 0.5rem;
+  }
+
+  .red-tetris-title h1 {
+    font-size: clamp(1.8rem, 5.5vw, 3.2rem);
+  }
+}

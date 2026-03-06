@@ -213,3 +213,51 @@
     display: none;
   }
 }
+
+@media (max-width: 1280px), (max-height: 820px) {
+  .player-stats {
+    width: 260px;
+    padding: 12px;
+  }
+
+  .player-stats-title {
+    font-size: 17px;
+    margin-bottom: 10px;
+  }
+
+  .player-header {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .player-name {
+    font-size: 16px;
+  }
+
+  .stats-grid {
+    gap: 8px;
+  }
+
+  .stat-item {
+    padding: 6px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+  }
+
+  .stat-value {
+    font-size: 14px;
+  }
+}
+
+@media (max-height: 740px) {
+  .player-stats {
+    width: 240px;
+    padding: 10px;
+  }
+
+  .player-stats-title {
+    font-size: 16px;
+  }
+}

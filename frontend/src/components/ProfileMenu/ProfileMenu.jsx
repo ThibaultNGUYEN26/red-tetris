@@ -43,6 +43,19 @@ function ProfileMenu({ onSubmit, theme }) {
     inputRef.current?.focus()
   }, [])
 
+  useEffect(() => {
+    const logScreenSize = () => {
+      console.log('[ProfileMenu] Screen size', {
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
+      })
+    }
+    logScreenSize()
+    window.addEventListener('resize', logScreenSize)
+    return () => window.removeEventListener('resize', logScreenSize)
+  }, [])
+
   const handleUsernameChange = (e) => {
     const value = e.target.value
     if (value.length <= 15) {
