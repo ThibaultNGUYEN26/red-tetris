@@ -63,6 +63,35 @@ router.get("/leaderboard/solo", async (req, res) => {
   }
 });
 
+router.get("/leaderboard/coop", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT c.player_one, u1.avatar AS avatar_one,
+              c.player_two, u2.avatar AS avatar_two,
+              c.score
+       FROM coop_scores c
+       LEFT JOIN users u1 ON u1.username = c.player_one
+       LEFT JOIN users u2 ON u2.username = c.player_two
+       ORDER BY c.score DESC, c.id ASC
+       LIMIT 10`
+    );
+
+    const leaderboard = result.rows.map((row, index) => ({
+      rank: index + 1,
+      players: [
+        { name: row.player_one, avatar: row.avatar_one },
+        { name: row.player_two, avatar: row.avatar_two },
+      ],
+      score: row.score ?? 0,
+    }));
+
+    res.status(200).json(leaderboard);
+  } catch (err) {
+    console.error("Fetch coop leaderboard failed:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.post("/profile", async (req, res) => {
   try {
     const { username, avatar } = req.body;

@@ -659,16 +659,21 @@
     display: grid;
     grid-template-columns: 60px 1fr;
     align-items: center;
-    gap: 0.6rem;
+    gap: 4rem;
   }
 
   .feature-carousel {
-    justify-content: center;
+    display: grid;
+    grid-template-columns: 26px minmax(70px, 1fr) 26px;
+    align-items: center;
+    justify-items: center;
     min-width: 0;
+    gap: 0.5rem;
   }
 
   .feature-name {
     min-width: 70px;
+    text-align: center;
   }
 
   .feature-arrow {

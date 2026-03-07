@@ -78,6 +78,28 @@ export default function setupSockets(io) {
       }));
     };
 
+    const fetchCoopLeaderboard = async () => {
+      const result = await pool.query(
+        `SELECT c.player_one, u1.avatar AS avatar_one,
+                c.player_two, u2.avatar AS avatar_two,
+                c.score
+         FROM coop_scores c
+         LEFT JOIN users u1 ON u1.username = c.player_one
+         LEFT JOIN users u2 ON u2.username = c.player_two
+         ORDER BY c.score DESC, c.id ASC
+         LIMIT 10`
+      );
+
+      return result.rows.map((row, index) => ({
+        rank: index + 1,
+        players: [
+          { name: row.player_one, avatar: row.avatar_one },
+          { name: row.player_two, avatar: row.avatar_two },
+        ],
+        score: row.score ?? 0,
+      }));
+    };
+
     const updateSoloStats = async (game) => {
       if (!game || game.mode_player !== "solo") return;
 
@@ -103,6 +125,40 @@ export default function setupSockets(io) {
 
       const leaderboard = await fetchSoloLeaderboard();
       io.emit("leaderboardSolo", leaderboard);
+    };
+
+    const updateCoopStats = async (game, summary) => {
+      if (!game || game.mode !== "cooperative") return;
+      if (game.statsUpdated) return;
+
+      const players = Array.isArray(game.players) ? game.players : [];
+      if (players.length < 2) return;
+
+      const usernames = players
+        .map((player) => player?.username)
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
+
+      if (usernames.length < 2) return;
+
+      const summaryScores = Array.isArray(summary?.results)
+        ? summary.results.map((result) => result?.score ?? 0)
+        : [];
+      const sharedScore = Math.max(
+        game.getCooperativePlayer?.()?.score ?? 0,
+        ...summaryScores
+      );
+
+      await pool.query(
+        `INSERT INTO coop_scores (player_one, player_two, score)
+         VALUES ($1, $2, $3)`,
+        [usernames[0], usernames[1], sharedScore]
+      );
+
+      const leaderboard = await fetchCoopLeaderboard();
+      io.emit("leaderboardCoop", leaderboard);
+
+      game.statsUpdated = true;
     };
 
     const attachPlayerAvatars = async (room) => {
@@ -291,6 +347,16 @@ export default function setupSockets(io) {
         socket.emit("leaderboardSolo", leaderboard);
       } catch (err) {
         console.error("getLeaderboardSolo failed:", err);
+      }
+    });
+
+    // getLeaderboardCoop Socket
+    socket.on("getLeaderboardCoop", async () => {
+      try {
+        const leaderboard = await fetchCoopLeaderboard();
+        socket.emit("leaderboardCoop", leaderboard);
+      } catch (err) {
+        console.error("getLeaderboardCoop failed:", err);
       }
     });
 
@@ -660,6 +726,10 @@ export default function setupSockets(io) {
               await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
               removeGame(roomId);
               return;
+            }
+
+            if (summary?.mode === "cooperative") {
+              await updateCoopStats(game, summary);
             }
 
             await updateMultiplayerStats(game, summary);

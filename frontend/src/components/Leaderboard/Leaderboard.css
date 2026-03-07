@@ -45,12 +45,62 @@
   text-transform: uppercase;
 }
 
+.leaderboard-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.leaderboard-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.leaderboard-tab {
+  border: 2px solid rgba(42, 82, 152, 0.5);
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #2a5298;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.leaderboard-tab.active {
+  background: linear-gradient(135deg, rgba(120, 170, 255, 0.9), rgba(70, 120, 220, 0.9));
+  color: #fff;
+  border-color: rgba(42, 82, 152, 0.8);
+  box-shadow: 0 4px 10px rgba(42, 82, 152, 0.3);
+}
+
+.leaderboard-tab:hover {
+  transform: translateY(-1px);
+}
+
 .leaderboard.dark .leaderboard-title {
   color: #f0f0f0;
   text-shadow:
     0 0 10px rgba(100, 150, 255, 0.8),
     0 0 20px rgba(100, 150, 255, 0.4),
     2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.leaderboard.dark .leaderboard-tab {
+  border-color: rgba(100, 150, 255, 0.5);
+  background: rgba(20, 20, 40, 0.6);
+  color: #dbe7ff;
+}
+
+.leaderboard.dark .leaderboard-tab.active {
+  background: linear-gradient(135deg, rgba(80, 120, 255, 0.9), rgba(60, 90, 200, 0.9));
+  border-color: rgba(120, 160, 255, 0.8);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(100, 150, 255, 0.4);
 }
 
 .leaderboard-list {
@@ -207,6 +257,15 @@
   width: 34px;
   height: 34px;
   flex: none;
+}
+
+.avatar-icon.avatar-duo {
+  width: 58px;
+  gap: 4px;
+}
+
+.leaderboard-mode-coop .leaderboard-entry {
+  grid-template-columns: 40px 60px 1fr auto;
 }
 
 .leaderboard.dark .rank {

@@ -28,3 +28,11 @@ CREATE TABLE solo_scores (
   score INT NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE coop_scores (
+  id SERIAL PRIMARY KEY,
+  player_one VARCHAR(50) NOT NULL,
+  player_two VARCHAR(50) NOT NULL,
+  score INT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
