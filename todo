@@ -1,6 +1,6 @@
 [FIX]
 [X] URL joining game
-[] Multiple connection on the same user
+[X] Multiple connection on the same user
 [] Leave room issues
 [X] Indestructible lines
 [] Unittests

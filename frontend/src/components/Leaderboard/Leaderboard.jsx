@@ -66,13 +66,15 @@ function Leaderboard({ theme }) {
     const playerTwoName = playerTwo.name || 'Player 2'
 
     return (
-      <div key={entry.rank} className={`leaderboard-entry ${entry.rank <= 3 ? `top-${entry.rank}` : ''}`}>
+      <div key={entry.rank} className={`leaderboard-entry coop-entry ${entry.rank <= 3 ? `top-${entry.rank}` : ''}`}>
         <span className="rank">{entry.rank}</span>
-        <span className="avatar-icon avatar-duo">
-          <FaceAvatar faceConfig={playerOne.avatar || DEFAULT_AVATAR} size="leaderboard" />
-          <FaceAvatar faceConfig={playerTwo.avatar || DEFAULT_AVATAR} size="leaderboard" />
-        </span>
-        <span className="name">{`${playerOneName} + ${playerTwoName}`}</span>
+        <div className="coop-identity">
+          <span className="avatar-icon avatar-duo">
+            <FaceAvatar faceConfig={playerOne.avatar || DEFAULT_AVATAR} size="leaderboard" />
+            <FaceAvatar faceConfig={playerTwo.avatar || DEFAULT_AVATAR} size="leaderboard" />
+          </span>
+          <span className="name">{`${playerOneName} + ${playerTwoName}`}</span>
+        </div>
         <span className="score">{entry.score.toLocaleString()}</span>
       </div>
     )
