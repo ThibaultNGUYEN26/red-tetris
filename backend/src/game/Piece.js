@@ -1,4 +1,4 @@
-import { BOARD_WIDTH } from "../config/constants.js";
+import { BOARD_HEIGHT, BOARD_WIDTH } from "../config/constants.js";
 
 export const SHAPES = {
   I: [
@@ -166,15 +166,17 @@ export const SHAPES = {
 };
 
 export default class Piece {
-  constructor(type) {
+  constructor(type, boardWidth = BOARD_WIDTH, boardHeight = BOARD_HEIGHT) {
     this.type = type;
+    this.boardWidth = boardWidth;
+    this.boardHeight = boardHeight;
     // I piece spawns vertically (rotation 1), all others spawn at rotation 0
     this.rotation = type === 'I' ? 1 : 0;
     this.shape = SHAPES[type][this.rotation];
     this.y = 0;
 
     // Spawn the piece in the center based on its width
-    this.x = Math.floor((BOARD_WIDTH - this.shape[0].length) / 2);
+    this.x = Math.floor((this.boardWidth - this.shape[0].length) / 2);
   }
 
   canSpawn(board) {
@@ -188,9 +190,9 @@ export default class Piece {
         // Outside board
         if (
           boardX < 0 ||
-          boardX >= 10 ||
+          boardX >= this.boardWidth ||
           boardY < 0 ||
-          boardY >= 20
+          boardY >= this.boardHeight
         ) {
           return false;
         }

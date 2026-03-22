@@ -6,12 +6,12 @@
 [] Unittests
 
 [TODO]
-[] Other game modes
-[] Sound
+[X] Other game modes
+[X] Sound
 
 [BONUS]
 [X] Scoring system
 [X] Persist player scores
-[] New game modes: WIP
+[X] New game modes
 [X] Spectator mode
 [X] Stats + Avatar

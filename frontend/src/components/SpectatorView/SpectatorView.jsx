@@ -13,6 +13,8 @@ function SpectatorView({ players, onBack, username }) {
   const current = list[safeIndex]
 
   const board = current?.board || []
+  const boardHeight = board.length || 1
+  const boardWidth = board[0]?.length || 1
   const opponentBoards = list
     .filter((player) => player?.username && player.username !== current?.username)
     .map((player) => ({
@@ -126,7 +128,16 @@ function SpectatorView({ players, onBack, username }) {
       </div>
 
       <div className="game-layout">
-        <div className="game-board" role="grid" aria-label="Tetris board">
+        <div
+          className="game-board"
+          role="grid"
+          aria-label="Tetris board"
+          style={{
+            gridTemplateColumns: `repeat(${boardWidth}, var(--cell-size))`,
+            gridTemplateRows: `repeat(${boardHeight}, var(--cell-size))`,
+            ['--cell-size']: `clamp(14px, min(calc((100vh - 220px) / ${boardHeight}), calc((100vw - 420px) / ${boardWidth})), 48px)`,
+          }}
+        >
           {board.map((row, rowIndex) =>
             row.map((cell, colIndex) => (
               <div

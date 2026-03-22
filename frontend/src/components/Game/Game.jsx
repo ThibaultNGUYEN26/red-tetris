@@ -13,8 +13,7 @@ import clearSound from '../../res/sounds/clear.mp3'
 import winnerSound from '../../res/sounds/winner.mp3'
 import loserSound from '../../res/sounds/loser.mp3'
 
-const WIDTH = 10
-const HEIGHT = 20
+const DEFAULT_BOARD = { width: 10, height: 20 }
 const SOFT_DROP_MS = 60
 const DAS_MS = 220
 const ARR_MS = 60
@@ -43,9 +42,12 @@ const SHAPES = {
   ],
 }
 
-const makeEmptyBoard = () =>
-  Array.from({ length: HEIGHT }, () =>
-    Array.from({ length: WIDTH }, () => 'empty')
+const getBoardSize = (mode) =>
+  mode === 'giant' ? { width: 15, height: 30 } : DEFAULT_BOARD
+
+const makeEmptyBoard = (size = DEFAULT_BOARD) =>
+  Array.from({ length: size.height }, () =>
+    Array.from({ length: size.width }, () => 'empty')
   )
 
 function Game({
@@ -61,7 +63,8 @@ function Game({
 }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
 
-  const [board, setBoard] = useState(makeEmptyBoard)
+  const [board, setBoard] = useState(() => makeEmptyBoard(DEFAULT_BOARD))
+  const [boardSize, setBoardSize] = useState(DEFAULT_BOARD)
   const [nextType, setNextType] = useState(null)
   const [isPaused, setIsPaused] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
@@ -247,7 +250,7 @@ function Game({
     joinedRef.current = true
 
     const handleGameStarted = () => {
-      setBoard(makeEmptyBoard())
+      setBoard(makeEmptyBoard(boardSize))
       setIsPaused(false)
       setShowMenu(false)
       setStats({ score: 0, lines: 0, level: 1 })
@@ -263,13 +266,15 @@ function Game({
     }
 
     const handleGameState = (gameState) => {
-      setGameMode(gameState?.mode || null)
+      const mode = gameState?.mode || null
+      setGameMode(mode)
+      setBoardSize(getBoardSize(mode))
       setActivePlayerUsername(gameState?.currentTurnUsername || null)
       setGamePlayers(gameState?.players || [])
       const me = gameState?.players?.find((p) => p.username === username)
       const isLeavingSolo = !isMultiplayer && exitingRef.current
       if (me) {
-        setBoard(me.board || makeEmptyBoard())
+        setBoard(me.board || makeEmptyBoard(getBoardSize(mode)))
         setStats({
           score: me.score ?? 0,
           lines: me.lines ?? 0,
@@ -290,7 +295,7 @@ function Game({
             .filter((p) => p.username !== username)
             .map((p) => ({
               username: p.username,
-              board: p.boardLocked || makeEmptyBoard(),
+              board: p.boardLocked || makeEmptyBoard(getBoardSize(mode)),
             }))
           setOpponentBoards(others)
         }
@@ -562,7 +567,16 @@ function Game({
         </div>
 
         <div className="game-layout">
-          <div className="game-board" role="grid" aria-label="Tetris board">
+          <div
+            className="game-board"
+            role="grid"
+            aria-label="Tetris board"
+            style={{
+              gridTemplateColumns: `repeat(${boardSize.width}, var(--cell-size))`,
+              gridTemplateRows: `repeat(${boardSize.height}, var(--cell-size))`,
+              ['--cell-size']: `clamp(14px, min(calc((100vh - 220px) / ${boardSize.height}), calc((100vw - 420px) / ${boardSize.width})), 48px)`,
+            }}
+          >
             {board.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <div

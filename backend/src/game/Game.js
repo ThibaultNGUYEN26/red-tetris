@@ -1,6 +1,6 @@
 import SequenceGenerator from "./sequenceGenerator.js";
 import Piece, { SHAPES } from "./Piece.js";
-import { BOARD_HEIGHT, BOARD_WIDTH, LINES_PER_LEVEL } from "../config/constants.js";
+import { BOARD_HEIGHT, BOARD_WIDTH, GIANT_BOARD_HEIGHT, GIANT_BOARD_WIDTH, LINES_PER_LEVEL } from "../config/constants.js";
 
 const TICK_MS = 60;
 const BASE_DROP_MS = 500;
@@ -12,6 +12,10 @@ export default class Game {
     this.mode = mode;
     this.mode_player = mode_player;
     this.hostUsername = hostUsername;
+
+    const isGiant = mode === "giant";
+    this.boardWidth = isGiant ? GIANT_BOARD_WIDTH : BOARD_WIDTH;
+    this.boardHeight = isGiant ? GIANT_BOARD_HEIGHT : BOARD_HEIGHT;
 
     this.sequence = new SequenceGenerator();
     this.sequenceBuffer = [];
@@ -87,7 +91,7 @@ export default class Game {
         ? { ...sourcePlayer.currentPiece }
         : null;
       player.nextPiece = sourcePlayer.nextPiece
-        ? new Piece(sourcePlayer.nextPiece.type)
+        ? new Piece(sourcePlayer.nextPiece.type, this.boardWidth, this.boardHeight)
         : null;
       if (player.nextPiece) {
         player.nextPiece.rotation = sourcePlayer.nextPiece.rotation;
@@ -113,8 +117,8 @@ export default class Game {
   }
 
   resetPlayer(player) {
-    player.board = Array.from({ length: BOARD_HEIGHT }, () =>
-      Array(BOARD_WIDTH).fill("empty")
+    player.board = Array.from({ length: this.boardHeight }, () =>
+      Array(this.boardWidth).fill("empty")
     );
     player.isAlive = true;
     player.score = 0;
@@ -206,7 +210,7 @@ export default class Game {
         if (!shape[row][col]) continue;
         const boardX = x + col;
         const boardY = y + row;
-        if (boardX < 0 || boardX >= BOARD_WIDTH || boardY < 0 || boardY >= BOARD_HEIGHT) {
+        if (boardX < 0 || boardX >= this.boardWidth || boardY < 0 || boardY >= this.boardHeight) {
           return false;
         }
         if (board[boardY][boardX] !== "empty") {
@@ -283,7 +287,7 @@ export default class Game {
         if (!shape[row][col]) continue;
         const boardY = piece.y + row;
         const boardX = piece.x + col;
-        if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+        if (boardY >= 0 && boardY < this.boardHeight && boardX >= 0 && boardX < this.boardWidth) {
           player.board[boardY][boardX] = piece.type.toLowerCase();
         }
       }
@@ -303,7 +307,7 @@ export default class Game {
     }
     if (cleared > 0) {
       const newRows = Array.from({ length: cleared }, () =>
-        Array(BOARD_WIDTH).fill("empty")
+        Array(this.boardWidth).fill("empty")
       );
       player.board = [...newRows, ...remaining];
 
@@ -333,7 +337,7 @@ export default class Game {
     if (this.mode_player === "multi" && player.pendingPenaltyLines > 0) {
       const penaltyLines = player.pendingPenaltyLines;
       const penaltyRows = Array.from({ length: penaltyLines }, () =>
-        Array(BOARD_WIDTH).fill("black")
+        Array(this.boardWidth).fill("black")
       );
       player.board = [...player.board.slice(penaltyLines), ...penaltyRows];
       player.pendingPenaltyLines = 0;
@@ -352,7 +356,7 @@ export default class Game {
 
   spawnForPlayer(player) {
     const type = this.getSequenceAt(player.sequenceIndex);
-    const piece = new Piece(type);
+    const piece = new Piece(type, this.boardWidth, this.boardHeight);
 
     if (!this.canPlace(type, piece.rotation, piece.x, piece.y, player.board)) {
       return false;
@@ -360,7 +364,7 @@ export default class Game {
 
     player.currentPiece = piece;
     const nextType = this.getSequenceAt(player.sequenceIndex + 1);
-    player.nextPiece = new Piece(nextType);
+    player.nextPiece = new Piece(nextType, this.boardWidth, this.boardHeight);
 
     return true;
   }
@@ -448,7 +452,7 @@ export default class Game {
           if (!shape[row][col]) continue;
           const boardY = ghostY + row;
           const boardX = piece.x + col;
-          if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+          if (boardY >= 0 && boardY < this.boardHeight && boardX >= 0 && boardX < this.boardWidth) {
             if (grid[boardY][boardX] === "empty") {
               grid[boardY][boardX] = "ghost";
             }
@@ -463,7 +467,7 @@ export default class Game {
           if (!shape[row][col]) continue;
           const boardY = piece.y + row;
           const boardX = piece.x + col;
-          if (boardY >= 0 && boardY < BOARD_HEIGHT && boardX >= 0 && boardX < BOARD_WIDTH) {
+          if (boardY >= 0 && boardY < this.boardHeight && boardX >= 0 && boardX < this.boardWidth) {
             if (grid[boardY][boardX] === "empty" || grid[boardY][boardX] === "ghost") {
               grid[boardY][boardX] = piece.type.toLowerCase();
             }

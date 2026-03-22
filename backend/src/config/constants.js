@@ -1,5 +1,7 @@
 export const BOARD_WIDTH = 10;
 export const BOARD_HEIGHT = 20;
+export const GIANT_BOARD_WIDTH = 15;
+export const GIANT_BOARD_HEIGHT = 30;
 
 export const PLAYER_MODES = {
   SOLO: "solo",

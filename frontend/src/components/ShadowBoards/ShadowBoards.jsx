@@ -29,6 +29,9 @@ function ShadowBoards({ boards }) {
       <div className={`shadow-boards-grid count-${boards.length}`}>
         {boards.map((entry) => {
           const spectrum = getSpectrumMap(entry.board)
+          const rows = entry.board?.length ?? 0
+          const cols = entry.board?.[0]?.length ?? 0
+          const cellSize = rows > 20 || cols > 10 ? 4 : 9
           return (
             <div key={entry.username} className="shadow-board-card">
               <div className="shadow-board-name">{entry.username}</div>
@@ -36,6 +39,11 @@ function ShadowBoards({ boards }) {
                 className="shadow-board-grid-inner"
                 role="grid"
                 aria-label={`${entry.username} board`}
+                style={{
+                  gridTemplateColumns: `repeat(${cols}, var(--cell-size))`,
+                  gridTemplateRows: `repeat(${rows}, var(--cell-size))`,
+                  ['--shadow-cell-size']: `${cellSize}px`,
+                }}
               >
                 {entry.board.map((row, rowIndex) =>
                   row.map((_, colIndex) => {

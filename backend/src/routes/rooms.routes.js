@@ -67,7 +67,7 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Missing data" });
     }
 
-    const allowedModes = ["classic", "speed", "cooperative"];
+    const allowedModes = ["classic", "speed", "cooperative", "giant"];
     if (!allowedModes.includes(gameMode)) {
       console.log("Invalid game mode:", gameMode);
       return res.status(400).json({ error: "Invalid game mode" });
@@ -195,7 +195,7 @@ router.patch("/:roomId/name", async (req, res) => {
 router.patch("/:roomId/mode", async (req, res) => {
   const { roomId } = req.params;
   const { mode, username } = req.body;
-  const allowedModes = ["classic", "speed", "cooperative"];
+  const allowedModes = ["classic", "speed", "cooperative", "giant"];
   const normalizedMode = mode.toLowerCase();
 
   if (!mode) {
@@ -204,7 +204,7 @@ router.patch("/:roomId/mode", async (req, res) => {
 
   if (!allowedModes.includes(normalizedMode)) {
     return res.status(400).json({
-      error: "Invalid game mode. Allowed: classic, speed, cooperative",
+      error: "Invalid game mode. Allowed: classic, speed, cooperative, giant",
     });
   }
 

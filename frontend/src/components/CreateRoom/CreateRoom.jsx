@@ -45,7 +45,8 @@ function CreateRoom({
   const availableGameModes = [
     { value: 'classic', label: 'Classic', maxPlayers: 6 },
     { value: 'speed', label: 'Mirror', maxPlayers: 6 },
-    { value: 'cooperative', label: 'Cooperative', maxPlayers: 2 }
+    { value: 'cooperative', label: 'Cooperative', maxPlayers: 2 },
+    { value: 'giant', label: 'Giant', maxPlayers: 6 }
   ]
 
   // Filter modes based on current player count
