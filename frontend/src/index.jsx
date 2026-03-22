@@ -12,6 +12,7 @@ import Rooms from './components/Rooms/Rooms.jsx'
 import Game from './components/Game/Game.jsx'
 import Title from './components/Title/Title.jsx'
 import { socket } from './socket'
+import bopSound from './res/sounds/bop.MP3'
 
 function Index() {
   const { roomName: urlRoomName, username: urlUsername } = useParams()
@@ -25,6 +26,8 @@ function Index() {
   const [joinedRoomName, setJoinedRoomName] = useState(urlRoomName || null)
   const [soloRoomId, setSoloRoomId] = useState(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
+  const bopAudioRef = useRef(null)
+  const soundEnabledRef = useRef(soundEnabled)
 
   const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -53,6 +56,45 @@ function Index() {
     if (storedSound === 'true' || storedSound === 'false') {
       setSoundEnabled(storedSound === 'true')
     }
+  }, [])
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled
+    if (!soundEnabled && bopAudioRef.current) {
+      bopAudioRef.current.pause()
+      bopAudioRef.current.currentTime = 0
+    }
+  }, [soundEnabled])
+
+  useEffect(() => {
+    const audio = new Audio(bopSound)
+    audio.volume = 0.1
+    audio.preload = 'auto'
+    bopAudioRef.current = audio
+
+    return () => {
+      audio.pause()
+      audio.src = ''
+      bopAudioRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleButtonHover = (event) => {
+      const button = event.target.closest('button')
+      if (!button) return
+      if (button.disabled) return
+      if (event.relatedTarget && button.contains(event.relatedTarget)) return
+      if (!soundEnabledRef.current) return
+
+      const audio = bopAudioRef.current
+      if (!audio) return
+      audio.currentTime = 0
+      audio.play().catch(() => {})
+    }
+
+    document.addEventListener('mouseover', handleButtonHover)
+    return () => document.removeEventListener('mouseover', handleButtonHover)
   }, [])
 
   /* ---------------- PROFILE ---------------- */
