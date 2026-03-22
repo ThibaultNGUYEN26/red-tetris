@@ -24,6 +24,7 @@ function Index() {
   const [userProfile, setUserProfile] = useState(null)
   const [joinedRoomName, setJoinedRoomName] = useState(urlRoomName || null)
   const [soloRoomId, setSoloRoomId] = useState(null)
+  const [soundEnabled, setSoundEnabled] = useState(true)
 
   const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -44,6 +45,13 @@ function Index() {
     const storedTheme = localStorage.getItem('theme')
     if (storedTheme === 'dark' || storedTheme === 'light') {
       setTheme(storedTheme)
+    }
+  }, [])
+
+  useEffect(() => {
+    const storedSound = localStorage.getItem('soundEnabled')
+    if (storedSound === 'true' || storedSound === 'false') {
+      setSoundEnabled(storedSound === 'true')
     }
   }, [])
 
@@ -70,6 +78,11 @@ function Index() {
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme)
     localStorage.setItem('theme', newTheme)
+  }
+
+  const handleSoundChange = (enabled) => {
+    setSoundEnabled(Boolean(enabled))
+    localStorage.setItem('soundEnabled', enabled ? 'true' : 'false')
   }
 
   const handleReturnToProfile = () => {
@@ -180,6 +193,8 @@ function Index() {
             joinRoomName={joinedRoomName}
             onBack={handleReturnToProfile}
             onRoomCreated={handleRoomCreated}
+            soundEnabled={soundEnabled}
+            onSoundChange={handleSoundChange}
           />
         ) : (
           <>
@@ -212,6 +227,8 @@ function Index() {
                     roomId={soloRoomId}
                     username={username}
                     isMultiplayer={false}
+                    soundEnabled={soundEnabled}
+                    onSoundChange={handleSoundChange}
                   />
                 ) : (
                   <ModeMenuSelector
@@ -221,6 +238,8 @@ function Index() {
                     onShowGame={setShowGame}
                     onStartSolo={setSoloRoomId}
                     username={username}
+                    soundEnabled={soundEnabled}
+                    onSoundChange={handleSoundChange}
                   />
                 )}
               </>

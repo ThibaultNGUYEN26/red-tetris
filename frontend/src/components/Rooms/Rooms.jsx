@@ -7,7 +7,7 @@ import Game from '../Game/Game.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
+function Rooms({ theme, onBack, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
   const [showCreateRoom, setShowCreateRoom] = useState(false)
@@ -257,6 +257,8 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile }) {
         roomId={currentRoomId}
         username={username}
         isMultiplayer={true}
+        soundEnabled={soundEnabled}
+        onSoundChange={onSoundChange}
       />
     )
   }

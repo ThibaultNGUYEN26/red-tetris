@@ -6,7 +6,16 @@ import Rooms from '../Rooms/Rooms.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, onStartSolo, username }) {
+function ModeMenuSelector({
+  theme,
+  onThemeChange,
+  onShowRooms,
+  onShowGame,
+  onStartSolo,
+  username,
+  soundEnabled,
+  onSoundChange,
+}) {
   const [showOptions, setShowOptions] = useState(false)
   const [showRooms, setShowRooms] = useState(false)
 
@@ -80,11 +89,27 @@ function ModeMenuSelector({ theme, onThemeChange, onShowRooms, onShowGame, onSta
   }
 
   if (showOptions) {
-    return <Options onBack={handleBackToMenu} theme={theme} onThemeChange={onThemeChange} />
+    return (
+      <Options
+        onBack={handleBackToMenu}
+        theme={theme}
+        onThemeChange={onThemeChange}
+        soundEnabled={soundEnabled}
+        onSoundChange={onSoundChange}
+      />
+    )
   }
 
   if (showRooms) {
-    return <Rooms theme={theme} onBack={handleBackFromRooms} username={username} />
+    return (
+      <Rooms
+        theme={theme}
+        onBack={handleBackFromRooms}
+        username={username}
+        soundEnabled={soundEnabled}
+        onSoundChange={onSoundChange}
+      />
+    )
   }
 
   return (

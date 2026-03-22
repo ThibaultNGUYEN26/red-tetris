@@ -1,9 +1,6 @@
 import './Options.css'
-import { useState } from 'react'
 
-function Options({ onBack, theme, onThemeChange }) {
-  const [soundEnabled, setSoundEnabled] = useState(true)
-
+function Options({ onBack, theme, onThemeChange, soundEnabled, onSoundChange }) {
   const handleThemeToggle = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark'
     onThemeChange(newTheme)
@@ -12,9 +9,8 @@ function Options({ onBack, theme, onThemeChange }) {
 
   const handleSoundToggle = () => {
     const newSound = !soundEnabled
-    setSoundEnabled(newSound)
+    onSoundChange?.(newSound)
     console.log('Sound:', newSound ? 'enabled' : 'disabled')
-    // Add your sound logic here
   }
 
   return (

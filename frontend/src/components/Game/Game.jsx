@@ -5,6 +5,13 @@ import ShadowBoards from '../ShadowBoards/ShadowBoards'
 import SpectatorView from '../SpectatorView/SpectatorView.jsx'
 import GameOver from '../GameOver/GameOver'
 import { socket } from '../../socket'
+import tetrisRemix from '../../res/sounds/tetris_remix.mp3'
+import levelUpSound from '../../res/sounds/level_up.mp3'
+import tetrisSound from '../../res/sounds/tetris.mp3'
+import pauseSound from '../../res/sounds/pause.mp3'
+import clearSound from '../../res/sounds/clear.mp3'
+import winnerSound from '../../res/sounds/winner.mp3'
+import loserSound from '../../res/sounds/loser.mp3'
 
 const WIDTH = 10
 const HEIGHT = 20
@@ -41,7 +48,17 @@ const makeEmptyBoard = () =>
     Array.from({ length: WIDTH }, () => 'empty')
   )
 
-function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMultiplayer: isMultiplayerProp }) {
+function Game({
+  theme,
+  onBack,
+  onPlayAgain,
+  onSpectate,
+  roomId,
+  username,
+  isMultiplayer: isMultiplayerProp,
+  soundEnabled = true,
+  onSoundChange,
+}) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
 
   const [board, setBoard] = useState(makeEmptyBoard)
@@ -64,6 +81,53 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
   const heldDirectionRef = useRef(null)
   const joinedRef = useRef(false)
   const exitingRef = useRef(false)
+  const musicRef = useRef(null)
+  const levelUpRef = useRef(null)
+  const lastLevelRef = useRef(1)
+  const tetrisRef = useRef(null)
+  const lastLinesRef = useRef(0)
+  const pauseRef = useRef(null)
+  const clearRef = useRef(null)
+  const wasBoardEmptyRef = useRef(true)
+  const winnerRef = useRef(null)
+  const loserRef = useRef(null)
+
+  const startMusic = () => {
+    if (!soundEnabled) return
+    const audio = musicRef.current
+    if (!audio) return
+    audio.currentTime = 0
+    audio.play().catch(() => {})
+  }
+
+  const pauseMusic = () => {
+    const audio = musicRef.current
+    if (!audio) return
+    audio.pause()
+  }
+
+  const resumeMusic = () => {
+    if (!soundEnabled) return
+    const audio = musicRef.current
+    if (!audio) return
+    audio.play().catch(() => {})
+  }
+
+  const stopMusic = () => {
+    const audio = musicRef.current
+    if (!audio) return
+    audio.pause()
+    audio.currentTime = 0
+  }
+
+  const stopAllSfx = () => {
+    const refs = [levelUpRef, tetrisRef, pauseRef, clearRef, winnerRef, loserRef]
+    refs.forEach((ref) => {
+      if (!ref?.current) return
+      ref.current.pause()
+      ref.current.currentTime = 0
+    })
+  }
 
   const emitMove = (action) => {
     if (!action || !roomId || !username) return
@@ -126,6 +190,7 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
 
   const handleLeaveGame = () => {
     if (!roomId || !username) {
+      stopMusic()
       onBack?.()
       return
     }
@@ -134,12 +199,50 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       'leaveGame',
       { roomId: String(roomId), username },
       () => {
+        stopMusic()
         onBack?.()
       }
     )
   }
 
   useEffect(() => {
+    if (!musicRef.current) {
+      musicRef.current = new Audio(tetrisRemix)
+      musicRef.current.loop = true
+      musicRef.current.preload = 'auto'
+      musicRef.current.volume = 0.1
+    }
+    if (!levelUpRef.current) {
+      levelUpRef.current = new Audio(levelUpSound)
+      levelUpRef.current.preload = 'auto'
+      levelUpRef.current.volume = 0.1
+    }
+    if (!tetrisRef.current) {
+      tetrisRef.current = new Audio(tetrisSound)
+      tetrisRef.current.preload = 'auto'
+      tetrisRef.current.volume = 0.1
+    }
+    if (!pauseRef.current) {
+      pauseRef.current = new Audio(pauseSound)
+      pauseRef.current.preload = 'auto'
+      pauseRef.current.volume = 0.1
+    }
+    if (!clearRef.current) {
+      clearRef.current = new Audio(clearSound)
+      clearRef.current.preload = 'auto'
+      clearRef.current.volume = 0.1
+    }
+    if (!winnerRef.current) {
+      winnerRef.current = new Audio(winnerSound)
+      winnerRef.current.preload = 'auto'
+      winnerRef.current.volume = 0.1
+    }
+    if (!loserRef.current) {
+      loserRef.current = new Audio(loserSound)
+      loserRef.current.preload = 'auto'
+      loserRef.current.volume = 0.1
+    }
+
     if (joinedRef.current) return
     joinedRef.current = true
 
@@ -153,6 +256,10 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       setShowSpectator(false)
       setIsGameOver(false)
       setActivePlayerUsername(null)
+      lastLevelRef.current = 1
+      lastLinesRef.current = 0
+      wasBoardEmptyRef.current = true
+      startMusic()
     }
 
     const handleGameState = (gameState) => {
@@ -196,6 +303,14 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       setWinner(winner || null)
       setIsEliminated(true)
       setIsGameOver(true)
+      stopMusic()
+      if (soundEnabled && isMultiplayer && winner && username) {
+        if (winner === username) {
+          winnerRef.current?.play().catch(() => {})
+        } else {
+          loserRef.current?.play().catch(() => {})
+        }
+      }
     }
 
     socket.on('gameStarted', handleGameStarted)
@@ -209,8 +324,41 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       socket.off('gameStarted', handleGameStarted)
       socket.off('gameState', handleGameState)
       socket.off('gameOver', handleGameOver)
+      stopMusic()
     }
   }, [roomId, username, isMultiplayer])
+
+  useEffect(() => {
+    if (!levelUpRef.current) return
+    if (!soundEnabled) return
+    if (stats.level > lastLevelRef.current) {
+      levelUpRef.current.currentTime = 0
+      levelUpRef.current.play().catch(() => {})
+    }
+    lastLevelRef.current = stats.level
+  }, [stats.level])
+
+  useEffect(() => {
+    if (!tetrisRef.current) return
+    if (!soundEnabled) return
+    const delta = stats.lines - lastLinesRef.current
+    if (delta === 4) {
+      tetrisRef.current.currentTime = 0
+      tetrisRef.current.play().catch(() => {})
+    }
+    lastLinesRef.current = stats.lines
+  }, [stats.lines])
+
+  useEffect(() => {
+    if (!clearRef.current) return
+    if (!soundEnabled) return
+    const isEmpty = board.every((row) => row.every((cell) => cell === 'empty'))
+    if (!wasBoardEmptyRef.current && isEmpty) {
+      clearRef.current.currentTime = 0
+      clearRef.current.play().catch(() => {})
+    }
+    wasBoardEmptyRef.current = isEmpty
+  }, [board])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -280,6 +428,26 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
       socket.emit('pauseGame', { roomId: String(roomId), paused: isPaused })
     }
   }, [isPaused])
+
+  useEffect(() => {
+    if (!soundEnabled) {
+      stopMusic()
+      stopAllSfx()
+      return
+    }
+    if (isMultiplayer) return
+    if (isPaused) {
+      if (pauseRef.current) {
+        pauseRef.current.currentTime = 0
+        pauseRef.current.play().catch(() => {})
+      }
+      pauseMusic()
+      return
+    }
+    if (!isGameOver) {
+      resumeMusic()
+    }
+  }, [isPaused, isMultiplayer, isGameOver, soundEnabled])
 
   const nextPreview = useMemo(() => {
     if (!nextType || !SHAPES[nextType]) {
@@ -436,6 +604,12 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
               <h3>Paused</h3>
               <div className="pause-actions">
                 <button
+                  className={soundEnabled ? 'resume-button' : 'back-button'}
+                  onClick={() => onSoundChange?.(!soundEnabled)}
+                >
+                  {soundEnabled ? 'Sound: On' : 'Sound: Off'}
+                </button>
+                <button
                   className="resume-button"
                   onClick={() => setIsPaused(false)}
                 >
@@ -454,6 +628,12 @@ function Game({ theme, onBack, onPlayAgain, onSpectate, roomId, username, isMult
             <div className="pause-card">
               <h3>Game Menu</h3>
               <div className="pause-actions">
+                <button
+                  className={soundEnabled ? 'resume-button' : 'back-button'}
+                  onClick={() => onSoundChange?.(!soundEnabled)}
+                >
+                  {soundEnabled ? 'Sound: On' : 'Sound: Off'}
+                </button>
                 <button
                   className="resume-button"
                   onClick={() => setShowMenu(false)}
