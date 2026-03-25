@@ -6,10 +6,14 @@ import { socket } from '../socket'
 
 vi.mock('../socket', () => ({
   socket: {
-    emit: vi.fn(),
+    emit: vi.fn(),  
     on: vi.fn(),
     off: vi.fn(),
   }
+}))
+
+vi.mock('../components/FaceAvatar/FaceAvatar', () => ({
+  default: () => <div className="face-avatar" />,
 }))
 
 const soloLeaderboard = Array.from({ length: 10 }).map((_, index) => ({
@@ -76,7 +80,7 @@ describe('Leaderboard Component', () => {
       })
       triggerSocketEvent('leaderboardSolo', soloLeaderboard)
 
-      expect(screen.getByText(/ðŸ†/)).toBeInTheDocument()
+      await waitFor(() => { expect(screen.getByText(/leaderboard/i)).toBeInTheDocument() })
     })
 
     it('should render leaderboard entries', async () => {
@@ -87,8 +91,10 @@ describe('Leaderboard Component', () => {
       })
       triggerSocketEvent('leaderboardSolo', soloLeaderboard)
 
-      expect(screen.getByText('Player1')).toBeInTheDocument()
-      expect(screen.getByText('Player2')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByText('Player1')).toBeInTheDocument()
+        expect(screen.getByText('Player2')).toBeInTheDocument()
+      })
     })
   })
 
@@ -101,9 +107,11 @@ describe('Leaderboard Component', () => {
       })
       triggerSocketEvent('leaderboardSolo', soloLeaderboard)
 
-      expect(screen.getByText('1')).toBeInTheDocument()
-      expect(screen.getByText('2')).toBeInTheDocument()
-      expect(screen.getByText('3')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByText('1')).toBeInTheDocument()
+        expect(screen.getByText('2')).toBeInTheDocument()
+        expect(screen.getByText('3')).toBeInTheDocument()
+      })
     })
 
     it('should display player names and scores', async () => {
@@ -114,12 +122,14 @@ describe('Leaderboard Component', () => {
       })
       triggerSocketEvent('leaderboardSolo', soloLeaderboard)
 
-      for (let i = 1; i <= 10; i++) {
-        expect(screen.getByText(`Player${i}`)).toBeInTheDocument()
-      }
+      await waitFor(() => {
+        for (let i = 1; i <= 10; i++) {
+          expect(screen.getByText(`Player${i}`)).toBeInTheDocument()
+        }
+      })
 
-      expect(screen.getByText('15,000')).toBeInTheDocument()
-      expect(screen.getByText('12,500')).toBeInTheDocument()
+      expect(screen.getByText(/15\D?000/)).toBeInTheDocument()
+      expect(screen.getByText(/12\D?500/)).toBeInTheDocument()
     })
 
     it('should display player avatars', async () => {
@@ -130,8 +140,10 @@ describe('Leaderboard Component', () => {
       })
       triggerSocketEvent('leaderboardSolo', soloLeaderboard)
 
-      const avatars = document.querySelectorAll('.face-avatar')
-      expect(avatars.length).toBe(10)
+      await waitFor(() => {
+        const avatars = document.querySelectorAll('.face-avatar')
+        expect(avatars.length).toBe(10)
+      })
     })
   })
 
@@ -151,8 +163,10 @@ describe('Leaderboard Component', () => {
       })
       triggerSocketEvent('leaderboardCoop', coopLeaderboard)
 
-      expect(screen.getByText('Duo1A + Duo1B')).toBeInTheDocument()
-      expect(screen.getByText('Duo2A + Duo2B')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByText('Duo1A + Duo1B')).toBeInTheDocument()
+        expect(screen.getByText('Duo2A + Duo2B')).toBeInTheDocument()
+      })
     })
 
     it('should display two avatars per duo', async () => {
@@ -170,8 +184,10 @@ describe('Leaderboard Component', () => {
       })
       triggerSocketEvent('leaderboardCoop', coopLeaderboard)
 
-      const avatars = document.querySelectorAll('.face-avatar')
-      expect(avatars.length).toBe(20)
+      await waitFor(() => {
+        const avatars = document.querySelectorAll('.face-avatar')
+        expect(avatars.length).toBe(20)
+      })
     })
   })
 
@@ -192,3 +208,4 @@ describe('Leaderboard Component', () => {
     })
   })
 })
+

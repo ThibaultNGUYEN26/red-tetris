@@ -16,8 +16,6 @@ vi.mock('../socket', () => ({
 // Mock fetch
 global.fetch = vi.fn()
 
-const API_URL = ''
-
 describe('CreateRoom Component', () => {
   const mockOnBack = vi.fn()
   const mockOnRoomCreated = vi.fn()
@@ -40,6 +38,7 @@ describe('CreateRoom Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    vi.useFakeTimers()
     
     // Default successful fetch response
     global.fetch.mockResolvedValue({
@@ -55,6 +54,7 @@ describe('CreateRoom Component', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
@@ -130,20 +130,74 @@ describe('CreateRoom Component', () => {
   })
 
   describe('Game Mode Selection', () => {
-    it('should have game mode selection available', () => {
+    it('should PATCH mode change when host selects a new mode', async () => {
       render(<CreateRoom {...defaultProps} />)
-      
-      // Component should render without crashing
-      expect(true).toBe(true)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      if (handleRoomState) {
+        handleRoomState({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      }
+
+      const modeSelect = screen.getByRole('combobox')
+      fireEvent.change(modeSelect, { target: { value: 'speed' } })
+
+      vi.advanceTimersByTime(600)
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/rooms/1/mode'),
+          expect.objectContaining({
+            method: 'PATCH',
+            body: JSON.stringify({
+              mode: 'speed',
+              username: 'TestUser'
+            })
+          })
+        )
+      })
     })
   })
 
   describe('Player Management', () => {
-    it('should render player management', () => {
+    it('should update players list on roomState', async () => {
       render(<CreateRoom {...defaultProps} />)
-      
-      // Component handles players internally
-      expect(true).toBe(true)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      if (handleRoomState) {
+        handleRoomState({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser', 'Player2'],
+          player_avatars: {}
+        })
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText('Player2')).toBeInTheDocument()
+      })
     })
   })
 
@@ -162,7 +216,7 @@ describe('CreateRoom Component', () => {
 
       // Should not call POST /api/rooms
       expect(global.fetch).not.toHaveBeenCalledWith(
-        `${API_URL}/api/rooms`,
+        expect.stringContaining('/api/rooms'),
         expect.objectContaining({ method: 'POST' })
       )
     })
@@ -178,11 +232,15 @@ describe('CreateRoom Component', () => {
   })
 
   describe('Mode Player Limits', () => {
-    it('should have game mode configurations', () => {
+    it('should prevent start game if not enough players', async () => {
       render(<CreateRoom {...defaultProps} />)
-      
-      // Modes have different player limits
-      expect(true).toBe(true)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const startButton = screen.getByRole('button', { name: /start game/i })
+      expect(startButton).toBeDisabled()
     })
   })
 
@@ -201,6 +259,86 @@ describe('CreateRoom Component', () => {
       
       // Component has onBack prop
       expect(mockOnBack).toBeDefined()
+    })
+  })
+
+  describe('Room Name Editing (Host)', () => {
+    it('should allow host to edit room name and PATCH on Enter', async () => {
+      const { container } = render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      if (handleRoomState) {
+        handleRoomState({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      }
+
+      const editButton = container.querySelector('.edit-button')
+      expect(editButton).toBeTruthy()
+      if (editButton) {
+        fireEvent.click(editButton)
+      }
+
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'NewName' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/rooms/1/name'),
+          expect.objectContaining({
+            method: 'PATCH',
+            body: JSON.stringify({ name: 'NewName' })
+          })
+        )
+      })
+    })
+  })
+
+  describe('Start Game', () => {
+    it('should emit startGame when host starts with enough players', async () => {
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      if (handleRoomState) {
+        handleRoomState({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser', 'Player2'],
+          player_avatars: {}
+        })
+      }
+
+      const startButton = screen.getByRole('button', { name: /start game/i })
+      fireEvent.click(startButton)
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'startGame',
+          expect.objectContaining({ roomId: '1', username: 'TestUser' })
+        )
+      })
     })
   })
 })

@@ -4,6 +4,10 @@ import '@testing-library/jest-dom/vitest'
 import Rooms from '../components/Rooms/Rooms'
 import { socket } from '../socket'
 
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+}))
+
 // Mock the socket
 vi.mock('../socket', () => ({
   socket: {
@@ -22,11 +26,6 @@ vi.mock('../components/CreateRoom/CreateRoom.jsx', () => ({
     </div>
   )
 }))
-
-// Mock fetch
-global.fetch = vi.fn()
-
-const API_URL = ''
 
 describe('Rooms Component', () => {
   const mockOnBack = vi.fn()
@@ -74,14 +73,19 @@ describe('Rooms Component', () => {
     vi.clearAllMocks()
     localStorage.clear()
     
-    // Default successful fetch response
-    global.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true })
+    vi.useFakeTimers()
+    socket.emit.mockImplementation((event, payload, callback) => {
+      if (event === 'joinRoom' && typeof callback === 'function') {
+        callback({ ok: true })
+      }
+      if ((event === 'leaveRoom' || event === 'leaveGame') && typeof callback === 'function') {
+        callback({ ok: true })
+      }
     })
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
@@ -255,19 +259,12 @@ describe('Rooms Component', () => {
         fireEvent.click(room)
 
         await waitFor(() => {
-          expect(global.fetch).toHaveBeenCalledWith(
-            `${API_URL}/api/rooms/1/join`,
-            expect.objectContaining({
-              method: 'POST',
-              body: JSON.stringify({ username: 'TestUser' })
-            })
+          expect(socket.emit).toHaveBeenCalledWith(
+            'joinRoom',
+            expect.objectContaining({ roomId: '1', username: 'TestUser' }),
+            expect.any(Function)
           )
         })
-
-        expect(socket.emit).toHaveBeenCalledWith(
-          'joinRoom',
-          expect.objectContaining({ roomId: '1' })
-        )
       }
     })
 
@@ -330,7 +327,11 @@ describe('Rooms Component', () => {
 
     it('should handle join failure gracefully', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-      global.fetch.mockRejectedValueOnce(new Error('Failed to join'))
+      socket.emit.mockImplementationOnce((event, payload, callback) => {
+        if (event === 'joinRoom' && typeof callback === 'function') {
+          callback({ ok: false, error: 'Failed to join' })
+        }
+      })
 
       render(<Rooms {...defaultProps} />)
 
@@ -355,7 +356,7 @@ describe('Rooms Component', () => {
         await waitFor(() => {
           expect(consoleError).toHaveBeenCalledWith(
             'Join failed:',
-            expect.any(Error)
+            expect.anything()
           )
         })
       }
@@ -377,16 +378,12 @@ describe('Rooms Component', () => {
       }
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled()
-      }, { timeout: 2000 })
-      
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/rooms/1/join'),
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({ username: 'TestUser' })
-        })
-      )
+        expect(socket.emit).toHaveBeenCalledWith(
+          'joinRoom',
+          expect.objectContaining({ roomId: '1', username: 'TestUser' }),
+          expect.any(Function)
+        )
+      })
     })
 
     it('should not auto-join if room name not found', async () => {
@@ -401,9 +398,9 @@ describe('Rooms Component', () => {
       }
 
       await waitFor(() => {
-        // Should not call join endpoint
-        expect(global.fetch).not.toHaveBeenCalledWith(
-          expect.stringContaining('/join'),
+        expect(socket.emit).not.toHaveBeenCalledWith(
+          'joinRoom',
+          expect.anything(),
           expect.anything()
         )
       })
@@ -421,14 +418,16 @@ describe('Rooms Component', () => {
       }
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledTimes(1)
+        const joinCalls = socket.emit.mock.calls.filter(call => call[0] === 'joinRoom')
+        expect(joinCalls.length).toBe(1)
       })
 
       // Re-render should not trigger another join
       rerender(<Rooms {...defaultProps} joinRoomName="Room 1" />)
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledTimes(1)
+        const joinCalls = socket.emit.mock.calls.filter(call => call[0] === 'joinRoom')
+        expect(joinCalls.length).toBe(1)
       })
     })
   })
@@ -572,9 +571,16 @@ describe('Rooms Component', () => {
       })
 
       // Should show full indicator or disable join for full room
-      const fullRoom = screen.getByText('Full Room').closest('button') || 
-                       screen.getByText('Full Room').closest('div')
-      expect(fullRoom).toBeTruthy()
+      const fullRoomEntry = screen.getByText('Full Room').closest('.room-entry')
+      expect(fullRoomEntry).toBeTruthy()
+      if (fullRoomEntry) {
+        const joinButton = fullRoomEntry.querySelector('button.join-button')
+        expect(joinButton).toBeTruthy()
+        if (joinButton) {
+          expect(joinButton).toBeDisabled()
+          expect(joinButton.textContent).toMatch(/full/i)
+        }
+      }
     })
   })
 
@@ -612,6 +618,41 @@ describe('Rooms Component', () => {
       if (availableRoomsCallback) {
         availableRoomsCallback(mockRooms)
       }
+    })
+  })
+
+  describe('Stale Room Guard', () => {
+    it('should clear currentRoomId if room state does not arrive', async () => {
+      localStorage.setItem('currentRoomId', '99')
+
+      render(<Rooms {...defaultProps} />)
+
+      vi.advanceTimersByTime(1600)
+
+      await waitFor(() => {
+        expect(localStorage.getItem('currentRoomId')).toBeNull()
+      })
+    })
+  })
+
+  describe('Leave Flows', () => {
+    it('should leave lobby and clear state', async () => {
+      localStorage.setItem('currentRoomId', '1')
+
+      render(<Rooms {...defaultProps} />)
+
+      const backButton = screen.getByRole('button', { name: /back/i })
+      fireEvent.click(backButton)
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'leaveRoom',
+          expect.objectContaining({ roomId: '1', username: 'TestUser' }),
+          expect.any(Function)
+        )
+      })
+
+      expect(localStorage.getItem('currentRoomId')).toBeNull()
     })
   })
 })
