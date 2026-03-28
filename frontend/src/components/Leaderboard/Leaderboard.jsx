@@ -52,7 +52,8 @@ function Leaderboard({ theme }) {
 
   useEffect(() => {
     const handleCoopLeaderboard = (data) => {
-      const hasScores = Array.isArray(data) && data.length > 0
+      const hasScores =
+        Array.isArray(data) && data.some((entry) => Number(entry?.score || 0) > 0)
       setHasCoopScores(hasScores)
       if (!hasScores && mode === 'coop') {
         setMode('solo')
@@ -128,10 +129,6 @@ function Leaderboard({ theme }) {
 
       <div className="leaderboard-list">
         {loading && <div className="leaderboard-entry">Loading…</div>}
-
-        {!loading && leaderboardData.length === 0 && (
-          <div className="leaderboard-entry">No scores yet</div>
-        )}
 
         {!loading &&
           displayedData.map((entry) =>
