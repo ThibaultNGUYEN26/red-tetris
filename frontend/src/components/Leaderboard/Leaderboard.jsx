@@ -13,6 +13,7 @@ function Leaderboard({ theme }) {
   const [leaderboardData, setLeaderboardData] = useState([])
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState('solo')
+  const [hasCoopScores, setHasCoopScores] = useState(false)
 
   const [currentPage, setCurrentPage] = useState(0)
   const totalPages = Math.ceil(leaderboardData.length / 10)
@@ -46,6 +47,23 @@ function Leaderboard({ theme }) {
 
     return () => {
       socket.off(eventName, handleLeaderboard)
+    }
+  }, [mode])
+
+  useEffect(() => {
+    const handleCoopLeaderboard = (data) => {
+      const hasScores = Array.isArray(data) && data.length > 0
+      setHasCoopScores(hasScores)
+      if (!hasScores && mode === 'coop') {
+        setMode('solo')
+      }
+    }
+
+    socket.on('leaderboardCoop', handleCoopLeaderboard)
+    socket.emit('getLeaderboardCoop')
+
+    return () => {
+      socket.off('leaderboardCoop', handleCoopLeaderboard)
     }
   }, [mode])
 
@@ -96,13 +114,15 @@ function Leaderboard({ theme }) {
           >
             Solo
           </button>
-          <button
-            type="button"
-            onClick={() => setMode('coop')}
-            className={`leaderboard-tab ${mode === 'coop' ? 'active' : ''}`}
-          >
-            Co-op Duo
-          </button>
+          {hasCoopScores && (
+            <button
+              type="button"
+              onClick={() => setMode('coop')}
+              className={`leaderboard-tab ${mode === 'coop' ? 'active' : ''}`}
+            >
+              Co-op Duo
+            </button>
+          )}
         </div>
       </div>
 
