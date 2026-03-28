@@ -62,8 +62,9 @@ const io = new Server(httpServer, {
 app.set("io", io);
 setupSockets(io);
 
-httpServer.listen(3000, async () => {
-  console.log("Backend running on port 3000");
+const BIND_HOST = process.env.BACKEND_HOST || "0.0.0.0";
+httpServer.listen(3000, BIND_HOST, async () => {
+  console.log(`Backend running on http://${BIND_HOST}:3000`);
 
   try {
     await pool.query("SELECT 1");
