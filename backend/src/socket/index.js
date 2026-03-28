@@ -1,5 +1,6 @@
 import { pool } from "../config/db.js";
 import { createGame, getGame, removeGame } from "../game/gameManager.js";
+import { checkGameOver } from "../game/Game.js";
 
 const activeUsers = new Map();
 
@@ -182,137 +183,6 @@ export default function setupSockets(io) {
       return { ...room, player_avatars };
     };
 
-    const removePlayerFromGame = async (roomId, username) => {
-      if (!roomId || !username) return;
-
-      try {
-        const id = Number(roomId);
-
-        const roomResult = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status
-          FROM rooms
-          WHERE id = $1`,
-          [id]
-        );
-
-        if (!roomResult.rowCount) return;
-
-        const room = roomResult.rows[0];
-        if (!room.players.includes(username)) return;
-
-        const updatedPlayers = room.players.filter((p) => p !== username);
-        let newHost = room.host;
-        if (username === room.host) {
-          newHost = updatedPlayers.length > 0 ? updatedPlayers[0] : null;
-        }
-
-        // No players left → DELETE room
-        if (updatedPlayers.length === 0) {
-          await pool.query(
-            `DELETE FROM rooms WHERE id = $1`,
-            [id]
-          );
-
-          await broadcastAvailableRooms(io);
-          return;
-        }
-
-        // CASE 2 — One player left → FINISHED
-        if (updatedPlayers.length === 1) {
-          const result = await pool.query(
-            `UPDATE rooms
-            SET players = $2::jsonb,
-                player_count = 1,
-                host = $3,
-                status = 'finished'
-            WHERE id = $1
-            RETURNING *`,
-            [id, JSON.stringify(updatedPlayers), newHost]
-          );
-
-          const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
-
-          io.to(String(roomId)).emit("roomState", roomWithAvatars);
-          await broadcastAvailableRooms(io);
-          return;
-        }
-
-        // More than 1 player → Normal update
-        const result = await pool.query(
-          `UPDATE rooms
-          SET players = $2::jsonb,
-              player_count = $3,
-              host = $4
-          WHERE id = $1
-          RETURNING *`,
-          [id, JSON.stringify(updatedPlayers), updatedPlayers.length, newHost]
-        );
-
-        const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
-
-        io.to(String(roomId)).emit("roomState", roomWithAvatars);
-        await broadcastAvailableRooms(io);
-
-      } catch (err) {
-        console.error("removePlayerFromGame failed:", err);
-      }
-    };
-
-    const removePlayerFromRoom = async (roomId, username) => {
-      if (!roomId || !username) return;
-
-      try {
-        const id = Number(roomId);
-
-        const roomResult = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status
-          FROM rooms
-          WHERE id = $1`,
-          [id]
-        );
-
-        if (!roomResult.rowCount) return;
-
-        const room = roomResult.rows[0];
-        if (!room.players.includes(username)) return;
-
-        const updatedPlayers = room.players.filter((p) => p !== username);
-
-        // No players left → DELETE room
-        if (updatedPlayers.length === 0) {
-          await pool.query(`DELETE FROM rooms WHERE id = $1`, [id]);
-          await broadcastAvailableRooms(io);
-          return;
-        }
-
-        // If host left → first remaining player becomes host
-        let newHost = room.host;
-        if (username === room.host) {
-          newHost = updatedPlayers[0]; // always exists here
-        }
-
-        // Always keep lobby in WAITING state
-        const result = await pool.query(
-          `UPDATE rooms
-          SET players = $2::jsonb,
-              player_count = $3,
-              host = $4,
-              status = 'waiting'
-          WHERE id = $1
-          RETURNING *`,
-          [id, JSON.stringify(updatedPlayers), updatedPlayers.length, newHost]
-        );
-
-        const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
-
-        io.to(String(roomId)).emit("roomState", roomWithAvatars);
-        await broadcastAvailableRooms(io);
-
-      } catch (err) {
-        console.error("removePlayerFromRoom failed:", err);
-      }
-    };
-
     const updateMultiplayerStats = async (game, summary) => {
       if (!summary || summary.mode === "cooperative") return;
       if (game?.statsUpdated) return;
@@ -483,153 +353,108 @@ export default function setupSockets(io) {
       if (ack) ack({ ok: true });
     });
 
-    // Leaving game Socket
-    socket.on("leaveGame", async ({ roomId, username }, callback) => {
+    socket.on("playerLeave", async ({ roomId }, callback) => {
       const ack = typeof callback === "function" ? callback : null;
-      const effectiveUsername = username || socket.data.username;
+      const username = socket.data.username;
 
-      console.log("leaveGame received from", effectiveUsername);
-
-      if (socket.data.isSpectator) {
-        socket.leave(String(roomId));
-        if (ack) ack({ ok: true });
+      if (!roomId || !username) {
+        if (ack) ack({ ok: false });
         return;
       }
 
-      // Remove player from Game instance (skip in-game logic if already over)
-      const game = getGame(roomId);
-      if (game && !game.isOver) {
-        const player = game.getPlayer(effectiveUsername);
-        if (player) {
-          player.isAlive = false;
-          console.log(`${effectiveUsername} marked as dead in game`);
-        }
-
-        const result = game.checkGameOver();
-        console.log("Game over check after player left:", result);
-
-        if (result.over) {
-          const summary = game.endGame();
-          if (game.onGameOver) {
-            await game.onGameOver(summary);
-          }
-        } else {
-          console.log("Game not over after player left. Broadcasting updated game state.");
-        }
-      }
-
-      // Leave socket room
-      socket.leave(String(roomId));
-
-      // Always update DB membership so users can create new rooms after game over
-      await removePlayerFromGame(roomId, effectiveUsername);
-
-      // Broadcast updated room state (including new host if changed)
-      const roomResult = await pool.query(
-        "SELECT id, name, players, host, game_mode, status FROM rooms WHERE id=$1",
-        [roomId]
-      );
-      if (roomResult.rowCount) {
-        const roomWithAvatars = await attachPlayerAvatars(roomResult.rows[0]);
-        io.to(String(roomId)).emit("roomState", roomWithAvatars);
-      }
-      await broadcastAvailableRooms(io);
-      if (ack) ack({ ok: true });
-    });
-
-    // Pause/resume (solo only)
-    socket.on("pauseGame", ({ roomId, paused }) => {
-      if (!roomId) return;
-      const game = getGame(String(roomId));
-      if (!game || game.isOver || game.mode_player !== "solo") return;
-
-      if (paused) {
-        game.pause();
-      } else {
-        game.resume();
-      }
-    });
-
-    // Leaving room Socket
-    socket.on("leaveRoom", async ({ roomId, username }, callback) => {
-      const ack = typeof callback === "function" ? callback : null;
-      const effectiveUsername = username || socket.data.username;
-
-      console.log("leaveRoom received from", effectiveUsername);
-      if (socket.data.isSpectator) {
-        socket.leave(String(roomId));
-        if (ack) ack({ ok: true });
-        return;
-      }
-
-      // Remove player from Game instance
-      const game = getGame(roomId);
-      if (game) {
-        const player = game.getPlayer(effectiveUsername);
-        if (player) {
-          player.isAlive = false;
-          console.log(`${effectiveUsername} left the room`);
-        }
-      }
-
-      // Leave socket room
-      socket.leave(String(roomId));
-
-      // Optionally update DB but avoid constraints for host mid-game
-      await removePlayerFromRoom(roomId, effectiveUsername);
-
-      // Broadcast updated room state (including new host if changed)
-      const roomResult = await pool.query(
-        "SELECT id, name, players, host, game_mode, status FROM rooms WHERE id=$1",
-        [roomId]
-      );
-      if (roomResult.rowCount) {
-        const roomWithAvatars = await attachPlayerAvatars(roomResult.rows[0]);
-        io.to(String(roomId)).emit("roomState", roomWithAvatars);
-      }
-      await broadcastAvailableRooms(io);
-      if (ack) ack({ ok: true });
-    });
-
-    // getAvailableRooms Socket
-    socket.on("getAvailableRooms", async () => {
-      await broadcastAvailableRooms(io);
-    });
-
-    // getRoomState Socket
-    socket.on("getRoomState", async ({ roomId }) => {
       try {
-        const result = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status
-          FROM rooms WHERE id = $1`,
-          [roomId]
+        const id = Number(roomId);
+
+        // 1️⃣ Get room
+        const roomResult = await pool.query(
+          `SELECT * FROM rooms WHERE id = $1`,
+          [id]
         );
 
-        if (!result.rowCount) {
-          return socket.emit("error", { message: "Room not found" });
-        }
-
-        const room = result.rows[0];
-        const roomWithAvatars = await attachPlayerAvatars(room);
-
-        // If game hasn't started, send room state
-        if (room.status !== "started") {
-          socket.emit("roomState", roomWithAvatars);
+        if (!roomResult.rowCount) {
+          if (ack) ack({ ok: true });
           return;
         }
 
-        // If game already started, send current state for late joiner
-        const game = getGame(String(roomId));
-        if (!game) return; // or recreate the game instance if needed
+        const room = roomResult.rows[0];
 
-        socket.emit("gameStarted", {
-          roomId
-        });
-        socket.emit("gameState", game.serialize());
+        // Safety guard (idempotent protection)
+        if (!room.players.includes(username)) {
+          if (ack) ack({ ok: true });
+          return;
+        }
+
+        // 2️⃣ GAME SIDE EFFECTS (memory only)
+        const game = getGame(id);
+        if (game && !game.isOver) {
+          const player = game.getPlayer(username);
+          if (player) player.isAlive = false;
+
+          const result = game.checkGameOver();
+          if (result.over) {
+            const summary = game.endGame();
+            if (game.onGameOver) {
+              await game.onGameOver(summary);
+            }
+          }
+        }
+
+        // 3️⃣ Remove from socket room
+        socket.leave(String(id));
+
+        // 4️⃣ Compute updated players
+        const updatedPlayers = room.players.filter(p => p !== username);
+
+        // 5️⃣ If empty → delete room
+        if (updatedPlayers.length === 0) {
+          await pool.query(`DELETE FROM rooms WHERE id = $1`, [id]);
+          await broadcastAvailableRooms(io);
+          if (ack) ack({ ok: true });
+          return;
+        }
+
+        // 6️⃣ Reassign host if needed
+        let newHost = room.host;
+        if (username === room.host) {
+          newHost = updatedPlayers[0];
+        }
+
+        // 7️⃣ Compute correct status
+        let newStatus = room.status;
+
+        if (updatedPlayers.length === 1 && room.status === "playing") {
+          newStatus = "finished";
+        }
+
+        // 8️⃣ Update DB
+        const updateResult = await pool.query(
+          `UPDATE rooms
+          SET players = $2::jsonb,
+              player_count = $3,
+              host = $4,
+              status = $5
+          WHERE id = $1
+          RETURNING *`,
+          [
+            id,
+            JSON.stringify(updatedPlayers),
+            updatedPlayers.length,
+            newHost,
+            newStatus
+          ]
+        );
+
+        const updatedRoom = await attachPlayerAvatars(updateResult.rows[0]);
+
+        // 9️⃣ Broadcast
+        io.to(String(id)).emit("roomState", updatedRoom);
+        await broadcastAvailableRooms(io);
+
+        if (ack) ack({ ok: true });
 
       } catch (err) {
-        console.error("getRoomState failed:", err);
-        socket.emit("error", { message: "Server error" });
+        console.error("playerLeave failed:", err);
+        if (ack) ack({ ok: false });
       }
     });
 

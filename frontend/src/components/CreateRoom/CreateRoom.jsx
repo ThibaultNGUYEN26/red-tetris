@@ -266,22 +266,21 @@ function CreateRoom({
   /* ---------------- LEAVE ROOM ON TAB CLOSE/REFRESH ---------------- */
 
   useEffect(() => {
-    if (!roomId || !username) return;
+    if (!roomId) return;
 
-    const handleBeforeUnload = (e) => {
-      // Use sendBeacon for reliable leave on refresh/close
-      const url = `${API_URL}/api/rooms/${roomId}/leave`;
-      const data = JSON.stringify({ roomId, username });
-      const blob = new Blob([data], { type: 'application/json' });
-      navigator.sendBeacon(url, blob);
+    const handleBeforeUnload = () => {
+      if (socket.connected) {
+        socket.emit("playerLeave", { roomId: String(roomId) });
+      }
       localStorage.removeItem("currentRoomId");
     };
+
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [roomId, username]);
+  }, [roomId]);
 
   /* ---------------- RENDER ---------------- */
 

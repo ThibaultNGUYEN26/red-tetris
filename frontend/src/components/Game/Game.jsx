@@ -192,21 +192,21 @@ function Game({
   }
 
   const handleLeaveGame = () => {
-    if (!roomId || !username) {
-      stopMusic()
-      onBack?.()
-      return
+    if (!roomId) {
+      stopMusic();
+      onBack?.();
+      return;
     }
 
     socket.emit(
-      'leaveGame',
-      { roomId: String(roomId), username },
+      "playerLeave",
+      { roomId: String(roomId) },
       () => {
-        stopMusic()
-        onBack?.()
+        stopMusic();
+        onBack?.();
       }
-    )
-  }
+    );
+  };
 
   useEffect(() => {
     if (!musicRef.current) {

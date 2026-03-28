@@ -151,22 +151,25 @@ function Index() {
   }
 
   const handleExitSolo = async () => {
-    if (soloRoomId && username) {
+    if (soloRoomId) {
       try {
         await new Promise((resolve) => {
-          socket.emit('leaveGame', { roomId: String(soloRoomId), username }, () => {
-            resolve()
-          })
-        })
-        console.log('[Index] Left solo room', { roomId: soloRoomId, username })
+          socket.emit(
+            "playerLeave",
+            { roomId: String(soloRoomId) },
+            () => resolve()
+          );
+        });
+
+        console.log("[Index] Left solo room", { roomId: soloRoomId });
       } catch (err) {
-        console.error('Failed to leave solo room:', err)
+        console.error("Failed to leave solo room:", err);
       }
     }
-    setSoloRoomId(null)
-    console.log('[Index] Exited solo game', { username })
-    setShowGame(false)
-  }
+
+    setSoloRoomId(null);
+    setShowGame(false);
+  };
 
   /* ---------------- BACK BUTTON ---------------- */
 

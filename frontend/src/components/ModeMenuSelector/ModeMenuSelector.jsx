@@ -22,23 +22,28 @@ function ModeMenuSelector({
   const handleSolo = async () => {
     console.log('Solo mode selected')
     try {
-      // If user is already in a room, leave it before creating a solo room
       const existingRoomId = localStorage.getItem('currentRoomId')
-      if (existingRoomId && username) {
+
+      // ✅ Unified leave
+      if (existingRoomId) {
         await new Promise((resolve) => {
-          socket.emit('leaveGame', { roomId: String(existingRoomId), username }, () => {
-            resolve()
-          })
+          socket.emit(
+            'playerLeave',
+            { roomId: String(existingRoomId) },
+            () => resolve()
+          )
         })
+
         localStorage.removeItem('currentRoomId')
       }
 
+      // Create room
       const createResponse = await fetch(`${API_URL}/api/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           gameMode: 'classic',
-          host: username,
+          host: username, // this is fine for REST creation
         }),
       })
 
@@ -49,18 +54,26 @@ function ModeMenuSelector({
 
       const room = await createResponse.json()
 
+      // Join via socket
       await new Promise((resolve, reject) => {
-        socket.emit('joinRoom', { roomId: String(room.id), username }, (res) => {
-          if (!res?.ok) {
-            reject(new Error(res?.error || 'Failed to join solo room'))
-            return
+        socket.emit(
+          'joinRoom',
+          { roomId: String(room.id) }, // ❌ no username
+          (res) => {
+            if (!res?.ok) {
+              reject(new Error(res?.error || 'Failed to join solo room'))
+              return
+            }
+
+            socket.emit('startGame', { roomId: String(room.id) })
+            resolve()
           }
-          socket.emit('startGame', { roomId: String(room.id), username })
-          resolve()
-        })
+        )
       })
 
-      console.log('[ModeMenu] Solo game started (socket)', { roomId: room.id, username })
+      console.log('[ModeMenu] Solo game started (socket)', {
+        roomId: room.id,
+      })
 
       onStartSolo?.(room.id)
       onShowGame(true)
