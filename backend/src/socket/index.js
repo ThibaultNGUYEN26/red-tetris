@@ -1,6 +1,5 @@
 import { pool } from "../config/db.js";
 import { createGame, getGame, removeGame } from "../game/gameManager.js";
-import { checkGameOver } from "../game/Game.js";
 
 const activeUsers = new Map();
 
