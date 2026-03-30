@@ -42,11 +42,35 @@ const coopLeaderboard = Array.from({ length: 10 }).map((_, index) => ({
   score: 18000 - index * 800
 }))
 
+const paginatedSoloLeaderboard = Array.from({ length: 11 }).map((_, index) => ({
+  rank: index + 1,
+  name: `PagedPlayer${index + 1}`,
+  avatar: {
+    skinColor: '#cccccc',
+    eyeType: 'normal',
+    mouthType: 'neutral',
+  },
+  score: 20000 - index * 250,
+}))
+
+const emptyCoopLeaderboard = [
+  {
+    rank: 1,
+    players: [{}, {}],
+    score: 0,
+  },
+]
+
 const triggerSocketEvent = (eventName, payload) => {
-  const handler = socket.on.mock.calls.find(([event]) => event === eventName)?.[1]
-  if (handler) {
-    handler(payload)
-  }
+  const handlers = socket.on.mock.calls
+    .filter(([event]) => event === eventName)
+    .map(([, handler]) => handler)
+
+  handlers.forEach((handler) => {
+    if (typeof handler === 'function') {
+      handler(payload)
+    }
+  })
 }
 
 describe('Leaderboard Component', () => {
@@ -59,17 +83,36 @@ describe('Leaderboard Component', () => {
   })
 
   describe('Component Rendering', () => {
-    it('should render Leaderboard component and tabs', async () => {
-      render(<Leaderboard {...defaultProps} />)
+    it('should apply dark theme class', async () => {
+      const { container } = render(<Leaderboard theme="dark" />)
 
       await waitFor(() => {
         expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
       })
       triggerSocketEvent('leaderboardSolo', soloLeaderboard)
 
+      await waitFor(() => {
+        expect(container.querySelector('.leaderboard.dark')).toBeInTheDocument()
+      })
+    })
+
+    it('should render Leaderboard component and tabs', async () => {
+      render(<Leaderboard {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+      })
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardCoop', expect.any(Function))
+      })
+      triggerSocketEvent('leaderboardSolo', soloLeaderboard)
+      triggerSocketEvent('leaderboardCoop', coopLeaderboard)
+
       expect(screen.getByText(/leaderboard/i)).toBeInTheDocument()
       expect(screen.getByText('Solo')).toBeInTheDocument()
-      expect(screen.getByText('Co-op Duo')).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Co-op Duo' })).toBeInTheDocument()
+      })
     })
 
     it('should display leaderboard title with trophy emoji', async () => {
@@ -99,6 +142,20 @@ describe('Leaderboard Component', () => {
   })
 
   describe('Solo Entries', () => {
+    it('should fall back to an empty leaderboard when socket payload is not an array', async () => {
+      render(<Leaderboard {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+      })
+      triggerSocketEvent('leaderboardSolo', null)
+
+      await waitFor(() => {
+        expect(screen.queryByText('Player1')).not.toBeInTheDocument()
+        expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+      })
+    })
+
     it('should display player ranks', async () => {
       render(<Leaderboard {...defaultProps} />)
 
@@ -154,12 +211,19 @@ describe('Leaderboard Component', () => {
       await waitFor(() => {
         expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
       })
-      triggerSocketEvent('leaderboardSolo', soloLeaderboard)
-
-      fireEvent.click(screen.getByText('Co-op Duo'))
-
       await waitFor(() => {
         expect(socket.on).toHaveBeenCalledWith('leaderboardCoop', expect.any(Function))
+      })
+      triggerSocketEvent('leaderboardSolo', soloLeaderboard)
+      triggerSocketEvent('leaderboardCoop', coopLeaderboard)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Co-op Duo' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Co-op Duo' }))
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith('getLeaderboardCoop')
       })
       triggerSocketEvent('leaderboardCoop', coopLeaderboard)
 
@@ -175,18 +239,84 @@ describe('Leaderboard Component', () => {
       await waitFor(() => {
         expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
       })
-      triggerSocketEvent('leaderboardSolo', soloLeaderboard)
-
-      fireEvent.click(screen.getByText('Co-op Duo'))
-
       await waitFor(() => {
         expect(socket.on).toHaveBeenCalledWith('leaderboardCoop', expect.any(Function))
+      })
+      triggerSocketEvent('leaderboardSolo', soloLeaderboard)
+      triggerSocketEvent('leaderboardCoop', coopLeaderboard)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Co-op Duo' })).toBeInTheDocument()
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Co-op Duo' }))
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith('getLeaderboardCoop')
       })
       triggerSocketEvent('leaderboardCoop', coopLeaderboard)
 
       await waitFor(() => {
         const avatars = document.querySelectorAll('.face-avatar')
         expect(avatars.length).toBe(20)
+      })
+    })
+
+    it('should switch back to solo when coop leaderboard has no scores', async () => {
+      render(<Leaderboard {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+      })
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardCoop', expect.any(Function))
+      })
+
+      triggerSocketEvent('leaderboardSolo', soloLeaderboard)
+      triggerSocketEvent('leaderboardCoop', coopLeaderboard)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Co-op Duo' })).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Co-op Duo' }))
+      triggerSocketEvent('leaderboardCoop', emptyCoopLeaderboard)
+
+      await waitFor(() => {
+        expect(screen.queryByRole('button', { name: 'Co-op Duo' })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Solo' })).toHaveClass('active')
+      })
+    })
+
+    it('should allow switching from coop back to solo explicitly', async () => {
+      render(<Leaderboard {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+      })
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardCoop', expect.any(Function))
+      })
+
+      triggerSocketEvent('leaderboardSolo', soloLeaderboard)
+      triggerSocketEvent('leaderboardCoop', coopLeaderboard)
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Co-op Duo' })).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Co-op Duo' }))
+      triggerSocketEvent('leaderboardCoop', coopLeaderboard)
+
+      await waitFor(() => {
+        expect(screen.getByText('Duo1A + Duo1B')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Solo' }))
+      triggerSocketEvent('leaderboardSolo', soloLeaderboard)
+
+      await waitFor(() => {
+        expect(screen.getByText('Player1')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Solo' })).toHaveClass('active')
       })
     })
   })
@@ -206,6 +336,35 @@ describe('Leaderboard Component', () => {
       )
       expect(paginationButtons.length).toBe(0)
     })
+
+    it('should paginate forward and backward when more than one page exists', async () => {
+      render(<Leaderboard {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+      })
+      triggerSocketEvent('leaderboardSolo', paginatedSoloLeaderboard)
+
+      await waitFor(() => {
+        expect(screen.getByText('PagedPlayer1')).toBeInTheDocument()
+        expect(screen.getByText('1 / 2')).toBeInTheDocument()
+      })
+
+      const nextButton = screen.getByRole('button', { name: '→' })
+      fireEvent.click(nextButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('PagedPlayer11')).toBeInTheDocument()
+        expect(screen.getByText('2 / 2')).toBeInTheDocument()
+      })
+
+      const prevButton = screen.getByRole('button', { name: '←' })
+      fireEvent.click(prevButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('PagedPlayer1')).toBeInTheDocument()
+        expect(screen.getByText('1 / 2')).toBeInTheDocument()
+      })
+    })
   })
 })
-

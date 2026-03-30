@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import Rooms from '../components/Rooms/Rooms'
 import { socket } from '../socket'
@@ -48,6 +48,7 @@ describe('Rooms Component', () => {
       name: 'Room 1',
       game_mode: 'classic',
       host: 'Player1',
+      player_count: 2,
       players: ['Player1', 'Player2'],
       status: 'waiting'
     },
@@ -56,6 +57,7 @@ describe('Rooms Component', () => {
       name: 'Room 2',
       game_mode: 'speed',
       host: 'Player3',
+      player_count: 1,
       players: ['Player3'],
       status: 'waiting'
     },
@@ -64,6 +66,7 @@ describe('Rooms Component', () => {
       name: 'Full Room',
       game_mode: 'classic',
       host: 'Host',
+      player_count: 6,
       players: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'],
       status: 'waiting'
     }
@@ -72,20 +75,17 @@ describe('Rooms Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
-    
-    vi.useFakeTimers()
     socket.emit.mockImplementation((event, payload, callback) => {
       if (event === 'joinRoom' && typeof callback === 'function') {
         callback({ ok: true })
       }
-      if ((event === 'leaveRoom' || event === 'leaveGame') && typeof callback === 'function') {
+      if (event === 'playerLeave' && typeof callback === 'function') {
         callback({ ok: true })
       }
     })
   })
 
   afterEach(() => {
-    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
@@ -126,9 +126,8 @@ describe('Rooms Component', () => {
       }
 
       await waitFor(() => {
-        // Rooms show player count like "/6"
-        const playerCounts = screen.getAllByText('/6')
-        expect(playerCounts.length).toBeGreaterThan(0)
+        expect(screen.getByText('2/6')).toBeInTheDocument()
+        expect(screen.getByText('1/6')).toBeInTheDocument()
       })
     })
 
@@ -144,9 +143,7 @@ describe('Rooms Component', () => {
       }
 
       await waitFor(() => {
-        // Should show player counts like "2/6" or "2 players"
-        const roomElements = screen.getByText('Room 1').closest('div')
-        expect(roomElements).toBeTruthy()
+        expect(screen.getByText('6/6')).toBeInTheDocument()
       })
     })
 
@@ -252,20 +249,16 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      const room = screen.getByText('Room 1').closest('button') || 
-                    screen.getByText('Room 1').closest('div[role="button"]')
-      
-      if (room) {
-        fireEvent.click(room)
+      const joinButtons = screen.getAllByRole('button', { name: /join/i })
+      fireEvent.click(joinButtons[0])
 
-        await waitFor(() => {
-          expect(socket.emit).toHaveBeenCalledWith(
-            'joinRoom',
-            expect.objectContaining({ roomId: '1', username: 'TestUser' }),
-            expect.any(Function)
-          )
-        })
-      }
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'joinRoom',
+          expect.objectContaining({ roomId: '1', username: 'TestUser' }),
+          expect.any(Function)
+        )
+      })
     })
 
     it('should sync room state after joining', async () => {
@@ -283,19 +276,15 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      const room = screen.getByText('Room 1').closest('button') || 
-                    screen.getByText('Room 1').closest('div[role="button"]')
-      
-      if (room) {
-        fireEvent.click(room)
+      const joinButtons = screen.getAllByRole('button', { name: /join/i })
+      fireEvent.click(joinButtons[0])
 
-        await waitFor(() => {
-          expect(socket.emit).toHaveBeenCalledWith(
-            'getRoomState',
-            expect.objectContaining({ roomId: '1' })
-          )
-        })
-      }
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'getRoomState',
+          expect.objectContaining({ roomId: '1' })
+        )
+      })
     })
 
     it('should update localStorage when joining a room', async () => {
@@ -313,21 +302,17 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 2')).toBeInTheDocument()
       })
 
-      const room = screen.getByText('Room 2').closest('button') || 
-                    screen.getByText('Room 2').closest('div[role="button"]')
-      
-      if (room) {
-        fireEvent.click(room)
+      const joinButtons = screen.getAllByRole('button', { name: /join/i })
+      fireEvent.click(joinButtons[1])
 
-        await waitFor(() => {
-          expect(localStorage.getItem('currentRoomId')).toBe('2')
-        })
-      }
+      await waitFor(() => {
+        expect(localStorage.getItem('currentRoomId')).toBe('2')
+      })
     })
 
     it('should handle join failure gracefully', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-      socket.emit.mockImplementationOnce((event, payload, callback) => {
+      socket.emit.mockImplementation((event, payload, callback) => {
         if (event === 'joinRoom' && typeof callback === 'function') {
           callback({ ok: false, error: 'Failed to join' })
         }
@@ -347,19 +332,15 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      const room = screen.getByText('Room 1').closest('button') || 
-                    screen.getByText('Room 1').closest('div[role="button"]')
-      
-      if (room) {
-        fireEvent.click(room)
+      const joinButtons = screen.getAllByRole('button', { name: /join/i })
+      fireEvent.click(joinButtons[0])
 
-        await waitFor(() => {
-          expect(consoleError).toHaveBeenCalledWith(
-            'Join failed:',
-            expect.anything()
-          )
-        })
-      }
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith(
+          'Join failed:',
+          expect.anything()
+        )
+      })
 
       consoleError.mockRestore()
     })
@@ -624,14 +605,16 @@ describe('Rooms Component', () => {
   describe('Stale Room Guard', () => {
     it('should clear currentRoomId if room state does not arrive', async () => {
       localStorage.setItem('currentRoomId', '99')
+      vi.useFakeTimers()
 
       render(<Rooms {...defaultProps} />)
 
-      vi.advanceTimersByTime(1600)
-
-      await waitFor(() => {
-        expect(localStorage.getItem('currentRoomId')).toBeNull()
+      act(() => {
+        vi.advanceTimersByTime(1600)
       })
+
+      expect(localStorage.getItem('currentRoomId')).toBeNull()
+      vi.useRealTimers()
     })
   })
 
@@ -641,13 +624,17 @@ describe('Rooms Component', () => {
 
       render(<Rooms {...defaultProps} />)
 
-      const backButton = screen.getByRole('button', { name: /back/i })
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      const backButton = screen.getByRole('button', { name: /back to rooms/i })
       fireEvent.click(backButton)
 
       await waitFor(() => {
         expect(socket.emit).toHaveBeenCalledWith(
-          'leaveRoom',
-          expect.objectContaining({ roomId: '1', username: 'TestUser' }),
+          'playerLeave',
+          expect.objectContaining({ roomId: '1' }),
           expect.any(Function)
         )
       })

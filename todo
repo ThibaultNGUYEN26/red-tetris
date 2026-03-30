@@ -3,12 +3,14 @@
 [X] Multiple connection on the same user
 [] Leave room issues
 [X] Indestructible lines
-[] Unittests
+[X] Unittests frontend
+[] Play again multiplayer
 
 [TODO]
 [X] Other game modes
 [X] Sound
-[] Play again button, solo game
+[X] Play again button, solo game
+[] Unittest backend
 
 [BONUS]
 [X] Scoring system

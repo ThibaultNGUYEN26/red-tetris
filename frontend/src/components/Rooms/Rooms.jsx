@@ -182,7 +182,14 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile, soundEnable
 
   const handleLeave = async () => {
     const roomId = localStorage.getItem("currentRoomId");
-    if (!roomId) return;
+    if (!roomId) {
+      localStorage.removeItem("currentRoomId");
+      setCurrentRoomId(null);
+      setShowCreateRoom(false);
+      setShowGame(false);
+      hasJoinedRef.current = false;
+      return;
+    }
 
     try {
       await new Promise((resolve) => {

@@ -38,7 +38,6 @@ describe('CreateRoom Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
-    vi.useFakeTimers()
     
     // Default successful fetch response
     global.fetch.mockResolvedValue({
@@ -155,8 +154,6 @@ describe('CreateRoom Component', () => {
       const modeSelect = screen.getByRole('combobox')
       fireEvent.change(modeSelect, { target: { value: 'speed' } })
 
-      vi.advanceTimersByTime(600)
-
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining('/api/rooms/1/mode'),
@@ -168,7 +165,7 @@ describe('CreateRoom Component', () => {
             })
           })
         )
-      })
+      }, { timeout: 1500 })
     })
   })
 
@@ -224,10 +221,12 @@ describe('CreateRoom Component', () => {
     it('should use provided roomId in join mode', () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
 
-      expect(socket.emit).toHaveBeenCalledWith(
-        'joinRoom',
-        expect.objectContaining({ roomId: '42' })
-      )
+      return waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'joinRoom',
+          expect.objectContaining({ roomId: '42', username: 'TestUser' })
+        )
+      })
     })
   })
 
@@ -285,8 +284,11 @@ describe('CreateRoom Component', () => {
         })
       }
 
+      await waitFor(() => {
+        expect(container.querySelector('.edit-button')).toBeTruthy()
+      })
+
       const editButton = container.querySelector('.edit-button')
-      expect(editButton).toBeTruthy()
       if (editButton) {
         fireEvent.click(editButton)
       }
@@ -329,6 +331,10 @@ describe('CreateRoom Component', () => {
           player_avatars: {}
         })
       }
+
+      await waitFor(() => {
+        expect(screen.getByText('Player2')).toBeInTheDocument()
+      })
 
       const startButton = screen.getByRole('button', { name: /start game/i })
       fireEvent.click(startButton)

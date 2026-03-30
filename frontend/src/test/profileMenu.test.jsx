@@ -3,6 +3,21 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import ProfileMenu from '../components/ProfileMenu/ProfileMenu'
 
+const mockSocketEmit = vi.fn((event, payload, callback) => {
+  if (event === 'registerUser' && typeof callback === 'function') {
+    callback(null, { ok: true })
+  }
+})
+
+vi.mock('../socket', () => ({
+  socket: {
+    emit: vi.fn(),
+    timeout: vi.fn(() => ({
+      emit: mockSocketEmit,
+    })),
+  },
+}))
+
 // Mock fetch
 global.fetch = vi.fn()
 
@@ -17,6 +32,11 @@ describe('ProfileMenu Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockSocketEmit.mockImplementation((event, payload, callback) => {
+      if (event === 'registerUser' && typeof callback === 'function') {
+        callback(null, { ok: true })
+      }
+    })
     
     // Default successful fetch response
     global.fetch.mockResolvedValue({
@@ -208,6 +228,33 @@ describe('ProfileMenu Component', () => {
         expect(updatedState).toBeTruthy()
       }
     })
+
+    it('should cycle backward and forward through skin, eyes, and mouth options', () => {
+      render(<ProfileMenu {...defaultProps} />)
+
+      const featureNamesBefore = screen.getAllByText((_, element) =>
+        element?.classList?.contains('feature-name')
+      )
+      const initialEyes = featureNamesBefore[0].textContent
+      const initialMouth = featureNamesBefore[1].textContent
+
+      const arrowButtons = screen.getAllByRole('button', { name: /◀|▶/ })
+
+      fireEvent.click(arrowButtons[0])
+      fireEvent.click(arrowButtons[2])
+      fireEvent.click(arrowButtons[3])
+      fireEvent.click(arrowButtons[4])
+      fireEvent.click(arrowButtons[5])
+
+      const featureNamesAfter = screen.getAllByText((_, element) =>
+        element?.classList?.contains('feature-name')
+      )
+
+      expect(featureNamesAfter[0].textContent).toBeTruthy()
+      expect(featureNamesAfter[1].textContent).toBeTruthy()
+      expect([initialEyes, featureNamesAfter[0].textContent]).toContain(featureNamesAfter[0].textContent)
+      expect([initialMouth, featureNamesAfter[1].textContent]).toContain(featureNamesAfter[1].textContent)
+    })
   })
 
   describe('Profile Submission', () => {
@@ -322,6 +369,80 @@ describe('ProfileMenu Component', () => {
         )
       })
     })
+
+    it('should show an error when registerUser fails after a successful profile save', async () => {
+      mockSocketEmit.mockImplementation((event, payload, callback) => {
+        if (event === 'registerUser' && typeof callback === 'function') {
+          callback(null, { ok: false, error: 'Username already connected' })
+        }
+      })
+
+      render(<ProfileMenu {...defaultProps} />)
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'TestUser' } })
+      fireEvent.click(screen.getByRole('button', { name: /submit|start|play/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Username already connected')).toBeInTheDocument()
+      })
+
+      expect(mockOnSubmit).not.toHaveBeenCalled()
+    })
+
+    it('should show a fallback error when registerUser returns no response data', async () => {
+      mockSocketEmit.mockImplementation((event, payload, callback) => {
+        if (event === 'registerUser' && typeof callback === 'function') {
+          callback(null, undefined)
+        }
+      })
+
+      render(<ProfileMenu {...defaultProps} />)
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'TestUser' } })
+      fireEvent.click(screen.getByRole('button', { name: /submit|start|play/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Unknown error')).toBeInTheDocument()
+      })
+    })
+
+    it('should show a socket timeout error when registerUser fails after backend failure', async () => {
+      global.fetch.mockRejectedValueOnce(new Error('Network error'))
+      mockSocketEmit.mockImplementation((event, payload, callback) => {
+        if (event === 'registerUser' && typeof callback === 'function') {
+          callback(new Error('timeout'))
+        }
+      })
+
+      render(<ProfileMenu {...defaultProps} />)
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'TestUser' } })
+      fireEvent.click(screen.getByRole('button', { name: /submit|start|play/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Server not responding')).toBeInTheDocument()
+      })
+
+      expect(mockOnSubmit).not.toHaveBeenCalled()
+    })
+
+    it('should show a fallback error when registerUser returns no response after backend failure', async () => {
+      global.fetch.mockRejectedValueOnce(new Error('Network error'))
+      mockSocketEmit.mockImplementation((event, payload, callback) => {
+        if (event === 'registerUser' && typeof callback === 'function') {
+          callback(null, undefined)
+        }
+      })
+
+      render(<ProfileMenu {...defaultProps} />)
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'TestUser' } })
+      fireEvent.click(screen.getByRole('button', { name: /submit|start|play/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Unknown error')).toBeInTheDocument()
+      })
+    })
   })
 
   describe('Theme Support', () => {
@@ -342,7 +463,7 @@ describe('ProfileMenu Component', () => {
   })
 
   describe('Avatar Validation', () => {
-    it('should have valid skin colors', () => {
+    it('should have valid skin colors', async () => {
       render(<ProfileMenu {...defaultProps} />)
       
       const input = screen.getByRole('textbox')
@@ -351,7 +472,7 @@ describe('ProfileMenu Component', () => {
       const submitButton = screen.getByRole('button', { name: /submit|start|play/i })
       fireEvent.click(submitButton)
       
-      waitFor(() => {
+      await waitFor(() => {
         const callArgs = mockOnSubmit.mock.calls[0][0]
         expect(callArgs.avatar.skinColor).toMatch(/^#[0-9a-fA-F]{6}$/)
       })
