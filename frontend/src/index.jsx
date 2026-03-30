@@ -12,7 +12,7 @@ import Rooms from './components/Rooms/Rooms.jsx'
 import Game from './components/Game/Game.jsx'
 import Title from './components/Title/Title.jsx'
 import { socket } from './socket'
-import bopSound from './res/sounds/bop.MP3'
+import bopSound from './res/sounds/bop.mp3'
 
 function Index() {
   const { roomName: urlRoomName, username: urlUsername } = useParams()
