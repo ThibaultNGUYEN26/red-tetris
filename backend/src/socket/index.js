@@ -61,6 +61,16 @@ export default function setupSockets(io) {
     console.log(`Socket connected: ${socket.id}`);
 
     // Helper functions
+    const syncSoloScoresSequence = async () => {
+      await pool.query(`
+        SELECT setval(
+          'public.solo_scores_id_seq',
+          COALESCE((SELECT MAX(id) FROM solo_scores), 0) + 1,
+          false
+        )
+      `);
+    };
+
     const fetchSoloLeaderboard = async () => {
       const result = await pool.query(
         `SELECT s.username, u.avatar, s.score
@@ -117,11 +127,24 @@ export default function setupSockets(io) {
         console.warn(`No user row found for solo stats update: ${player.username}`);
       }
 
-      await pool.query(
-        `INSERT INTO solo_scores (username, score)
-         VALUES ($1, $2)`,
-        [player.username, player.score]
-      );
+      try {
+        await pool.query(
+          `INSERT INTO solo_scores (username, score)
+           VALUES ($1, $2)`,
+          [player.username, player.score]
+        );
+      } catch (err) {
+        if (err?.code === "23505" && err?.constraint === "solo_scores_pkey") {
+          await syncSoloScoresSequence();
+          await pool.query(
+            `INSERT INTO solo_scores (username, score)
+             VALUES ($1, $2)`,
+            [player.username, player.score]
+          );
+        } else {
+          throw err;
+        }
+      }
 
       const leaderboard = await fetchSoloLeaderboard();
       io.emit("leaderboardSolo", leaderboard);
@@ -589,23 +612,27 @@ export default function setupSockets(io) {
             io.to(String(roomId)).emit("gameState", state);
           },
           onGameOver: async (summary) => {
-            io.to(String(roomId)).emit("gameOver", { winner: summary.winner });
-            if (game.mode_player === "solo") {
-              await updateSoloStats(game);
-              await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
-              removeGame(roomId);
-              return;
-            }
+            try {
+              io.to(String(roomId)).emit("gameOver", { winner: summary.winner });
+              if (game.mode_player === "solo") {
+                await updateSoloStats(game);
+                await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
+                removeGame(roomId);
+                return;
+              }
 
-            if (summary?.mode === "cooperative") {
-              await updateCoopStats(game, summary);
-            }
+              if (summary?.mode === "cooperative") {
+                await updateCoopStats(game, summary);
+              }
 
-            await updateMultiplayerStats(game, summary);
-            await pool.query(
-              "UPDATE rooms SET status = 'finished' WHERE id = $1",
-              [roomId]
-            );
+              await updateMultiplayerStats(game, summary);
+              await pool.query(
+                "UPDATE rooms SET status = 'finished' WHERE id = $1",
+                [roomId]
+              );
+            } catch (err) {
+              console.error("Game over handling failed:", err);
+            }
           },
         });
 
