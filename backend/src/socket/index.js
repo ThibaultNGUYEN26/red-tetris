@@ -438,7 +438,7 @@ export default function setupSockets(io) {
         const id = Number(roomId);
 
         const roomResult = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status
+          `SELECT id, name, game_mode, host, player_count, players, status, ready_again
           FROM rooms
           WHERE id = $1`,
           [id]
@@ -451,6 +451,9 @@ export default function setupSockets(io) {
 
         const updatedPlayers = room.players.filter((p) => p !== username);
 
+        let readyAgain = room.ready_again || [];
+        readyAgain = readyAgain.filter((p) => p !== username);
+
         // No players left → DELETE room
         if (updatedPlayers.length === 0) {
           await pool.query(`DELETE FROM rooms WHERE id = $1`, [id]);
@@ -458,10 +461,9 @@ export default function setupSockets(io) {
           return;
         }
 
-        // If host left → first remaining player becomes host
         let newHost = room.host;
         if (username === room.host) {
-          newHost = updatedPlayers[0]; // always exists here
+          newHost = updatedPlayers[0];
         }
 
         // Always keep lobby in WAITING state
@@ -470,10 +472,11 @@ export default function setupSockets(io) {
           SET players = $2::jsonb,
               player_count = $3,
               host = $4,
+              ready_again = $5::jsonb,
               status = 'waiting'
           WHERE id = $1
           RETURNING *`,
-          [id, JSON.stringify(updatedPlayers), updatedPlayers.length, newHost]
+          [id, JSON.stringify(updatedPlayers), updatedPlayers.length, newHost, JSON.stringify(readyAgain)]
         );
 
         const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
@@ -525,38 +528,59 @@ export default function setupSockets(io) {
       if (ack) ack({ ok: true });
     });
 
-    // playAgain: return players to lobby; first caller becomes new host
+    // playAgain: return players to lobby; first caller becomes new host if original host left
     socket.on("playAgain", async ({ roomId, username }) => {
       try {
         if (!roomId || !username) return;
 
+        const id = Number(roomId);
+        if (isNaN(id)) return;
+
         const result = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status
-           FROM rooms WHERE id = $1`,
-          [roomId]
+          `SELECT id, name, game_mode, host, players, status, ready_again
+          FROM rooms WHERE id = $1`,
+          [id]
         );
         if (!result.rowCount) return;
 
         const room = result.rows[0];
 
-        const game = getGame(String(roomId));
+        // stop old game if exists
+        const game = getGame(id);
         if (game) {
           game.stop();
-          removeGame(roomId);
+          removeGame(id);
         }
+
+        let readyAgain = room.ready_again || [];
+        if (!readyAgain.includes(username)) readyAgain.push(username);
+
+        // Determine host
+        let host = room.host;
+        if (!room.players.includes(host)) {
+          host = readyAgain[0] || null;
+        }
+
+        // Only ready players are in the lobby
+        const players = [...readyAgain];
+
+        const status = "waiting";
 
         const updated = await pool.query(
           `UPDATE rooms
-           SET status = 'waiting',
-               host = CASE WHEN status = 'waiting' THEN host ELSE $2 END
-           WHERE id = $1
-           RETURNING id, name, game_mode, host, player_count, players, status`,
-          [roomId, username]
+          SET status = $1,
+              host = $2,
+              players = $3::jsonb,
+              ready_again = $4::text[]
+          WHERE id = $5
+          RETURNING id, name, game_mode, host, players, status, ready_again`,
+          [status, host, JSON.stringify(players), readyAgain, id]
         );
 
         const roomWithAvatars = await attachPlayerAvatars(updated.rows[0]);
         io.to(String(roomId)).emit("roomState", roomWithAvatars);
         await broadcastAvailableRooms(io);
+
       } catch (err) {
         console.error("playAgain failed:", err);
       }
