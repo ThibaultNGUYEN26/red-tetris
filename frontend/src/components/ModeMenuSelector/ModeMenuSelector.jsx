@@ -24,7 +24,6 @@ function ModeMenuSelector({
     try {
       const existingRoomId = localStorage.getItem('currentRoomId')
 
-      // ✅ Unified leave
       if (existingRoomId) {
         await new Promise((resolve) => {
           socket.emit(
@@ -58,7 +57,7 @@ function ModeMenuSelector({
       await new Promise((resolve, reject) => {
         socket.emit(
           'joinRoom',
-          { roomId: String(room.id) }, // ❌ no username
+          { roomId: String(room.id), username },
           (res) => {
             if (!res?.ok) {
               reject(new Error(res?.error || 'Failed to join solo room'))

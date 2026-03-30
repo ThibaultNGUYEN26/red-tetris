@@ -209,6 +209,7 @@ export default function setupSockets(io) {
         game.statsUpdated = true;
       }
     };
+
     // getLeaderboardSolo Socket
     socket.on("getLeaderboardSolo", async () => {
       try {
@@ -350,6 +351,61 @@ export default function setupSockets(io) {
         socket.emit("roomState", room);
       }
       if (ack) ack({ ok: true });
+    });
+
+    // Pause/resume (solo only)
+    socket.on("pauseGame", ({ roomId, paused }) => {
+      if (!roomId) return;
+      const game = getGame(String(roomId));
+      if (!game || game.isOver || game.mode_player !== "solo") return;
+
+      if (paused) {
+        game.pause();
+      } else {
+        game.resume();
+      }
+    });
+
+    // getAvailableRooms Socket
+    socket.on("getAvailableRooms", async () => {
+      await broadcastAvailableRooms(io);
+    });
+
+    // getRoomState Socket
+    socket.on("getRoomState", async ({ roomId }) => {
+      try {
+        const result = await pool.query(
+          `SELECT id, name, game_mode, host, player_count, players, status
+          FROM rooms WHERE id = $1`,
+          [roomId]
+        );
+
+        if (!result.rowCount) {
+          return socket.emit("error", { message: "Room not found" });
+        }
+
+        const room = result.rows[0];
+        const roomWithAvatars = await attachPlayerAvatars(room);
+
+        // If game hasn't started, send room state
+        if (room.status !== "started") {
+          socket.emit("roomState", roomWithAvatars);
+          return;
+        }
+
+        // If game already started, send current state for late joiner
+        const game = getGame(String(roomId));
+        if (!game) return; // or recreate the game instance if needed
+
+        socket.emit("gameStarted", {
+          roomId
+        });
+        socket.emit("gameState", game.serialize());
+
+      } catch (err) {
+        console.error("getRoomState failed:", err);
+        socket.emit("error", { message: "Server error" });
+      }
     });
 
     socket.on("playerLeave", async ({ roomId }, callback) => {
@@ -603,12 +659,34 @@ export default function setupSockets(io) {
     });
 
     // Socket disconnection
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       unregisterUsername(socket.data.username, socket);
+
       if (!socket.data.isSpectator) {
-        removePlayerFromGame(socket.data.roomId, socket.data.username);
-        broadcastAvailableRooms(io);
+        const roomId = socket.data.roomId;
+        const username = socket.data.username;
+
+        if (roomId && username) {
+          const game = getGame(String(roomId));
+
+          if (game) {
+            const player = game.players.find(p => p.username === username);
+
+            if (player && player.isAlive) {
+              player.die();
+
+              const result = game.checkGameOver();
+              if (result.over) {
+                const summary = game.endGame();
+                if (game.onGameOver) game.onGameOver(summary);
+              }
+            }
+          }
+        }
+
+        await broadcastAvailableRooms(io);
       }
+
       console.log(`Socket disconnected: ${socket.id}`);
     });
   });

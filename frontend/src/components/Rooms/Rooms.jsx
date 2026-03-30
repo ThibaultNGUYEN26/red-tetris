@@ -193,9 +193,11 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile, soundEnable
 
       console.log("[Rooms] Successfully left room/game", { roomId });
       socket.emit("getAvailableRooms");
-    } catch (err) {
+    }
+    catch (err) {
       console.error("Failed to leave room/game:", err);
-    } finally {
+    }
+    finally {
       localStorage.removeItem("currentRoomId");
       setCurrentRoomId(null);
       setShowCreateRoom(false);
@@ -204,11 +206,19 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile, soundEnable
     }
   };
 
+  const handleExitLobby = async () => {
+    await handleLeave();
+    onBack();
+  };
+
+  const handleExitGame = async () => {
+    await handleLeave();
+  };
+
   const handlePlayAgain = () => {
-    if (!currentRoomId) return
-    socket.emit('playAgain', { roomId: String(currentRoomId), username })
-    setShowGame(false)
-  }
+    if (!currentRoomId) return;
+    socket.emit('playAgain', { roomId: String(currentRoomId), username });
+  };
 
   const handleSpectate = () => {
     if (!currentRoomName) return

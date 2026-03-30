@@ -88,8 +88,8 @@ function CreateRoom({
         console.log('[CreateRoom] Room created', { roomId: room.id, name: room.name })
 
         setRoomId(room.id)
-        setRoomName(room.name)              // ✅ backend name
-        setSelectedMode(room.game_mode)     // ✅ backend mode
+        setRoomName(room.name)
+        setSelectedMode(room.game_mode)
 
         localStorage.setItem('currentRoomId', room.id)
         onRoomCreated?.(room.id, room.name)
