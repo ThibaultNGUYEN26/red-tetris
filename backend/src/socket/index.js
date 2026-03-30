@@ -408,109 +408,98 @@ export default function setupSockets(io) {
       }
     });
 
-    socket.on("playerLeave", async ({ roomId }, callback) => {
-      const ack = typeof callback === "function" ? callback : null;
-      const username = socket.data.username;
-
-      if (!roomId || !username) {
-        if (ack) ack({ ok: false });
-        return;
-      }
+    const removePlayerFromRoom = async (roomId, username) => {
+      if (!roomId || !username) return;
 
       try {
         const id = Number(roomId);
 
-        // 1️⃣ Get room
         const roomResult = await pool.query(
-          `SELECT * FROM rooms WHERE id = $1`,
+          `SELECT id, name, game_mode, host, player_count, players, status
+          FROM rooms
+          WHERE id = $1`,
           [id]
         );
 
-        if (!roomResult.rowCount) {
-          if (ack) ack({ ok: true });
-          return;
-        }
+        if (!roomResult.rowCount) return;
 
         const room = roomResult.rows[0];
+        if (!room.players.includes(username)) return;
 
-        // Safety guard (idempotent protection)
-        if (!room.players.includes(username)) {
-          if (ack) ack({ ok: true });
-          return;
-        }
+        const updatedPlayers = room.players.filter((p) => p !== username);
 
-        // 2️⃣ GAME SIDE EFFECTS (memory only)
-        const game = getGame(id);
-        if (game && !game.isOver) {
-          const player = game.getPlayer(username);
-          if (player) player.isAlive = false;
-
-          const result = game.checkGameOver();
-          if (result.over) {
-            const summary = game.endGame();
-            if (game.onGameOver) {
-              await game.onGameOver(summary);
-            }
-          }
-        }
-
-        // 3️⃣ Remove from socket room
-        socket.leave(String(id));
-
-        // 4️⃣ Compute updated players
-        const updatedPlayers = room.players.filter(p => p !== username);
-
-        // 5️⃣ If empty → delete room
+        // No players left → DELETE room
         if (updatedPlayers.length === 0) {
           await pool.query(`DELETE FROM rooms WHERE id = $1`, [id]);
           await broadcastAvailableRooms(io);
-          if (ack) ack({ ok: true });
           return;
         }
 
-        // 6️⃣ Reassign host if needed
+        // If host left → first remaining player becomes host
         let newHost = room.host;
         if (username === room.host) {
-          newHost = updatedPlayers[0];
+          newHost = updatedPlayers[0]; // always exists here
         }
 
-        // 7️⃣ Compute correct status
-        let newStatus = room.status;
-
-        if (updatedPlayers.length === 1 && room.status === "playing") {
-          newStatus = "finished";
-        }
-
-        // 8️⃣ Update DB
-        const updateResult = await pool.query(
+        // Always keep lobby in WAITING state
+        const result = await pool.query(
           `UPDATE rooms
           SET players = $2::jsonb,
               player_count = $3,
               host = $4,
-              status = $5
+              status = 'waiting'
           WHERE id = $1
           RETURNING *`,
-          [
-            id,
-            JSON.stringify(updatedPlayers),
-            updatedPlayers.length,
-            newHost,
-            newStatus
-          ]
+          [id, JSON.stringify(updatedPlayers), updatedPlayers.length, newHost]
         );
 
-        const updatedRoom = await attachPlayerAvatars(updateResult.rows[0]);
+        const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
 
-        // 9️⃣ Broadcast
-        io.to(String(id)).emit("roomState", updatedRoom);
+        io.to(String(roomId)).emit("roomState", roomWithAvatars);
         await broadcastAvailableRooms(io);
 
-        if (ack) ack({ ok: true });
-
       } catch (err) {
-        console.error("playerLeave failed:", err);
-        if (ack) ack({ ok: false });
+        console.error("removePlayerFromRoom failed:", err);
       }
+    };
+
+    socket.on("playerLeave", async ({ roomId, username }, callback) => {
+      const ack = typeof callback === "function" ? callback : null;
+      const effectiveUsername = socket.data.username || username;
+
+      if (socket.data.isSpectator) {
+        socket.leave(String(roomId));
+        if (ack) ack({ ok: true });
+        return;
+      }
+
+      // Remove player from Game instance
+      const game = getGame(roomId);
+      if (game) {
+        const player = game.getPlayer(effectiveUsername);
+        if (player) {
+          player.isAlive = false;
+          console.log(`${effectiveUsername} left the room`);
+        }
+      }
+
+      // Leave socket room
+      socket.leave(String(roomId));
+
+      // Optionally update DB but avoid constraints for host mid-game
+      await removePlayerFromRoom(roomId, effectiveUsername);
+
+      // Broadcast updated room state (including new host if changed)
+      const roomResult = await pool.query(
+        "SELECT id, name, players, host, game_mode, status FROM rooms WHERE id=$1",
+        [roomId]
+      );
+      if (roomResult.rowCount) {
+        const roomWithAvatars = await attachPlayerAvatars(roomResult.rows[0]);
+        io.to(String(roomId)).emit("roomState", roomWithAvatars);
+      }
+      await broadcastAvailableRooms(io);
+      if (ack) ack({ ok: true });
     });
 
     // playAgain: return players to lobby; first caller becomes new host
