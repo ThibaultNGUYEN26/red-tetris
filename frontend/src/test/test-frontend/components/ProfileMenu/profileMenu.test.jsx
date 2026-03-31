@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import ProfileMenu from '../components/ProfileMenu/ProfileMenu'
+import ProfileMenu from '../../../../components/ProfileMenu/ProfileMenu'
 
 const mockSocketEmit = vi.fn((event, payload, callback) => {
   if (event === 'registerUser' && typeof callback === 'function') {
@@ -9,7 +9,7 @@ const mockSocketEmit = vi.fn((event, payload, callback) => {
   }
 })
 
-vi.mock('../socket', () => ({
+vi.mock('../../../../socket', () => ({
   socket: {
     emit: vi.fn(),
     timeout: vi.fn(() => ({

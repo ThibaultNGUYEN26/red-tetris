@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import Rooms from '../components/Rooms/Rooms'
-import { socket } from '../socket'
+import Rooms from '../../../../components/Rooms/Rooms'
+import { socket } from '../../../../socket'
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }))
 
 // Mock the socket
-vi.mock('../socket', () => ({
+vi.mock('../../../../socket', () => ({
   socket: {
     emit: vi.fn(),
     on: vi.fn(),
@@ -18,7 +18,7 @@ vi.mock('../socket', () => ({
 }))
 
 // Mock CreateRoom component
-vi.mock('../components/CreateRoom/CreateRoom.jsx', () => ({
+vi.mock('../../../../components/CreateRoom/CreateRoom.jsx', () => ({
   default: ({ onBack, onRoomCreated }) => (
     <div data-testid="create-room-mock">
       <button onClick={onBack}>Back to Rooms</button>
@@ -27,7 +27,7 @@ vi.mock('../components/CreateRoom/CreateRoom.jsx', () => ({
   )
 }))
 
-vi.mock('../components/Game/Game.jsx', () => ({
+vi.mock('../../../../components/Game/Game.jsx', () => ({
   default: ({ onPlayAgain }) => (
     <div data-testid="game-mock">
       <button onClick={onPlayAgain}>Play again</button>

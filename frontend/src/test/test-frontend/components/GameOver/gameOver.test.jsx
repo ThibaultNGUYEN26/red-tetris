@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import GameOver from '../components/GameOver/GameOver.jsx'
+import GameOver from '../../../../components/GameOver/GameOver.jsx'
 
 describe('GameOver Component', () => {
   it('renders nothing when game is not over', () => {

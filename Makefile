@@ -63,8 +63,9 @@ test-frontend:
 	cd frontend && npm run test:coverage
 
 test-backend:
-	cd backend && npm test
+	cd backend && npm run test:coverage
 
 test: test-frontend test-backend
+	@node -e "const fs=require('fs'); const paths=[['Frontend','frontend/coverage/coverage-summary.json'],['Backend','backend/coverage/coverage-summary.json']]; console.log('\nCoverage Summary'); for (const [name,path] of paths) { const total=JSON.parse(fs.readFileSync(path,'utf8')).total; console.log(name+':'); console.log('  Statements '+total.statements.pct+'%'); console.log('  Branches   '+total.branches.pct+'%'); console.log('  Functions  '+total.functions.pct+'%'); console.log('  Lines      '+total.lines.pct+'%'); }"
 
-.PHONY: frontend backend db setup-frontend install test-frontend test-backend test
+.PHONY: frontend backend db setup-frontend install test-frontend test-backend test-backend-coverage test

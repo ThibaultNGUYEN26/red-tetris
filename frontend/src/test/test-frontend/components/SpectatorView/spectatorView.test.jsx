@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import SpectatorView from '../components/SpectatorView/SpectatorView.jsx'
+import SpectatorView from '../../../../components/SpectatorView/SpectatorView.jsx'
 
-vi.mock('../components/ShadowBoards/ShadowBoards', () => ({
+vi.mock('../../../../components/ShadowBoards/ShadowBoards', () => ({
   default: () => <div data-testid="shadow-boards" />,
 }))
 

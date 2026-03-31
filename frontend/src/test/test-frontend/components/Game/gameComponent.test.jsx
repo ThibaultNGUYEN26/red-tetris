@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
-vi.mock('../socket', () => ({
+vi.mock('../../../../socket', () => ({
   socket: {
     on: vi.fn(),
     off: vi.fn(),
@@ -10,23 +10,23 @@ vi.mock('../socket', () => ({
   },
 }))
 
-vi.mock('../components/TetriminosClouds/TetriminosClouds', () => ({
+vi.mock('../../../../components/TetriminosClouds/TetriminosClouds', () => ({
   default: () => <div data-testid="tetriminos-clouds" />,
 }))
 
-vi.mock('../components/ShadowBoards/ShadowBoards', () => ({
+vi.mock('../../../../components/ShadowBoards/ShadowBoards', () => ({
   default: () => <div data-testid="shadow-boards" />,
 }))
 
-vi.mock('../components/SpectatorView/SpectatorView.jsx', () => ({
+vi.mock('../../../../components/SpectatorView/SpectatorView.jsx', () => ({
   default: () => <div data-testid="spectator-view" />,
 }))
 
-vi.mock('../components/GameOver/GameOver', () => ({
+vi.mock('../../../../components/GameOver/GameOver', () => ({
   default: () => <div data-testid="game-over" />,
 }))
 
-import Game from '../components/Game/Game.jsx'
+import Game from '../../../../components/Game/Game.jsx'
 
 describe('Game Component', () => {
   beforeEach(() => {

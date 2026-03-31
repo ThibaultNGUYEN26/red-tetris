@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import ShadowBoards from '../components/ShadowBoards/ShadowBoards.jsx'
+import ShadowBoards from '../../../../components/ShadowBoards/ShadowBoards.jsx'
 
 describe('ShadowBoards Component', () => {
   it('renders nothing when boards are missing', () => {

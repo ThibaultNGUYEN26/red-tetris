@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "test": "cd ../frontend && ./node_modules/.bin/vitest run --config ../backend/vitest.config.js",
+    "test:watch": "cd ../frontend && ./node_modules/.bin/vitest --config ../backend/vitest.config.js",
+    "test:coverage": "cd ../frontend && ./node_modules/.bin/vitest run --coverage --reporter=default --config ../backend/vitest.config.js"
   },
   "keywords": [],
   "author": "",

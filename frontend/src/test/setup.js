@@ -19,6 +19,9 @@ console.error = (...args) => {
   if (message.includes('not wrapped in act(...)')) {
     return
   }
+  if (message.includes('Failed to send profile to backend:')) {
+    return
+  }
   originalConsoleError(...args)
 }
 

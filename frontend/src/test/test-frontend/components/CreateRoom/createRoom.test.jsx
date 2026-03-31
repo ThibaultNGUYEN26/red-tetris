@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import CreateRoom from '../components/CreateRoom/CreateRoom'
-import { socket } from '../socket'
+import CreateRoom from '../../../../components/CreateRoom/CreateRoom'
+import { socket } from '../../../../socket'
 
 // Mock the socket
-vi.mock('../socket', () => ({
+vi.mock('../../../../socket', () => ({
   socket: {
     emit: vi.fn(),
     on: vi.fn(),
@@ -152,20 +152,23 @@ describe('CreateRoom Component', () => {
       }
 
       const modeSelect = screen.getByRole('combobox')
+      vi.useFakeTimers()
       fireEvent.change(modeSelect, { target: { value: 'speed' } })
 
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/rooms/1/mode'),
-          expect.objectContaining({
-            method: 'PATCH',
-            body: JSON.stringify({
-              mode: 'speed',
-              username: 'TestUser'
-            })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(600)
+      })
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/rooms/1/mode'),
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({
+            mode: 'speed',
+            username: 'TestUser'
           })
-        )
-      }, { timeout: 1500 })
+        })
+      )
     })
   })
 

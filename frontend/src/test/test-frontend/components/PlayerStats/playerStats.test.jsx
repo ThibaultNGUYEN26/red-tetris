@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import PlayerStats from '../components/PlayerStats/PlayerStats.jsx'
+import PlayerStats from '../../../../components/PlayerStats/PlayerStats.jsx'
 
-vi.mock('../components/FaceAvatar/FaceAvatar', () => ({
+vi.mock('../../../../components/FaceAvatar/FaceAvatar', () => ({
   default: () => <div data-testid="face-avatar" />,
 }))
 

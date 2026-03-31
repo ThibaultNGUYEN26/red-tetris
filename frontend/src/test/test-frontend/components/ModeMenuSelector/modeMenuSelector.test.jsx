@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import ModeMenuSelector from '../components/ModeMenuSelector/ModeMenuSelector.jsx'
-import { socket } from '../socket'
+import ModeMenuSelector from '../../../../components/ModeMenuSelector/ModeMenuSelector.jsx'
+import { socket } from '../../../../socket'
 
-vi.mock('../socket', () => ({
+vi.mock('../../../../socket', () => ({
   socket: {
     emit: vi.fn(),
   },
 }))
 
-vi.mock('../components/ModeMenuSelector/Options.jsx/Options.jsx', () => ({
+vi.mock('../../../../components/ModeMenuSelector/Options.jsx/Options.jsx', () => ({
   default: ({ onBack }) => (
     <div data-testid="options">
       <button onClick={onBack}>Back</button>
@@ -18,7 +18,7 @@ vi.mock('../components/ModeMenuSelector/Options.jsx/Options.jsx', () => ({
   ),
 }))
 
-vi.mock('../components/Rooms/Rooms.jsx', () => ({
+vi.mock('../../../../components/Rooms/Rooms.jsx', () => ({
   default: ({ onBack }) => (
     <div data-testid="rooms">
       <button onClick={onBack}>Back from Rooms</button>
@@ -242,7 +242,7 @@ describe('ModeMenuSelector Component', () => {
     vi.resetModules()
     vi.stubEnv('VITE_API_URL', '')
 
-    const { default: ModeMenuSelectorWithoutEnv } = await import('../components/ModeMenuSelector/ModeMenuSelector.jsx')
+    const { default: ModeMenuSelectorWithoutEnv } = await import('../../../../components/ModeMenuSelector/ModeMenuSelector.jsx')
 
     render(<ModeMenuSelectorWithoutEnv {...defaultProps} />)
 
@@ -260,7 +260,7 @@ describe('ModeMenuSelector Component', () => {
     vi.resetModules()
     vi.stubEnv('VITE_API_URL', 'http://api.example.test')
 
-    const { default: ModeMenuSelectorWithEnv } = await import('../components/ModeMenuSelector/ModeMenuSelector.jsx')
+    const { default: ModeMenuSelectorWithEnv } = await import('../../../../components/ModeMenuSelector/ModeMenuSelector.jsx')
 
     render(<ModeMenuSelectorWithEnv {...defaultProps} />)
 

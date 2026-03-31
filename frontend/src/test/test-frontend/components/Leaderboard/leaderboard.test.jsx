@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import Leaderboard from '../components/Leaderboard/Leaderboard'
-import { socket } from '../socket'
+import Leaderboard from '../../../../components/Leaderboard/Leaderboard'
+import { socket } from '../../../../socket'
 
-vi.mock('../socket', () => ({
+vi.mock('../../../../socket', () => ({
   socket: {
     emit: vi.fn(),  
     on: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('../socket', () => ({
   }
 }))
 
-vi.mock('../components/FaceAvatar/FaceAvatar', () => ({
+vi.mock('../../../../components/FaceAvatar/FaceAvatar', () => ({
   default: () => <div className="face-avatar" />,
 }))
 

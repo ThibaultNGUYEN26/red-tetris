@@ -43,6 +43,11 @@ router.post("/", async (req, res) => {
   try {
     const { gameMode, host } = req.body;
 
+    if (!gameMode || !host) {
+      console.log("Missing data:", { gameMode, host });
+      return res.status(400).json({ error: "Missing data" });
+    }
+
     const checkUserQuery = `
       SELECT id
       FROM rooms
@@ -60,11 +65,6 @@ router.post("/", async (req, res) => {
       return res.status(400).json({
         error: "User is already in a room"
       });
-    }
-
-    if (!gameMode || !host) {
-      console.log("Missing data:", { gameMode, host });
-      return res.status(400).json({ error: "Missing data" });
     }
 
     const allowedModes = ["classic", "speed", "cooperative", "giant"];
@@ -196,11 +196,12 @@ router.patch("/:roomId/mode", async (req, res) => {
   const { roomId } = req.params;
   const { mode, username } = req.body;
   const allowedModes = ["classic", "speed", "cooperative", "giant"];
-  const normalizedMode = mode.toLowerCase();
 
   if (!mode) {
     return res.status(400).json({ error: "Missing new room mode" });
   }
+
+  const normalizedMode = mode.toLowerCase();
 
   if (!allowedModes.includes(normalizedMode)) {
     return res.status(400).json({
@@ -213,11 +214,12 @@ router.patch("/:roomId/mode", async (req, res) => {
       `SELECT host FROM rooms WHERE id = $1`,
       [roomId]
     );
-    const { host } = roomResult.rows[0];
 
     if (!roomResult.rowCount) {
       return res.status(404).json({ error: "Room not found" });
     }
+
+    const { host } = roomResult.rows[0];
 
     if (host !== username) {
       return res.status(403).json({

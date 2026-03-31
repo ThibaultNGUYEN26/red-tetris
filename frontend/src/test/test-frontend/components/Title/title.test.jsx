@@ -12,7 +12,7 @@ vi.mock('react', async () => {
   }
 })
 
-import Title from '../components/Title/Title.jsx'
+import Title from '../../../../components/Title/Title.jsx'
 
 describe('Title Component', () => {
   beforeEach(() => {

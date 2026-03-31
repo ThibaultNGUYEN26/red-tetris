@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import Options from '../components/ModeMenuSelector/Options.jsx/Options.jsx'
+import Options from '../../../../components/ModeMenuSelector/Options.jsx/Options.jsx'
 
 describe('Options Component', () => {
   it('renders theme and sound controls', () => {

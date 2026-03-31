@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import TetriminosClouds from '../components/TetriminosClouds/TetriminosClouds.jsx'
+import TetriminosClouds from '../../../../components/TetriminosClouds/TetriminosClouds.jsx'
 
 describe('TetriminosClouds Component', () => {
   it('renders all seven decorative tetrimino clouds', () => {

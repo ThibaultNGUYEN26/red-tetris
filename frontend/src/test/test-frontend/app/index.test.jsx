@@ -7,31 +7,31 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }))
 
-vi.mock('../socket', () => ({
+vi.mock('../../../socket', () => ({
   socket: { emit: vi.fn() },
 }))
 
-vi.mock('../components/GoodClouds/GoodClouds.jsx', () => ({
+vi.mock('../../../components/GoodClouds/GoodClouds.jsx', () => ({
   default: () => <div data-testid="good-clouds" />,
 }))
 
-vi.mock('../components/TetriminosClouds/TetriminosClouds.jsx', () => ({
+vi.mock('../../../components/TetriminosClouds/TetriminosClouds.jsx', () => ({
   default: () => <div data-testid="tetriminos-clouds" />,
 }))
 
-vi.mock('../components/PlayerStats/PlayerStats.jsx', () => ({
+vi.mock('../../../components/PlayerStats/PlayerStats.jsx', () => ({
   default: () => <div data-testid="player-stats" />,
 }))
 
-vi.mock('../components/Leaderboard/Leaderboard.jsx', () => ({
+vi.mock('../../../components/Leaderboard/Leaderboard.jsx', () => ({
   default: () => <div data-testid="leaderboard" />,
 }))
 
-vi.mock('../components/Title/Title.jsx', () => ({
+vi.mock('../../../components/Title/Title.jsx', () => ({
   default: () => <div data-testid="title" />,
 }))
 
-vi.mock('../components/ModeMenuSelector/ModeMenuSelector.jsx', () => ({
+vi.mock('../../../components/ModeMenuSelector/ModeMenuSelector.jsx', () => ({
   default: () => (
     <div data-testid="mode-menu">
       <h2>Select Game Mode</h2>
@@ -42,19 +42,19 @@ vi.mock('../components/ModeMenuSelector/ModeMenuSelector.jsx', () => ({
   ),
 }))
 
-vi.mock('../components/ProfileMenu/ProfileMenu.jsx', () => ({
+vi.mock('../../../components/ProfileMenu/ProfileMenu.jsx', () => ({
   default: () => <div data-testid="profile-menu" />,
 }))
 
-vi.mock('../components/Rooms/Rooms.jsx', () => ({
+vi.mock('../../../components/Rooms/Rooms.jsx', () => ({
   default: () => <div data-testid="rooms" />,
 }))
 
-vi.mock('../components/Game/Game.jsx', () => ({
+vi.mock('../../../components/Game/Game.jsx', () => ({
   default: () => <div data-testid="game" />,
 }))
 
-import Index from '../index.jsx'
+import Index from '../../../index.jsx'
 
 describe('Index main page', () => {
   it('renders stats, leaderboard, and main menu buttons', () => {
