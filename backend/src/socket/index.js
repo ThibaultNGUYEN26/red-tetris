@@ -455,7 +455,7 @@ export default function setupSockets(io) {
         readyAgain = readyAgain.filter((p) => p !== username);
 
         // No players left → DELETE room
-        if (updatedPlayers.length === 0) {
+        if (updatedPlayers.length === 0 && readyAgain.length === 0) {
           await pool.query(`DELETE FROM rooms WHERE id = $1`, [id]);
           await broadcastAvailableRooms(io);
           return;
@@ -537,50 +537,23 @@ export default function setupSockets(io) {
         if (isNaN(id)) return;
 
         const result = await pool.query(
-          `SELECT id, name, game_mode, host, players, status, ready_again
-          FROM rooms WHERE id = $1`,
+          `SELECT id, ready_again
+          FROM rooms
+          WHERE id = $1`,
           [id]
         );
         if (!result.rowCount) return;
 
-        const room = result.rows[0];
-
-        // stop old game if exists
-        const game = getGame(id);
-        if (game) {
-          game.stop();
-          removeGame(id);
-        }
-
-        let readyAgain = room.ready_again || [];
+        let readyAgain = result.rows[0].ready_again || [];
         if (!readyAgain.includes(username)) readyAgain.push(username);
-
-        // Determine host
-        let host = room.host;
-        if (!room.players.includes(host)) {
-          host = readyAgain[0] || null;
-        }
-
-        // Only ready players are in the lobby
-        const players = [...readyAgain];
-
-        const status = "waiting";
 
         const updated = await pool.query(
           `UPDATE rooms
-          SET status = $1,
-              host = $2,
-              players = $3,
-              ready_again = $4
-          WHERE id = $5
-          RETURNING id, name, game_mode, host, players, status, ready_again`,
-          [
-            status,
-            host,
-            players,
-            readyAgain,
-            id
-          ]
+          SET status = 'waiting',
+              ready_again = $1
+          WHERE id = $2
+          RETURNING *`,
+          [readyAgain, id]
         );
 
         const roomWithAvatars = await attachPlayerAvatars(updated.rows[0]);
