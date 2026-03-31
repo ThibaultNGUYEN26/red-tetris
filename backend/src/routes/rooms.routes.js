@@ -46,13 +46,13 @@ router.post("/", async (req, res) => {
     const checkUserQuery = `
       SELECT id
       FROM rooms
-      WHERE players @> $1::jsonb
+      WHERE players @> ARRAY[$1]::text[]
       LIMIT 1;
     `;
 
     const checkResult = await pool.query(
       checkUserQuery,
-      [JSON.stringify([host])]
+      [host]
     );
 
     if (checkResult.rowCount > 0) {
@@ -86,7 +86,7 @@ router.post("/", async (req, res) => {
         RETURNING *;
       `;
 
-      const values = [name, gameMode, host, JSON.stringify([host])];
+      const values = [name, gameMode, host, [host]];
       const result = await pool.query(query, values);
 
       if (result.rowCount > 0) {

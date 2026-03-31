@@ -317,8 +317,8 @@ export default function setupSockets(io) {
         if (!room.players.includes(username)) {
           updatedPlayers = [...room.players, username];
           await pool.query(
-            "UPDATE rooms SET players = $2::jsonb, player_count = $3 WHERE id = $1",
-            [roomId, JSON.stringify(updatedPlayers), updatedPlayers.length]
+            "UPDATE rooms SET players = $2, player_count = $3 WHERE id = $1",
+            [roomId, updatedPlayers, updatedPlayers.length]
           );
         }
 
@@ -469,14 +469,14 @@ export default function setupSockets(io) {
         // Always keep lobby in WAITING state
         const result = await pool.query(
           `UPDATE rooms
-          SET players = $2::jsonb,
+          SET players = $2,
               player_count = $3,
               host = $4,
-              ready_again = $5::jsonb,
+              ready_again = $5,
               status = 'waiting'
           WHERE id = $1
           RETURNING *`,
-          [id, JSON.stringify(updatedPlayers), updatedPlayers.length, newHost, JSON.stringify(readyAgain)]
+          [id, updatedPlayers, updatedPlayers.length, newHost, readyAgain]
         );
 
         const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
@@ -570,11 +570,17 @@ export default function setupSockets(io) {
           `UPDATE rooms
           SET status = $1,
               host = $2,
-              players = $3::jsonb,
-              ready_again = $4::text[]
+              players = $3,
+              ready_again = $4
           WHERE id = $5
           RETURNING id, name, game_mode, host, players, status, ready_again`,
-          [status, host, JSON.stringify(players), readyAgain, id]
+          [
+            status,
+            host,
+            players,
+            readyAgain,
+            id
+          ]
         );
 
         const roomWithAvatars = await attachPlayerAvatars(updated.rows[0]);
