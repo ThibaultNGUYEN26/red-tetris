@@ -225,6 +225,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile, soundEnable
   const handlePlayAgain = () => {
     if (!currentRoomId) return;
     socket.emit('playAgain', { roomId: String(currentRoomId), username });
+    setShowGame(false);
   };
 
   const handleSpectate = () => {

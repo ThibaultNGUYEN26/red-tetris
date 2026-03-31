@@ -115,12 +115,17 @@ function CreateRoom({
       console.log('🟢 Room updated:', room)
 
       const avatars = room.player_avatars || {}
+      const readyAgainPlayers =
+        room.status !== 'started' && Array.isArray(room.ready_again) && room.ready_again.length
+          ? room.ready_again
+          : null
+      const displayedPlayers = readyAgainPlayers || room.players || []
 
       setRoomName(room.name)
       setSelectedMode(room.game_mode)
       setHostName(room.host)
       setPlayers(
-        room.players.map((name, index) => ({
+        displayedPlayers.map((name, index) => ({
           id: index + 1,
           name,
           isHost: name === room.host,

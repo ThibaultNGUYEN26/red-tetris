@@ -196,6 +196,33 @@ describe('CreateRoom Component', () => {
         expect(screen.getByText('Player2')).toBeInTheDocument()
       })
     })
+
+    it('should display ready_again players when returning to the lobby after a game', async () => {
+      render(<CreateRoom {...defaultProps} mode="join" roomId={1} />)
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      handleRoomState?.({
+        id: 1,
+        name: 'Room 1',
+        game_mode: 'classic',
+        host: 'TestUser',
+        players: ['TestUser', 'Player2', 'Player3'],
+        ready_again: ['TestUser', 'Player3'],
+        status: 'waiting',
+        player_avatars: {}
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('TestUser')).toBeInTheDocument()
+        expect(screen.getByText('Player3')).toBeInTheDocument()
+      })
+
+      expect(screen.queryByText('Player2')).not.toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /players \(2\/6\)/i })).toBeInTheDocument()
+    })
   })
 
   describe('Socket Communication', () => {

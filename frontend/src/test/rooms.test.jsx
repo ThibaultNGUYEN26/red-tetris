@@ -27,6 +27,14 @@ vi.mock('../components/CreateRoom/CreateRoom.jsx', () => ({
   )
 }))
 
+vi.mock('../components/Game/Game.jsx', () => ({
+  default: ({ onPlayAgain }) => (
+    <div data-testid="game-mock">
+      <button onClick={onPlayAgain}>Play again</button>
+    </div>
+  )
+}))
+
 describe('Rooms Component', () => {
   const mockOnBack = vi.fn()
   const defaultProps = {
@@ -640,6 +648,33 @@ describe('Rooms Component', () => {
       })
 
       expect(localStorage.getItem('currentRoomId')).toBeNull()
+    })
+
+    it('should return to the room card when play again is clicked after multiplayer game over', async () => {
+      localStorage.setItem('currentRoomId', '1')
+
+      render(<Rooms {...defaultProps} />)
+
+      const gameStartedCallback = socket.on.mock.calls.find(
+        call => call[0] === 'gameStarted'
+      )?.[1]
+
+      gameStartedCallback?.({ roomId: '1' })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+
+      expect(socket.emit).toHaveBeenCalledWith(
+        'playAgain',
+        expect.objectContaining({ roomId: '1', username: 'TestUser' })
+      )
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
     })
   })
 })
