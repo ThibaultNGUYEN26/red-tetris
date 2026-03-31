@@ -317,8 +317,8 @@ export default function setupSockets(io) {
         if (!room.players.includes(username)) {
           updatedPlayers = [...room.players, username];
           await pool.query(
-            "UPDATE rooms SET players = $2::jsonb, player_count = $3 WHERE id = $1",
-            [roomId, JSON.stringify(updatedPlayers), updatedPlayers.length]
+            "UPDATE rooms SET players = $2, player_count = $3 WHERE id = $1",
+            [roomId, updatedPlayers, updatedPlayers.length]
           );
         }
 
@@ -438,7 +438,7 @@ export default function setupSockets(io) {
         const id = Number(roomId);
 
         const roomResult = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status
+          `SELECT id, name, game_mode, host, player_count, players, status, ready_again
           FROM rooms
           WHERE id = $1`,
           [id]
@@ -451,29 +451,31 @@ export default function setupSockets(io) {
 
         const updatedPlayers = room.players.filter((p) => p !== username);
 
+        let readyAgain = room.ready_again || [];
+        readyAgain = readyAgain.filter((p) => p !== username);
+
         // No players left → DELETE room
-        if (updatedPlayers.length === 0) {
+        if (updatedPlayers.length === 0 && readyAgain.length === 0) {
           await pool.query(`DELETE FROM rooms WHERE id = $1`, [id]);
           await broadcastAvailableRooms(io);
           return;
         }
 
-        // If host left → first remaining player becomes host
         let newHost = room.host;
         if (username === room.host) {
-          newHost = updatedPlayers[0]; // always exists here
+          newHost = updatedPlayers[0];
         }
 
         // Always keep lobby in WAITING state
         const result = await pool.query(
           `UPDATE rooms
-          SET players = $2::jsonb,
+          SET players = $2,
               player_count = $3,
               host = $4,
-              status = 'waiting'
+              ready_again = $5
           WHERE id = $1
           RETURNING *`,
-          [id, JSON.stringify(updatedPlayers), updatedPlayers.length, newHost]
+          [id, updatedPlayers, updatedPlayers.length, newHost, readyAgain]
         );
 
         const roomWithAvatars = await attachPlayerAvatars(result.rows[0]);
@@ -525,38 +527,40 @@ export default function setupSockets(io) {
       if (ack) ack({ ok: true });
     });
 
-    // playAgain: return players to lobby; first caller becomes new host
+    // playAgain: return players to lobby; first caller becomes new host if original host left
     socket.on("playAgain", async ({ roomId, username }) => {
       try {
         if (!roomId || !username) return;
 
+        const id = Number(roomId);
+        if (isNaN(id)) return;
+
         const result = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status
-           FROM rooms WHERE id = $1`,
-          [roomId]
+          `SELECT id, ready_again
+          FROM rooms
+          WHERE id = $1`,
+          [id]
         );
         if (!result.rowCount) return;
 
-        const room = result.rows[0];
+        let readyAgain = result.rows[0].ready_again || [];
+        if (!readyAgain.includes(username)) readyAgain.push(username);
 
-        const game = getGame(String(roomId));
-        if (game) {
-          game.stop();
-          removeGame(roomId);
-        }
+        const status = readyAgain.length >= 1 ? 'waiting' : 'finished';
 
         const updated = await pool.query(
           `UPDATE rooms
-           SET status = 'waiting',
-               host = CASE WHEN status = 'waiting' THEN host ELSE $2 END
-           WHERE id = $1
-           RETURNING id, name, game_mode, host, player_count, players, status`,
-          [roomId, username]
+          SET ready_again = $1,
+              status = $2
+          WHERE id = $3
+          RETURNING *`,
+          [readyAgain, status, id]
         );
 
         const roomWithAvatars = await attachPlayerAvatars(updated.rows[0]);
         io.to(String(roomId)).emit("roomState", roomWithAvatars);
         await broadcastAvailableRooms(io);
+
       } catch (err) {
         console.error("playAgain failed:", err);
       }
@@ -570,12 +574,12 @@ export default function setupSockets(io) {
       try {
         // Fetch current room
         const roomResult = await pool.query(
-          "SELECT host, players, status, game_mode FROM rooms WHERE id=$1",
+          "SELECT host, players, status, game_mode, ready_again FROM rooms WHERE id=$1",
           [roomId]
         );
         if (!roomResult.rowCount) return;
 
-        const room = roomResult.rows[0];
+        let room = roomResult.rows[0];
 
         // Only host can start
         if (room.host !== username) {
@@ -586,10 +590,15 @@ export default function setupSockets(io) {
         // Prevent restarting an already started game
         if (room.status === "started") return;
 
-        // Create and store game instance
+        // If ready_again is not empty, use it as the current players
+        const playersToStart = (room.ready_again && room.ready_again.length)
+          ? room.ready_again
+          : room.players;
+
+        // Validate player count based on game mode
         const gameMode = room.game_mode || "classic";
         const maxPlayers = getMaxPlayers(gameMode);
-        const playerCount = room.players.length;
+        const playerCount = playersToStart.length;
         const isSoloStart = playerCount === 1;
         const isCoop = gameMode === "cooperative";
         const canStart =
@@ -605,7 +614,16 @@ export default function setupSockets(io) {
           return;
         }
 
-        const game = createGame(roomId, room.players, gameMode, room.host);
+        // Replace room.players with ready_again if applicable
+        if (room.ready_again && room.ready_again.length) {
+          await pool.query(
+            "UPDATE rooms SET players=$1, ready_again='{}' WHERE id=$2",
+            [playersToStart, roomId]
+          );
+        }
+
+        // Create and store game instance
+        const game = createGame(roomId, playersToStart, gameMode, room.host);
 
         game.setCallbacks({
           onTick: (state) => {
@@ -614,6 +632,7 @@ export default function setupSockets(io) {
           onGameOver: async (summary) => {
             try {
               io.to(String(roomId)).emit("gameOver", { winner: summary.winner });
+
               if (game.mode_player === "solo") {
                 await updateSoloStats(game);
                 await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
