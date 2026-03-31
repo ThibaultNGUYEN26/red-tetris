@@ -472,8 +472,7 @@ export default function setupSockets(io) {
           SET players = $2,
               player_count = $3,
               host = $4,
-              ready_again = $5,
-              status = 'waiting'
+              ready_again = $5
           WHERE id = $1
           RETURNING *`,
           [id, updatedPlayers, updatedPlayers.length, newHost, readyAgain]
@@ -547,13 +546,15 @@ export default function setupSockets(io) {
         let readyAgain = result.rows[0].ready_again || [];
         if (!readyAgain.includes(username)) readyAgain.push(username);
 
+        const status = readyAgain.length >= 1 ? 'waiting' : 'finished';
+
         const updated = await pool.query(
           `UPDATE rooms
-          SET status = 'waiting',
-              ready_again = $1
-          WHERE id = $2
+          SET ready_again = $1,
+              status = $2
+          WHERE id = $3
           RETURNING *`,
-          [readyAgain, id]
+          [readyAgain, status, id]
         );
 
         const roomWithAvatars = await attachPlayerAvatars(updated.rows[0]);
@@ -573,12 +574,12 @@ export default function setupSockets(io) {
       try {
         // Fetch current room
         const roomResult = await pool.query(
-          "SELECT host, players, status, game_mode FROM rooms WHERE id=$1",
+          "SELECT host, players, status, game_mode, ready_again FROM rooms WHERE id=$1",
           [roomId]
         );
         if (!roomResult.rowCount) return;
 
-        const room = roomResult.rows[0];
+        let room = roomResult.rows[0];
 
         // Only host can start
         if (room.host !== username) {
@@ -589,10 +590,15 @@ export default function setupSockets(io) {
         // Prevent restarting an already started game
         if (room.status === "started") return;
 
-        // Create and store game instance
+        // If ready_again is not empty, use it as the current players
+        const playersToStart = (room.ready_again && room.ready_again.length)
+          ? room.ready_again
+          : room.players;
+
+        // Validate player count based on game mode
         const gameMode = room.game_mode || "classic";
         const maxPlayers = getMaxPlayers(gameMode);
-        const playerCount = room.players.length;
+        const playerCount = playersToStart.length;
         const isSoloStart = playerCount === 1;
         const isCoop = gameMode === "cooperative";
         const canStart =
@@ -608,7 +614,16 @@ export default function setupSockets(io) {
           return;
         }
 
-        const game = createGame(roomId, room.players, gameMode, room.host);
+        // Replace room.players with ready_again if applicable
+        if (room.ready_again && room.ready_again.length) {
+          await pool.query(
+            "UPDATE rooms SET players=$1, ready_again='{}' WHERE id=$2",
+            [playersToStart, roomId]
+          );
+        }
+
+        // Create and store game instance
+        const game = createGame(roomId, playersToStart, gameMode, room.host);
 
         game.setCallbacks({
           onTick: (state) => {
@@ -617,6 +632,7 @@ export default function setupSockets(io) {
           onGameOver: async (summary) => {
             try {
               io.to(String(roomId)).emit("gameOver", { winner: summary.winner });
+
               if (game.mode_player === "solo") {
                 await updateSoloStats(game);
                 await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
