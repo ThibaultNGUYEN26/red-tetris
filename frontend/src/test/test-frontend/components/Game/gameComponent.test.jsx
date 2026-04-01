@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import { socket } from '../../../../socket'
 
 vi.mock('../../../../socket', () => ({
   socket: {
@@ -88,5 +89,52 @@ describe('Game Component', () => {
 
     expect(screen.getByRole('button', { name: /resume/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /leave game/i })).toBeInTheDocument()
+  })
+
+  it('tracks the DB-backed room mode before a new game starts', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    const roomStateHandler = socket.on.mock.calls.find(
+      ([event]) => event === 'roomState'
+    )?.[1]
+    const gameStartedHandler = socket.on.mock.calls.find(
+      ([event]) => event === 'gameStarted'
+    )?.[1]
+    const gameStateHandler = socket.on.mock.calls.find(
+      ([event]) => event === 'gameState'
+    )?.[1]
+
+    roomStateHandler?.({
+      id: 1,
+      game_mode: 'classic',
+    })
+
+    gameStartedHandler?.({ roomId: '1' })
+
+    gameStateHandler?.({
+      mode: 'classic',
+      players: [{
+        username: 'Titi',
+        board: Array.from({ length: 20 }, () => Array(10).fill('empty')),
+        score: 0,
+        lines: 0,
+        level: 1,
+        nextType: 'z',
+      }],
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('grid', { name: /tetris board/i })).toBeInTheDocument()
+    })
   })
 })

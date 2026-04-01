@@ -170,10 +170,11 @@ export default class Piece {
     this.type = type;
     this.boardWidth = boardWidth;
     this.boardHeight = boardHeight;
-    // I piece spawns vertically (rotation 1), all others spawn at rotation 0
-    this.rotation = type === 'I' ? 1 : 0;
+    // Guideline/SRS spawn state: pieces spawn in rotation state 0.
+    this.rotation = 0;
     this.shape = SHAPES[type][this.rotation];
-    this.y = 0;
+    const firstOccupiedRow = this.shape.findIndex((row) => row.some(Boolean));
+    this.y = firstOccupiedRow >= 0 ? -firstOccupiedRow : 0;
 
     // Spawn the piece in the center based on its width
     this.x = Math.floor((this.boardWidth - this.shape[0].length) / 2);
@@ -188,13 +189,12 @@ export default class Piece {
         const boardY = this.y + y;
 
         // Outside board
-        if (
-          boardX < 0 ||
-          boardX >= this.boardWidth ||
-          boardY < 0 ||
-          boardY >= this.boardHeight
-        ) {
+        if (boardX < 0 || boardX >= this.boardWidth || boardY >= this.boardHeight) {
           return false;
+        }
+
+        if (boardY < 0) {
+          continue;
         }
 
         // Collision with existing blocks

@@ -47,16 +47,16 @@ const SHAPES = {
     [[0, 1], [1, 0], [1, 1], [2, 0]],
   ],
   l: [
-    [[0, 0], [1, 0], [1, 1], [1, 2]],
-    [[0, 1], [0, 2], [1, 1], [2, 1]],
-    [[1, 0], [1, 1], [1, 2], [2, 2]],
-    [[0, 1], [1, 1], [2, 0], [2, 1]],
-  ],
-  j: [
     [[0, 2], [1, 0], [1, 1], [1, 2]],
     [[0, 1], [1, 1], [2, 1], [2, 2]],
     [[1, 0], [1, 1], [1, 2], [2, 0]],
     [[0, 0], [0, 1], [1, 1], [2, 1]],
+  ],
+  j: [
+    [[0, 0], [1, 0], [1, 1], [1, 2]],
+    [[0, 1], [0, 2], [1, 1], [2, 1]],
+    [[1, 0], [1, 1], [1, 2], [2, 2]],
+    [[0, 1], [1, 1], [2, 0], [2, 1]],
   ],
 }
 
@@ -112,6 +112,7 @@ function Game({
   const wasBoardEmptyRef = useRef(true)
   const winnerRef = useRef(null)
   const loserRef = useRef(null)
+  const roomModeRef = useRef(null)
 
   const startMusic = () => {
     if (!soundEnabled) return
@@ -267,11 +268,25 @@ function Game({
     if (joinedRef.current) return
     joinedRef.current = true
 
+    const handleRoomState = (room) => {
+      if (String(room?.id) !== String(roomId)) return
+      const mode = room?.game_mode || null
+      roomModeRef.current = mode
+      setGameMode(mode)
+      setBoardSize(getBoardSize(mode))
+    }
+
     const handleGameStarted = () => {
-      setBoard(makeEmptyBoard(boardSize))
+      const mode = roomModeRef.current
+      const size = getBoardSize(mode)
+      setGameMode(mode)
+      setBoardSize(size)
+      setBoard(makeEmptyBoard(size))
       setIsPaused(false)
       setShowMenu(false)
       setStats({ score: 0, lines: 0, level: 1 })
+      setNextType(null)
+      setOpponentBoards([])
       setWinner(null)
       setIsEliminated(false)
       setShowSpectator(false)
@@ -336,6 +351,7 @@ function Game({
       }
     }
 
+    socket.on('roomState', handleRoomState)
     socket.on('gameStarted', handleGameStarted)
     socket.on('gameState', handleGameState)
     socket.on('gameOver', handleGameOver)
@@ -344,6 +360,7 @@ function Game({
     socket.emit('getRoomState', { roomId: String(roomId) })
 
     return () => {
+      socket.off('roomState', handleRoomState)
       socket.off('gameStarted', handleGameStarted)
       socket.off('gameState', handleGameState)
       socket.off('gameOver', handleGameOver)

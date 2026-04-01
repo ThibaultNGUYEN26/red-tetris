@@ -399,6 +399,7 @@ describe('socket setup', () => {
 
     await startGameHandler({ roomId: '1' })
 
+    expect(mockRemoveGame).toHaveBeenCalledWith('1')
     expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
     expect(game.setCallbacks).toHaveBeenCalled()
     expect(game.start).toHaveBeenCalled()
@@ -723,6 +724,7 @@ describe('socket setup', () => {
       "UPDATE rooms SET status = 'finished' WHERE id = $1",
       ['1']
     )
+    expect(mockRemoveGame).toHaveBeenCalledWith('1')
   })
 
   it('disconnect kills the live player, ends the game when needed, and refreshes rooms', async () => {

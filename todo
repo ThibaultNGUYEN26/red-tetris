@@ -1,16 +1,16 @@
 [FIX]
 [X] URL joining game
 [X] Multiple connection on the same user
-[] Leave room issues
+[X] Leave room issues
 [X] Indestructible lines
 [X] Unittests frontend
-[] Play again multiplayer
+[X] Play again multiplayer
 
 [TODO]
 [X] Other game modes
 [X] Sound
 [X] Play again button, solo game
-[] Unittest backend
+[X] Unittest backend
 
 [BONUS]
 [X] Scoring system
@@ -18,3 +18,8 @@
 [X] New game modes
 [X] Spectator mode
 [X] Stats + Avatar
+
+[TEST]
+[] Many solo games at the same time
+[] Many multiplayer games at the same time
+[] 

@@ -649,7 +649,8 @@ export default function setupSockets(io) {
           );
         }
 
-        // Create and store game instance
+        // Always rebuild the in-memory game from the current DB room state.
+        removeGame(roomId);
         const game = createGame(roomId, playersToStart, gameMode, room.host);
 
         game.setCallbacks({
@@ -676,6 +677,7 @@ export default function setupSockets(io) {
                 "UPDATE rooms SET status = 'finished' WHERE id = $1",
                 [roomId]
               );
+              removeGame(roomId);
             } catch (err) {
               console.error("Game over handling failed:", err);
             }

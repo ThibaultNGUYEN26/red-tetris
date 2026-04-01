@@ -6,11 +6,11 @@ const makeBoard = (width = 10, height = 20) =>
   Array.from({ length: height }, () => Array(width).fill('empty'))
 
 describe('Piece', () => {
-  it('spawns I vertically and other pieces at rotation 0', () => {
+  it('spawns pieces in SRS rotation state 0', () => {
     const iPiece = new Piece('I')
     const tPiece = new Piece('T')
 
-    expect(iPiece.rotation).toBe(1)
+    expect(iPiece.rotation).toBe(0)
     expect(tPiece.rotation).toBe(0)
   })
 
@@ -21,6 +21,26 @@ describe('Piece', () => {
     piece.getCells().forEach(({ x, y }) => {
       board[y][x] = 'locked'
     })
+
+    expect(piece.canSpawn(board)).toBe(false)
+  })
+
+  it('spawns partially above the visible board when the shape has top padding', () => {
+    const piece = new Piece('I')
+
+    expect(piece.y).toBe(-1)
+  })
+
+  it('allows spawning above the board while still checking visible collisions', () => {
+    const board = makeBoard()
+    const piece = new Piece('I')
+
+    expect(piece.canSpawn(board)).toBe(true)
+
+    board[0][piece.x + 0] = 'locked'
+    board[0][piece.x + 1] = 'locked'
+    board[0][piece.x + 2] = 'locked'
+    board[0][piece.x + 3] = 'locked'
 
     expect(piece.canSpawn(board)).toBe(false)
   })

@@ -210,8 +210,11 @@ export default class Game {
         if (!shape[row][col]) continue;
         const boardX = x + col;
         const boardY = y + row;
-        if (boardX < 0 || boardX >= this.boardWidth || boardY < 0 || boardY >= this.boardHeight) {
+        if (boardX < 0 || boardX >= this.boardWidth || boardY >= this.boardHeight) {
           return false;
+        }
+        if (boardY < 0) {
+          continue;
         }
         if (board[boardY][boardX] !== "empty") {
           return false;

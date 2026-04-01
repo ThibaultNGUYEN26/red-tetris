@@ -73,6 +73,26 @@ describe('Game', () => {
     expect(player.currentPiece.rotation).not.toBe(originalRotation)
   })
 
+  it('spawns the I piece in the horizontal SRS spawn state', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    game.sequenceBuffer = ['I', 'O']
+
+    expect(game.spawnForPlayer(player)).toBe(true)
+    expect(player.currentPiece.rotation).toBe(0)
+  })
+
+  it('allows a new piece to spawn partly above the board', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    game.sequenceBuffer = ['I', 'O']
+
+    expect(game.spawnForPlayer(player)).toBe(true)
+    expect(player.currentPiece.y).toBeLessThan(0)
+  })
+
   it('clears lines, queues penalties, and applies them when the target player locks', () => {
     const attacker = new Player('Titi', '1')
     const defender = new Player('Riri', '2')

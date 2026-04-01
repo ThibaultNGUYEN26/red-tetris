@@ -3,6 +3,37 @@ import { pool } from "../config/db.js";
 
 const router = express.Router();
 
+async function syncUsersIdSequence() {
+  await pool.query(`
+    SELECT setval(
+      pg_get_serial_sequence('users', 'id'),
+      COALESCE((SELECT MAX(id) FROM users), 0) + 1,
+      false
+    )
+  `);
+}
+
+async function upsertProfile(username, avatar) {
+  const query = `
+    INSERT INTO users (
+      username,
+      avatar,
+      solo_games_played,
+      highest_solo_score,
+      multiplayer_games_played,
+      multiplayer_wins,
+      multiplayer_losses
+    )
+    VALUES ($1, $2, 0, 0, 0, 0, 0)
+    ON CONFLICT (username)
+    DO UPDATE SET avatar = EXCLUDED.avatar
+    RETURNING id, username, avatar;
+  `;
+
+  const values = [username, JSON.stringify(avatar)];
+  return pool.query(query, values);
+}
+
 router.get("/player/stats", async (req, res) => {
   try {
     const { username } = req.query;
@@ -104,24 +135,17 @@ router.post("/profile", async (req, res) => {
       return res.status(400).json({ error: "Invalid username" });
     }
 
-    const query = `
-      INSERT INTO users (
-        username,
-        avatar,
-        solo_games_played,
-        highest_solo_score,
-        multiplayer_games_played,
-        multiplayer_wins,
-        multiplayer_losses
-      )
-      VALUES ($1, $2, 0, 0, 0, 0, 0)
-      ON CONFLICT (username)
-      DO UPDATE SET avatar = EXCLUDED.avatar
-      RETURNING id, username, avatar;
-    `;
-
-    const values = [username, JSON.stringify(avatar)];
-    const result = await pool.query(query, values);
+    let result;
+    try {
+      result = await upsertProfile(username, avatar);
+    } catch (err) {
+      if (err?.code === "23505" && err?.constraint === "users_pkey") {
+        await syncUsersIdSequence();
+        result = await upsertProfile(username, avatar);
+      } else {
+        throw err;
+      }
+    }
 
     res.status(200).json(result.rows[0]);
   } catch (err) {

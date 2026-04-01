@@ -180,4 +180,44 @@ describe('profile routes', () => {
       avatar: { eyeType: 'happy' },
     })
   })
+
+  it('repairs the users id sequence and retries when the primary key sequence drifted', async () => {
+    const duplicateIdError = Object.assign(new Error('duplicate key value violates unique constraint "users_pkey"'), {
+      code: '23505',
+      constraint: 'users_pkey',
+    })
+
+    mockQuery
+      .mockRejectedValueOnce(duplicateIdError)
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [{
+          id: 65,
+          username: 'Titi',
+          avatar: { eyeType: 'happy' },
+        }],
+      })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'post', '/profile')
+    const res = buildRes()
+
+    await handler({
+      body: {
+        username: 'Titi',
+        avatar: { eyeType: 'happy' },
+      },
+    }, res)
+
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('pg_get_serial_sequence')
+    )
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith({
+      id: 65,
+      username: 'Titi',
+      avatar: { eyeType: 'happy' },
+    })
+  })
 })
