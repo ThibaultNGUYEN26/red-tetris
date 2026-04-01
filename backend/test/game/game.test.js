@@ -153,6 +153,39 @@ describe('Game', () => {
     expect(lockedOnly.flat()).not.toContain('ghost')
   })
 
+  it('clears the active piece when top-out happens after a lock', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.board = Array.from({ length: game.boardHeight }, () =>
+      Array(game.boardWidth).fill('empty')
+    )
+
+    player.currentPiece = {
+      type: 'O',
+      rotation: 0,
+      x: 4,
+      y: 0,
+    }
+
+    // Block the next spawn at the top of the visible board without creating
+    // a full line that would be cleared by the lock.
+    game.sequenceBuffer = ['O', 'I']
+    player.sequenceIndex = 0
+    player.board[0][3] = 'filled'
+    player.board[0][4] = 'filled'
+    player.board[0][5] = 'filled'
+    player.board[0][6] = 'filled'
+
+    game.lockCurrentPiece(player)
+
+    expect(player.isAlive).toBe(false)
+    expect(player.currentPiece).toBeNull()
+
+    const rendered = game.getRenderBoard(player)
+    expect(rendered.flat()).not.toContain('ghost')
+  })
+
   it('serializes cooperative state from the shared player', () => {
     const players = [new Player('Titi', '1'), new Player('Riri', '2')]
     const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')

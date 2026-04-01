@@ -346,6 +346,12 @@ export default class Game {
       player.pendingPenaltyLines = 0;
     }
 
+    // The locked piece is now part of the board. Clear active-piece state
+    // before attempting the next spawn so top-out renders the final board
+    // instead of the previously active piece floating in place.
+    player.currentPiece = null;
+    player.nextPiece = null;
+
     player.sequenceIndex += 1;
     const ok = this.spawnForPlayer(player);
     if (!ok) {
