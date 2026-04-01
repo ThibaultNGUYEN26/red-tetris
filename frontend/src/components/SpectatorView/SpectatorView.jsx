@@ -139,6 +139,9 @@ function SpectatorView({ players, onBack, username }) {
                 <span className="spectator-btn-icon">→</span>
               </button>
             </div>
+            <div className="spectator-actions">
+              <button className="back-button" onClick={onBack}>Back</button>
+            </div>
           </div>
         </div>
         <div className="game-stats">
@@ -201,10 +204,6 @@ function SpectatorView({ players, onBack, username }) {
           </div>
           <ShadowBoards boards={opponentBoards} />
         </div>
-      </div>
-
-      <div className="spectator-actions">
-        <button className="back-button" onClick={onBack}>Back</button>
       </div>
     </>
   )
