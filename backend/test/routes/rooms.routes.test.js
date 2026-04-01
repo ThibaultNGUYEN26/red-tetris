@@ -186,7 +186,7 @@ describe('rooms routes', () => {
 
   it('updates the room mode for the host', async () => {
     mockQuery
-      .mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi' }] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 1 }] })
       .mockResolvedValueOnce({
         rowCount: 1,
         rows: [{
@@ -226,5 +226,27 @@ describe('rooms routes', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ game_mode: 'giant' })
     )
+  })
+
+  it('rejects a mode change when the room has too many players for that mode', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{ host: 'Titi', player_count: 3 }],
+    })
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'patch', '/:roomId/mode')
+    const res = buildRes()
+
+    await handler(buildReq({
+      params: { roomId: '1' },
+      body: { mode: 'cooperative', username: 'Titi' },
+    }), res)
+
+    expect(mockQuery).toHaveBeenCalledTimes(1)
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({
+      error: 'Cannot switch to cooperative with 3 players',
+    })
   })
 })

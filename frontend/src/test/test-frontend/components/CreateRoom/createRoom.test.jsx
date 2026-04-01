@@ -153,7 +153,7 @@ describe('CreateRoom Component', () => {
 
       const modeSelect = screen.getByRole('combobox')
       vi.useFakeTimers()
-      fireEvent.change(modeSelect, { target: { value: 'speed' } })
+      fireEvent.change(modeSelect, { target: { value: 'mirror' } })
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(600)
@@ -164,11 +164,58 @@ describe('CreateRoom Component', () => {
         expect.objectContaining({
           method: 'PATCH',
           body: JSON.stringify({
-            mode: 'speed',
+            mode: 'mirror',
             username: 'TestUser'
           })
         })
       )
+    })
+
+    it('should revert to the committed mode when the backend rejects the change', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      handleRoomState?.({
+        id: 1,
+        name: 'Room 1',
+        game_mode: 'classic',
+        host: 'TestUser',
+        players: ['TestUser'],
+        player_avatars: {}
+      })
+
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          error: 'Mode update rejected'
+        })
+      })
+
+      const modeSelect = screen.getByRole('combobox')
+      vi.useFakeTimers()
+      fireEvent.change(modeSelect, { target: { value: 'giant' } })
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(600)
+      })
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(600)
+      })
+
+      expect(screen.getByRole('combobox')).toHaveValue('classic')
+
+      vi.useRealTimers()
+      consoleError.mockRestore()
     })
   })
 

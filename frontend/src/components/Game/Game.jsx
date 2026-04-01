@@ -386,7 +386,7 @@ function Game({
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.repeat) return
-      const isMirrorMode = gameMode === 'speed'
+      const isMirrorMode = gameMode === 'mirror'
       if (event.key === 'Escape' && !isMultiplayer) {
         setIsPaused(true)
         stopSoftDrop()
@@ -421,7 +421,7 @@ function Game({
     }
 
     const handleKeyUp = (event) => {
-      const isMirrorMode = gameMode === 'speed'
+      const isMirrorMode = gameMode === 'mirror'
       if ((!isMirrorMode && event.key === 'ArrowDown') || (isMirrorMode && event.key === ' ')) {
         stopSoftDrop()
       }

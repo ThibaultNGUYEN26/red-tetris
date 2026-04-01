@@ -32,7 +32,7 @@ function getMaxPlayers(gameMode = "classic") {
     case "cooperative":
       return 2;
     case "classic":
-    case "speed":
+    case "mirror":
     default:
       return 6;
   }
@@ -290,7 +290,7 @@ export default function setupSockets(io) {
 
         // Fetch current room state
         const result = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status
+          `SELECT id, name, game_mode, host, player_count, players, status, ready_again
            FROM rooms WHERE id = $1`,
           [roomId]
         );
@@ -314,15 +314,35 @@ export default function setupSockets(io) {
 
         // Add new player if not already in list
         let updatedPlayers = room.players;
+        let updatedReadyAgain = room.ready_again || [];
+        let hasChanges = false;
+
         if (!room.players.includes(username)) {
           updatedPlayers = [...room.players, username];
+          hasChanges = true;
+        }
+
+        // Once a finished game is returning to the lobby, ready_again becomes
+        // the effective player list for the next start. Rejoining players must
+        // be added there too or they disappear from the lobby view.
+        if (updatedReadyAgain.length > 0 && !updatedReadyAgain.includes(username)) {
+          updatedReadyAgain = [...updatedReadyAgain, username];
+          hasChanges = true;
+        }
+
+        if (hasChanges) {
           await pool.query(
-            "UPDATE rooms SET players = $2, player_count = $3 WHERE id = $1",
-            [roomId, updatedPlayers, updatedPlayers.length]
+            "UPDATE rooms SET players = $2, player_count = $3, ready_again = $4 WHERE id = $1",
+            [roomId, updatedPlayers, updatedPlayers.length, updatedReadyAgain]
           );
         }
 
-        const roomWithAvatars = await attachPlayerAvatars({ ...room, players: updatedPlayers });
+        const roomWithAvatars = await attachPlayerAvatars({
+          ...room,
+          players: updatedPlayers,
+          ready_again: updatedReadyAgain,
+          player_count: updatedPlayers.length,
+        });
 
         // Emit to ALL players in room AFTER socket joined
         io.to(String(roomId)).emit("roomState", roomWithAvatars);

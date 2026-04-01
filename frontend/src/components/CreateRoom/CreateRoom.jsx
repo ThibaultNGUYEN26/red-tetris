@@ -37,6 +37,7 @@ function CreateRoom({
   )
   const [roomId, setRoomId] = useState(joinedRoomId || null)
   const [hostName, setHostName] = useState('')
+  const [committedMode, setCommittedMode] = useState('classic')
 
   const hasCreatedRoom = useRef(false)
   const hasEditedName = useRef(false)
@@ -45,7 +46,7 @@ function CreateRoom({
   // Define available game modes
   const availableGameModes = [
     { value: 'classic', label: 'Classic', maxPlayers: 6 },
-    { value: 'speed', label: 'Mirror', maxPlayers: 6 },
+    { value: 'mirror', label: 'Mirror', maxPlayers: 6 },
     { value: 'cooperative', label: 'Cooperative', maxPlayers: 2 },
     { value: 'giant', label: 'Giant', maxPlayers: 6 }
   ]
@@ -110,6 +111,7 @@ function CreateRoom({
         setRoomName(room.name)
         setRoomNameDraft(room.name)
         setSelectedMode(room.game_mode)
+        setCommittedMode(room.game_mode)
 
         localStorage.setItem('currentRoomId', room.id)
         onRoomCreated?.(room.id, room.name)
@@ -146,6 +148,7 @@ function CreateRoom({
         setRoomNameDraft(room.name)
       }
       setSelectedMode(room.game_mode)
+      setCommittedMode(room.game_mode)
       setHostName(room.host)
       setPlayers(
         displayedPlayers.map((name, index) => ({
@@ -175,21 +178,30 @@ function CreateRoom({
 
     const timeoutId = setTimeout(async () => {
       try {
-        await fetch(`${API_URL}/api/rooms/${roomId}/mode`, {
+        const response = await fetch(`${API_URL}/api/rooms/${roomId}/mode`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             mode: selectedMode,
             username: username,
           }),
-        });
+        })
+
+        if (!response.ok) {
+          throw new Error(`Mode update failed with status ${response.status}`)
+        }
+
+        const updatedRoom = await response.json()
+        setSelectedMode(updatedRoom.game_mode)
+        setCommittedMode(updatedRoom.game_mode)
       } catch (err) {
+        setSelectedMode(committedMode)
         console.error('Failed to update game mode:', err);
       }
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [selectedMode, roomId, mode, username, hostName]);
+  }, [selectedMode, roomId, mode, username, hostName, committedMode]);
 
   /* ---------------- UI HANDLERS ---------------- */
 

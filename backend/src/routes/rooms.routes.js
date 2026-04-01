@@ -3,6 +3,7 @@ import { pool } from "../config/db.js";
 import { broadcastAvailableRooms } from "../socket/index.js";
 
 const router = express.Router();
+const getMaxPlayers = (gameMode) => (gameMode === "cooperative" ? 2 : 6);
 
 async function attachPlayerAvatars(room) {
   const players = Array.isArray(room.players) ? room.players : [];
@@ -67,7 +68,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const allowedModes = ["classic", "speed", "cooperative", "giant"];
+    const allowedModes = ["classic", "mirror", "cooperative", "giant"];
     if (!allowedModes.includes(gameMode)) {
       console.log("Invalid game mode:", gameMode);
       return res.status(400).json({ error: "Invalid game mode" });
@@ -195,7 +196,7 @@ router.patch("/:roomId/name", async (req, res) => {
 router.patch("/:roomId/mode", async (req, res) => {
   const { roomId } = req.params;
   const { mode, username } = req.body;
-  const allowedModes = ["classic", "speed", "cooperative", "giant"];
+  const allowedModes = ["classic", "mirror", "cooperative", "giant"];
 
   if (!mode) {
     return res.status(400).json({ error: "Missing new room mode" });
@@ -205,13 +206,13 @@ router.patch("/:roomId/mode", async (req, res) => {
 
   if (!allowedModes.includes(normalizedMode)) {
     return res.status(400).json({
-      error: "Invalid game mode. Allowed: classic, speed, cooperative, giant",
+      error: "Invalid game mode. Allowed: classic, mirror, cooperative, giant",
     });
   }
 
   try {
     const roomResult = await pool.query(
-      `SELECT host FROM rooms WHERE id = $1`,
+      `SELECT host, player_count FROM rooms WHERE id = $1`,
       [roomId]
     );
 
@@ -219,11 +220,18 @@ router.patch("/:roomId/mode", async (req, res) => {
       return res.status(404).json({ error: "Room not found" });
     }
 
-    const { host } = roomResult.rows[0];
+    const { host, player_count } = roomResult.rows[0];
 
     if (host !== username) {
       return res.status(403).json({
         error: "Only the host can rename the room"
+      });
+    }
+
+    const maxPlayers = getMaxPlayers(normalizedMode);
+    if (player_count > maxPlayers) {
+      return res.status(400).json({
+        error: `Cannot switch to ${normalizedMode} with ${player_count} players`,
       });
     }
 

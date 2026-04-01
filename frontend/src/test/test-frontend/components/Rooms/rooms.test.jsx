@@ -63,7 +63,7 @@ describe('Rooms Component', () => {
     {
       id: 2,
       name: 'Room 2',
-      game_mode: 'speed',
+      game_mode: 'mirror',
       host: 'Player3',
       player_count: 1,
       players: ['Player3'],

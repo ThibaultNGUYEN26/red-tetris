@@ -150,6 +150,53 @@ describe('socket setup', () => {
     expect(ack).toHaveBeenCalledWith({ ok: true })
   })
 
+  it('joinRoom also adds a rejoining player to ready_again for a post-game lobby', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Host',
+          player_count: 2,
+          players: ['Host', 'Riri'],
+          status: 'waiting',
+          ready_again: ['Riri'],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 1, name: 'Room', game_mode: 'classic', host: 'Host', player_count: 3, players: ['Host', 'Riri', 'Titi'] }],
+      })
+
+    const { io, socket } = await setupConnectedSocket()
+
+    const joinRoomHandler = socket.handlers.get('joinRoom')
+    const ack = vi.fn()
+
+    await joinRoomHandler({ roomId: '1', username: 'Titi' }, ack)
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      "UPDATE rooms SET players = $2, player_count = $3, ready_again = $4 WHERE id = $1",
+      ['1', ['Host', 'Riri', 'Titi'], 3, ['Riri', 'Titi']]
+    )
+    expect(io.roomEmit).toHaveBeenCalledWith(
+      'roomState',
+      expect.objectContaining({
+        players: ['Host', 'Riri', 'Titi'],
+        ready_again: ['Riri', 'Titi'],
+      })
+    )
+    expect(ack).toHaveBeenCalledWith({ ok: true })
+  })
+
   it('getRoomState emits roomState for a waiting room', async () => {
     mockQuery
       .mockResolvedValueOnce({
