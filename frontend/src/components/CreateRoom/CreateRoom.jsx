@@ -85,7 +85,25 @@ function CreateRoom({
         })
 
         const room = await response.json()
-        console.log('[CreateRoom] Room created', { roomId: room.id, name: room.name })
+        
+        // [Play Again] If user is already in a room, switch to join mode and use localStorage
+        if (room.error === 'User is already in a room') {
+          console.log('[CreateRoom] User already in a room, retrieving existing room')
+          const existingRoomId = localStorage.getItem('currentRoomId')
+          if (existingRoomId && existingRoomId !== 'undefined') {
+            console.log('[CreateRoom] Using existing room:', { existingRoomId })
+            setRoomId(Number(existingRoomId))
+            hasCreatedRoom.current = true
+            return
+          }
+        }
+        
+        if (!room.id) {
+          console.error('[CreateRoom] Room creation failed:', room.error || 'No roomId returned')
+          return
+        }
+
+        console.log('[CreateRoom] Room created', { roomId: room.id, name: room.name, roomObj: room })
 
         setRoomId(room.id)
         setRoomName(room.name)
@@ -256,8 +274,11 @@ function CreateRoom({
 
     try {
       hasStartedGame.current = true
-      console.log('🎮 Emitting startGame event:', { roomId: String(roomId), username });
-      socket.emit('startGame', { roomId: String(roomId), username })
+      // Use roomId state first, fallback to localStorage as backup
+      const localStorageId = localStorage.getItem('currentRoomId')
+      const resolvedRoomId = roomId || localStorageId
+      console.log('🎮 Emitting startGame event:', { roomId: String(resolvedRoomId), username });
+      socket.emit('startGame', { roomId: String(resolvedRoomId), username })
     } catch (err) {
       console.error('Failed to start game:', err)
       hasStartedGame.current = false

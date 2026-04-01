@@ -571,6 +571,13 @@ export default function setupSockets(io) {
       const username = socket.data.username;
       if (!roomId || !username) return;
 
+      const id = Number(roomId);
+
+      if (!Number.isInteger(id) || id <= 0 || !username) {
+        console.log("Invalid startGame payload:", roomId);
+        return;
+      }
+
       try {
         // Fetch current room
         const roomResult = await pool.query(
