@@ -115,7 +115,7 @@ function SpectatorView({ players, onBack, username }) {
 
   return (
     <>
-      <div className="game-header">
+      <div className="game-header spectator-header">
         <div className="game-title">
           <div className="spectator-info">
             <div className="spectator-title">
@@ -160,7 +160,7 @@ function SpectatorView({ players, onBack, username }) {
         </div>
       </div>
 
-      <div className="game-layout">
+      <div className="game-layout spectator-layout">
         <div
           className="game-board"
           role="grid"

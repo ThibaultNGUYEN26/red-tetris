@@ -22,6 +22,7 @@ function CreateRoom({
   }
 
   const [roomName, setRoomName] = useState('')
+  const [roomNameDraft, setRoomNameDraft] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
   const [selectedMode, setSelectedMode] = useState('classic')
   const [players, setPlayers] = useState(
@@ -89,6 +90,7 @@ function CreateRoom({
 
         setRoomId(room.id)
         setRoomName(room.name)
+        setRoomNameDraft(room.name)
         setSelectedMode(room.game_mode)
 
         localStorage.setItem('currentRoomId', room.id)
@@ -122,6 +124,9 @@ function CreateRoom({
       const displayedPlayers = readyAgainPlayers || room.players || []
 
       setRoomName(room.name)
+      if (!isEditingName) {
+        setRoomNameDraft(room.name)
+      }
       setSelectedMode(room.game_mode)
       setHostName(room.host)
       setPlayers(
@@ -142,33 +147,7 @@ function CreateRoom({
     return () => {
       socket.off('roomState', handleRoomState);
     }
-  }, [roomId])
-
-    /* ---------------- UPDATE ROOM NAME (ONLY AFTER USER EDIT) ---------------- */
-
-  useEffect(() => {
-    if (!roomId) return;
-    if (hostName !== username) return;
-    if (!hasEditedName.current) return;
-    if (roomName.trim().length === 0) return; // Prevent PATCH if name is empty
-
-    const timeoutId = setTimeout(async () => {
-      try {
-        await fetch(`${API_URL}/api/rooms/${roomId}/name`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: roomName.trim(),
-            username: username,
-          }),
-        });
-      } catch (err) {
-        console.error('Failed to update room name:', err);
-      }
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [roomName, roomId, mode, username]);
+  }, [roomId, username, userProfile, isEditingName])
 
   // Update game mode (only host)
   useEffect(() => {
@@ -198,7 +177,7 @@ function CreateRoom({
 
   const handleRoomNameChange = (e) => {
     if (e.target.value.length <= 15) {
-      setRoomName(e.target.value)
+      setRoomNameDraft(e.target.value)
     }
   }
 
@@ -222,29 +201,59 @@ function CreateRoom({
 
   const handleEditClick = () => {
     hasEditedName.current = true
+    setRoomNameDraft(roomName)
     setIsEditingName(true)
   }
 
   const handleNameBlur = () => {
     setIsEditingName(false)
-    if (roomName.trim().length === 0) {
-      setRoomName('Room')
+    setRoomNameDraft(roomName)
+  }
+
+  const submitRoomName = async () => {
+    if (!roomId) return
+
+    const trimmedName = roomNameDraft.trim()
+    if (!trimmedName || hostName !== username) {
+      setRoomNameDraft(roomName)
+      return
     }
-    // Do NOT send PATCH on blur
+
+    try {
+      const response = await fetch(`${API_URL}/api/rooms/${roomId}/name`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
+          username,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Rename failed with status ${response.status}`)
+      }
+
+      const updatedRoom = await response.json()
+      setRoomName(updatedRoom.name)
+      setRoomNameDraft(updatedRoom.name)
+      socket.emit('getRoomState', { roomId: String(roomId) })
+    } catch (err) {
+      setRoomNameDraft(roomName)
+      console.error('Failed to update room name:', err)
+    }
   }
 
   const handleNameKeyDown = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault();
-      // Only send PATCH if not empty
-      if (roomName.trim().length > 0 && mode === 'create' && hasEditedName.current) {
-        fetch(`${API_URL}/api/rooms/${roomId}/name`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: roomName.trim() }),
-        }).catch(err => console.error('Failed to update room name:', err));
-      }
-      e.target.blur(); // Triggers handleNameBlur, but does NOT send PATCH
+      e.preventDefault()
+      submitRoomName().finally(() => {
+        setIsEditingName(false)
+      })
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      setRoomNameDraft(roomName)
+      setIsEditingName(false)
     }
   }
 
@@ -299,7 +308,7 @@ function CreateRoom({
             <div className="room-name-container">
               <input
                 type="text"
-                value={roomName}
+                value={roomNameDraft}
                 onChange={handleRoomNameChange}
                 onBlur={handleNameBlur}
                 onKeyDown={handleNameKeyDown}

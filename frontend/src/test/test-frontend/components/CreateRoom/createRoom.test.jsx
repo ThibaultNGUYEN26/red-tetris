@@ -292,11 +292,23 @@ describe('CreateRoom Component', () => {
   })
 
   describe('Room Name Editing (Host)', () => {
-    it('should allow host to edit room name and PATCH on Enter', async () => {
+    it('should allow host to edit room name and render the DB-confirmed name', async () => {
       const { container } = render(<CreateRoom {...defaultProps} />)
 
       await waitFor(() => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 1,
+          name: 'NewName',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
       })
 
       const handleRoomState = socket.on.mock.calls.find(
@@ -332,10 +344,19 @@ describe('CreateRoom Component', () => {
           expect.stringContaining('/api/rooms/1/name'),
           expect.objectContaining({
             method: 'PATCH',
-            body: JSON.stringify({ name: 'NewName' })
+            body: JSON.stringify({ name: 'NewName', username: 'TestUser' })
           })
         )
       })
+
+      await waitFor(() => {
+        expect(screen.getByText('NewName')).toBeInTheDocument()
+      })
+
+      expect(socket.emit).toHaveBeenCalledWith(
+        'getRoomState',
+        { roomId: '1' }
+      )
     })
   })
 
