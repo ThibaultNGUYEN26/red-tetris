@@ -141,6 +141,14 @@ function Index() {
     navigate('/')
   }
 
+  const handleExitJoinedRoom = () => {
+    setJoinedRoomName(null)
+    setShowRooms(false)
+    setShowGame(false)
+    localStorage.removeItem('currentRoomId')
+    navigate('/')
+  }
+
   /* ---------------- UPDATE URL WHEN ROOM IS CREATED ---------------- */
 
   const handleRoomCreated = (roomId, roomName) => {
@@ -236,7 +244,7 @@ function Index() {
             username={username}
             userProfile={userProfile}
             joinRoomName={joinedRoomName}
-            onBack={handleReturnToProfile}
+            onBack={handleExitJoinedRoom}
             onRoomCreated={handleRoomCreated}
             soundEnabled={soundEnabled}
             onSoundChange={handleSoundChange}

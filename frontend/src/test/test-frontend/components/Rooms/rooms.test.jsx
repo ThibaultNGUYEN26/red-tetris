@@ -28,9 +28,10 @@ vi.mock('../../../../components/CreateRoom/CreateRoom.jsx', () => ({
 }))
 
 vi.mock('../../../../components/Game/Game.jsx', () => ({
-  default: ({ onPlayAgain }) => (
+  default: ({ onPlayAgain, onBack }) => (
     <div data-testid="game-mock">
       <button onClick={onPlayAgain}>Play again</button>
+      <button onClick={onBack}>Back to menu</button>
     </div>
   )
 }))
@@ -675,6 +676,34 @@ describe('Rooms Component', () => {
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
       })
+    })
+
+    it('should propagate back-to-menu when leaving from the multiplayer game view', async () => {
+      localStorage.setItem('currentRoomId', '1')
+
+      render(<Rooms {...defaultProps} />)
+
+      const gameStartedCallback = socket.on.mock.calls.find(
+        call => call[0] === 'gameStarted'
+      )?.[1]
+
+      gameStartedCallback?.({ roomId: '1' })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /back to menu/i }))
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'playerLeave',
+          expect.objectContaining({ roomId: '1' }),
+          expect.any(Function)
+        )
+      })
+
+      expect(mockOnBack).toHaveBeenCalled()
     })
   })
 })
