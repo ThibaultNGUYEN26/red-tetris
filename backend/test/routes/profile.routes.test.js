@@ -144,7 +144,7 @@ describe('profile routes', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Missing data' })
 
     res = buildRes()
-    await handler({ body: { username: 'ab', avatar: {} } }, res)
+    await handler({ body: { username: 'bad name', avatar: {} } }, res)
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({ error: 'Invalid username' })
   })
