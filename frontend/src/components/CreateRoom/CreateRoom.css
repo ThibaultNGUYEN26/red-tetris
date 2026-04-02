@@ -9,18 +9,12 @@
   backdrop-filter: blur(12px);
   max-width: 500px;
   max-height: 90vh;
-  overflow-y: auto;
   width: 90%;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   align-items: center;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.create-room-card::-webkit-scrollbar {
-  display: none;
+  overflow: hidden;
 }
 
 .create-room-card h2 {
@@ -41,6 +35,8 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .form-group {
@@ -212,6 +208,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .players-section h3 {
@@ -228,6 +226,25 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(42, 82, 152, 0.35) transparent;
+}
+
+.players-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.players-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.players-list::-webkit-scrollbar-thumb {
+  background: rgba(42, 82, 152, 0.35);
+  border-radius: 999px;
 }
 
 .player-item {
@@ -501,6 +518,10 @@
     gap: 1rem;
   }
 
+  .players-section {
+    gap: 0.65rem;
+  }
+
   .form-group label {
     font-size: 0.9rem;
   }
@@ -517,6 +538,16 @@
     width: 70%;
     padding: 0.7rem 0.9rem;
     font-size: 0.95rem;
+  }
+
+  .player-item {
+    padding: 0.7rem 0.85rem;
+  }
+
+  .start-button,
+  .back-button {
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
   }
 
   .char-count {
