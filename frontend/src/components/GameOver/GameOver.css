@@ -1,0 +1,60 @@
+.game-over-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 18, 28, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.game-over-card {
+  background: #e9f6ff;
+  border: 2px solid #c7e8ff;
+  border-radius: 18px;
+  padding: 22px 26px;
+  min-width: 260px;
+  text-align: center;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+
+.game-screen.dark .game-over-card {
+  background: #192a3a;
+  border-color: #2b4156;
+  color: #e6f3ff;
+}
+
+.game-over-winner {
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+
+.game-over-status {
+  margin: 4px 0 0;
+}
+
+.game-over-actions {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+  justify-items: stretch;
+}
+
+.game-over-primary-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.game-over-actions .resume-button,
+.game-over-actions .back-button {
+  min-width: 160px;
+}
+
+.game-over-actions .resume-button {
+  width: 100%;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+}

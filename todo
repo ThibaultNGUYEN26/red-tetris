@@ -1,0 +1,25 @@
+[FIX]
+[X] URL joining game
+[X] Multiple connection on the same user
+[X] Leave room issues
+[X] Indestructible lines
+[X] Unittests frontend
+[X] Play again multiplayer
+
+[TODO]
+[X] Other game modes
+[X] Sound
+[X] Play again button, solo game
+[X] Unittest backend
+
+[BONUS]
+[X] Scoring system
+[X] Persist player scores
+[X] New game modes
+[X] Spectator mode
+[X] Stats + Avatar
+
+[TEST]
+[X] Many solo games at the same time
+[X] Many multiplayer games at the same time
+[X] URL join, URL need to change if the player clicks on back
