@@ -1,10 +1,13 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
+const navigateMock = vi.fn()
+let mockParams = { username: 'Titi', roomName: undefined }
+
 vi.mock('react-router-dom', () => ({
-  useParams: () => ({ username: 'Titi', roomName: undefined }),
-  useNavigate: () => vi.fn(),
+  useParams: () => mockParams,
+  useNavigate: () => navigateMock,
 }))
 
 vi.mock('../../../socket', () => ({
@@ -47,7 +50,11 @@ vi.mock('../../../components/ProfileMenu/ProfileMenu.jsx', () => ({
 }))
 
 vi.mock('../../../components/Rooms/Rooms.jsx', () => ({
-  default: () => <div data-testid="rooms" />,
+  default: ({ onBack }) => (
+    <div data-testid="rooms">
+      <button onClick={onBack}>Leave joined room</button>
+    </div>
+  ),
 }))
 
 vi.mock('../../../components/Game/Game.jsx', () => ({
@@ -57,7 +64,22 @@ vi.mock('../../../components/Game/Game.jsx', () => ({
 import Index from '../../../index.jsx'
 
 describe('Index main page', () => {
+  it('clears the joined-room URL flow when leaving a room', () => {
+    mockParams = { username: 'Titi', roomName: 'Room-ABC' }
+
+    render(<Index />)
+
+    expect(screen.getByTestId('rooms')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /leave joined room/i }))
+
+    expect(navigateMock).toHaveBeenCalledWith('/')
+
+    mockParams = { username: 'Titi', roomName: undefined }
+  })
+
   it('renders stats, leaderboard, and main menu buttons', () => {
+    mockParams = { username: 'Titi', roomName: undefined }
     render(<Index />)
 
     expect(

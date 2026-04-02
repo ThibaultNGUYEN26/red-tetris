@@ -220,6 +220,7 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile, soundEnable
 
   const handleExitGame = async () => {
     await handleLeave();
+    onBack();
   };
 
   const handlePlayAgain = () => {
