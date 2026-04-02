@@ -18,14 +18,6 @@ vi.mock('../../../../components/ModeMenuSelector/Options.jsx/Options.jsx', () =>
   ),
 }))
 
-vi.mock('../../../../components/Rooms/Rooms.jsx', () => ({
-  default: ({ onBack }) => (
-    <div data-testid="rooms">
-      <button onClick={onBack}>Back from Rooms</button>
-    </div>
-  ),
-}))
-
 global.fetch = vi.fn()
 
 describe('ModeMenuSelector Component', () => {
@@ -86,24 +78,13 @@ describe('ModeMenuSelector Component', () => {
     expect(screen.getByRole('button', { name: /solo/i })).toBeInTheDocument()
   })
 
-  it('opens rooms view on multiplayer', () => {
+  it('notifies parent to open rooms on multiplayer', () => {
     render(<ModeMenuSelector {...defaultProps} />)
 
     fireEvent.click(screen.getByRole('button', { name: /multiplayer/i }))
-    expect(screen.getByTestId('rooms')).toBeInTheDocument()
+
     expect(defaultProps.onShowRooms).toHaveBeenCalledWith(true)
-  })
-
-  it('returns from rooms view and notifies parent', () => {
-    render(<ModeMenuSelector {...defaultProps} />)
-
-    fireEvent.click(screen.getByRole('button', { name: /multiplayer/i }))
-    expect(screen.getByTestId('rooms')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: /back from rooms/i }))
-
     expect(screen.getByRole('button', { name: /solo/i })).toBeInTheDocument()
-    expect(defaultProps.onShowRooms).toHaveBeenCalledWith(false)
   })
 
   it('starts solo game flow and calls callbacks', async () => {

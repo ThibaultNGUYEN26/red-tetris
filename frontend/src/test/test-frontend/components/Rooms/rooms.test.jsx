@@ -38,9 +38,11 @@ vi.mock('../../../../components/Game/Game.jsx', () => ({
 
 describe('Rooms Component', () => {
   const mockOnBack = vi.fn()
+  const mockOnLeaveRoom = vi.fn()
   const defaultProps = {
     theme: 'light',
     onBack: mockOnBack,
+    onLeaveRoom: mockOnLeaveRoom,
     username: 'TestUser',
     userProfile: {
       avatar: {
@@ -649,6 +651,7 @@ describe('Rooms Component', () => {
       })
 
       expect(localStorage.getItem('currentRoomId')).toBeNull()
+      expect(mockOnLeaveRoom).toHaveBeenCalled()
     })
 
     it('should return to the room card when play again is clicked after multiplayer game over', async () => {
@@ -703,7 +706,7 @@ describe('Rooms Component', () => {
         )
       })
 
-      expect(mockOnBack).toHaveBeenCalled()
+      expect(mockOnLeaveRoom).toHaveBeenCalled()
     })
   })
 })

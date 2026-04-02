@@ -2,7 +2,6 @@ import './ModeMenuSelector.css'
 import { useState } from 'react'
 import { socket } from '../../socket'
 import Options from './Options.jsx/Options.jsx'
-import Rooms from '../Rooms/Rooms.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -17,7 +16,6 @@ function ModeMenuSelector({
   onSoundChange,
 }) {
   const [showOptions, setShowOptions] = useState(false)
-  const [showRooms, setShowRooms] = useState(false)
 
   const handleSolo = async () => {
     console.log('Solo mode selected')
@@ -83,7 +81,6 @@ function ModeMenuSelector({
 
   const handleMultiplayer = () => {
     console.log('Multiplayer mode selected')
-    setShowRooms(true)
     onShowRooms(true)
   }
 
@@ -95,29 +92,12 @@ function ModeMenuSelector({
     setShowOptions(false)
   }
 
-  const handleBackFromRooms = () => {
-    setShowRooms(false)
-    onShowRooms(false)
-  }
-
   if (showOptions) {
     return (
       <Options
         onBack={handleBackToMenu}
         theme={theme}
         onThemeChange={onThemeChange}
-        soundEnabled={soundEnabled}
-        onSoundChange={onSoundChange}
-      />
-    )
-  }
-
-  if (showRooms) {
-    return (
-      <Rooms
-        theme={theme}
-        onBack={handleBackFromRooms}
-        username={username}
         soundEnabled={soundEnabled}
         onSoundChange={onSoundChange}
       />

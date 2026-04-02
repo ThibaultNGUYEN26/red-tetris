@@ -142,11 +142,16 @@ function Index() {
   }
 
   const handleExitJoinedRoom = () => {
-    setJoinedRoomName(null)
     setShowRooms(false)
-    setShowGame(false)
+    setJoinedRoomName(null)
     localStorage.removeItem('currentRoomId')
-    navigate('/')
+    navigate('/', { replace: true })
+  }
+
+  const handleReturnToRoomsList = () => {
+    setJoinedRoomName(null)
+    setShowRooms(true)
+    navigate('/', { replace: true })
   }
 
   /* ---------------- UPDATE URL WHEN ROOM IS CREATED ---------------- */
@@ -238,13 +243,14 @@ function Index() {
 
       {/* Content wrapper always rendered */}
       <div className="content-wrapper">
-        {joinedRoomName && username ? (
+        {(joinedRoomName || showRooms) && username ? (
           <Rooms
             theme={theme}
             username={username}
             userProfile={userProfile}
             joinRoomName={joinedRoomName}
             onBack={handleExitJoinedRoom}
+            onLeaveRoom={handleReturnToRoomsList}
             onRoomCreated={handleRoomCreated}
             soundEnabled={soundEnabled}
             onSoundChange={handleSoundChange}

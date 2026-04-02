@@ -7,7 +7,7 @@ import Game from '../Game/Game.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-function Rooms({ theme, onBack, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
+function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
   const [showCreateRoom, setShowCreateRoom] = useState(false)
@@ -215,12 +215,12 @@ function Rooms({ theme, onBack, username, joinRoomName, userProfile, soundEnable
 
   const handleExitLobby = async () => {
     await handleLeave();
-    onBack();
+    onLeaveRoom?.();
   };
 
   const handleExitGame = async () => {
     await handleLeave();
-    onBack();
+    onLeaveRoom?.();
   };
 
   const handlePlayAgain = () => {

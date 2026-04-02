@@ -50,9 +50,9 @@ vi.mock('../../../components/ProfileMenu/ProfileMenu.jsx', () => ({
 }))
 
 vi.mock('../../../components/Rooms/Rooms.jsx', () => ({
-  default: ({ onBack }) => (
+  default: ({ onLeaveRoom }) => (
     <div data-testid="rooms">
-      <button onClick={onBack}>Leave joined room</button>
+      <button onClick={onLeaveRoom}>Leave joined room</button>
     </div>
   ),
 }))
@@ -73,7 +73,7 @@ describe('Index main page', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /leave joined room/i }))
 
-    expect(navigateMock).toHaveBeenCalledWith('/')
+    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
 
     mockParams = { username: 'Titi', roomName: undefined }
   })
