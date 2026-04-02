@@ -14,16 +14,23 @@ import Title from './components/Title/Title.jsx'
 import { socket } from './socket'
 import bopSound from './res/sounds/bop.mp3'
 
+const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
+
 function Index() {
   const { roomName: urlRoomName, username: urlUsername } = useParams()
   const navigate = useNavigate()
+  const hasValidUrlUsername = urlUsername ? USERNAME_PATTERN.test(urlUsername) : false
 
-  const [username, setUsername] = useState(urlUsername || null)
+  const [username, setUsername] = useState(
+    hasValidUrlUsername ? urlUsername : null
+  )
   const [theme, setTheme] = useState('light')
   const [showRooms, setShowRooms] = useState(false)
   const [showGame, setShowGame] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
-  const [joinedRoomName, setJoinedRoomName] = useState(urlRoomName || null)
+  const [joinedRoomName, setJoinedRoomName] = useState(
+    urlRoomName && hasValidUrlUsername ? urlRoomName : null
+  )
   const [soloRoomId, setSoloRoomId] = useState(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const bopAudioRef = useRef(null)
@@ -34,9 +41,14 @@ function Index() {
   /* ---------------- SYNC URL PARAMS ---------------- */
 
   useEffect(() => {
+    if (urlUsername && !USERNAME_PATTERN.test(urlUsername)) {
+      navigate('/', { replace: true })
+      return
+    }
+
     if (urlUsername && !username) setUsername(urlUsername)
     if (urlRoomName && !joinedRoomName) setJoinedRoomName(urlRoomName)
-  }, [urlUsername, urlRoomName])
+  }, [urlUsername, urlRoomName, username, joinedRoomName, navigate])
 
   useEffect(() => {
     if (username) {

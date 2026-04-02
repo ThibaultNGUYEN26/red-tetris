@@ -131,7 +131,7 @@ router.post("/profile", async (req, res) => {
       return res.status(400).json({ error: "Missing data" });
     }
 
-    if (!/^[a-zA-Z0-9]{3,15}$/.test(username)) {
+    if (!/^[a-zA-Z0-9]{1,15}$/.test(username)) {
       return res.status(400).json({ error: "Invalid username" });
     }
 

@@ -4,6 +4,7 @@ import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { socket } from '../../socket'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
+const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 
 function ProfileMenu({ onSubmit, theme }) {
   const [username, setUsername] = useState('')
@@ -57,17 +58,30 @@ function ProfileMenu({ onSubmit, theme }) {
   }, [])
 
   const handleUsernameChange = (e) => {
-    const value = e.target.value
-    if (value.length <= 15) {
-      setUsername(value)
+    const sanitizedValue = e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 15)
+    setUsername(sanitizedValue)
+
+    if (errorMessage) {
+      setErrorMessage('')
     }
   }
 
   const handleSubmit = async () => {
-    if (username.trim().length > 0) {
-      setErrorMessage('')
-      const profileData = {
-        username: username.trim(),
+    const trimmedUsername = username.trim()
+
+    if (!trimmedUsername) {
+      setErrorMessage('Missing data')
+      return
+    }
+
+    if (!USERNAME_PATTERN.test(trimmedUsername)) {
+      setErrorMessage('Invalid username')
+      return
+    }
+
+    setErrorMessage('')
+    const profileData = {
+      username: trimmedUsername,
         avatar: {
           skinColor: currentAvatar.skinColor,
           eyeType: currentAvatar.eyeType,
@@ -93,7 +107,7 @@ function ProfileMenu({ onSubmit, theme }) {
         console.log('Response status:', response.status)
         // Fallback if backend response is missing username
         const safeData = {
-          username: data.username || username,
+          username: data.username || trimmedUsername,
           avatar: data.avatar || profileData.avatar,
           ...data
         }
@@ -126,7 +140,7 @@ function ProfileMenu({ onSubmit, theme }) {
             resolve({ ok: true })
             return
           }
-          socket.timeout(2000).emit('registerUser', { username }, (err, res) => {
+          socket.timeout(2000).emit('registerUser', { username: trimmedUsername }, (err, res) => {
             if (err) {
               resolve({ ok: false, error: 'Server not responding' })
               return
@@ -139,13 +153,12 @@ function ProfileMenu({ onSubmit, theme }) {
           return
         }
 
-        onSubmit({ username, avatar: profileData.avatar })
+        onSubmit({ username: trimmedUsername, avatar: profileData.avatar })
       }
-    }
   }
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && username.trim().length > 0) {
+    if (e.key === 'Enter') {
       handleSubmit()
     }
   }
@@ -229,6 +242,7 @@ function ProfileMenu({ onSubmit, theme }) {
         onKeyPress={handleKeyPress}
         placeholder="Username"
         maxLength={15}
+        pattern="[A-Za-z0-9]{1,15}"
         className="username-input"
       />
       {errorMessage && <p className="username-error">{errorMessage}</p>}
@@ -236,7 +250,7 @@ function ProfileMenu({ onSubmit, theme }) {
       <button
         className="submit-button"
         onClick={handleSubmit}
-        disabled={username.trim().length === 0}
+        disabled={username.length === 0}
       >
         Let's Play!
       </button>

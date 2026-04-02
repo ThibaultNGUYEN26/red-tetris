@@ -96,4 +96,13 @@ describe('Index main page', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
   })
+
+  it('rejects an invalid username from the room join URL', () => {
+    mockParams = { username: 'Bad Name', roomName: 'Room-ABC' }
+
+    render(<Index />)
+
+    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
+    expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+  })
 })

@@ -95,7 +95,34 @@ describe('ProfileMenu Component', () => {
       const input = screen.getByRole('textbox')
       fireEvent.change(input, { target: { value: 'ThisIsAVeryLongUsernameThatExceedsLimit' } })
       
-      expect(input.value.length).toBeLessThanOrEqual(15)
+      expect(input.value).toBe('ThisIsAVeryLong')
+    })
+
+    it('should keep only letters and numbers in the username input', () => {
+      render(<ProfileMenu {...defaultProps} />)
+
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: '  Test_User!42  ' } })
+
+      expect(input.value).toBe('TestUser42')
+    })
+
+    it('should accept a 1 character username', async () => {
+      render(<ProfileMenu {...defaultProps} />)
+
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'A' } })
+
+      fireEvent.click(screen.getByRole('button', { name: /submit|start|play/i }))
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/profile'),
+          expect.objectContaining({
+            body: expect.stringContaining('"username":"A"')
+          })
+        )
+      })
     })
 
     it('should not submit with empty username', () => {
@@ -145,6 +172,7 @@ describe('ProfileMenu Component', () => {
       fireEvent.keyPress(input, { key: 'Enter', code: 'Enter', charCode: 13 })
       
       expect(mockOnSubmit).not.toHaveBeenCalled()
+      expect(screen.getByText('Missing data')).toBeInTheDocument()
     })
   })
 

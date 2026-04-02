@@ -2,10 +2,14 @@ import { pool } from "../config/db.js";
 import { createGame, getGame, removeGame } from "../game/gameManager.js";
 
 const activeUsers = new Map();
+const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/;
 
 const registerUsername = (username, socket) => {
   if (!username) {
     return { ok: false, error: "Missing username" };
+  }
+  if (!USERNAME_PATTERN.test(username)) {
+    return { ok: false, error: "Invalid username" };
   }
   if (socket.data.username && socket.data.username !== username) {
     unregisterUsername(socket.data.username, socket);

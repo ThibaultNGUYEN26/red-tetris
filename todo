@@ -21,6 +21,5 @@
 
 [TEST]
 [X] Many solo games at the same time
-[] Many multiplayer games at the same time
+[X] Many multiplayer games at the same time
 [X] URL join, URL need to change if the player clicks on back
-[]

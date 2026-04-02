@@ -100,6 +100,18 @@ describe('socket setup', () => {
     expect(socket.emit).toHaveBeenCalledWith('usernameTaken', { username: '' })
   })
 
+  it('registerUser rejects an invalid username', async () => {
+    const { socket } = await setupConnectedSocket()
+
+    const registerHandler = socket.handlers.get('registerUser')
+    const ack = vi.fn()
+
+    registerHandler({ username: 'Bad Name' }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Invalid username' })
+    expect(socket.emit).toHaveBeenCalledWith('usernameTaken', { username: 'Bad Name' })
+  })
+
   it('joinRoom validates required fields', async () => {
     const { socket } = await setupConnectedSocket()
 
@@ -109,6 +121,19 @@ describe('socket setup', () => {
     await joinRoomHandler({ roomId: '', username: '' }, ack)
 
     expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Missing roomId or username' })
+  })
+
+  it('joinRoom rejects an invalid username', async () => {
+    const { socket } = await setupConnectedSocket()
+
+    const joinRoomHandler = socket.handlers.get('joinRoom')
+    const ack = vi.fn()
+
+    await joinRoomHandler({ roomId: '1', username: 'Bad Name' }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Invalid username' })
+    expect(socket.emit).toHaveBeenCalledWith('error', { message: 'Invalid username' })
+    expect(socket.join).not.toHaveBeenCalled()
   })
 
   it('joinRoom adds a player and emits roomState', async () => {
