@@ -13,7 +13,7 @@ async function syncUsersIdSequence() {
   `);
 }
 
-async function upsertProfile(username, avatar) {
+async function updateProfile(username, avatar) {
   const query = `
     INSERT INTO users (
       username,
@@ -137,11 +137,11 @@ router.post("/profile", async (req, res) => {
 
     let result;
     try {
-      result = await upsertProfile(username, avatar);
+      result = await updateProfile(username, avatar);
     } catch (err) {
       if (err?.code === "23505" && err?.constraint === "users_pkey") {
         await syncUsersIdSequence();
-        result = await upsertProfile(username, avatar);
+        result = await updateProfile(username, avatar);
       } else {
         throw err;
       }
