@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7uLVlwJbFOitwdgaac9BvrfWgChA2tM0gpND9tK2ihuvCH72k9D9KoHKn2Cqlyo
+\restrict itEIBIoV0yG9PkAJrCHwMTMF8Pd3PTGxdb4w9fxebiZfd0dBdrtsTqrpws4QAAJ
 
--- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
--- Dumped by pg_dump version 15.15 (Debian 15.15-1.pgdg13+1)
+-- Dumped from database version 15.17 (Debian 15.17-1.pgdg13+1)
+-- Dumped by pg_dump version 15.17 (Debian 15.17-1.pgdg13+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -230,6 +230,36 @@ COPY public.solo_scores (id, username, score, created_at) FROM stdin;
 3	Titi	0	2026-03-07 08:18:09.247155
 4	Titi	0	2026-03-07 08:18:37.719448
 5	Titi	0	2026-03-07 08:24:22.2098
+6	riri	7260	2026-04-01 08:40:35.996624
+7	riri	14740	2026-04-01 08:46:28.419808
+8	riri	2240	2026-04-01 08:50:59.244551
+9	riri	0	2026-04-01 08:53:24.341687
+10	riri	3960	2026-04-01 08:58:20.500061
+11	riri	1600	2026-04-01 13:21:07.662453
+12	riri	0	2026-04-01 15:56:27.612203
+13	riri	0	2026-04-01 15:56:44.48687
+14	riri	0	2026-04-01 15:56:47.305297
+15	riri	0	2026-04-01 15:56:50.118407
+16	riri	0	2026-04-01 15:56:53.245949
+17	riri	0	2026-04-01 15:57:02.192106
+18	riri	0	2026-04-01 15:57:05.246732
+19	riri	0	2026-04-01 15:57:11.88455
+20	riri	0	2026-04-01 15:57:20.57028
+21	riri	0	2026-04-01 15:57:23.633301
+22	riri	0	2026-04-01 15:57:27.388669
+23	riri	9560	2026-04-02 12:34:53.389773
+24	riri	0	2026-04-02 12:53:12.716765
+25	riri	3600	2026-04-02 12:54:44.504898
+26	riri	0	2026-04-02 12:59:39.346677
+27	riri	3600	2026-04-02 14:56:49.742154
+28	Titi	9660	2026-04-02 15:01:08.238103
+29	riri	37620	2026-04-02 15:03:25.64209
+30	riri	19420	2026-04-02 15:09:10.208496
+31	riri	2360	2026-04-02 15:14:41.155982
+32	riri	0	2026-04-02 15:27:22.081028
+33	​	4180	2026-04-02 16:04:11.701241
+34	[][$#@$*@!-+...	0	2026-04-02 16:22:11.291152
+35	azdazd	0	2026-04-02 16:25:03.593397
 \.
 
 
@@ -252,21 +282,21 @@ SELECT pg_catalog.setval('public.coop_scores_id_seq', 1, false);
 -- Name: rooms_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.rooms_id_seq', 60, true);
+SELECT pg_catalog.setval('public.rooms_id_seq', 106, true);
 
 
 --
 -- Name: solo_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.solo_scores_id_seq', 5, true);
+SELECT pg_catalog.setval('public.solo_scores_id_seq', 35, true);
 
 
 --
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 55, true);
+SELECT pg_catalog.setval('public.users_id_seq', 78, true);
 
 
 --
@@ -321,5 +351,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7uLVlwJbFOitwdgaac9BvrfWgChA2tM0gpND9tK2ihuvCH72k9D9KoHKn2Cqlyo
+\unrestrict itEIBIoV0yG9PkAJrCHwMTMF8Pd3PTGxdb4w9fxebiZfd0dBdrtsTqrpws4QAAJ
 
