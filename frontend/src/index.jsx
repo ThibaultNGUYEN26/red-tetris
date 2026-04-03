@@ -51,26 +51,6 @@ function Index() {
   }, [urlUsername, urlRoomName, username, joinedRoomName, navigate])
 
   useEffect(() => {
-    if (username) {
-      localStorage.setItem('username', username)
-    }
-  }, [username])
-
-  useEffect(() => {
-    const storedTheme = localStorage.getItem('theme')
-    if (storedTheme === 'dark' || storedTheme === 'light') {
-      setTheme(storedTheme)
-    }
-  }, [])
-
-  useEffect(() => {
-    const storedSound = localStorage.getItem('soundEnabled')
-    if (storedSound === 'true' || storedSound === 'false') {
-      setSoundEnabled(storedSound === 'true')
-    }
-  }, [])
-
-  useEffect(() => {
     soundEnabledRef.current = soundEnabled
     if (!soundEnabled && bopAudioRef.current) {
       bopAudioRef.current.pause()
@@ -120,23 +100,15 @@ function Index() {
       setUserProfile({ username: profileOrUsername, avatar })
     }
 
-    const storedName =
-      typeof profileOrUsername === 'object' && profileOrUsername !== null
-        ? profileOrUsername.username
-        : profileOrUsername
-    if (storedName) localStorage.setItem('username', storedName)
-
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }
 
   const handleThemeChange = (newTheme) => {
     setTheme(newTheme)
-    localStorage.setItem('theme', newTheme)
   }
 
   const handleSoundChange = (enabled) => {
     setSoundEnabled(Boolean(enabled))
-    localStorage.setItem('soundEnabled', enabled ? 'true' : 'false')
   }
 
   const handleReturnToProfile = () => {
@@ -149,14 +121,12 @@ function Index() {
     setUserProfile(null)
     setJoinedRoomName(null)
     setSoloRoomId(null)
-    localStorage.removeItem('username')
     navigate('/')
   }
 
   const handleExitJoinedRoom = () => {
     setShowRooms(false)
     setJoinedRoomName(null)
-    localStorage.removeItem('currentRoomId')
     navigate('/', { replace: true })
   }
 
