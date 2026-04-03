@@ -90,16 +90,10 @@ function CreateRoom({
 
         const room = await response.json()
         
-        // [Play Again] If user is already in a room, switch to join mode and use localStorage
+        // [Play Again] If user is already in a room, the backend rejects creation.
         if (room.error === 'User is already in a room') {
           console.log('[CreateRoom] User already in a room, retrieving existing room')
-          const existingRoomId = localStorage.getItem('currentRoomId')
-          if (existingRoomId && existingRoomId !== 'undefined') {
-            console.log('[CreateRoom] Using existing room:', { existingRoomId })
-            setRoomId(Number(existingRoomId))
-            hasCreatedRoom.current = true
-            return
-          }
+          return
         }
         
         if (!room.id) {
@@ -115,7 +109,6 @@ function CreateRoom({
         setSelectedMode(room.game_mode)
         setCommittedMode(room.game_mode)
 
-        localStorage.setItem('currentRoomId', room.id)
         onRoomCreated?.(room.id, room.name)
 
         hasCreatedRoom.current = true
@@ -297,11 +290,8 @@ function CreateRoom({
 
     try {
       hasStartedGame.current = true
-      // Use roomId state first, fallback to localStorage as backup
-      const localStorageId = localStorage.getItem('currentRoomId')
-      const resolvedRoomId = roomId || localStorageId
-      console.log('🎮 Emitting startGame event:', { roomId: String(resolvedRoomId), username });
-      socket.emit('startGame', { roomId: String(resolvedRoomId), username })
+      console.log('🎮 Emitting startGame event:', { roomId: String(roomId), username });
+      socket.emit('startGame', { roomId: String(roomId), username })
     } catch (err) {
       console.error('Failed to start game:', err)
       hasStartedGame.current = false
@@ -321,7 +311,6 @@ function CreateRoom({
       if (socket.connected) {
         socket.emit("playerLeave", { roomId: String(roomId) });
       }
-      localStorage.removeItem("currentRoomId");
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);

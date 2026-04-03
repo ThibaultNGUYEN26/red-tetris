@@ -20,20 +20,6 @@ function ModeMenuSelector({
   const handleSolo = async () => {
     console.log('Solo mode selected')
     try {
-      const existingRoomId = localStorage.getItem('currentRoomId')
-
-      if (existingRoomId) {
-        await new Promise((resolve) => {
-          socket.emit(
-            'playerLeave',
-            { roomId: String(existingRoomId) },
-            () => resolve()
-          )
-        })
-
-        localStorage.removeItem('currentRoomId')
-      }
-
       // Create room
       const createResponse = await fetch(`${API_URL}/api/rooms`, {
         method: 'POST',

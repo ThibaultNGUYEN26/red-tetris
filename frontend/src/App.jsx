@@ -8,6 +8,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/:roomName/:username" element={<Index />} />
+        <Route path="/:roomName/spectate/:username" element={<Spectate />} />
         <Route path="/:roomName/spectate" element={<Spectate />} />
       </Routes>
     </BrowserRouter>

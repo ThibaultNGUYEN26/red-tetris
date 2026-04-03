@@ -34,10 +34,9 @@ describe('ModeMenuSelector Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.clear()
 
     socket.emit.mockImplementation((event, payload, callback) => {
-      if ((event === 'playerLeave' || event === 'joinRoom') && typeof callback === 'function') {
+      if (event === 'joinRoom' && typeof callback === 'function') {
         callback({ ok: true })
       }
     })
@@ -116,21 +115,6 @@ describe('ModeMenuSelector Component', () => {
     expect(defaultProps.onShowGame).toHaveBeenCalledWith(true)
   })
 
-  it('leaves existing room before starting solo', async () => {
-    localStorage.setItem('currentRoomId', '99')
-    render(<ModeMenuSelector {...defaultProps} />)
-
-    fireEvent.click(screen.getByRole('button', { name: /solo/i }))
-
-    await waitFor(() => {
-      expect(socket.emit).toHaveBeenCalledWith(
-        'playerLeave',
-        expect.objectContaining({ roomId: '99' }),
-        expect.any(Function)
-      )
-    })
-  })
-
   it('logs an error when room creation fails', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     global.fetch.mockResolvedValueOnce({
@@ -177,9 +161,6 @@ describe('ModeMenuSelector Component', () => {
       if (event === 'joinRoom' && typeof callback === 'function') {
         callback({ ok: false, error: 'Join failed' })
       }
-      if (event === 'playerLeave' && typeof callback === 'function') {
-        callback({ ok: true })
-      }
     })
 
     render(<ModeMenuSelector {...defaultProps} />)
@@ -202,9 +183,6 @@ describe('ModeMenuSelector Component', () => {
     socket.emit.mockImplementation((event, payload, callback) => {
       if (event === 'joinRoom' && typeof callback === 'function') {
         callback({ ok: false })
-      }
-      if (event === 'playerLeave' && typeof callback === 'function') {
-        callback({ ok: true })
       }
     })
 

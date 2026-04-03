@@ -85,7 +85,6 @@ describe('Rooms Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.clear()
     socket.emit.mockImplementation((event, payload, callback) => {
       if (event === 'joinRoom' && typeof callback === 'function') {
         callback({ ok: true })
@@ -207,7 +206,7 @@ describe('Rooms Component', () => {
       })
     })
 
-    it('should update localStorage when room is created', async () => {
+    it('should switch to the created room when room is created', async () => {
       render(<Rooms {...defaultProps} />)
       
       const createButton = screen.getByRole('button', { name: /create/i })
@@ -221,7 +220,7 @@ describe('Rooms Component', () => {
       fireEvent.click(createRoomButton)
 
       await waitFor(() => {
-        expect(localStorage.getItem('currentRoomId')).toBe('1')
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
       })
     })
 
@@ -298,7 +297,7 @@ describe('Rooms Component', () => {
       })
     })
 
-    it('should update localStorage when joining a room', async () => {
+    it('should enter the room view when joining a room', async () => {
       render(<Rooms {...defaultProps} />)
 
       const availableRoomsCallback = socket.on.mock.calls.find(
@@ -317,7 +316,7 @@ describe('Rooms Component', () => {
       fireEvent.click(joinButtons[1])
 
       await waitFor(() => {
-        expect(localStorage.getItem('currentRoomId')).toBe('2')
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
       })
     })
 
@@ -588,56 +587,17 @@ describe('Rooms Component', () => {
     })
   })
 
-  describe('Current Room State', () => {
-    it('should load currentRoomId from localStorage', () => {
-      localStorage.setItem('currentRoomId', '5')
-      
-      render(<Rooms {...defaultProps} />)
-      
-      // Component should be aware of current room
-      expect(localStorage.getItem('currentRoomId')).toBe('5')
-    })
-
-    it('should show current room differently if user is in a room', () => {
-      localStorage.setItem('currentRoomId', '1')
-      
-      render(<Rooms {...defaultProps} />)
-
-      const availableRoomsCallback = socket.on.mock.calls.find(
-        call => call[0] === 'availableRooms'
-      )?.[1]
-
-      if (availableRoomsCallback) {
-        availableRoomsCallback(mockRooms)
-      }
-    })
-  })
-
-  describe('Stale Room Guard', () => {
-    it('should clear currentRoomId if room state does not arrive', async () => {
-      localStorage.setItem('currentRoomId', '99')
-      vi.useFakeTimers()
-
-      render(<Rooms {...defaultProps} />)
-
-      act(() => {
-        vi.advanceTimersByTime(1600)
-      })
-
-      expect(localStorage.getItem('currentRoomId')).toBeNull()
-      vi.useRealTimers()
-    })
-  })
-
   describe('Leave Flows', () => {
     it('should leave lobby and clear state', async () => {
-      localStorage.setItem('currentRoomId', '1')
-
       render(<Rooms {...defaultProps} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
       })
+
+      fireEvent.click(screen.getByText('Create Room'))
 
       const backButton = screen.getByRole('button', { name: /back to rooms/i })
       fireEvent.click(backButton)
@@ -650,18 +610,30 @@ describe('Rooms Component', () => {
         )
       })
 
-      expect(localStorage.getItem('currentRoomId')).toBeNull()
       expect(mockOnLeaveRoom).toHaveBeenCalled()
     })
 
     it('should return to the room card when play again is clicked after multiplayer game over', async () => {
-      localStorage.setItem('currentRoomId', '1')
-
       render(<Rooms {...defaultProps} />)
 
-      const gameStartedCallback = socket.on.mock.calls.find(
-        call => call[0] === 'gameStarted'
-      )?.[1]
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Create Room'))
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'getRoomState',
+          expect.objectContaining({ roomId: '1' })
+        )
+      })
+
+      const gameStartedCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'gameStarted')
+        .at(-1)?.[1]
 
       gameStartedCallback?.({ roomId: '1' })
 
@@ -682,13 +654,26 @@ describe('Rooms Component', () => {
     })
 
     it('should propagate back-to-menu when leaving from the multiplayer game view', async () => {
-      localStorage.setItem('currentRoomId', '1')
-
       render(<Rooms {...defaultProps} />)
 
-      const gameStartedCallback = socket.on.mock.calls.find(
-        call => call[0] === 'gameStarted'
-      )?.[1]
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Create Room'))
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'getRoomState',
+          expect.objectContaining({ roomId: '1' })
+        )
+      })
+
+      const gameStartedCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'gameStarted')
+        .at(-1)?.[1]
 
       gameStartedCallback?.({ roomId: '1' })
 
