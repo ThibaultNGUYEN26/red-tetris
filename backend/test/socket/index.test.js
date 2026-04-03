@@ -63,7 +63,7 @@ const setupConnectedSocket = async () => {
 
 describe('socket setup', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    vi.resetAllMocks()
     vi.resetModules()
   })
 
@@ -484,7 +484,30 @@ describe('socket setup', () => {
     await startGameHandler({ roomId: '1' })
 
     expect(socket.emit).toHaveBeenCalledWith('error', {
-      message: 'Cooperative mode requires exactly 2 players to start.',
+      message: 'Co-op Alternate requires exactly 2 players to start.',
+    })
+  })
+
+  it('startGame enforces the same 2-player rule for cooperative_roles', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        host: 'Titi',
+        players: ['Titi', 'Riri', 'Lulu'],
+        status: 'waiting',
+        game_mode: 'cooperative_roles',
+        ready_again: [],
+      }],
+    })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    const startGameHandler = socket.handlers.get('startGame')
+    await startGameHandler({ roomId: '1' })
+
+    expect(socket.emit).toHaveBeenCalledWith('error', {
+      message: 'Co-op Roles requires exactly 2 players to start.',
     })
   })
 
@@ -608,6 +631,79 @@ describe('socket setup', () => {
         host: 'Riri',
       })
     )
+    expect(ack).toHaveBeenCalledWith({ ok: true })
+  })
+
+  it('playerLeave ends a cooperative game immediately when a player leaves', async () => {
+    const leavingPlayer = { isAlive: true }
+    const onGameOver = vi.fn().mockResolvedValue(undefined)
+    const endGame = vi.fn(() => ({ mode: 'cooperative', winner: null }))
+    mockGetGame.mockReturnValue({
+      mode: 'cooperative',
+      getPlayer: vi.fn(() => leavingPlayer),
+      checkGameOver: vi.fn(() => ({ over: true, winner: null })),
+      endGame,
+      onGameOver,
+    })
+
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'cooperative',
+          host: 'Titi',
+          player_count: 1,
+          players: ['Riri'],
+          status: 'started',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'cooperative',
+          host: 'Riri',
+          player_count: 1,
+          players: ['Riri'],
+          status: 'started',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Riri', avatar: { eyeType: 'sad' } }],
+      })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          players: ['Riri'],
+          host: 'Riri',
+          game_mode: 'cooperative',
+          status: 'started',
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Riri', avatar: { eyeType: 'sad' } }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 1, name: 'Open', game_mode: 'classic', host: 'Riri', player_count: 1, players: ['Riri'] }],
+      })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    const playerLeaveHandler = socket.handlers.get('playerLeave')
+    const ack = vi.fn()
+
+    await playerLeaveHandler({ roomId: '1', username: 'Titi' }, ack)
+
+    expect(endGame).toHaveBeenCalled()
+    expect(onGameOver).toHaveBeenCalledWith({ mode: 'cooperative', winner: null })
     expect(ack).toHaveBeenCalledWith({ ok: true })
   })
 

@@ -199,6 +199,26 @@ describe('Game', () => {
     expect(state.players[0].board).toEqual(state.players[1].board)
   })
 
+  it('assigns cooperative roles and filters inputs in cooperative_roles mode', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative_roles', 'multi', 'Titi')
+
+    game.start()
+    game.enqueueInput('Titi', 'rotate')
+    game.enqueueInput('Titi', 'left')
+    game.enqueueInput('Riri', 'left')
+    game.enqueueInput('Riri', 'rotate')
+
+    expect(players[0].inputQueue).toEqual(['rotate', 'left'])
+
+    const state = game.serialize()
+    expect(state.players.find((player) => player.username === 'Titi')?.cooperativeRole).toBe('rotate')
+    expect(state.players.find((player) => player.username === 'Riri')?.cooperativeRole).toBe('place')
+
+    randomSpy.mockRestore()
+  })
+
   it('ends multiplayer when one player remains alive', () => {
     const players = [new Player('Titi', '1'), new Player('Riri', '2')]
     const game = new Game('room-1', players, 'classic', 'multi', 'Titi')

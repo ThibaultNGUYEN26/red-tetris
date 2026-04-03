@@ -17,6 +17,7 @@ const DEFAULT_BOARD = { width: 10, height: 20 }
 const SOFT_DROP_MS = 60
 const DAS_MS = 220
 const ARR_MS = 60
+const SHARED_BOARD_MODES = ['cooperative', 'cooperative_roles']
 
 const SHAPES = {
   i: [
@@ -95,6 +96,7 @@ function Game({
   const [showSpectator, setShowSpectator] = useState(false)
   const [gameMode, setGameMode] = useState(null)
   const [activePlayerUsername, setActivePlayerUsername] = useState(null)
+  const [cooperativeRole, setCooperativeRole] = useState(null)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
@@ -161,6 +163,14 @@ function Game({
       activePlayerUsername !== username
     ) {
       return
+    }
+    if (isMultiplayer && gameMode === 'cooperative_roles') {
+      if (cooperativeRole === 'rotate' && action !== 'rotate') {
+        return
+      }
+      if (cooperativeRole === 'place' && action === 'rotate') {
+        return
+      }
     }
     socket.emit('movePiece', { roomId: String(roomId), action })
   }
@@ -292,6 +302,7 @@ function Game({
       setShowSpectator(false)
       setIsGameOver(false)
       setActivePlayerUsername(null)
+      setCooperativeRole(null)
       lastLevelRef.current = 1
       lastLinesRef.current = 0
       wasBoardEmptyRef.current = true
@@ -307,6 +318,7 @@ function Game({
       const me = gameState?.players?.find((p) => p.username === username)
       const isLeavingSolo = !isMultiplayer && exitingRef.current
       if (me) {
+        setCooperativeRole(me.cooperativeRole || null)
         setBoard(me.board || makeEmptyBoard(getBoardSize(mode)))
         setStats({
           score: me.score ?? 0,
@@ -321,7 +333,7 @@ function Game({
       }
 
       if (isMultiplayer) {
-        if (gameState?.mode === 'cooperative') {
+        if (SHARED_BOARD_MODES.includes(gameState?.mode)) {
           setOpponentBoards([])
         } else {
           const others = (gameState?.players || [])
@@ -515,16 +527,23 @@ function Game({
     return { grid: preview, width, height }
   }, [nextType])
 
-  const isCooperativeMode = isMultiplayer && gameMode === 'cooperative'
+  const isAlternatingCooperativeMode = isMultiplayer && gameMode === 'cooperative'
+  const isRoleSplitCooperativeMode = isMultiplayer && gameMode === 'cooperative_roles'
   const isYourTurn =
-    isCooperativeMode && activePlayerUsername && activePlayerUsername === username
-  const cooperativeTurnLabel = isCooperativeMode
+    isAlternatingCooperativeMode && activePlayerUsername && activePlayerUsername === username
+  const cooperativeStatusLabel = isAlternatingCooperativeMode
     ? isYourTurn
       ? 'YOUR TURN'
       : activePlayerUsername
         ? `Playing: ${activePlayerUsername}`
         : 'Playing: ...'
-    : null
+    : isRoleSplitCooperativeMode
+      ? cooperativeRole === 'rotate'
+        ? 'YOU ROTATE'
+        : cooperativeRole === 'place'
+          ? 'YOU PLACE'
+          : 'ASSIGNING ROLE...'
+      : null
 
   if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
     return (
@@ -576,11 +595,11 @@ function Game({
               >
                 Options
               </button>
-              {cooperativeTurnLabel && (
+              {cooperativeStatusLabel && (
                 <div
                   className={`turn-indicator${isYourTurn ? ' is-your-turn' : ''}`}
                 >
-                  {cooperativeTurnLabel}
+                  {cooperativeStatusLabel}
                 </div>
               )}
             </div>

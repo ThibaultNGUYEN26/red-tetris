@@ -31,6 +31,7 @@ import Game from '../../../../components/Game/Game.jsx'
 
 describe('Game Component', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     class MockAudio {
       constructor() {
         this.currentTime = 0
@@ -136,5 +137,93 @@ describe('Game Component', () => {
     await waitFor(() => {
       expect(screen.getByRole('grid', { name: /tetris board/i })).toBeInTheDocument()
     })
+  })
+
+  it('shows the assigned role label in cooperative_roles mode', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    const gameStateHandler = socket.on.mock.calls.find(
+      ([event]) => event === 'gameState'
+    )?.[1]
+
+    gameStateHandler?.({
+      mode: 'cooperative_roles',
+      players: [{
+        username: 'Titi',
+        cooperativeRole: 'rotate',
+        board: Array.from({ length: 20 }, () => Array(10).fill('empty')),
+        score: 0,
+        lines: 0,
+        level: 1,
+        nextType: 'z',
+      }, {
+        username: 'Riri',
+        cooperativeRole: 'place',
+        board: Array.from({ length: 20 }, () => Array(10).fill('empty')),
+        score: 0,
+        lines: 0,
+        level: 1,
+        nextType: 'z',
+      }],
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('YOU ROTATE')).toBeInTheDocument()
+    })
+  })
+
+  it('renders the cooperative status label on the dark theme screen', async () => {
+    const { container } = render(
+      <Game
+        theme="dark"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    const gameStateHandler = socket.on.mock.calls.find(
+      ([event]) => event === 'gameState'
+    )?.[1]
+
+    gameStateHandler?.({
+      mode: 'cooperative',
+      currentTurnUsername: 'Riri',
+      players: [{
+        username: 'Titi',
+        board: Array.from({ length: 20 }, () => Array(10).fill('empty')),
+        score: 0,
+        lines: 0,
+        level: 1,
+        nextType: 'z',
+      }, {
+        username: 'Riri',
+        board: Array.from({ length: 20 }, () => Array(10).fill('empty')),
+        score: 0,
+        lines: 0,
+        level: 1,
+        nextType: 'z',
+      }],
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Playing: Riri')).toBeInTheDocument()
+    })
+
+    expect(container.querySelector('.game-screen.dark')).toBeTruthy()
+    expect(container.querySelector('.turn-indicator')).toBeTruthy()
   })
 })

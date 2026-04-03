@@ -34,12 +34,19 @@ const unregisterUsername = (username, socket) => {
 function getMaxPlayers(gameMode = "classic") {
   switch (gameMode) {
     case "cooperative":
+    case "cooperative_roles":
       return 2;
     case "classic":
     case "mirror":
     default:
       return 6;
   }
+}
+
+function getCoopStartError(gameMode) {
+  return gameMode === "cooperative_roles"
+    ? "Co-op Roles requires exactly 2 players to start."
+    : "Co-op Alternate requires exactly 2 players to start.";
 }
 
 export async function broadcastAvailableRooms(io) {
@@ -155,7 +162,7 @@ export default function setupSockets(io) {
     };
 
     const updateCoopStats = async (game, summary) => {
-      if (!game || game.mode !== "cooperative") return;
+      if (!game || !["cooperative", "cooperative_roles"].includes(game.mode)) return;
       if (game.statsUpdated) return;
 
       const players = Array.isArray(game.players) ? game.players : [];
@@ -210,7 +217,7 @@ export default function setupSockets(io) {
     };
 
     const updateMultiplayerStats = async (game, summary) => {
-      if (!summary || summary.mode === "cooperative") return;
+      if (!summary || ["cooperative", "cooperative_roles"].includes(summary.mode)) return;
       if (game?.statsUpdated) return;
 
       const players = Array.isArray(summary.results) ? summary.results : [];
@@ -529,6 +536,14 @@ export default function setupSockets(io) {
         if (player) {
           player.isAlive = false;
           console.log(`${effectiveUsername} left the room`);
+
+          if (typeof game.checkGameOver === "function" && typeof game.endGame === "function") {
+            const result = game.checkGameOver();
+            if (result.over && game.onGameOver) {
+              const summary = game.endGame();
+              await game.onGameOver(summary);
+            }
+          }
         }
       }
 
@@ -631,7 +646,7 @@ export default function setupSockets(io) {
         const maxPlayers = getMaxPlayers(gameMode);
         const playerCount = playersToStart.length;
         const isSoloStart = playerCount === 1;
-        const isCoop = gameMode === "cooperative";
+        const isCoop = ["cooperative", "cooperative_roles"].includes(gameMode);
         const canStart =
           isSoloStart ||
           (isCoop ? playerCount === 2 : playerCount >= 2 && playerCount <= maxPlayers);
@@ -639,7 +654,7 @@ export default function setupSockets(io) {
         if (!canStart) {
           socket.emit("error", {
             message: isCoop
-              ? "Cooperative mode requires exactly 2 players to start."
+              ? getCoopStartError(gameMode)
               : `This room requires between 2 and ${maxPlayers} players to start.`,
           });
           return;
@@ -672,7 +687,7 @@ export default function setupSockets(io) {
                 return;
               }
 
-              if (summary?.mode === "cooperative") {
+              if (["cooperative", "cooperative_roles"].includes(summary?.mode)) {
                 await updateCoopStats(game, summary);
               }
 

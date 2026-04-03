@@ -15,6 +15,7 @@ function CreateRoom({
   roomId: joinedRoomId,
   onRoomCreated
 }) {
+  const sharedBoardModes = ['cooperative', 'cooperative_roles']
   const defaultAvatar = {
     skinColor: '#cccccc',
     eyeType: 'normal',
@@ -47,7 +48,8 @@ function CreateRoom({
   const availableGameModes = [
     { value: 'classic', label: 'Classic', maxPlayers: 6 },
     { value: 'mirror', label: 'Mirror', maxPlayers: 6 },
-    { value: 'cooperative', label: 'Cooperative', maxPlayers: 2 },
+    { value: 'cooperative', label: 'Co-op Alternate', maxPlayers: 2 },
+    { value: 'cooperative_roles', label: 'Co-op Roles', maxPlayers: 2 },
     { value: 'giant', label: 'Giant', maxPlayers: 6 }
   ]
 
@@ -289,7 +291,7 @@ function CreateRoom({
 
   const handleStartGame = async () => {
     if (players.length < 2) return
-    if (selectedMode === 'cooperative' && players.length !== 2) return
+    if (sharedBoardModes.includes(selectedMode) && players.length !== 2) return
     if (hostName && hostName !== username) return
     if (hasStartedGame.current) return // Prevent duplicate submissions
 
@@ -415,7 +417,7 @@ function CreateRoom({
           onClick={handleStartGame}
           disabled={
             players.length < 2 ||
-            (selectedMode === 'cooperative' && players.length !== 2) ||
+            (sharedBoardModes.includes(selectedMode) && players.length !== 2) ||
             (hostName && hostName !== username)
           }
         >

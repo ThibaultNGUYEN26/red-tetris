@@ -4,6 +4,11 @@ import { BOARD_HEIGHT, BOARD_WIDTH, GIANT_BOARD_HEIGHT, GIANT_BOARD_WIDTH, LINES
 
 const TICK_MS = 60;
 const BASE_DROP_MS = 500;
+const COOPERATIVE_MODES = new Set(["cooperative", "cooperative_roles"]);
+const ROLE_ACTIONS = {
+  rotate: new Set(["rotate"]),
+  place: new Set(["left", "right", "drop", "hardDrop"]),
+};
 
 export default class Game {
   constructor(roomId, players, mode, mode_player, hostUsername = null) {
@@ -30,6 +35,7 @@ export default class Game {
     this.tickHandle = null;
     this.currentTurnIndex = 0;
     this.currentTurnUsername = null;
+    this.cooperativeRoles = {};
   }
 
   setCallbacks({ onTick, onGameOver }) {
@@ -46,11 +52,29 @@ export default class Game {
   }
 
   isCooperativeMode() {
+    return COOPERATIVE_MODES.has(this.mode);
+  }
+
+  isAlternatingCooperativeMode() {
     return this.mode === "cooperative";
   }
 
+  isRoleSplitCooperativeMode() {
+    return this.mode === "cooperative_roles";
+  }
+
+  assignCooperativeRoles() {
+    this.cooperativeRoles = {};
+    if (!this.isRoleSplitCooperativeMode() || this.players.length < 2) return;
+
+    const rotateIndex = Math.random() < 0.5 ? 0 : 1;
+    const placeIndex = rotateIndex === 0 ? 1 : 0;
+    this.cooperativeRoles[this.players[rotateIndex].username] = "rotate";
+    this.cooperativeRoles[this.players[placeIndex].username] = "place";
+  }
+
   initializeTurn() {
-    if (!this.isCooperativeMode()) {
+    if (!this.isAlternatingCooperativeMode()) {
       this.currentTurnIndex = 0;
       this.currentTurnUsername = null;
       return;
@@ -62,7 +86,7 @@ export default class Game {
   }
 
   advanceTurn() {
-    if (!this.isCooperativeMode() || this.players.length === 0) return;
+    if (!this.isAlternatingCooperativeMode() || this.players.length === 0) return;
 
     for (let offset = 1; offset <= this.players.length; offset += 1) {
       const nextIndex = (this.currentTurnIndex + offset) % this.players.length;
@@ -139,6 +163,7 @@ export default class Game {
     this.isPaused = false;
 
     this.players.forEach(player => this.resetPlayer(player));
+    this.assignCooperativeRoles();
 
     if (this.isCooperativeMode()) {
       const sharedPlayer = this.getCooperativePlayer();
@@ -189,9 +214,17 @@ export default class Game {
     const player = this.getPlayer(username);
     if (!player || !player.isAlive) return;
     if (this.isCooperativeMode()) {
-      if (username !== this.currentTurnUsername) return;
       const sharedPlayer = this.getCooperativePlayer();
       if (!sharedPlayer || !sharedPlayer.isAlive) return;
+      if (this.isAlternatingCooperativeMode() && username !== this.currentTurnUsername) {
+        return;
+      }
+      if (this.isRoleSplitCooperativeMode()) {
+        const role = this.cooperativeRoles[username];
+        if (!role || !ROLE_ACTIONS[role]?.has(action)) {
+          return;
+        }
+      }
       sharedPlayer.inputQueue.push(action);
       return;
     }
@@ -358,7 +391,7 @@ export default class Game {
       player.die();
     }
 
-    if (this.isCooperativeMode()) {
+    if (this.isAlternatingCooperativeMode()) {
       this.advanceTurn();
     }
   }
@@ -550,6 +583,7 @@ export default class Game {
           level: sharedPlayer?.level ?? 1,
           nextType: sharedPlayer?.nextPiece ? sharedPlayer.nextPiece.type.toLowerCase() : null,
           isCurrentTurn: player.username === this.currentTurnUsername,
+          cooperativeRole: this.cooperativeRoles[player.username] ?? null,
           board: sharedPlayer
             ? this.getRenderBoard(sharedPlayer, { includeActive: true, includeGhost: true })
             : [],

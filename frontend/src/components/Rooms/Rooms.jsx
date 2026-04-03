@@ -21,7 +21,7 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
 
   const getRoomMaxPlayers = (room) => {
     const gameMode = room?.game_mode || 'classic'
-    return gameMode === 'cooperative' ? 2 : 6
+    return ['cooperative', 'cooperative_roles'].includes(gameMode) ? 2 : 6
   }
 
   /* ---------------- SOCKET: AVAILABLE ROOMS ---------------- */
