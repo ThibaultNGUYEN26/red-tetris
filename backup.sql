@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict KQgscafiU2A7SvSINeJEug4dFeARnwbAiKC0nNfyLI0BCxfLWviVavkNBqEfvfE
+\restrict 45uAIZdkzyAKbQgoK2whcLxmCAlAs3OcdRDMgFe2ZOPx1dh4icLFowRSOS4qy9H
 
 -- Dumped from database version 15.17 (Debian 15.17-1.pgdg13+1)
 -- Dumped by pg_dump version 15.17 (Debian 15.17-1.pgdg13+1)
@@ -223,8 +223,6 @@ COPY public.coop_scores (id, player_one, player_two, score, created_at) FROM std
 --
 
 COPY public.rooms (id, name, game_mode, host, player_count, status, created_at, players, ready_again) FROM stdin;
-73	RedLine-W9TK	classic	riri	1	started	2026-04-03 09:40:40.337388	{riri}	{}
-84	CrazyTetris-EY48	classic	Hiro	1	started	2026-04-03 10:22:03.083471	{Hiro}	{}
 \.
 
 
@@ -286,6 +284,7 @@ COPY public.solo_scores (id, username, score, created_at) FROM stdin;
 51	Hiro	0	2026-04-03 10:12:15.708859
 52	Hiro	22280	2026-04-03 10:18:03.707402
 53	Hiro	9160	2026-04-03 10:21:35.068168
+54	Hiro	4180	2026-04-03 10:24:15.36154
 \.
 
 
@@ -306,7 +305,7 @@ COPY public.users (id, username, avatar, solo_games_played, highest_solo_score, 
 66	nonion	{"eyeType": "uwu", "mouthType": "horrified", "skinColor": "#d4d470"}	1	960	1	0	1
 22	Titi	{"eyeType": "uwu", "mouthType": "horrified", "skinColor": "#70d470"}	23	53360	30	19	11
 64	Nonino	{"eyeType": "cold_fear", "mouthType": "laugth", "skinColor": "#d4d470"}	0	0	7	1	6
-70	Hiro	{"eyeType": "dizzy", "mouthType": "open", "skinColor": "#d47070"}	8	27680	0	0	0
+70	Hiro	{"eyeType": "uwu", "mouthType": "uwu", "skinColor": "#70d4d4"}	9	27680	0	0	0
 25	Riri	{"eyeType": "blink", "mouthType": "neutral", "skinColor": "#9966cc"}	0	0	13	0	13
 62	Heinz	{"eyeType": "love", "mouthType": "uwu", "skinColor": "#d47070"}	9	15060	0	0	0
 59	TRuc	{"eyeType": "happy", "mouthType": "kiss", "skinColor": "#7070d4"}	0	0	0	0	0
@@ -326,21 +325,21 @@ SELECT pg_catalog.setval('public.coop_scores_id_seq', 6, true);
 -- Name: rooms_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.rooms_id_seq', 84, true);
+SELECT pg_catalog.setval('public.rooms_id_seq', 85, true);
 
 
 --
 -- Name: solo_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.solo_scores_id_seq', 53, true);
+SELECT pg_catalog.setval('public.solo_scores_id_seq', 54, true);
 
 
 --
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 71, true);
+SELECT pg_catalog.setval('public.users_id_seq', 72, true);
 
 
 --
@@ -395,5 +394,5 @@ ALTER TABLE ONLY public.users
 -- PostgreSQL database dump complete
 --
 
-\unrestrict KQgscafiU2A7SvSINeJEug4dFeARnwbAiKC0nNfyLI0BCxfLWviVavkNBqEfvfE
+\unrestrict 45uAIZdkzyAKbQgoK2whcLxmCAlAs3OcdRDMgFe2ZOPx1dh4icLFowRSOS4qy9H
 
