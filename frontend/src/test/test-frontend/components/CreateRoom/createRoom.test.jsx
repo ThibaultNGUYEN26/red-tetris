@@ -37,7 +37,6 @@ describe('CreateRoom Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.clear()
     
     // Default successful fetch response
     global.fetch.mockResolvedValue({
@@ -83,14 +82,6 @@ describe('CreateRoom Component', () => {
           })
         })
       )
-    })
-
-    it('should store room ID in localStorage after creation', async () => {
-      render(<CreateRoom {...defaultProps} />)
-
-      await waitFor(() => {
-        expect(localStorage.getItem('currentRoomId')).toBe('1')
-      })
     })
 
     it('should call onRoomCreated callback with room details', async () => {
@@ -442,13 +433,15 @@ describe('CreateRoom Component', () => {
       )?.[1]
 
       if (handleRoomState) {
-        handleRoomState({
-          id: 1,
-          name: 'Room 1',
-          game_mode: 'classic',
-          host: 'TestUser',
-          players: ['TestUser', 'Player2'],
-          player_avatars: {}
+        await act(async () => {
+          handleRoomState({
+            id: 1,
+            name: 'Room 1',
+            game_mode: 'classic',
+            host: 'TestUser',
+            players: ['TestUser', 'Player2'],
+            player_avatars: {}
+          })
         })
       }
 

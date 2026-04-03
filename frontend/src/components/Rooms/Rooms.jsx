@@ -13,9 +13,7 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
   const [showCreateRoom, setShowCreateRoom] = useState(false)
   const [showGame, setShowGame] = useState(false)
   const [currentRoomName, setCurrentRoomName] = useState(joinRoomName || null)
-  const [currentRoomId, setCurrentRoomId] = useState(
-    localStorage.getItem('currentRoomId')
-  )
+  const [currentRoomId, setCurrentRoomId] = useState(null)
 
   const hasJoinedRef = useRef(false)
 
@@ -70,8 +68,6 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
 
         // Sync room state (in case of late listeners)
         socket.emit('getRoomState', { roomId: String(roomId) })
-
-        localStorage.setItem('currentRoomId', roomId)
         setCurrentRoomId(roomId)
       })
 
@@ -107,7 +103,6 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
     if (!currentRoomId) return
 
     const clearCurrentRoom = () => {
-      localStorage.removeItem('currentRoomId')
       setCurrentRoomId(null)
       setShowCreateRoom(false)
     }
@@ -162,7 +157,6 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
 
   const handleRoomCreated = (roomId) => {
     console.log('[Rooms] Room created', { roomId, username })
-    localStorage.setItem('currentRoomId', roomId)
     setCurrentRoomId(roomId)
   }
 
@@ -173,7 +167,6 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
       if (socket.connected && currentRoomId) {
         socket.emit("playerLeave", { roomId: String(currentRoomId) });
       }
-      localStorage.removeItem("currentRoomId");
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -181,9 +174,7 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
   }, [currentRoomId]);
 
   const handleLeave = async () => {
-    const roomId = localStorage.getItem("currentRoomId");
-    if (!roomId) {
-      localStorage.removeItem("currentRoomId");
+    if (!currentRoomId) {
       setCurrentRoomId(null);
       setShowCreateRoom(false);
       setShowGame(false);
@@ -193,19 +184,18 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
 
     try {
       await new Promise((resolve) => {
-        socket.emit("playerLeave", { roomId: String(roomId) }, () => {
+        socket.emit("playerLeave", { roomId: String(currentRoomId) }, () => {
           resolve();
         });
       });
 
-      console.log("[Rooms] Successfully left room/game", { roomId });
+      console.log("[Rooms] Successfully left room/game", { roomId: currentRoomId });
       socket.emit("getAvailableRooms");
     }
     catch (err) {
       console.error("Failed to leave room/game:", err);
     }
     finally {
-      localStorage.removeItem("currentRoomId");
       setCurrentRoomId(null);
       setShowCreateRoom(false);
       setShowGame(false);
@@ -232,7 +222,7 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
   const handleSpectate = () => {
     if (!currentRoomName) return
     setShowGame(false)
-    navigate(`/${currentRoomName}/spectate`)
+    navigate(`/${currentRoomName}/spectate/${username}`)
   }
 
   const handleBackToMenu = () => {

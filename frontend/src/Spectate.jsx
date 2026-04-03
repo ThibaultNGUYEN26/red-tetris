@@ -7,20 +7,18 @@ import SpectatorView from './components/SpectatorView/SpectatorView.jsx'
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 function Spectate() {
-  const { roomName } = useParams()
+  const { roomName, username } = useParams()
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const [roomId, setRoomId] = useState(null)
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [theme] = useState(localStorage.getItem('theme') || 'light')
-
-  const username = localStorage.getItem('username')
+  const [theme] = useState('light')
 
   useEffect(() => {
     if (!roomName) return
     if (!username) {
-      setError('Set a profile before spectating.')
+      setError('Missing username in spectator URL.')
       setLoading(false)
       return
     }
