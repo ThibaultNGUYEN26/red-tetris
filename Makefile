@@ -44,6 +44,10 @@ setup:
 	./get_ip.sh
 	@$(MAKE) create-db
 	@$(MAKE) wait-db
+	@echo "Running db-init.sql..."
+	@docker exec -i red_tetris_postgres \
+		env PGPASSWORD=$(DB_PASSWORD) \
+		psql -h localhost -U $(DB_USER) $(DB_NAME) < db-init.sql
 	@if [ -f backup.sql ]; then \
 		echo "Restoring database from backup.sql..."; \
 		docker exec -i red_tetris_postgres \
