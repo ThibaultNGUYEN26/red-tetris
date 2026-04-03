@@ -3,7 +3,24 @@ import { pool } from "../config/db.js";
 import { broadcastAvailableRooms } from "../socket/index.js";
 
 const router = express.Router();
-const getMaxPlayers = (gameMode) => (gameMode === "cooperative" ? 2 : 6);
+const getMaxPlayers = (gameMode) =>
+  ["cooperative", "cooperative_roles"].includes(gameMode) ? 2 : 6;
+const formatModeLabel = (mode) => {
+  switch (mode) {
+    case "cooperative":
+      return "Co-op Alternate";
+    case "cooperative_roles":
+      return "Co-op Roles";
+    case "classic":
+      return "Classic";
+    case "mirror":
+      return "Mirror";
+    case "giant":
+      return "Giant";
+    default:
+      return mode;
+  }
+};
 
 async function attachPlayerAvatars(room) {
   const players = Array.isArray(room.players) ? room.players : [];
@@ -68,7 +85,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const allowedModes = ["classic", "mirror", "cooperative", "giant"];
+    const allowedModes = ["classic", "mirror", "cooperative", "cooperative_roles", "giant"];
     if (!allowedModes.includes(gameMode)) {
       console.log("Invalid game mode:", gameMode);
       return res.status(400).json({ error: "Invalid game mode" });
@@ -196,7 +213,7 @@ router.patch("/:roomId/name", async (req, res) => {
 router.patch("/:roomId/mode", async (req, res) => {
   const { roomId } = req.params;
   const { mode, username } = req.body;
-  const allowedModes = ["classic", "mirror", "cooperative", "giant"];
+  const allowedModes = ["classic", "mirror", "cooperative", "cooperative_roles", "giant"];
 
   if (!mode) {
     return res.status(400).json({ error: "Missing new room mode" });
@@ -206,7 +223,7 @@ router.patch("/:roomId/mode", async (req, res) => {
 
   if (!allowedModes.includes(normalizedMode)) {
     return res.status(400).json({
-      error: "Invalid game mode. Allowed: classic, mirror, cooperative, giant",
+      error: "Invalid game mode. Allowed: Classic, Mirror, Co-op Alternate, Co-op Roles, Giant",
     });
   }
 
@@ -231,7 +248,7 @@ router.patch("/:roomId/mode", async (req, res) => {
     const maxPlayers = getMaxPlayers(normalizedMode);
     if (player_count > maxPlayers) {
       return res.status(400).json({
-        error: `Cannot switch to ${normalizedMode} with ${player_count} players`,
+        error: `Cannot switch to ${formatModeLabel(normalizedMode)} with ${player_count} players`,
       });
     }
 

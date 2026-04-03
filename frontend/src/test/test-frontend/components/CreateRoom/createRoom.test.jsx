@@ -129,6 +129,26 @@ describe('CreateRoom Component', () => {
   })
 
   describe('Game Mode Selection', () => {
+    it('shows the co-op alternate mode in the selector', async () => {
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      })
+
+      expect(screen.getByRole('option', { name: /co-op alternate/i })).toBeInTheDocument()
+    })
+
+    it('shows the co-op roles mode in the selector', async () => {
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      })
+
+      expect(screen.getByRole('option', { name: /co-op roles/i })).toBeInTheDocument()
+    })
+
     it('should PATCH mode change when host selects a new mode', async () => {
       render(<CreateRoom {...defaultProps} />)
 
@@ -232,13 +252,15 @@ describe('CreateRoom Component', () => {
       )?.[1]
 
       if (handleRoomState) {
-        handleRoomState({
+        await act(async () => {
+          handleRoomState({
           id: 1,
           name: 'Room 1',
           game_mode: 'classic',
           host: 'TestUser',
           players: ['TestUser', 'Player2'],
           player_avatars: {}
+        })
         })
       }
 

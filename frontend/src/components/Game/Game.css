@@ -343,6 +343,13 @@
   background: rgba(120, 170, 255, 0.4);
 }
 
+.game-screen.dark .turn-indicator {
+  color: #d8e7ff;
+  background: rgba(87, 130, 220, 0.22);
+  border-color: rgba(130, 170, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
 .game-screen.dark .turn-indicator.is-your-turn {
   color: #e8fff1;
   background: rgba(60, 160, 100, 0.35);

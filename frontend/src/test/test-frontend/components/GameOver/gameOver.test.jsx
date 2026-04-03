@@ -35,6 +35,22 @@ describe('GameOver Component', () => {
     expect(screen.getByRole('heading', { name: /game over/i })).toBeInTheDocument()
   })
 
+  it('shows Game Over title in cooperative_roles too', () => {
+    render(
+      <GameOver
+        winner={null}
+        isEliminated
+        isGameOver
+        onBack={vi.fn()}
+        username="Titi"
+        isMultiplayer={true}
+        gameMode="cooperative_roles"
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /game over/i })).toBeInTheDocument()
+  })
+
   it('shows win/lose title in multiplayer versus modes', () => {
     const { rerender } = render(
       <GameOver

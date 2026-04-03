@@ -13,7 +13,8 @@ function GameOver({
 }) {
   if (!winner && !isEliminated && !isGameOver) return null
 
-  const useGenericTitle = !isMultiplayer || gameMode === 'cooperative'
+  const useGenericTitle =
+    !isMultiplayer || ['cooperative', 'cooperative_roles'].includes(gameMode)
   const title = useGenericTitle ? 'Game Over' : winner === username ? 'You won' : 'You lost'
   const canSpectate = Boolean(onSpectate && isEliminated && !winner && !isGameOver)
   const showPlayAgain = Boolean(onPlayAgain && isGameOver)
