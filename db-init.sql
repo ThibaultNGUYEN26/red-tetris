@@ -37,9 +37,20 @@ CREATE TABLE IF NOT EXISTS rooms (
   game_mode TEXT NOT NULL,
   host TEXT NOT NULL,
   player_count INT NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'waiting',
   players JSONB NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE rooms
+  ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'waiting';
+
+UPDATE rooms
+SET status = 'waiting'
+WHERE status IS NULL;
+
+ALTER TABLE rooms
+  ALTER COLUMN status SET NOT NULL;
 
 ALTER TABLE rooms
   ADD COLUMN IF NOT EXISTS ready_again TEXT[] DEFAULT '{}';
