@@ -201,6 +201,9 @@ describe('Rooms Component', () => {
       const createButton = screen.getByRole('button', { name: /create/i })
       fireEvent.click(createButton)
 
+      const coopButton = screen.getByRole('button', { name: /cooperative/i })
+      fireEvent.click(coopButton)
+
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
       })
@@ -211,6 +214,9 @@ describe('Rooms Component', () => {
       
       const createButton = screen.getByRole('button', { name: /create/i })
       fireEvent.click(createButton)
+
+      const coopButton = screen.getByRole('button', { name: /cooperative/i })
+      fireEvent.click(coopButton)
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -229,6 +235,9 @@ describe('Rooms Component', () => {
       
       const createButton = screen.getByRole('button', { name: /create/i })
       fireEvent.click(createButton)
+
+      const coopButton = screen.getByRole('button', { name: /cooperative/i })
+      fireEvent.click(coopButton)
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -592,6 +601,7 @@ describe('Rooms Component', () => {
       render(<Rooms {...defaultProps} />)
 
       fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cooperative/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -617,6 +627,7 @@ describe('Rooms Component', () => {
       render(<Rooms {...defaultProps} />)
 
       fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cooperative/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -657,6 +668,7 @@ describe('Rooms Component', () => {
       render(<Rooms {...defaultProps} />)
 
       fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cooperative/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()

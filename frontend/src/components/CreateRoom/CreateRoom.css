@@ -204,6 +204,18 @@
   color: #999;
 }
 
+.room-error-banner {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 2px solid rgba(190, 60, 60, 0.35);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 230, 230, 0.88) 0%, rgba(255, 214, 214, 0.78) 100%);
+  color: #9a1f1f;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(160, 40, 40, 0.12);
+}
+
 .players-section {
   display: flex;
   flex-direction: column;
@@ -460,6 +472,12 @@
 .create-room-card.dark .mode-select option:disabled {
   opacity: 0.4;
   color: #666;
+}
+
+.create-room-card.dark .room-error-banner {
+  background: linear-gradient(135deg, rgba(120, 35, 35, 0.65) 0%, rgba(80, 20, 20, 0.72) 100%);
+  border-color: rgba(255, 120, 120, 0.35);
+  color: #ffd0d0;
 }
 
 .create-room-card.dark .room-name-input::placeholder {

@@ -7,12 +7,15 @@
 [X] Play again multiplayer
 [X] Dark theme, coop text role
 [X] Coop, game over when someone leave
+[] Solo URL
+[] Multi URL
 
 [TODO]
 [X] Other game modes
 [X] Sound
 [X] Play again button, solo game
 [X] Unittest backend
+[] Unittest URL 
 
 [BONUS]
 [X] Scoring system

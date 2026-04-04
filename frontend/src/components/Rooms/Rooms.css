@@ -68,6 +68,65 @@
     inset 0 1px 2px rgba(255, 255, 255, 0.2);
 }
 
+.create-room-choice {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  border: 2px dashed rgba(50, 100, 200, 0.35);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.create-room-choice-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2a5298;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.create-room-choice-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  width: 100%;
+}
+
+.choice-button {
+  background: linear-gradient(135deg, rgba(100, 150, 255, 0.7) 0%, rgba(50, 100, 200, 0.7) 100%);
+  border: 2px solid rgba(50, 100, 200, 0.6);
+  border-radius: 12px;
+  padding: 0.7rem 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow:
+    0 4px 8px rgba(50, 100, 200, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.choice-button:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 6px 12px rgba(50, 100, 200, 0.4),
+    0 0 15px rgba(50, 100, 200, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.choice-button:active {
+  transform: translateY(0);
+  box-shadow:
+    0 2px 6px rgba(50, 100, 200, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+}
+
 .rooms-list {
   width: 100%;
   display: flex;
@@ -288,6 +347,28 @@
   box-shadow:
     0 8px 20px rgba(40, 130, 40, 0.5),
     0 0 25px rgba(40, 130, 40, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+.rooms-card.dark .create-room-choice {
+  border-color: rgba(120, 140, 220, 0.5);
+  background: rgba(30, 30, 60, 0.4);
+}
+
+.rooms-card.dark .create-room-choice-title {
+  color: #b0c4ff;
+  text-shadow: 0 0 10px rgba(100, 150, 255, 0.4);
+}
+
+.rooms-card.dark .choice-button {
+  background: linear-gradient(135deg, rgba(100, 150, 255, 0.6) 0%, rgba(50, 100, 200, 0.6) 100%);
+  border-color: rgba(50, 100, 200, 0.7);
+}
+
+.rooms-card.dark .choice-button:hover {
+  box-shadow:
+    0 6px 12px rgba(50, 100, 200, 0.5),
+    0 0 20px rgba(50, 100, 200, 0.4),
     inset 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 

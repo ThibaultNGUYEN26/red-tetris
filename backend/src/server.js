@@ -11,8 +11,7 @@ import roomRoutes from "./routes/rooms.routes.js";
 import setupSockets from "./socket/index.js";
 import { pool } from "./config/db.js";
 
-const HOST = process.env.DB_HOST;
-const FRONTEND_ORIGIN = `http://${HOST}:5173`;
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
 const DEV_ORIGINS = [
   FRONTEND_ORIGIN,
   "http://localhost:5173",

@@ -57,21 +57,45 @@ vi.mock('../../../components/Rooms/Rooms.jsx', () => ({
   ),
 }))
 
+vi.mock('../../../components/CreateRoom/CreateRoom.jsx', () => ({
+  default: ({ onBack }) => (
+    <div data-testid="create-room">
+      <button onClick={onBack}>Back</button>
+    </div>
+  ),
+}))
+
 vi.mock('../../../components/Game/Game.jsx', () => ({
   default: () => <div data-testid="game" />,
 }))
 
 import Index from '../../../index.jsx'
 
+global.fetch = vi.fn()
+
 describe('Index main page', () => {
-  it('clears the joined-room URL flow when leaving a room', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('clears the direct-room URL flow when leaving a room', async () => {
     mockParams = { username: 'Titi', roomName: 'Room-ABC' }
+
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: async () => ({}),
+    })
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 1, name: 'Room-ABC', game_mode: 'classic' }),
+    })
 
     render(<Index />)
 
-    expect(screen.getByTestId('rooms')).toBeInTheDocument()
+    expect(screen.getByTestId('create-room')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /leave joined room/i }))
+    fireEvent.click(screen.getByRole('button', { name: /back/i }))
 
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
 

@@ -1,68 +1,20 @@
 import './ModeMenuSelector.css'
 import { useState } from 'react'
-import { socket } from '../../socket'
 import Options from './Options.jsx/Options.jsx'
-
-const API_URL = import.meta.env.VITE_API_URL || ''
 
 function ModeMenuSelector({
   theme,
   onThemeChange,
   onShowRooms,
-  onShowGame,
-  onStartSolo,
-  username,
+  onShowSoloRoom,
   soundEnabled,
   onSoundChange,
 }) {
   const [showOptions, setShowOptions] = useState(false)
 
-  const handleSolo = async () => {
+  const handleSolo = () => {
     console.log('Solo mode selected')
-    try {
-      // Create room
-      const createResponse = await fetch(`${API_URL}/api/rooms`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gameMode: 'classic',
-          host: username, // this is fine for REST creation
-        }),
-      })
-
-      if (!createResponse.ok) {
-        const errBody = await createResponse.json().catch(() => null)
-        throw new Error(errBody?.error || 'Failed to create solo room')
-      }
-
-      const room = await createResponse.json()
-
-      // Join via socket
-      await new Promise((resolve, reject) => {
-        socket.emit(
-          'joinRoom',
-          { roomId: String(room.id), username },
-          (res) => {
-            if (!res?.ok) {
-              reject(new Error(res?.error || 'Failed to join solo room'))
-              return
-            }
-
-            socket.emit('startGame', { roomId: String(room.id) })
-            resolve()
-          }
-        )
-      })
-
-      console.log('[ModeMenu] Solo game started (socket)', {
-        roomId: room.id,
-      })
-
-      onStartSolo?.(room.id)
-      onShowGame(true)
-    } catch (err) {
-      console.error('Solo start failed:', err)
-    }
+    onShowSoloRoom?.(true)
   }
 
   const handleMultiplayer = () => {

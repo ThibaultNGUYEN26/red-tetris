@@ -7,15 +7,25 @@ import Game from '../Game/Game.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
+function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
   const [showCreateRoom, setShowCreateRoom] = useState(false)
+  const [showCreateRoomPicker, setShowCreateRoomPicker] = useState(false)
+  const [createRoomType, setCreateRoomType] = useState('multiplayer')
   const [showGame, setShowGame] = useState(false)
   const [currentRoomName, setCurrentRoomName] = useState(joinRoomName || null)
   const [currentRoomId, setCurrentRoomId] = useState(null)
 
   const hasJoinedRef = useRef(false)
+
+  const buildRoomSlug = (roomName, gameMode) => {
+    if (!roomName) return ''
+    if (['cooperative', 'cooperative_roles'].includes(gameMode)) {
+      return `${roomName}_coop`
+    }
+    return `${roomName}_multi`
+  }
 
   const getRoomMaxPlayers = (room) => {
     const gameMode = room?.game_mode || 'classic'
@@ -49,12 +59,12 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
     if (!foundRoom) return
 
     hasJoinedRef.current = true
-    joinRoom(foundRoom.id)
+    joinRoom(foundRoom.id, foundRoom)
   }, [joinRoomName, rooms, username])
 
   /* ---------------- JOIN ROOM (SHARED) ---------------- */
 
-  const joinRoom = async (roomId) => {
+  const joinRoom = async (roomId, roomInfo) => {
     try {
       // Join room via socket (DB + socket room)
       socket.emit('joinRoom', { roomId: String(roomId), username }, (res) => {
@@ -69,6 +79,11 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
         // Sync room state (in case of late listeners)
         socket.emit('getRoomState', { roomId: String(roomId) })
         setCurrentRoomId(roomId)
+
+        if (roomInfo?.name) {
+          const slug = buildRoomSlug(roomInfo.name, roomInfo.game_mode)
+          navigate(`/${slug}/${username}`, { replace: true })
+        }
       })
 
     } catch (err) {
@@ -96,6 +111,19 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
     socket.on('roomState', handleRoomState)
     return () => socket.off('roomState', handleRoomState)
   }, [])
+
+  useEffect(() => {
+    if (!currentRoomId || !currentRoomName || !username || showGame) return
+
+    const currentRoom = rooms.find(
+      (room) => String(room.id) === String(currentRoomId)
+    )
+    const slug = buildRoomSlug(
+      currentRoom?.name || currentRoomName,
+      currentRoom?.game_mode
+    )
+    navigate(`/${slug}/${username}`, { replace: true })
+  }, [currentRoomId, currentRoomName, rooms, username, showGame, navigate])
 
   /* ---------------- STALE ROOM GUARD ---------------- */
 
@@ -152,12 +180,19 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
 
   const handleCreateRoom = () => {
     console.log('[Rooms] Create room clicked', { username })
+    setShowCreateRoomPicker(true)
+  }
+
+  const handleChooseRoomType = (type) => {
+    setCreateRoomType(type)
+    setShowCreateRoomPicker(false)
     setShowCreateRoom(true)
   }
 
-  const handleRoomCreated = (roomId) => {
+  const handleRoomCreated = (roomId, roomName, roomType) => {
     console.log('[Rooms] Room created', { roomId, username })
     setCurrentRoomId(roomId)
+    onRoomCreated?.(roomId, roomName, roomType)
   }
 
   /* ---------------- LEAVE (LOBBY / IN-GAME) ---------------- */
@@ -177,6 +212,7 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
     if (!currentRoomId) {
       setCurrentRoomId(null);
       setShowCreateRoom(false);
+      setShowCreateRoomPicker(false);
       setShowGame(false);
       hasJoinedRef.current = false;
       return;
@@ -198,6 +234,7 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
     finally {
       setCurrentRoomId(null);
       setShowCreateRoom(false);
+      setShowCreateRoomPicker(false);
       setShowGame(false);
       hasJoinedRef.current = false;
     }
@@ -222,7 +259,14 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
   const handleSpectate = () => {
     if (!currentRoomName) return
     setShowGame(false)
-    navigate(`/${currentRoomName}/spectate/${username}`)
+    const currentRoom = rooms.find(
+      (room) => String(room.id) === String(currentRoomId)
+    )
+    const slug = buildRoomSlug(
+      currentRoom?.name || currentRoomName,
+      currentRoom?.game_mode
+    )
+    navigate(`/${slug}/spectate/${username}`)
   }
 
   const handleBackToMenu = () => {
@@ -256,6 +300,7 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
         existingRooms={rooms}
         roomId={currentRoomId}
         mode={showCreateRoom ? 'create' : 'join'}
+        roomType={createRoomType}
         onBack={handleExitLobby}
         onRoomCreated={handleRoomCreated}
       />
@@ -268,9 +313,29 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
     <div className={`rooms-card ${theme === 'dark' ? 'dark' : ''}`}>
       <h2>Multiplayer Rooms</h2>
 
-      <button className="create-room-button" onClick={handleCreateRoom}>
-        ➕ Create Room
-      </button>
+      {!showCreateRoomPicker ? (
+        <button className="create-room-button" onClick={handleCreateRoom}>
+          ➕ Create Room
+        </button>
+      ) : (
+        <div className="create-room-choice">
+          <p className="create-room-choice-title">Choose Room Type</p>
+          <div className="create-room-choice-buttons">
+            <button
+              className="choice-button"
+              onClick={() => handleChooseRoomType('cooperative')}
+            >
+              Cooperative
+            </button>
+            <button
+              className="choice-button"
+              onClick={() => handleChooseRoomType('multiplayer')}
+            >
+              Multiplayer
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="rooms-list">
         <h3>Available Rooms</h3>
@@ -297,7 +362,7 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
                 <button
                   className="join-button"
                     disabled={room.player_count >= (room.maxPlayers || getRoomMaxPlayers(room)) || isInRoom}
-                  onClick={() => joinRoom(room.id)}
+                  onClick={() => joinRoom(room.id, room)}
                 >
                     {isInRoom ? 'Joined' : room.player_count >= (room.maxPlayers || getRoomMaxPlayers(room)) ? 'Full' : 'Join'}
                 </button>
@@ -315,3 +380,4 @@ function Rooms({ theme, onBack, onLeaveRoom, username, joinRoomName, userProfile
 }
 
 export default Rooms
+

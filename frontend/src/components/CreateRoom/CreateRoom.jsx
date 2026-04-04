@@ -13,7 +13,11 @@ function CreateRoom({
   userProfile,
   mode = 'create',
   roomId: joinedRoomId,
-  onRoomCreated
+  isSolo = false,
+  roomType: initialRoomType = 'multiplayer',
+  desiredRoomName,
+  onRoomCreated,
+  onStartGame
 }) {
   const sharedBoardModes = ['cooperative', 'cooperative_roles']
   const defaultAvatar = {
@@ -25,7 +29,10 @@ function CreateRoom({
   const [roomName, setRoomName] = useState('')
   const [roomNameDraft, setRoomNameDraft] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
-  const [selectedMode, setSelectedMode] = useState('classic')
+  const [roomType, setRoomType] = useState(initialRoomType)
+  const [selectedMode, setSelectedMode] = useState(
+    initialRoomType === 'cooperative' ? 'cooperative' : 'classic'
+  )
   const [players, setPlayers] = useState(
     mode === 'create'
       ? [{
@@ -39,19 +46,45 @@ function CreateRoom({
   const [roomId, setRoomId] = useState(joinedRoomId || null)
   const [hostName, setHostName] = useState('')
   const [committedMode, setCommittedMode] = useState('classic')
+  const [joinError, setJoinError] = useState('')
 
   const hasCreatedRoom = useRef(false)
   const hasEditedName = useRef(false)
   const hasStartedGame = useRef(false)
+  const hasJoinedRoom = useRef(false)
+
+  const resolvedRoomName = (nameFromServer) => {
+    if (!desiredRoomName) return nameFromServer
+    if (!nameFromServer) return desiredRoomName
+    return desiredRoomName
+  }
+
+  const getJoinErrorMessage = (error) => {
+    switch (error) {
+      case 'Username already connected':
+        return 'This username is already connected in this room.'
+      case 'Room is full':
+        return 'This room is already full.'
+      case 'User is already in a room':
+        return 'This player is already busy in another room.'
+      default:
+        return 'This room is already busy. Please try another room or username.'
+    }
+  }
 
   // Define available game modes
-  const availableGameModes = [
+  const multiplayerModes = [
     { value: 'classic', label: 'Classic', maxPlayers: 6 },
     { value: 'mirror', label: 'Mirror', maxPlayers: 6 },
-    { value: 'cooperative', label: 'Co-op Alternate', maxPlayers: 2 },
-    { value: 'cooperative_roles', label: 'Co-op Roles', maxPlayers: 2 },
     { value: 'giant', label: 'Giant', maxPlayers: 6 }
   ]
+  const cooperativeModes = [
+    { value: 'cooperative', label: 'Co-op Alternate', maxPlayers: 2 },
+    { value: 'cooperative_roles', label: 'Co-op Roles', maxPlayers: 2 }
+  ]
+
+  const availableGameModes =
+    roomType === 'cooperative' ? cooperativeModes : multiplayerModes
 
   // Filter modes based on current player count
   const getAvailableModes = () => {
@@ -85,6 +118,7 @@ function CreateRoom({
           body: JSON.stringify({
             gameMode: selectedMode,
             host: username,
+            name: desiredRoomName || undefined,
           }),
         })
 
@@ -104,12 +138,17 @@ function CreateRoom({
         console.log('[CreateRoom] Room created', { roomId: room.id, name: room.name, roomObj: room })
 
         setRoomId(room.id)
-        setRoomName(room.name)
-        setRoomNameDraft(room.name)
+        setRoomName(resolvedRoomName(room.name))
+        setRoomNameDraft(resolvedRoomName(room.name))
         setSelectedMode(room.game_mode)
         setCommittedMode(room.game_mode)
+        setRoomType(
+          ['cooperative', 'cooperative_roles'].includes(room.game_mode)
+            ? 'cooperative'
+            : 'multiplayer'
+        )
 
-        onRoomCreated?.(room.id, room.name)
+        onRoomCreated?.(room.id, desiredRoomName || room.name, roomType)
 
         hasCreatedRoom.current = true
       } catch (err) {
@@ -124,9 +163,9 @@ function CreateRoom({
 
   useEffect(() => {
     if (!roomId) return
+    if (hasJoinedRoom.current) return
 
-    socket.emit("joinRoom", { roomId: String(roomId), username });
-    console.log('Emitting getRoomState', roomId);
+    let cancelled = false
 
     const handleRoomState = (room) => {
       console.log('🟢 Room updated:', room)
@@ -138,12 +177,17 @@ function CreateRoom({
           : null
       const displayedPlayers = readyAgainPlayers || room.players || []
 
-      setRoomName(room.name)
+      setRoomName(resolvedRoomName(room.name))
       if (!isEditingName) {
-        setRoomNameDraft(room.name)
+        setRoomNameDraft(resolvedRoomName(room.name))
       }
       setSelectedMode(room.game_mode)
       setCommittedMode(room.game_mode)
+      setRoomType(
+        ['cooperative', 'cooperative_roles'].includes(room.game_mode)
+          ? 'cooperative'
+          : 'multiplayer'
+      )
       setHostName(room.host)
       setPlayers(
         displayedPlayers.map((name, index) => ({
@@ -157,13 +201,28 @@ function CreateRoom({
 
     socket.on('roomState', handleRoomState)
 
-    // initial sync
-    socket.emit('getRoomState', { roomId: String(roomId) })
+    socket.emit("joinRoom", { roomId: String(roomId), username }, (response) => {
+      if (cancelled) return
+
+      if (!response?.ok) {
+        console.error('Failed to join room:', response?.error || 'Unknown error')
+        setJoinError(getJoinErrorMessage(response?.error))
+        setRoomId(null)
+        return
+      }
+
+      setJoinError('')
+      hasJoinedRoom.current = true
+      console.log('Emitting getRoomState', roomId)
+      socket.emit('getRoomState', { roomId: String(roomId) })
+    })
 
     return () => {
+      cancelled = true
+      hasJoinedRoom.current = false
       socket.off('roomState', handleRoomState);
     }
-  }, [roomId, username, userProfile, isEditingName])
+  }, [roomId, username, userProfile, isEditingName, onBack])
 
   // Update game mode (only host)
   useEffect(() => {
@@ -283,7 +342,8 @@ function CreateRoom({
   }
 
   const handleStartGame = async () => {
-    if (players.length < 2) return
+    if (!roomId) return
+    if (!isSolo && players.length < 2) return
     if (sharedBoardModes.includes(selectedMode) && players.length !== 2) return
     if (hostName && hostName !== username) return
     if (hasStartedGame.current) return // Prevent duplicate submissions
@@ -292,6 +352,7 @@ function CreateRoom({
       hasStartedGame.current = true
       console.log('🎮 Emitting startGame event:', { roomId: String(roomId), username });
       socket.emit('startGame', { roomId: String(roomId), username })
+      onStartGame?.(roomId)
     } catch (err) {
       console.error('Failed to start game:', err)
       hasStartedGame.current = false
@@ -363,7 +424,7 @@ function CreateRoom({
             className="mode-select"
             disabled={hostName && hostName !== username}
           >
-            {availableGameModes.map((m) => (
+            {getAvailableModes().map((m) => (
               <option
                 key={m.value}
                 value={m.value}
@@ -375,37 +436,46 @@ function CreateRoom({
           </select>
         </div>
 
-        {/* Players */}
-        <div className="players-section">
-          <h3>Players ({players.length}/{availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2})</h3>
-
-          <div className="players-list">
-            {players.map((player) => (
-              <div key={player.id} className="player-item has-avatar">
-                <FaceAvatar faceConfig={player.avatar} size="small" />
-                <span className="player-name">
-                  {player.name}
-                  {player.isHost && <span className="host-crown">{'\u{1F451}'}</span>}
-                </span>
-              </div>
-            ))}
-
-            {players.length < (availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2) && (
-              <div className="player-item waiting">
-                {/* Animated waiting text */}
-                {Array.from('Waiting for players...').map((char, i) => (
-                  <span key={i} className="wave-text">{char}</span>
-                ))}
-              </div>
-            )}
+        {joinError && (
+          <div className="room-error-banner" role="alert">
+            {joinError}
           </div>
-        </div>
+        )}
+
+        {/* Players */}
+        {!isSolo && (
+          <div className="players-section">
+            <h3>Players ({players.length}/{availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2})</h3>
+
+            <div className="players-list">
+              {players.map((player) => (
+                <div key={player.id} className="player-item has-avatar">
+                  <FaceAvatar faceConfig={player.avatar} size="small" />
+                  <span className="player-name">
+                    {player.name}
+                    {player.isHost && <span className="host-crown">{'\u{1F451}'}</span>}
+                  </span>
+                </div>
+              ))}
+
+              {players.length < (availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2) && (
+                <div className="player-item waiting">
+                  {/* Animated waiting text */}
+                  {Array.from('Waiting for players...').map((char, i) => (
+                    <span key={i} className="wave-text">{char}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <button
           className="start-button"
           onClick={handleStartGame}
           disabled={
-            players.length < 2 ||
+            !roomId ||
+            (!isSolo && players.length < 2) ||
             (sharedBoardModes.includes(selectedMode) && players.length !== 2) ||
             (hostName && hostName !== username)
           }

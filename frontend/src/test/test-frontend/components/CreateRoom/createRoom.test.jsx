@@ -121,7 +121,7 @@ describe('CreateRoom Component', () => {
 
   describe('Game Mode Selection', () => {
     it('shows the co-op alternate mode in the selector', async () => {
-      render(<CreateRoom {...defaultProps} />)
+      render(<CreateRoom {...defaultProps} roomType="cooperative" />)
 
       await waitFor(() => {
         expect(screen.getByRole('combobox')).toBeInTheDocument()
@@ -131,7 +131,7 @@ describe('CreateRoom Component', () => {
     })
 
     it('shows the co-op roles mode in the selector', async () => {
-      render(<CreateRoom {...defaultProps} />)
+      render(<CreateRoom {...defaultProps} roomType="cooperative" />)
 
       await waitFor(() => {
         expect(screen.getByRole('combobox')).toBeInTheDocument()
