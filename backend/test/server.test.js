@@ -91,7 +91,7 @@ describe('server bootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()
-    vi.stubEnv('DB_HOST', 'c1r3p8')
+    vi.stubEnv('FRONTEND_ORIGIN', 'http://c1r3p8:5173')
     vi.stubEnv('BACKEND_HOST', '0.0.0.0')
   })
 

@@ -88,7 +88,7 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} />)
 
       await waitFor(() => {
-        expect(mockOnRoomCreated).toHaveBeenCalledWith(1, 'Room 1')
+        expect(mockOnRoomCreated).toHaveBeenCalledWith(1, 'Room 1', 'multiplayer')
       })
     })
 
@@ -121,6 +121,17 @@ describe('CreateRoom Component', () => {
 
   describe('Game Mode Selection', () => {
     it('shows the co-op alternate mode in the selector', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'cooperative',
+          host: 'TestUser',
+          players: ['TestUser']
+        })
+      })
+
       render(<CreateRoom {...defaultProps} roomType="cooperative" />)
 
       await waitFor(() => {
@@ -131,6 +142,17 @@ describe('CreateRoom Component', () => {
     })
 
     it('shows the co-op roles mode in the selector', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'cooperative',
+          host: 'TestUser',
+          players: ['TestUser']
+        })
+      })
+
       render(<CreateRoom {...defaultProps} roomType="cooperative" />)
 
       await waitFor(() => {
@@ -314,7 +336,8 @@ describe('CreateRoom Component', () => {
       return waitFor(() => {
         expect(socket.emit).toHaveBeenCalledWith(
           'joinRoom',
-          expect.objectContaining({ roomId: '42', username: 'TestUser' })
+          expect.objectContaining({ roomId: '42', username: 'TestUser' }),
+          expect.any(Function)
         )
       })
     })
