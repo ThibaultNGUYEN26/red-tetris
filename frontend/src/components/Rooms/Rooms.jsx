@@ -7,7 +7,7 @@ import Game from '../Game/Game.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
-function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
+function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
   const [showCreateRoom, setShowCreateRoom] = useState(false)
@@ -192,7 +192,20 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, username, joinRoomNa
   const handleRoomCreated = (roomId, roomName, roomType) => {
     console.log('[Rooms] Room created', { roomId, username })
     setCurrentRoomId(roomId)
+    setCurrentRoomName(roomName)
     onRoomCreated?.(roomId, roomName, roomType)
+  }
+
+  const handleRoomRenamed = (roomName, gameMode) => {
+    setCurrentRoomName(roomName)
+    setRooms((prev) => prev.map((room) => (
+      String(room.id) === String(currentRoomId)
+        ? { ...room, name: roomName, game_mode: gameMode || room.game_mode }
+        : room
+    )))
+
+    const slug = buildRoomSlug(roomName, gameMode)
+    navigate(`/${slug}/${username}`, { replace: true })
   }
 
   /* ---------------- LEAVE (LOBBY / IN-GAME) ---------------- */
@@ -303,6 +316,8 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, username, joinRoomNa
         roomType={createRoomType}
         onBack={handleExitLobby}
         onRoomCreated={handleRoomCreated}
+        onRoomRenamed={handleRoomRenamed}
+        onNotice={onNotice}
       />
     )
   }

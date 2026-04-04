@@ -8,6 +8,8 @@ const API_URL = import.meta.env.VITE_API_URL || ''
 function CreateRoom({
   theme,
   onBack,
+  onJoinError,
+  onNotice,
   existingRooms = [],
   username,
   userProfile,
@@ -17,6 +19,7 @@ function CreateRoom({
   roomType: initialRoomType = 'multiplayer',
   desiredRoomName,
   onRoomCreated,
+  onRoomRenamed,
   onStartGame
 }) {
   const sharedBoardModes = ['cooperative', 'cooperative_roles']
@@ -30,6 +33,7 @@ function CreateRoom({
   const [roomNameDraft, setRoomNameDraft] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
   const [roomType, setRoomType] = useState(initialRoomType)
+  const [preferredRoomName, setPreferredRoomName] = useState(desiredRoomName || null)
   const [selectedMode, setSelectedMode] = useState(
     initialRoomType === 'cooperative' ? 'cooperative' : 'classic'
   )
@@ -54,9 +58,8 @@ function CreateRoom({
   const hasJoinedRoom = useRef(false)
 
   const resolvedRoomName = (nameFromServer) => {
-    if (!desiredRoomName) return nameFromServer
-    if (!nameFromServer) return desiredRoomName
-    return desiredRoomName
+    if (preferredRoomName) return preferredRoomName
+    return nameFromServer
   }
 
   const getJoinErrorMessage = (error) => {
@@ -69,6 +72,18 @@ function CreateRoom({
         return 'This player is already busy in another room.'
       default:
         return 'This room is already busy. Please try another room or username.'
+    }
+  }
+
+  const getRoomActionErrorMessage = (error) => {
+    switch (error) {
+      case 'Room already used':
+      case 'Room name already exists':
+        return 'Room already used.'
+      case 'Only the host can rename the room':
+        return 'Only the host can rename the room.'
+      default:
+        return 'Unable to update the room right now.'
     }
   }
 
@@ -106,6 +121,10 @@ function CreateRoom({
   /* ---------------- CREATE ROOM (HOST) ---------------- */
 
   useEffect(() => {
+    setPreferredRoomName(desiredRoomName || null)
+  }, [desiredRoomName])
+
+  useEffect(() => {
     if (mode !== 'create') return
     if (hasCreatedRoom.current) return
 
@@ -127,6 +146,15 @@ function CreateRoom({
         // [Play Again] If user is already in a room, the backend rejects creation.
         if (room.error === 'User is already in a room') {
           console.log('[CreateRoom] User already in a room, retrieving existing room')
+          onJoinError?.(room.error)
+          return
+        }
+
+        if (response.status === 409) {
+          const message = getRoomActionErrorMessage(room.error)
+          setJoinError(message)
+          onNotice?.(message)
+          onJoinError?.('Room already used')
           return
         }
         
@@ -208,6 +236,7 @@ function CreateRoom({
         console.error('Failed to join room:', response?.error || 'Unknown error')
         setJoinError(getJoinErrorMessage(response?.error))
         setRoomId(null)
+        onJoinError?.(response?.error)
         return
       }
 
@@ -314,12 +343,24 @@ function CreateRoom({
       })
 
       if (!response.ok) {
-        throw new Error(`Rename failed with status ${response.status}`)
+        const errorPayload = await response.json().catch(() => ({}))
+        const message =
+          response.status === 409
+            ? 'Room already used.'
+            : getRoomActionErrorMessage(errorPayload?.error)
+        setJoinError(message)
+        if (response.status === 409) {
+          onNotice?.(message)
+        }
+        return
       }
 
       const updatedRoom = await response.json()
+      setJoinError('')
+      setPreferredRoomName(updatedRoom.name)
       setRoomName(updatedRoom.name)
       setRoomNameDraft(updatedRoom.name)
+      onRoomRenamed?.(updatedRoom.name, updatedRoom.game_mode)
       socket.emit('getRoomState', { roomId: String(roomId) })
     } catch (err) {
       setRoomNameDraft(roomName)
@@ -435,12 +476,6 @@ function CreateRoom({
             ))}
           </select>
         </div>
-
-        {joinError && (
-          <div className="room-error-banner" role="alert">
-            {joinError}
-          </div>
-        )}
 
         {/* Players */}
         {!isSolo && (

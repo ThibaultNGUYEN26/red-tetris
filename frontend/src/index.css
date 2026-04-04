@@ -31,6 +31,25 @@ html, body, #root {
   z-index: 1;
 }
 
+.route-notice {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  min-width: 260px;
+  max-width: min(90vw, 460px);
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 2px solid rgba(190, 60, 60, 0.35);
+  background: linear-gradient(135deg, rgba(255, 236, 236, 0.96), rgba(255, 216, 216, 0.92));
+  box-shadow: 0 10px 24px rgba(90, 20, 20, 0.18);
+  color: #8f1f1f;
+  font-weight: 800;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
 /* SKY BACKGROUND */
 .sky-background {
   position: fixed;
@@ -150,4 +169,11 @@ html, body, #root {
   color: #f0f5ff !important;
   box-shadow: 0 0 12px rgba(120, 150, 255, 0.4);
   text-shadow: 0 0 10px rgba(150, 180, 255, 0.8);
+}
+
+.sky-background.dark ~ .content-wrapper .route-notice {
+  border-color: rgba(255, 120, 120, 0.3);
+  background: linear-gradient(135deg, rgba(120, 35, 35, 0.8), rgba(80, 20, 20, 0.82));
+  color: #ffd6d6;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
 }

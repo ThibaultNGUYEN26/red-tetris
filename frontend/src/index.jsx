@@ -93,6 +93,7 @@ function Index() {
   const [directRoomId, setDirectRoomId] = useState(null)
   const [activeGameType, setActiveGameType] = useState(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
+  const [routeNotice, setRouteNotice] = useState('')
   const bopAudioRef = useRef(null)
   const soundEnabledRef = useRef(soundEnabled)
 
@@ -229,6 +230,14 @@ function Index() {
     return () => document.removeEventListener('mouseover', handleButtonHover)
   }, [])
 
+  useEffect(() => {
+    if (!routeNotice) return
+    const timeoutId = setTimeout(() => {
+      setRouteNotice('')
+    }, 3500)
+    return () => clearTimeout(timeoutId)
+  }, [routeNotice])
+
   /* ---------------- PROFILE ---------------- */
 
   const handleUsernameSubmit = (profileOrUsername, avatar) => {
@@ -280,6 +289,40 @@ function Index() {
   const handleReturnToRoomsList = () => {
     setJoinedRoomName(null)
     setShowRooms(true)
+    navigate('/', { replace: true })
+  }
+
+  const returnHomeWithNotice = (message) => {
+    setShowRooms(false)
+    setShowGame(false)
+    setShowSoloRoom(false)
+    setShowDirectRoom(false)
+    setJoinedRoomName(null)
+    setSoloRoomName(null)
+    setDirectRoomName(null)
+    setDirectRoomType(null)
+    setSoloRoomId(null)
+    setDirectRoomId(null)
+    setActiveGameType(null)
+    setRouteNotice(message)
+    navigate('/', { replace: true })
+  }
+
+  const returnToProfileWithNotice = (message) => {
+    setUsername(null)
+    setUserProfile(null)
+    setShowRooms(false)
+    setShowGame(false)
+    setShowSoloRoom(false)
+    setShowDirectRoom(false)
+    setJoinedRoomName(null)
+    setSoloRoomName(null)
+    setDirectRoomName(null)
+    setDirectRoomType(null)
+    setSoloRoomId(null)
+    setDirectRoomId(null)
+    setActiveGameType(null)
+    setRouteNotice(message)
     navigate('/', { replace: true })
   }
 
@@ -400,26 +443,31 @@ function Index() {
 
     const fetchSoloRoom = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/rooms/by-name/${encodeURIComponent(soloRoomName)}`)
+        const res = await fetch(`${API_URL}/api/rooms/by-name/${encodeURIComponent(soloRoomName)}`, {
+          cache: 'no-store',
+        })
         if (res.status === 404) return
-        if (!res.ok) return
+        if (!res.ok) {
+          returnHomeWithNotice('Room already used')
+          return
+        }
         const room = await res.json()
         if (room.name !== soloRoomName) {
           return
         }
         if (room.host && room.host !== username) {
           console.error('Solo room already owned by another player.')
-          navigate('/', { replace: true })
+          returnHomeWithNotice('Room already used')
           return
         }
         if (getMaxPlayers(room.game_mode) <= room.player_count) {
           console.error('Solo room is full.')
-          navigate('/', { replace: true })
+          returnHomeWithNotice('Room already used')
           return
         }
         setSoloRoomId(room.id)
       } catch {
-        // no-op: fallback to create flow if needed
+        returnHomeWithNotice('Room already used')
       }
     }
 
@@ -431,7 +479,9 @@ function Index() {
 
     const resolveDirectRoom = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/rooms/by-name/${encodeURIComponent(directRoomName)}`)
+        const res = await fetch(`${API_URL}/api/rooms/by-name/${encodeURIComponent(directRoomName)}`, {
+          cache: 'no-store',
+        })
         if (res.status === 404) {
           const defaultMode = directRoomType === 'coop' ? 'cooperative' : 'classic'
           const createRes = await fetch(`${API_URL}/api/rooms`, {
@@ -445,8 +495,16 @@ function Index() {
           })
 
           if (!createRes.ok) {
+            const errorPayload = await createRes.json().catch(() => ({}))
             console.error('Failed to create direct room')
-            navigate('/', { replace: true })
+            returnHomeWithNotice(
+              createRes.status === 409
+                ? 'Room already used'
+                : 
+              errorPayload?.error === 'User is already in a room'
+                ? 'User already connected'
+                : 'Room already used'
+            )
             return
           }
 
@@ -455,7 +513,10 @@ function Index() {
           return
         }
 
-        if (!res.ok) return
+        if (!res.ok) {
+          returnHomeWithNotice('Room already used')
+          return
+        }
         const room = await res.json()
 
         if (room.name !== directRoomName) {
@@ -471,8 +532,16 @@ function Index() {
           })
 
           if (!createRes.ok) {
+            const errorPayload = await createRes.json().catch(() => ({}))
             console.error('Failed to create direct room')
-            navigate('/', { replace: true })
+            returnHomeWithNotice(
+              createRes.status === 409
+                ? 'Room already used'
+                : 
+              errorPayload?.error === 'User is already in a room'
+                ? 'User already connected'
+                : 'Room already used'
+            )
             return
           }
 
@@ -484,25 +553,25 @@ function Index() {
         const isCoopMode = ['cooperative', 'cooperative_roles'].includes(room.game_mode)
         if (directRoomType === 'coop' && !isCoopMode) {
           console.error('Room type mismatch for coop.')
-          navigate('/', { replace: true })
+          returnHomeWithNotice('Room already used')
           return
         }
         if (directRoomType === 'multi' && isCoopMode) {
           console.error('Room type mismatch for multi.')
-          navigate('/', { replace: true })
+          returnHomeWithNotice('Room already used')
           return
         }
 
         const maxPlayers = getMaxPlayers(room.game_mode)
         if (room.player_count >= maxPlayers) {
           console.error('Room is full.')
-          navigate('/', { replace: true })
+          returnHomeWithNotice('Room already used')
           return
         }
 
         setDirectRoomId(room.id)
       } catch {
-        // no-op
+        returnHomeWithNotice('Room already used')
       }
     }
 
@@ -601,6 +670,11 @@ function Index() {
 
       {/* Content wrapper always rendered */}
       <div className="content-wrapper">
+        {routeNotice && (
+          <div className="route-notice" role="alert">
+            {routeNotice}
+          </div>
+        )}
         {(joinedRoomName || showRooms) && username ? (
           <Rooms
             theme={theme}
@@ -610,6 +684,7 @@ function Index() {
             onBack={handleExitJoinedRoom}
             onLeaveRoom={handleReturnToRoomsList}
             onRoomCreated={handleRoomCreated}
+            onNotice={setRouteNotice}
             soundEnabled={soundEnabled}
             onSoundChange={handleSoundChange}
           />
@@ -648,6 +723,19 @@ function Index() {
                       roomType="multiplayer"
                       desiredRoomName={soloRoomName}
                       onBack={handleExitSoloLobby}
+                      onNotice={setRouteNotice}
+                      onJoinError={(error) => {
+                        if (error === 'Username already connected' || error === 'User is already in a room') {
+                          returnToProfileWithNotice('User already connected')
+                          return
+                        }
+                        returnHomeWithNotice('Room already used')
+                      }}
+                      onRoomRenamed={(roomName) => {
+                        setSoloRoomName(roomName)
+                        const slug = buildRoomSlug(roomName, 'solo')
+                        navigate(`/${slug}/${username}`, { replace: true })
+                      }}
                       onRoomCreated={(roomId, roomName) => {
                         setSoloRoomId(roomId)
                         setSoloRoomName(roomName)
@@ -671,6 +759,19 @@ function Index() {
                       roomType={directRoomType === 'coop' ? 'cooperative' : 'multiplayer'}
                       desiredRoomName={directRoomName}
                       onBack={handleExitDirectLobby}
+                      onNotice={setRouteNotice}
+                      onJoinError={(error) => {
+                        if (error === 'Username already connected' || error === 'User is already in a room') {
+                          returnToProfileWithNotice('User already connected')
+                          return
+                        }
+                        returnHomeWithNotice('Room already used')
+                      }}
+                      onRoomRenamed={(roomName) => {
+                        setDirectRoomName(roomName)
+                        const slug = buildRoomSlug(roomName, directRoomType)
+                        navigate(`/${slug}/${username}`, { replace: true })
+                      }}
                       onRoomCreated={(roomId, roomName) => {
                         setDirectRoomId(roomId)
                         setDirectRoomName(roomName)
