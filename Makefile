@@ -11,10 +11,14 @@ create-db:
 	docker compose --env-file .env up -d
 
 db:
-	docker exec -it red_tetris_postgres psql -h localhost -U ${DB_USER} -d ${DB_NAME}
+	docker exec -it red_tetris_postgres \
+		env PGPASSWORD=$(DB_PASSWORD) \
+		psql -h localhost -U $(DB_USER) -d $(DB_NAME)
 
 update-db:
-	docker exec -it red_tetris_postgres pg_dump -U ${DB_USER} ${DB_NAME} > backup.sql
+	docker exec -i red_tetris_postgres \
+		env PGPASSWORD=$(DB_PASSWORD) \
+		pg_dump -U $(DB_USER) $(DB_NAME) > backup.sql
 
 delete-db:
 	rm -rf backup.sql
