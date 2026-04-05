@@ -19,12 +19,20 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
 
   const hasJoinedRef = useRef(false)
 
-  const buildRoomSlug = (roomName, gameMode) => {
+  const buildRoomPath = (roomName, gameMode) => {
+    if (!roomName) return '/'
+    const roomType = ['cooperative', 'cooperative_roles'].includes(gameMode)
+      ? 'coop'
+      : 'multi'
+    return `/${roomName}/${roomType}/${username}`
+  }
+
+  const buildSpectatePath = (roomName, gameMode) => {
     if (!roomName) return ''
-    if (['cooperative', 'cooperative_roles'].includes(gameMode)) {
-      return `${roomName}_coop`
-    }
-    return `${roomName}_multi`
+    const roomType = ['cooperative', 'cooperative_roles'].includes(gameMode)
+      ? 'coop'
+      : 'multi'
+    return `/${roomName}/${roomType}/spectate/${username}`
   }
 
   const getRoomMaxPlayers = (room) => {
@@ -79,10 +87,8 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         // Sync room state (in case of late listeners)
         socket.emit('getRoomState', { roomId: String(roomId) })
         setCurrentRoomId(roomId)
-
         if (roomInfo?.name) {
-          const slug = buildRoomSlug(roomInfo.name, roomInfo.game_mode)
-          navigate(`/${slug}/${username}`, { replace: true })
+          navigate(buildRoomPath(roomInfo.name, roomInfo.game_mode), { replace: true })
         }
       })
 
@@ -111,19 +117,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
     socket.on('roomState', handleRoomState)
     return () => socket.off('roomState', handleRoomState)
   }, [])
-
-  useEffect(() => {
-    if (!currentRoomId || !currentRoomName || !username || showGame) return
-
-    const currentRoom = rooms.find(
-      (room) => String(room.id) === String(currentRoomId)
-    )
-    const slug = buildRoomSlug(
-      currentRoom?.name || currentRoomName,
-      currentRoom?.game_mode
-    )
-    navigate(`/${slug}/${username}`, { replace: true })
-  }, [currentRoomId, currentRoomName, rooms, username, showGame, navigate])
 
   /* ---------------- STALE ROOM GUARD ---------------- */
 
@@ -193,6 +186,13 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
     console.log('[Rooms] Room created', { roomId, username })
     setCurrentRoomId(roomId)
     setCurrentRoomName(roomName)
+    navigate(
+      buildRoomPath(
+        roomName,
+        roomType === 'cooperative' ? 'cooperative' : 'classic'
+      ),
+      { replace: true }
+    )
     onRoomCreated?.(roomId, roomName, roomType)
   }
 
@@ -203,9 +203,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         ? { ...room, name: roomName, game_mode: gameMode || room.game_mode }
         : room
     )))
-
-    const slug = buildRoomSlug(roomName, gameMode)
-    navigate(`/${slug}/${username}`, { replace: true })
+    navigate(buildRoomPath(roomName, gameMode), { replace: true })
   }
 
   /* ---------------- LEAVE (LOBBY / IN-GAME) ---------------- */
@@ -233,7 +231,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
 
     try {
       await new Promise((resolve) => {
-        socket.emit("playerLeave", { roomId: String(currentRoomId) }, () => {
+        socket.emit("playerLeave", { roomId: String(currentRoomId), username }, () => {
           resolve();
         });
       });
@@ -275,11 +273,12 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
     const currentRoom = rooms.find(
       (room) => String(room.id) === String(currentRoomId)
     )
-    const slug = buildRoomSlug(
-      currentRoom?.name || currentRoomName,
-      currentRoom?.game_mode
+    navigate(
+      buildSpectatePath(
+        currentRoom?.name || currentRoomName,
+        currentRoom?.game_mode
+      )
     )
-    navigate(`/${slug}/spectate/${username}`)
   }
 
   const handleBackToMenu = () => {

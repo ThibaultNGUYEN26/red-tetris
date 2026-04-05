@@ -5,29 +5,9 @@ import { socket } from './socket'
 import SpectatorView from './components/SpectatorView/SpectatorView.jsx'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
-const ROOM_TYPE_SUFFIX = {
-  multi: '_multi',
-  coop: '_coop',
-  legacySolo: '_solo',
-}
-
-const parseRoomSlug = (slug) => {
-  if (!slug) return ''
-  if (slug.endsWith(ROOM_TYPE_SUFFIX.multi)) {
-    return slug.slice(0, -ROOM_TYPE_SUFFIX.multi.length)
-  }
-  if (slug.endsWith(ROOM_TYPE_SUFFIX.coop)) {
-    return slug.slice(0, -ROOM_TYPE_SUFFIX.coop.length)
-  }
-  if (slug.endsWith(ROOM_TYPE_SUFFIX.legacySolo)) {
-    return slug.slice(0, -ROOM_TYPE_SUFFIX.legacySolo.length)
-  }
-  return slug
-}
 
 function Spectate() {
   const { roomName, username } = useParams()
-  const baseRoomName = parseRoomSlug(roomName)
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const [roomId, setRoomId] = useState(null)
@@ -36,7 +16,7 @@ function Spectate() {
   const [theme] = useState('light')
 
   useEffect(() => {
-    if (!baseRoomName) return
+    if (!roomName) return
     if (!username) {
       setError('Missing username in spectator URL.')
       setLoading(false)
@@ -45,7 +25,7 @@ function Spectate() {
 
     const fetchRoom = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/rooms/by-name/${encodeURIComponent(baseRoomName)}`)
+        const res = await fetch(`${API_URL}/api/rooms/by-name/${encodeURIComponent(roomName)}`)
         if (!res.ok) throw new Error('Room not found')
         const room = await res.json()
         setRoomId(room.id)
@@ -56,7 +36,7 @@ function Spectate() {
     }
 
     fetchRoom()
-  }, [baseRoomName, username])
+  }, [roomName, username])
 
   useEffect(() => {
     if (!roomId || !username) return

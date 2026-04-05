@@ -191,43 +191,28 @@ function CreateRoom({
 
   useEffect(() => {
     if (!roomId) return
-    if (hasJoinedRoom.current) return
-
-    let cancelled = false
 
     const handleRoomState = (room) => {
       console.log('🟢 Room updated:', room)
 
-      const avatars = room.player_avatars || {}
-      const readyAgainPlayers =
-        room.status !== 'started' && Array.isArray(room.ready_again) && room.ready_again.length
-          ? room.ready_again
-          : null
-      const displayedPlayers = readyAgainPlayers || room.players || []
-
-      setRoomName(resolvedRoomName(room.name))
-      if (!isEditingName) {
-        setRoomNameDraft(resolvedRoomName(room.name))
-      }
-      setSelectedMode(room.game_mode)
-      setCommittedMode(room.game_mode)
-      setRoomType(
-        ['cooperative', 'cooperative_roles'].includes(room.game_mode)
-          ? 'cooperative'
-          : 'multiplayer'
-      )
-      setHostName(room.host)
-      setPlayers(
-        displayedPlayers.map((name, index) => ({
-          id: index + 1,
-          name,
-          isHost: name === room.host,
-          avatar: avatars[name] || resolveAvatar(name),
-        }))
-      )
+      applyRoomState(room)
     }
 
     socket.on('roomState', handleRoomState)
+
+    return () => {
+      socket.off('roomState', handleRoomState)
+    }
+  }, [roomId, isEditingName, username, userProfile])
+
+  useEffect(() => {
+    if (!roomId) {
+      hasJoinedRoom.current = false
+      return
+    }
+    if (hasJoinedRoom.current) return
+
+    let cancelled = false
 
     socket.emit("joinRoom", { roomId: String(roomId), username }, (response) => {
       if (cancelled) return
@@ -249,9 +234,61 @@ function CreateRoom({
     return () => {
       cancelled = true
       hasJoinedRoom.current = false
-      socket.off('roomState', handleRoomState);
     }
-  }, [roomId, username, userProfile, isEditingName, onBack])
+  }, [roomId, username])
+
+  useEffect(() => {
+    if (!roomId) return
+
+    const handleAvailableRooms = (rooms = []) => {
+      const currentRoom = Array.isArray(rooms)
+        ? rooms.find((room) => String(room.id) === String(roomId))
+        : null
+
+      if (currentRoom) {
+        applyRoomState(currentRoom)
+        return
+      }
+
+      socket.emit('getRoomState', { roomId: String(roomId) })
+    }
+
+    socket.on('availableRooms', handleAvailableRooms)
+
+    return () => {
+      socket.off('availableRooms', handleAvailableRooms)
+    }
+  }, [roomId, isEditingName, username, userProfile])
+
+  useEffect(() => {
+    if (!roomId) return
+
+    const currentRoom = existingRooms.find(
+      (room) => String(room.id) === String(roomId)
+    )
+
+    if (!currentRoom) return
+    if (!['cooperative', 'cooperative_roles'].includes(currentRoom.game_mode)) return
+    if (currentRoom.player_count !== 1) return
+
+    const fallbackPlayers = Array.isArray(currentRoom.players) && currentRoom.players.length
+      ? currentRoom.players
+      : [username]
+    const fallbackHost = currentRoom.host || fallbackPlayers[0] || username
+
+    setSelectedMode(currentRoom.game_mode)
+    setCommittedMode(currentRoom.game_mode)
+    setRoomType('cooperative')
+    setHostName(fallbackHost)
+    setPlayers(
+      fallbackPlayers.map((name, index) => ({
+        id: index + 1,
+        name,
+        isHost: name === fallbackHost,
+        avatar: resolveAvatar(name),
+      }))
+    )
+  }, [existingRooms, roomId, username])
 
   // Update game mode (only host)
   useEffect(() => {
@@ -310,6 +347,41 @@ function CreateRoom({
   const resolveAvatar = (name) => {
     if (name === username && userProfile?.avatar) return userProfile.avatar
     return defaultAvatar
+  }
+
+  const applyRoomState = (room) => {
+    if (!room) return
+    if (roomId && String(room.id) !== String(roomId)) return
+
+    const avatars = room.player_avatars || {}
+    const readyAgainPlayers =
+      room.status !== 'started' && Array.isArray(room.ready_again) && room.ready_again.length
+        ? room.ready_again
+        : null
+    const displayedPlayers = readyAgainPlayers || room.players || []
+    const effectiveHost =
+      displayedPlayers.includes(room.host) ? room.host : (displayedPlayers[0] || '')
+
+    setRoomName(resolvedRoomName(room.name))
+    if (!isEditingName) {
+      setRoomNameDraft(resolvedRoomName(room.name))
+    }
+    setSelectedMode(room.game_mode)
+    setCommittedMode(room.game_mode)
+    setRoomType(
+      ['cooperative', 'cooperative_roles'].includes(room.game_mode)
+        ? 'cooperative'
+        : 'multiplayer'
+    )
+    setHostName(effectiveHost)
+    setPlayers(
+      displayedPlayers.map((name, index) => ({
+        id: index + 1,
+        name,
+        isHost: name === effectiveHost,
+        avatar: avatars[name] || resolveAvatar(name),
+      }))
+    )
   }
 
   const handleEditClick = () => {

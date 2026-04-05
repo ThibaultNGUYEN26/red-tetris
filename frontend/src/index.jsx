@@ -16,55 +16,37 @@ import { socket } from './socket'
 import bopSound from './res/sounds/bop.mp3'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
-const ROOM_TYPE_SUFFIX = {
-  multi: '_multi',
-  coop: '_coop',
-  legacySolo: '_solo',
-}
 const DEFAULT_URL_AVATAR = {
   skinColor: '#cccccc',
   eyeType: 'normal',
   mouthType: 'neutral',
 }
 
-const parseRoomSlug = (slug) => {
-  if (!slug) return { name: null, type: null }
-  if (slug.endsWith(ROOM_TYPE_SUFFIX.multi)) {
-    return {
-      name: slug.slice(0, -ROOM_TYPE_SUFFIX.multi.length),
-      type: 'multi'
-    }
-  }
-  if (slug.endsWith(ROOM_TYPE_SUFFIX.coop)) {
-    return {
-      name: slug.slice(0, -ROOM_TYPE_SUFFIX.coop.length),
-      type: 'coop'
-    }
-  }
-  if (slug.endsWith(ROOM_TYPE_SUFFIX.legacySolo)) {
-    return {
-      name: slug.slice(0, -ROOM_TYPE_SUFFIX.legacySolo.length),
-      type: 'solo'
-    }
-  }
-  return { name: slug, type: 'solo' }
+const parseRoomParams = (roomName, roomType) => {
+  if (!roomName) return { name: null, type: null }
+  if (roomType === 'coop') return { name: roomName, type: 'coop' }
+  if (roomType === 'multi') return { name: roomName, type: 'multi' }
+  return { name: roomName, type: 'solo' }
 }
 
-const buildRoomSlug = (roomName, type) => {
-  if (!roomName) return ''
-  if (type === 'multi') return `${roomName}${ROOM_TYPE_SUFFIX.multi}`
-  if (type === 'coop') return `${roomName}${ROOM_TYPE_SUFFIX.coop}`
-  return roomName
+const buildRoomPath = (roomName, type, username) => {
+  if (!roomName || !username) return '/'
+  if (type === 'coop') return `/${roomName}/coop/${username}`
+  if (type === 'multi') return `/${roomName}/multi/${username}`
+  return `/${roomName}/${username}`
 }
 
 const getMaxPlayers = (gameMode) =>
   ['cooperative', 'cooperative_roles'].includes(gameMode) ? 2 : 6
 
 function Index() {
-  const { roomName: urlRoomName, username: urlUsername } = useParams()
+  const { roomName: urlRoomName, roomType: urlRoomType, username: urlUsername } = useParams()
   const navigate = useNavigate()
   const hasValidUrlUsername = urlUsername ? USERNAME_PATTERN.test(urlUsername) : false
-  const parsedUrlRoom = useMemo(() => parseRoomSlug(urlRoomName), [urlRoomName])
+  const parsedUrlRoom = useMemo(
+    () => parseRoomParams(urlRoomName, urlRoomType),
+    [urlRoomName, urlRoomType]
+  )
 
   const [username, setUsername] = useState(
     hasValidUrlUsername ? urlUsername : null
@@ -75,7 +57,6 @@ function Index() {
   const [showSoloRoom, setShowSoloRoom] = useState(false)
   const [showDirectRoom, setShowDirectRoom] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
-  const [joinedRoomName, setJoinedRoomName] = useState(null)
   const [soloRoomName, setSoloRoomName] = useState(
     parsedUrlRoom.type === 'solo' && hasValidUrlUsername ? parsedUrlRoom.name : null
   )
@@ -109,6 +90,12 @@ function Index() {
 
     if (urlUsername && !username) setUsername(urlUsername)
 
+    // Rooms opened from the regular multiplayer lobby also update the URL,
+    // but they should stay in the lobby flow instead of switching to direct-room mode.
+    if (showRooms) {
+      return
+    }
+
     if (urlRoomName) {
       if (parsedUrlRoom.type === 'solo') {
         if (!soloRoomName) setSoloRoomName(parsedUrlRoom.name)
@@ -123,7 +110,7 @@ function Index() {
         setShowRooms(false)
       }
     }
-  }, [urlUsername, urlRoomName, username, soloRoomName, parsedUrlRoom, navigate])
+  }, [urlUsername, urlRoomName, username, soloRoomName, parsedUrlRoom, navigate, showRooms])
 
   useEffect(() => {
     if (!username) return
@@ -270,7 +257,6 @@ function Index() {
     setShowSoloRoom(false)
     setShowDirectRoom(false)
     setUserProfile(null)
-    setJoinedRoomName(null)
     setSoloRoomName(null)
     setDirectRoomName(null)
     setDirectRoomType(null)
@@ -282,13 +268,29 @@ function Index() {
 
   const handleExitJoinedRoom = () => {
     setShowRooms(false)
-    setJoinedRoomName(null)
+    setShowDirectRoom(false)
+    setDirectRoomName(null)
+    setDirectRoomType(null)
+    setDirectRoomId(null)
+    setShowSoloRoom(false)
+    setSoloRoomName(null)
+    setSoloRoomId(null)
+    setShowGame(false)
+    setActiveGameType(null)
     navigate('/', { replace: true })
   }
 
   const handleReturnToRoomsList = () => {
-    setJoinedRoomName(null)
     setShowRooms(true)
+    setShowDirectRoom(false)
+    setDirectRoomName(null)
+    setDirectRoomType(null)
+    setDirectRoomId(null)
+    setShowSoloRoom(false)
+    setSoloRoomName(null)
+    setSoloRoomId(null)
+    setShowGame(false)
+    setActiveGameType(null)
     navigate('/', { replace: true })
   }
 
@@ -297,7 +299,6 @@ function Index() {
     setShowGame(false)
     setShowSoloRoom(false)
     setShowDirectRoom(false)
-    setJoinedRoomName(null)
     setSoloRoomName(null)
     setDirectRoomName(null)
     setDirectRoomType(null)
@@ -315,7 +316,6 @@ function Index() {
     setShowGame(false)
     setShowSoloRoom(false)
     setShowDirectRoom(false)
-    setJoinedRoomName(null)
     setSoloRoomName(null)
     setDirectRoomName(null)
     setDirectRoomType(null)
@@ -329,12 +329,8 @@ function Index() {
   /* ---------------- UPDATE URL WHEN ROOM IS CREATED ---------------- */
 
   const handleRoomCreated = (roomId, roomName, roomType) => {
-    setJoinedRoomName(roomName)
-
-    // Update URL without reload
     const typeSlug = roomType === 'cooperative' || roomType === 'coop' ? 'coop' : 'multi'
-    const slug = buildRoomSlug(roomName, typeSlug)
-    navigate(`/${slug}/${username}`, { replace: true })
+    navigate(buildRoomPath(roomName, typeSlug, username), { replace: true })
   }
 
   const handleExitSolo = async () => {
@@ -343,7 +339,7 @@ function Index() {
         await new Promise((resolve) => {
           socket.emit(
             "playerLeave",
-            { roomId: String(soloRoomId) },
+            { roomId: String(soloRoomId), username },
             () => resolve()
           );
         });
@@ -375,7 +371,7 @@ function Index() {
         await new Promise((resolve) => {
           socket.emit(
             "playerLeave",
-            { roomId: String(soloRoomId) },
+            { roomId: String(soloRoomId), username },
             () => resolve()
           );
         });
@@ -398,7 +394,7 @@ function Index() {
         await new Promise((resolve) => {
           socket.emit(
             "playerLeave",
-            { roomId: String(directRoomId) },
+            { roomId: String(directRoomId), username },
             () => resolve()
           );
         });
@@ -420,7 +416,7 @@ function Index() {
         await new Promise((resolve) => {
           socket.emit(
             "playerLeave",
-            { roomId: String(directRoomId) },
+            { roomId: String(directRoomId), username },
             () => resolve()
           );
         });
@@ -596,7 +592,7 @@ function Index() {
     if (!username) return
 
     if (showSoloRoom && soloRoomName) {
-      const targetPath = `/${buildRoomSlug(soloRoomName, 'solo')}/${username}`
+      const targetPath = buildRoomPath(soloRoomName, 'solo', username)
       if (window.location.pathname !== targetPath) {
         navigate(targetPath, { replace: true })
       }
@@ -604,7 +600,7 @@ function Index() {
     }
 
     if (showDirectRoom && directRoomName) {
-      const targetPath = `/${buildRoomSlug(directRoomName, directRoomType || 'multi')}/${username}`
+      const targetPath = buildRoomPath(directRoomName, directRoomType || 'multi', username)
       if (window.location.pathname !== targetPath) {
         navigate(targetPath, { replace: true })
       }
@@ -675,12 +671,11 @@ function Index() {
             {routeNotice}
           </div>
         )}
-        {(joinedRoomName || showRooms) && username ? (
+        {showRooms && username ? (
           <Rooms
             theme={theme}
             username={username}
             userProfile={userProfile}
-            joinRoomName={joinedRoomName}
             onBack={handleExitJoinedRoom}
             onLeaveRoom={handleReturnToRoomsList}
             onRoomCreated={handleRoomCreated}
@@ -733,14 +728,12 @@ function Index() {
                       }}
                       onRoomRenamed={(roomName) => {
                         setSoloRoomName(roomName)
-                        const slug = buildRoomSlug(roomName, 'solo')
-                        navigate(`/${slug}/${username}`, { replace: true })
+                        navigate(buildRoomPath(roomName, 'solo', username), { replace: true })
                       }}
                       onRoomCreated={(roomId, roomName) => {
                         setSoloRoomId(roomId)
                         setSoloRoomName(roomName)
-                        const slug = buildRoomSlug(roomName, 'solo')
-                        navigate(`/${slug}/${username}`, { replace: true })
+                        navigate(buildRoomPath(roomName, 'solo', username), { replace: true })
                       }}
                       onStartGame={(roomId) => {
                         if (roomId) setSoloRoomId(roomId)
@@ -769,14 +762,12 @@ function Index() {
                       }}
                       onRoomRenamed={(roomName) => {
                         setDirectRoomName(roomName)
-                        const slug = buildRoomSlug(roomName, directRoomType)
-                        navigate(`/${slug}/${username}`, { replace: true })
+                        navigate(buildRoomPath(roomName, directRoomType, username), { replace: true })
                       }}
                       onRoomCreated={(roomId, roomName) => {
                         setDirectRoomId(roomId)
                         setDirectRoomName(roomName)
-                        const slug = buildRoomSlug(roomName, directRoomType)
-                        navigate(`/${slug}/${username}`, { replace: true })
+                        navigate(buildRoomPath(roomName, directRoomType, username), { replace: true })
                       }}
                       onStartGame={(roomId) => {
                         if (roomId) setDirectRoomId(roomId)

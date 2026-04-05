@@ -7,7 +7,10 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/:roomName/:roomType/:username" element={<Index />} />
         <Route path="/:roomName/:username" element={<Index />} />
+        <Route path="/:roomName/:roomType/spectate/:username" element={<Spectate />} />
+        <Route path="/:roomName/:roomType/spectate" element={<Spectate />} />
         <Route path="/:roomName/spectate/:username" element={<Spectate />} />
         <Route path="/:roomName/spectate" element={<Spectate />} />
         <Route path="*" element={<Navigate to="/" replace />} />
