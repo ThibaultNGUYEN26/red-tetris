@@ -341,6 +341,68 @@ describe('CreateRoom Component', () => {
       })
     })
 
+    it('should not let availableRooms overwrite multiplayer room host state', async () => {
+      render(
+        <CreateRoom
+          {...defaultProps}
+          mode="join"
+          roomId={1}
+          roomType="multiplayer"
+          username="Titi"
+          userProfile={{
+            avatar: {
+              skinColor: '#7777ff',
+              eyeType: 'happy',
+              mouthType: 'smile'
+            }
+          }}
+        />
+      )
+
+      const roomStateHandler = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+      const availableRoomsHandler = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      await act(async () => {
+        roomStateHandler?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'Riri',
+          player_count: 2,
+          players: ['Titi', 'Riri'],
+          player_avatars: {}
+        })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Titi')).toBeInTheDocument()
+        expect(screen.getByText('Riri')).toBeInTheDocument()
+      })
+
+      await act(async () => {
+        availableRoomsHandler?.([{
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 2,
+          players: ['Titi', 'Riri']
+        }])
+      })
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith('getRoomState', { roomId: '1' })
+      })
+
+      const startButton = screen.getByRole('button', { name: /start game/i })
+      expect(startButton).toBeDisabled()
+      expect(screen.queryByRole('button', { name: /✏️/i })).not.toBeInTheDocument()
+    })
+
     it('should display ready_again players when returning to the lobby after a game', async () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={1} />)
 

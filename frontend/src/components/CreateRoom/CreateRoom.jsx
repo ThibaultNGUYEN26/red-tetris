@@ -245,7 +245,12 @@ function CreateRoom({
         ? rooms.find((room) => String(room.id) === String(roomId))
         : null
 
-      if (currentRoom) {
+      const shouldUseAvailableRoomsAsFallback =
+        currentRoom &&
+        ['cooperative', 'cooperative_roles'].includes(currentRoom.game_mode) &&
+        currentRoom.player_count === 1
+
+      if (shouldUseAvailableRoomsAsFallback) {
         applyRoomState(currentRoom)
         return
       }

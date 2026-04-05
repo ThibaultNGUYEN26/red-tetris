@@ -9,7 +9,7 @@
 [X] Coop, game over when someone leave
 [X] Solo URL
 [X] Multi URL
-[] Create coop room, join room, host leave
+[X] Create coop room, join room, host leave
 [] db-password in env
 
 [TODO]
