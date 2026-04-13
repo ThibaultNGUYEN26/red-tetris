@@ -1,4 +1,8 @@
 {
+  "private": true,
+  "scripts": {
+    "coverage": "node scripts/run-coverage.cjs"
+  },
   "dependencies": {
     "react-router-dom": "^7.12.0",
     "socket.io-client": "^4.8.3"

@@ -11,8 +11,7 @@ import roomRoutes from "./routes/rooms.routes.js";
 import setupSockets from "./socket/index.js";
 import { pool } from "./config/db.js";
 
-const HOST = process.env.DB_HOST;
-const FRONTEND_ORIGIN = `http://${HOST}:5173`;
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
 const DEV_ORIGINS = [
   FRONTEND_ORIGIN,
   "http://localhost:5173",
@@ -22,6 +21,7 @@ const DEV_ORIGINS = [
 // App and HTTP Server
 const app = express();
 const httpServer = createServer(app);
+app.set("etag", false);
 
 app.use(
   cors({
@@ -32,6 +32,13 @@ app.use(
 );
 
 app.use(express.json());
+
+app.use("/api", (req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

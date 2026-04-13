@@ -317,19 +317,23 @@ export default function setupSockets(io) {
           return socket.emit("error", { message: "Game already started" });
         }
 
+        const currentPlayers = Array.isArray(room.players) ? room.players : [];
+        const normalizedPlayerCount = currentPlayers.length;
         const maxPlayers = getMaxPlayers(room.game_mode);
-        if (room.player_count >= maxPlayers) {
+        const isAlreadyInRoom = currentPlayers.includes(username);
+
+        if (!isAlreadyInRoom && normalizedPlayerCount >= maxPlayers) {
           if (ack) ack({ ok: false, error: "Room is full" });
           return socket.emit("error", { message: "Room is full" });
         }
 
         // Add new player if not already in list
-        let updatedPlayers = room.players;
+        let updatedPlayers = currentPlayers;
         let updatedReadyAgain = room.ready_again || [];
         let hasChanges = false;
 
-        if (!room.players.includes(username)) {
-          updatedPlayers = [...room.players, username];
+        if (!isAlreadyInRoom) {
+          updatedPlayers = [...currentPlayers, username];
           hasChanges = true;
         }
 
@@ -463,7 +467,7 @@ export default function setupSockets(io) {
     });
 
     const removePlayerFromRoom = async (roomId, username) => {
-      if (!roomId || !username) return;
+      if (!roomId || !username) return null;
 
       try {
         const id = Number(roomId);
@@ -475,10 +479,10 @@ export default function setupSockets(io) {
           [id]
         );
 
-        if (!roomResult.rowCount) return;
+        if (!roomResult.rowCount) return null;
 
         const room = roomResult.rows[0];
-        if (!room.players.includes(username)) return;
+        if (!room.players.includes(username)) return await attachPlayerAvatars(room);
 
         const updatedPlayers = room.players.filter((p) => p !== username);
 
@@ -489,7 +493,7 @@ export default function setupSockets(io) {
         if (updatedPlayers.length === 0 && readyAgain.length === 0) {
           await pool.query(`DELETE FROM rooms WHERE id = $1`, [id]);
           await broadcastAvailableRooms(io);
-          return;
+          return null;
         }
 
         let newHost = room.host;
@@ -513,9 +517,11 @@ export default function setupSockets(io) {
 
         io.to(String(roomId)).emit("roomState", roomWithAvatars);
         await broadcastAvailableRooms(io);
+        return roomWithAvatars;
 
       } catch (err) {
         console.error("removePlayerFromRoom failed:", err);
+        return null;
       }
     };
 
@@ -549,20 +555,11 @@ export default function setupSockets(io) {
 
       // Leave socket room
       socket.leave(String(roomId));
+      socket.data.roomId = null;
+      socket.data.isSpectator = false;
 
       // Optionally update DB but avoid constraints for host mid-game
       await removePlayerFromRoom(roomId, effectiveUsername);
-
-      // Broadcast updated room state (including new host if changed)
-      const roomResult = await pool.query(
-        "SELECT id, name, players, host, game_mode, status FROM rooms WHERE id=$1",
-        [roomId]
-      );
-      if (roomResult.rowCount) {
-        const roomWithAvatars = await attachPlayerAvatars(roomResult.rows[0]);
-        io.to(String(roomId)).emit("roomState", roomWithAvatars);
-      }
-      await broadcastAvailableRooms(io);
       if (ack) ack({ ok: true });
     });
 
@@ -743,11 +740,13 @@ export default function setupSockets(io) {
 
     // Socket disconnection
     socket.on("disconnect", async () => {
-      unregisterUsername(socket.data.username, socket);
+      const username = socket.data.username;
+      const roomId = socket.data.roomId;
+
+      unregisterUsername(username, socket);
 
       if (!socket.data.isSpectator) {
-        const roomId = socket.data.roomId;
-        const username = socket.data.username;
+        let roomUpdated = false;
 
         if (roomId && username) {
           const game = getGame(String(roomId));
@@ -765,9 +764,14 @@ export default function setupSockets(io) {
               }
             }
           }
+
+          await removePlayerFromRoom(roomId, username);
+          roomUpdated = true;
         }
 
-        await broadcastAvailableRooms(io);
+        if (!roomUpdated) {
+          await broadcastAvailableRooms(io);
+        }
       }
 
       console.log(`Socket disconnected: ${socket.id}`);

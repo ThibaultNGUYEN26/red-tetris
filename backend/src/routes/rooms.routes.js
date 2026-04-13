@@ -59,7 +59,7 @@ function generateRoomName() {
 // Create a new room
 router.post("/", async (req, res) => {
   try {
-    const { gameMode, host } = req.body;
+    const { gameMode, host, name: requestedName } = req.body;
 
     if (!gameMode || !host) {
       console.log("Missing data:", { gameMode, host });
@@ -93,6 +93,34 @@ router.post("/", async (req, res) => {
 
     let room;
     let attempts = 0;
+
+    if (requestedName) {
+      const trimmedName = String(requestedName).trim();
+      const isValidName = /^[a-zA-Z0-9-]{1,15}$/.test(trimmedName);
+      if (!isValidName) {
+        return res.status(400).json({ error: "Invalid room name" });
+      }
+
+      const existing = await pool.query(
+        `SELECT id
+         FROM rooms
+         WHERE name COLLATE "C" = $1 COLLATE "C"`,
+        [trimmedName]
+      );
+      if (existing.rowCount > 0) {
+        return res.status(409).json({ error: "Room name already exists" });
+      }
+
+      const query = `
+        INSERT INTO rooms (name, game_mode, host, player_count, players)
+        VALUES ($1, $2, $3, 1, $4)
+        RETURNING *;
+      `;
+
+      const values = [trimmedName, gameMode, host, [host]];
+      const result = await pool.query(query, values);
+      room = result.rows[0];
+    }
 
     while (!room && attempts < 5) {
       const name = generateRoomName();
@@ -139,7 +167,7 @@ router.get("/by-name/:name", async (req, res) => {
     const result = await pool.query(
       `SELECT id, name, game_mode, host, player_count, players, status
        FROM rooms
-       WHERE name = $1`,
+       WHERE name COLLATE "C" = $1 COLLATE "C"`,
       [name]
     );
 
@@ -164,6 +192,12 @@ router.patch("/:roomId/name", async (req, res) => {
     return res.status(400).json({ error: "Missing new room name" });
   }
 
+  const trimmedName = String(name).trim();
+  const isValidName = /^[a-zA-Z0-9-]{1,15}$/.test(trimmedName);
+  if (!isValidName) {
+    return res.status(400).json({ error: "Invalid room name" });
+  }
+
   try {
     const roomResult = await pool.query(
       `SELECT host FROM rooms WHERE id = $1`,
@@ -182,6 +216,19 @@ router.patch("/:roomId/name", async (req, res) => {
       });
     }
 
+    const duplicateResult = await pool.query(
+      `SELECT id
+       FROM rooms
+       WHERE id <> $1
+         AND name COLLATE "C" = $2 COLLATE "C"
+       LIMIT 1`,
+      [roomId, trimmedName]
+    );
+
+    if (duplicateResult.rowCount > 0) {
+      return res.status(409).json({ error: "Room already used" });
+    }
+
     const updateResult = await pool.query(
       `
       UPDATE rooms
@@ -189,7 +236,7 @@ router.patch("/:roomId/name", async (req, res) => {
       WHERE id = $2
       RETURNING *;
       `,
-      [name, roomId]
+      [trimmedName, roomId]
     );
 
     const updatedRoom = updateResult.rows[0];

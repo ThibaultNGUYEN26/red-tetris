@@ -222,6 +222,55 @@ describe('socket setup', () => {
     expect(ack).toHaveBeenCalledWith({ ok: true })
   })
 
+  it('joinRoom allows a player in when player_count is stale but players still have room', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'cooperative',
+          host: 'Riri',
+          player_count: 2,
+          players: ['Riri'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+        ],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 1, name: 'Room', game_mode: 'cooperative', host: 'Riri', player_count: 2, players: ['Riri', 'Titi'] }],
+      })
+
+    const { io, socket } = await setupConnectedSocket()
+
+    const joinRoomHandler = socket.handlers.get('joinRoom')
+    const ack = vi.fn()
+
+    await joinRoomHandler({ roomId: '1', username: 'Titi' }, ack)
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      "UPDATE rooms SET players = $2, player_count = $3, ready_again = $4 WHERE id = $1",
+      ['1', ['Riri', 'Titi'], 2, []]
+    )
+    expect(io.roomEmit).toHaveBeenCalledWith(
+      'roomState',
+      expect.objectContaining({
+        host: 'Riri',
+        players: ['Riri', 'Titi'],
+        player_count: 2,
+      })
+    )
+    expect(ack).toHaveBeenCalledWith({ ok: true })
+    expect(socket.emit).not.toHaveBeenCalledWith('error', { message: 'Room is full' })
+  })
+
   it('getRoomState emits roomState for a waiting room', async () => {
     mockQuery
       .mockResolvedValueOnce({
@@ -629,6 +678,7 @@ describe('socket setup', () => {
       'roomState',
       expect.objectContaining({
         host: 'Riri',
+        players: ['Riri'],
       })
     )
     expect(ack).toHaveBeenCalledWith({ ok: true })
@@ -848,7 +898,7 @@ describe('socket setup', () => {
     expect(mockRemoveGame).toHaveBeenCalledWith('1')
   })
 
-  it('disconnect kills the live player, ends the game when needed, and refreshes rooms', async () => {
+  it('disconnect removes the disconnected host from the room, promotes the next host, and ends the game when needed', async () => {
     const die = vi.fn()
     const onGameOver = vi.fn()
     mockGetGame.mockReturnValue({
@@ -857,11 +907,41 @@ describe('socket setup', () => {
       endGame: vi.fn(() => ({ roomId: '1', winner: 'Riri' })),
       onGameOver,
     })
-    mockQuery.mockResolvedValueOnce({
-      rows: [{ id: 2, name: 'Open', game_mode: 'classic', host: 'Riri', player_count: 1, players: ['Riri'] }],
-    })
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 2,
+          players: ['Titi', 'Riri'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Riri',
+          player_count: 1,
+          players: ['Riri'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Riri', avatar: { eyeType: 'sad' } }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 2, name: 'Open', game_mode: 'classic', host: 'Riri', player_count: 1, players: ['Riri'] }],
+      })
 
-    const { socket } = await setupConnectedSocket()
+    const { io, socket } = await setupConnectedSocket()
     socket.data.username = 'Titi'
     socket.data.roomId = '1'
 
@@ -871,6 +951,14 @@ describe('socket setup', () => {
 
     expect(die).toHaveBeenCalled()
     expect(onGameOver).toHaveBeenCalledWith({ roomId: '1', winner: 'Riri' })
+    expect(io.roomEmit).toHaveBeenCalledWith(
+      'roomState',
+      expect.objectContaining({
+        host: 'Riri',
+        players: ['Riri'],
+        player_avatars: { Riri: { eyeType: 'sad' } },
+      })
+    )
   })
 
   it('disconnect skips room refresh for spectators', async () => {

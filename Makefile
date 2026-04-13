@@ -11,10 +11,14 @@ create-db:
 	docker compose --env-file .env up -d
 
 db:
-	docker exec -it red_tetris_postgres psql -h localhost -U ${DB_USER} -d ${DB_NAME}
+	docker exec -it red_tetris_postgres \
+		env PGPASSWORD=$(DB_PASSWORD) \
+		psql -h localhost -U $(DB_USER) -d $(DB_NAME)
 
 update-db:
-	docker exec -it red_tetris_postgres pg_dump -U ${DB_USER} ${DB_NAME} > backup.sql
+	docker exec -i red_tetris_postgres \
+		env PGPASSWORD=$(DB_PASSWORD) \
+		pg_dump -U $(DB_USER) $(DB_NAME) > backup.sql
 
 delete-db:
 	rm -rf backup.sql
@@ -64,12 +68,12 @@ install: setup
 	npm install --prefix backend
 
 test-frontend:
-	cd frontend && npm run test:coverage
+	npm run test:run --prefix frontend
 
 test-backend:
-	cd backend && npm run test:coverage
+	npm run test --prefix backend
 
-test: test-frontend test-backend
-	@node -e "const fs=require('fs'); const paths=[['Frontend','frontend/coverage/coverage-summary.json'],['Backend','backend/coverage/coverage-summary.json']]; console.log('\nCoverage Summary'); for (const [name,path] of paths) { const total=JSON.parse(fs.readFileSync(path,'utf8')).total; console.log(name+':'); console.log('  Statements '+total.statements.pct+'%'); console.log('  Branches   '+total.branches.pct+'%'); console.log('  Functions  '+total.functions.pct+'%'); console.log('  Lines      '+total.lines.pct+'%'); }"
+test:
+	npm run coverage
 
 .PHONY: frontend backend db setup-frontend install test-frontend test-backend test-backend-coverage test

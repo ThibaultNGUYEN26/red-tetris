@@ -88,7 +88,7 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} />)
 
       await waitFor(() => {
-        expect(mockOnRoomCreated).toHaveBeenCalledWith(1, 'Room 1')
+        expect(mockOnRoomCreated).toHaveBeenCalledWith(1, 'Room 1', 'multiplayer')
       })
     })
 
@@ -121,7 +121,18 @@ describe('CreateRoom Component', () => {
 
   describe('Game Mode Selection', () => {
     it('shows the co-op alternate mode in the selector', async () => {
-      render(<CreateRoom {...defaultProps} />)
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'cooperative',
+          host: 'TestUser',
+          players: ['TestUser']
+        })
+      })
+
+      render(<CreateRoom {...defaultProps} roomType="cooperative" />)
 
       await waitFor(() => {
         expect(screen.getByRole('combobox')).toBeInTheDocument()
@@ -131,7 +142,18 @@ describe('CreateRoom Component', () => {
     })
 
     it('shows the co-op roles mode in the selector', async () => {
-      render(<CreateRoom {...defaultProps} />)
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'cooperative',
+          host: 'TestUser',
+          players: ['TestUser']
+        })
+      })
+
+      render(<CreateRoom {...defaultProps} roomType="cooperative" />)
 
       await waitFor(() => {
         expect(screen.getByRole('combobox')).toBeInTheDocument()
@@ -260,6 +282,127 @@ describe('CreateRoom Component', () => {
       })
     })
 
+    it('should update the current room from availableRooms when the host leaves', async () => {
+      render(
+        <CreateRoom
+          {...defaultProps}
+          mode="join"
+          roomId={1}
+          roomType="cooperative"
+          username="Riri"
+          userProfile={{
+            avatar: {
+              skinColor: '#00ff00',
+              eyeType: 'happy',
+              mouthType: 'smile'
+            }
+          }}
+        />
+      )
+
+      const roomStateHandler = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+      const availableRoomsHandler = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      await act(async () => {
+        roomStateHandler?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'cooperative',
+          host: 'Titi',
+          players: ['Titi', 'Riri'],
+          player_avatars: {}
+        })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Titi')).toBeInTheDocument()
+        expect(screen.getByText('Riri')).toBeInTheDocument()
+      })
+
+      await act(async () => {
+        availableRoomsHandler?.([{
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'cooperative',
+          host: 'Riri',
+          player_count: 1,
+          players: ['Riri']
+        }])
+      })
+
+      await waitFor(() => {
+        expect(screen.queryByText('Titi')).not.toBeInTheDocument()
+        expect(screen.getByText('Riri')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
+      })
+    })
+
+    it('should not let availableRooms overwrite multiplayer room host state', async () => {
+      render(
+        <CreateRoom
+          {...defaultProps}
+          mode="join"
+          roomId={1}
+          roomType="multiplayer"
+          username="Titi"
+          userProfile={{
+            avatar: {
+              skinColor: '#7777ff',
+              eyeType: 'happy',
+              mouthType: 'smile'
+            }
+          }}
+        />
+      )
+
+      const roomStateHandler = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+      const availableRoomsHandler = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      await act(async () => {
+        roomStateHandler?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'Riri',
+          player_count: 2,
+          players: ['Titi', 'Riri'],
+          player_avatars: {}
+        })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Titi')).toBeInTheDocument()
+        expect(screen.getByText('Riri')).toBeInTheDocument()
+      })
+
+      await act(async () => {
+        availableRoomsHandler?.([{
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 2,
+          players: ['Titi', 'Riri']
+        }])
+      })
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith('getRoomState', { roomId: '1' })
+      })
+
+      const startButton = screen.getByRole('button', { name: /start game/i })
+      expect(startButton).toBeDisabled()
+      expect(screen.queryByRole('button', { name: /✏️/i })).not.toBeInTheDocument()
+    })
+
     it('should display ready_again players when returning to the lobby after a game', async () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={1} />)
 
@@ -314,7 +457,8 @@ describe('CreateRoom Component', () => {
       return waitFor(() => {
         expect(socket.emit).toHaveBeenCalledWith(
           'joinRoom',
-          expect.objectContaining({ roomId: '42', username: 'TestUser' })
+          expect.objectContaining({ roomId: '42', username: 'TestUser' }),
+          expect.any(Function)
         )
       })
     })

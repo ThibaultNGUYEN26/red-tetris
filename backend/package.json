@@ -4,9 +4,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "test": "cd ../frontend && ./node_modules/.bin/vitest run --config ../backend/vitest.config.js",
-    "test:watch": "cd ../frontend && ./node_modules/.bin/vitest --config ../backend/vitest.config.js",
-    "test:coverage": "cd ../frontend && ./node_modules/.bin/vitest run --coverage --reporter=default --config ../backend/vitest.config.js"
+    "test": "npm --prefix ../frontend exec vitest run -- --config ../backend/vitest.config.js",
+    "test:watch": "npm --prefix ../frontend exec vitest -- --config ../backend/vitest.config.js",
+    "test:coverage": "npm --prefix ../frontend exec vitest run -- --coverage --reporter=default --config ../backend/vitest.config.js"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +19,9 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "@vitest/coverage-v8": "4.0.17",
+    "nodemon": "^3.1.11",
+    "vitest": "4.0.17"
   },
   "type": "module"
 }
