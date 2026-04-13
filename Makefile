@@ -12,7 +12,6 @@ create-db:
 
 db:
 	docker exec -it red_tetris_postgres \
-		env PGPASSWORD=$(DB_PASSWORD) \
 		psql -h localhost -U $(DB_USER) -d $(DB_NAME)
 
 update-db:
