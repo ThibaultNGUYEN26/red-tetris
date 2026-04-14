@@ -121,7 +121,7 @@ function Index() {
     const ensureUrlUserProfile = async () => {
       try {
         const statsResponse = await fetch(
-          `${API_URL}/api/player/stats?username=${encodeURIComponent(username)}`
+          `/api/player/stats?username=${encodeURIComponent(username)}`
         )
 
         if (cancelled) return
@@ -140,7 +140,7 @@ function Index() {
           return
         }
 
-        const profileResponse = await fetch(`${API_URL}/api/profile`, {
+        const profileResponse = await fetch(`/api/profile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -439,7 +439,7 @@ function Index() {
 
     const fetchSoloRoom = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/rooms/by-name/${encodeURIComponent(soloRoomName)}`, {
+        const res = await fetch(`/api/rooms/by-name/${encodeURIComponent(soloRoomName)}`, {
           cache: 'no-store',
         })
         if (res.status === 404) return
@@ -475,12 +475,12 @@ function Index() {
 
     const resolveDirectRoom = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/rooms/by-name/${encodeURIComponent(directRoomName)}`, {
+        const res = await fetch(`/api/rooms/by-name/${encodeURIComponent(directRoomName)}`, {
           cache: 'no-store',
         })
         if (res.status === 404) {
           const defaultMode = directRoomType === 'coop' ? 'cooperative' : 'classic'
-          const createRes = await fetch(`${API_URL}/api/rooms`, {
+          const createRes = await fetch(`/api/rooms`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -517,7 +517,7 @@ function Index() {
 
         if (room.name !== directRoomName) {
           const defaultMode = directRoomType === 'coop' ? 'cooperative' : 'classic'
-          const createRes = await fetch(`${API_URL}/api/rooms`, {
+          const createRes = await fetch(`/api/rooms`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

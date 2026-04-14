@@ -131,7 +131,7 @@ function CreateRoom({
     const createRoom = async () => {
       try {
         console.log('[CreateRoom] Creating room', { username, gameMode: selectedMode })
-        const response = await fetch(`${API_URL}/api/rooms`, {
+        const response = await fetch(`/api/rooms`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -303,7 +303,7 @@ function CreateRoom({
 
     const timeoutId = setTimeout(async () => {
       try {
-        const response = await fetch(`${API_URL}/api/rooms/${roomId}/mode`, {
+        const response = await fetch(`/api/rooms/${roomId}/mode`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -410,7 +410,7 @@ function CreateRoom({
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/rooms/${roomId}/name`, {
+      const response = await fetch(`/api/rooms/${roomId}/name`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -25,7 +25,7 @@ function Spectate() {
 
     const fetchRoom = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/rooms/by-name/${encodeURIComponent(roomName)}`)
+        const res = await fetch(`/api/rooms/by-name/${encodeURIComponent(roomName)}`)
         if (!res.ok) throw new Error('Room not found')
         const room = await res.json()
         setRoomId(room.id)
