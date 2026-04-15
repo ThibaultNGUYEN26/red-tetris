@@ -12,6 +12,12 @@ build:
 	docker compose build --no-cache backend
 	docker compose up -d
 
+logs-backend:
+	docker compose logs -f backend
+
+logs-frontend:
+	docker compose logs -f frontend
+
 create-db:
 	docker compose --env-file .env up -d
 
@@ -83,4 +89,4 @@ test-backend:
 test:
 	npm run coverage
 
-.PHONY: frontend backend create-db build db update-db delete-db wait-db init-db down prune setup install test-frontend test-backend test-backend-coverage test
+.PHONY: frontend backend build logs logs-all create-db db update-db delete-db wait-db init-db down prune setup install test-frontend test-backend test-backend-coverage test

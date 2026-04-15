@@ -3,6 +3,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const rootDir = path.resolve(__dirname, '..')
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 
 function runCommand(command, args, cwd) {
   const isWindows = process.platform === 'win32'
@@ -45,8 +46,8 @@ function printSummary(label, summary) {
   console.log(`Lines ${formatPercent(summary.lines)}`)
 }
 
-runCommand('npm.cmd', ['--prefix', 'backend', 'run', 'test:coverage'], rootDir)
-runCommand('npm.cmd', ['--prefix', 'frontend', 'run', 'test:coverage'], rootDir)
+runCommand(npmCommand, ['--prefix', 'backend', 'run', 'test:coverage'], rootDir)
+runCommand(npmCommand, ['--prefix', 'frontend', 'run', 'test:coverage'], rootDir)
 
 const backendSummary = readSummary(
   path.join(rootDir, 'backend', 'coverage', 'coverage-summary.json')
