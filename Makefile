@@ -30,7 +30,7 @@ wait-db:
 	@echo "Postgres is ready !"
 
 db:
-	docker compose exec -T postgres \
+	docker compose exec postgres \
 		psql -h localhost -U $(DB_USER) -d $(DB_NAME)
 
 update-db:
@@ -89,4 +89,4 @@ test-backend:
 test:
 	npm run coverage
 
-.PHONY: frontend backend build logs logs-all create-db db update-db delete-db wait-db init-db down prune setup install test-frontend test-backend test-backend-coverage test
+.PHONY: frontend backend build create-db db update-db delete-db wait-db init-db down prune setup install test-frontend test-backend test
