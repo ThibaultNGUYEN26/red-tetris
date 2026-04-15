@@ -1,3 +1,4 @@
+import os from 'node:os'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
@@ -88,11 +89,15 @@ vi.mock('../src/config/db.js', () => ({
 vi.mock('../src/config/env.js', () => ({}))
 
 describe('server bootstrap', () => {
+  const hostnameShort = (process.env.HOSTNAME || os.hostname()).replace(/\..*/, '')
+  const frontendUrl = process.env.FRONTEND_URL || `http://${hostnameShort}:8080`
+  const port = process.env.PORT || '3000'
+
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()
-    vi.stubEnv('FRONTEND_ORIGIN', 'http://c1r3p8:5173')
-    vi.stubEnv('BACKEND_HOST', '0.0.0.0')
+    vi.stubEnv('FRONTEND_URL', frontendUrl)
+    vi.stubEnv('PORT', port)
   })
 
   it('wires middleware, routes, sockets, and starts listening', async () => {
@@ -100,11 +105,9 @@ describe('server bootstrap', () => {
 
     expect(corsMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        origin: expect.arrayContaining([
-          'http://c1r3p8:5173',
-          'http://localhost:5173',
-          'http://127.0.0.1:5173',
-        ]),
+        origin: frontendUrl,
+        methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+        credentials: true,
       })
     )
     expect(appUse).toHaveBeenCalledWith('cors-middleware')
@@ -118,7 +121,7 @@ describe('server bootstrap', () => {
     expect(appSet).toHaveBeenCalledWith('io', ioInstance)
     expect(setupSocketsMock).toHaveBeenCalledWith(ioInstance)
 
-    expect(listenMock).toHaveBeenCalledWith(3000, '0.0.0.0', expect.any(Function))
+    expect(listenMock).toHaveBeenCalledWith(port, '0.0.0.0', expect.any(Function))
     expect(poolQueryMock).toHaveBeenCalledWith('SELECT 1')
   })
 })
