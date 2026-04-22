@@ -80,6 +80,27 @@ function Index() {
 
   const API_URL = import.meta.env.VITE_API_URL || ''
 
+  const isUsernameAlreadyConnected = async (name) => {
+    if (!name) return false
+
+    const response = await fetch(`/api/player/connection?username=${encodeURIComponent(name)}`, {
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to resolve connection status')
+    }
+
+    const payload = await response.json()
+    return Boolean(payload?.connected)
+  }
+
+  const getRoomNoticeMessage = (error) => {
+    if (!error) return 'Room already used'
+    if (error === 'User is already in a room') return 'User already connected'
+    return error
+  }
+
   /* ---------------- SYNC URL PARAMS ---------------- */
 
   useEffect(() => {
@@ -439,12 +460,18 @@ function Index() {
 
     const fetchSoloRoom = async () => {
       try {
+        if (await isUsernameAlreadyConnected(username)) {
+          returnToProfileWithNotice('User already connected')
+          return
+        }
+
         const res = await fetch(`/api/rooms/by-name/${encodeURIComponent(soloRoomName)}`, {
           cache: 'no-store',
         })
         if (res.status === 404) return
         if (!res.ok) {
-          returnHomeWithNotice('Room already used')
+          const errorPayload = await res.json().catch(() => ({}))
+          returnHomeWithNotice(getRoomNoticeMessage(errorPayload?.error))
           return
         }
         const room = await res.json()
@@ -474,6 +501,44 @@ function Index() {
     if (!showDirectRoom || !directRoomName || directRoomId) return
 
     const resolveDirectRoom = async () => {
+      const isSameDirectRoom = (room) =>
+        room &&
+        room.name === directRoomName &&
+        ((directRoomType === 'coop' &&
+          ['cooperative', 'cooperative_roles'].includes(room.game_mode)) ||
+          (directRoomType !== 'coop' &&
+            !['cooperative', 'cooperative_roles'].includes(room.game_mode)))
+
+      const isUserAlreadyInFetchedRoom = (room) =>
+        room &&
+        Array.isArray(room.players) &&
+        room.players.includes(username)
+
+      const hasConflictingExistingRoom = async () => {
+        if (!username) return false
+
+        if (await isUsernameAlreadyConnected(username)) {
+          return true
+        }
+
+        const userRoomRes = await fetch(`/api/rooms/by-player/${encodeURIComponent(username)}`, {
+          cache: 'no-store',
+        })
+
+        if (userRoomRes.status === 404) return false
+
+        if (!userRoomRes.ok) {
+          throw new Error('Failed to resolve current user room')
+        }
+
+        const userRoom = await userRoomRes.json()
+        if (userRoom.status === 'started') {
+          return true
+        }
+
+        return !isSameDirectRoom(userRoom)
+      }
+
       const createDirectRoom = async () => {
         const defaultMode = directRoomType === 'coop' ? 'cooperative' : 'classic'
         const createRes = await fetch(`/api/rooms`, {
@@ -492,13 +557,18 @@ function Index() {
           return true
         }
 
+        if (await hasConflictingExistingRoom()) {
+          returnToProfileWithNotice('User already connected')
+          return false
+        }
+
         if (createRes.status !== 409) {
           const errorPayload = await createRes.json().catch(() => ({}))
           console.error('Failed to create direct room')
-          returnHomeWithNotice(
-            errorPayload?.error === 'User is already in a room'
-              ? 'User already connected'
-              : 'Room already used'
+          ;(errorPayload?.error === 'User is already in a room'
+            ? returnToProfileWithNotice
+            : returnHomeWithNotice)(
+            getRoomNoticeMessage(errorPayload?.error)
           )
           return false
         }
@@ -510,11 +580,17 @@ function Index() {
         })
 
         if (!existingRes.ok) {
-          returnHomeWithNotice('Room already used')
+          const errorPayload = await existingRes.json().catch(() => ({}))
+          returnHomeWithNotice(getRoomNoticeMessage(errorPayload?.error))
           return false
         }
 
         const existingRoom = await existingRes.json()
+        if (isUserAlreadyInFetchedRoom(existingRoom)) {
+          returnToProfileWithNotice('User already connected')
+          return false
+        }
+
         const isExistingCoopMode = ['cooperative', 'cooperative_roles'].includes(existingRoom.game_mode)
         if (directRoomType === 'coop' && !isExistingCoopMode) {
           returnHomeWithNotice('Room already used')
@@ -540,6 +616,11 @@ function Index() {
       }
 
       try {
+        if (await hasConflictingExistingRoom()) {
+          returnToProfileWithNotice('User already connected')
+          return
+        }
+
         const res = await fetch(`/api/rooms/by-name/${encodeURIComponent(directRoomName)}`, {
           cache: 'no-store',
         })
@@ -549,13 +630,19 @@ function Index() {
         }
 
         if (!res.ok) {
-          returnHomeWithNotice('Room already used')
+          const errorPayload = await res.json().catch(() => ({}))
+          returnHomeWithNotice(getRoomNoticeMessage(errorPayload?.error))
           return
         }
         const room = await res.json()
 
         if (room.name !== directRoomName) {
           await createDirectRoom()
+          return
+        }
+
+        if (isUserAlreadyInFetchedRoom(room)) {
+          returnToProfileWithNotice('User already connected')
           return
         }
 

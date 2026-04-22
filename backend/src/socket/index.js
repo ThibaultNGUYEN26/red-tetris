@@ -4,6 +4,11 @@ import { createGame, getGame, removeGame } from "../game/gameManager.js";
 const activeUsers = new Map();
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/;
 
+export const isUsernameConnected = (username) => {
+  if (!username) return false;
+  return activeUsers.has(username);
+};
+
 const registerUsername = (username, socket) => {
   if (!username) {
     return { ok: false, error: "Missing username" };

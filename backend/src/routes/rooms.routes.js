@@ -185,6 +185,31 @@ router.get("/by-name/:name", async (req, res) => {
   }
 });
 
+router.get("/by-player/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+    if (!username) return res.status(400).json({ error: "Missing username" });
+
+    const result = await pool.query(
+      `SELECT id, name, game_mode, host, player_count, players, status
+       FROM rooms
+       WHERE players @> ARRAY[$1]::text[]
+       ORDER BY created_at ASC
+       LIMIT 1`,
+      [username]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Failed to get room by player:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 
 // Update Room Name
 router.patch("/:roomId/name", async (req, res) => {

@@ -80,6 +80,10 @@ function CreateRoom({
       case 'Room already used':
       case 'Room name already exists':
         return 'Room already used.'
+      case 'Invalid room name':
+        return 'Invalid room name'
+      case 'Invalid game mode':
+        return 'Invalid game mode'
       case 'Only the host can rename the room':
         return 'Only the host can rename the room.'
       default:
@@ -150,11 +154,13 @@ function CreateRoom({
           return
         }
 
-        if (response.status === 409) {
+        if (!response.ok) {
           const message = getRoomActionErrorMessage(room.error)
           setJoinError(message)
           onNotice?.(message)
-          onJoinError?.('Room already used')
+          if (response.status === 409) {
+            onJoinError?.('Room already used')
+          }
           return
         }
         

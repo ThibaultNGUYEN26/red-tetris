@@ -123,6 +123,31 @@ describe('rooms routes', () => {
     )
   })
 
+  it('returns a room by player username', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 7,
+        name: 'TeamRoom',
+        game_mode: 'classic',
+        host: 'Riri',
+        player_count: 2,
+        players: ['Riri', 'Titi'],
+        status: 'waiting',
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'get', '/by-player/:username')
+    const res = buildRes()
+
+    await handler(buildReq({ params: { username: 'Riri' } }), res)
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'TeamRoom', host: 'Riri' })
+    )
+  })
+
   it('renames a room only for the host and emits roomState', async () => {
     mockQuery
       .mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi' }] })

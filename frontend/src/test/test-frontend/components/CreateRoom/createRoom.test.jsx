@@ -19,9 +19,11 @@ global.fetch = vi.fn()
 describe('CreateRoom Component', () => {
   const mockOnBack = vi.fn()
   const mockOnRoomCreated = vi.fn()
+  const mockOnNotice = vi.fn()
   const defaultProps = {
     theme: 'light',
     onBack: mockOnBack,
+    onNotice: mockOnNotice,
     existingRooms: [],
     username: 'TestUser',
     userProfile: {
@@ -106,6 +108,22 @@ describe('CreateRoom Component', () => {
       })
 
       consoleError.mockRestore()
+    })
+
+    it('should show the backend invalid game mode error on room creation failure', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          error: 'Invalid game mode'
+        })
+      })
+
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(mockOnNotice).toHaveBeenCalledWith('Invalid game mode')
+      })
     })
   })
 
