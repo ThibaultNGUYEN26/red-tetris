@@ -460,6 +460,9 @@ describe('socket setup', () => {
           { username: 'Riri', avatar: { eyeType: 'sad' } },
         ],
       })
+      .mockResolvedValueOnce({
+        rows: [],
+      })
 
     const game = {
       setCallbacks: vi.fn(),
@@ -490,6 +493,7 @@ describe('socket setup', () => {
         },
       })
     )
+    expect(io.emit).toHaveBeenCalledWith('availableRooms', [])
     expect(io.roomEmit).toHaveBeenCalledWith('gameStarted', { roomId: '1' })
   })
 
@@ -581,6 +585,9 @@ describe('socket setup', () => {
           { username: 'Titi', avatar: { eyeType: 'happy' } },
           { username: 'Riri', avatar: { eyeType: 'sad' } },
         ],
+      })
+      .mockResolvedValueOnce({
+        rows: [],
       })
 
     const game = { setCallbacks: vi.fn(), start: vi.fn(), mode_player: 'multi' }
@@ -795,6 +802,7 @@ describe('socket setup', () => {
       .mockResolvedValueOnce({ rowCount: 1, rows: [] })
       .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
       .mockResolvedValueOnce({ rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }] })
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rowCount: 1, rows: [] })
       .mockResolvedValueOnce({ rowCount: 1, rows: [] })
       .mockResolvedValueOnce({ rows: [{ username: 'Titi', avatar: { eyeType: 'happy' }, score: 42 }] })
@@ -844,6 +852,7 @@ describe('socket setup', () => {
           { username: 'Riri', avatar: { eyeType: 'sad' } },
         ],
       })
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rowCount: 1, rows: [] })
       .mockResolvedValueOnce({
         rows: [{

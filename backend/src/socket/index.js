@@ -724,6 +724,8 @@ export default function setupSockets(io) {
         // Emit updated room state to all players
         io.to(String(roomId)).emit("roomState", roomWithAvatars);
 
+        await broadcastAvailableRooms(io);
+
         // Emit start event; tick will emit gameState
         io.to(String(roomId)).emit("gameStarted", { roomId });
 

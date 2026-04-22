@@ -62,15 +62,20 @@ vi.mock('../../../components/Rooms/Rooms.jsx', () => ({
 }))
 
 vi.mock('../../../components/CreateRoom/CreateRoom.jsx', () => ({
-  default: ({ onBack }) => (
+  default: ({ onBack, onStartGame, roomId }) => (
     <div data-testid="create-room">
       <button onClick={onBack}>Back</button>
+      <button onClick={() => onStartGame?.(roomId || 12)}>Start game</button>
     </div>
   ),
 }))
 
 vi.mock('../../../components/Game/Game.jsx', () => ({
-  default: () => <div data-testid="game" />,
+  default: ({ onPlayAgain }) => (
+    <div data-testid="game">
+      {onPlayAgain ? <button onClick={onPlayAgain}>Play again</button> : <span>No play again</span>}
+    </div>
+  ),
 }))
 
 import Index from '../../../index.jsx'
@@ -446,5 +451,65 @@ describe('Index main page', () => {
 
     expect(await screen.findByText('Invalid room name')).toBeInTheDocument()
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
+  })
+
+  it('keeps play again available for direct-room multiplayer games', async () => {
+    mockParams = { username: 'Titi', roomName: 'test', roomType: 'multi' }
+
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url) === '/api/player/connection?username=Titi') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ connected: false }),
+        }
+      }
+
+      if (String(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (String(url) === '/api/rooms/by-player/Titi') {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => ({ error: 'Room not found' }),
+        }
+      }
+
+      if (String(url) === '/api/rooms/by-name/test') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 12,
+            name: 'test',
+            game_mode: 'classic',
+            player_count: 2,
+            players: ['Riri'],
+            status: 'waiting',
+          }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    const { socket } = await import('../../../socket')
+
+    render(<Index />)
+
+    expect(await screen.findByTestId('create-room')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /start game/i }))
+
+    expect(await screen.findByRole('button', { name: /play again/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+
+    expect(socket.emit).toHaveBeenCalledWith('playAgain', { roomId: '12', username: 'Titi' })
   })
 })

@@ -386,6 +386,13 @@ function Index() {
     setActiveGameType(null)
   }
 
+  const handlePlayDirectAgain = () => {
+    if (!directRoomId) return
+    socket.emit('playAgain', { roomId: String(directRoomId), username })
+    setShowGame(false)
+    setShowDirectRoom(true)
+  }
+
   const handleExitSoloLobby = async () => {
     if (soloRoomId) {
       try {
@@ -885,7 +892,7 @@ function Index() {
                     <Game
                       theme={theme}
                       onBack={activeGameType === 'solo' ? handleExitSolo : handleExitDirectGame}
-                      onPlayAgain={activeGameType === 'solo' ? handlePlaySoloAgain : undefined}
+                      onPlayAgain={activeGameType === 'solo' ? handlePlaySoloAgain : handlePlayDirectAgain}
                       roomId={activeGameType === 'solo' ? soloRoomId : directRoomId}
                       username={username}
                       isMultiplayer={activeGameType !== 'solo'}
