@@ -9,7 +9,7 @@ backend:
 
 build:
 	./get_ip.sh
-	docker compose build --no-cache backend
+	docker compose build --no-cache
 	docker compose up -d
 
 logs-backend:
