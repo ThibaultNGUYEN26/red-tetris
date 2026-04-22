@@ -153,6 +153,9 @@ router.post("/", async (req, res) => {
 
     res.status(200).json(room);
   } catch (err) {
+    if (err?.code === "23505" && err?.constraint === "rooms_name_key") {
+      return res.status(409).json({ error: "Room name already exists" });
+    }
     console.error("Failed to create room:", err);
     res.status(500).json({ error: "Server error" });
   }

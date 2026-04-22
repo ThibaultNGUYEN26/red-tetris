@@ -474,38 +474,77 @@ function Index() {
     if (!showDirectRoom || !directRoomName || directRoomId) return
 
     const resolveDirectRoom = async () => {
+      const createDirectRoom = async () => {
+        const defaultMode = directRoomType === 'coop' ? 'cooperative' : 'classic'
+        const createRes = await fetch(`/api/rooms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameMode: defaultMode,
+            host: username,
+            name: directRoomName,
+          }),
+        })
+
+        if (createRes.ok) {
+          const room = await createRes.json()
+          setDirectRoomId(room.id)
+          return true
+        }
+
+        if (createRes.status !== 409) {
+          const errorPayload = await createRes.json().catch(() => ({}))
+          console.error('Failed to create direct room')
+          returnHomeWithNotice(
+            errorPayload?.error === 'User is already in a room'
+              ? 'User already connected'
+              : 'Room already used'
+          )
+          return false
+        }
+
+        // Another player may have created the room between lookup and create.
+        // Reload it and join if it is still waiting.
+        const existingRes = await fetch(`/api/rooms/by-name/${encodeURIComponent(directRoomName)}`, {
+          cache: 'no-store',
+        })
+
+        if (!existingRes.ok) {
+          returnHomeWithNotice('Room already used')
+          return false
+        }
+
+        const existingRoom = await existingRes.json()
+        const isExistingCoopMode = ['cooperative', 'cooperative_roles'].includes(existingRoom.game_mode)
+        if (directRoomType === 'coop' && !isExistingCoopMode) {
+          returnHomeWithNotice('Room already used')
+          return false
+        }
+        if (directRoomType === 'multi' && isExistingCoopMode) {
+          returnHomeWithNotice('Room already used')
+          return false
+        }
+        if (existingRoom.status === 'started') {
+          returnHomeWithNotice('Room already used')
+          return false
+        }
+
+        const existingMaxPlayers = getMaxPlayers(existingRoom.game_mode)
+        if (existingRoom.player_count >= existingMaxPlayers) {
+          returnHomeWithNotice('Room already used')
+          return false
+        }
+
+        setDirectRoomId(existingRoom.id)
+        return true
+      }
+
       try {
         const res = await fetch(`/api/rooms/by-name/${encodeURIComponent(directRoomName)}`, {
           cache: 'no-store',
         })
         if (res.status === 404) {
-          const defaultMode = directRoomType === 'coop' ? 'cooperative' : 'classic'
-          const createRes = await fetch(`/api/rooms`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              gameMode: defaultMode,
-              host: username,
-              name: directRoomName,
-            }),
-          })
-
-          if (!createRes.ok) {
-            const errorPayload = await createRes.json().catch(() => ({}))
-            console.error('Failed to create direct room')
-            returnHomeWithNotice(
-              createRes.status === 409
-                ? 'Room already used'
-                : 
-              errorPayload?.error === 'User is already in a room'
-                ? 'User already connected'
-                : 'Room already used'
-            )
-            return
-          }
-
-          const room = await createRes.json()
-          setDirectRoomId(room.id)
+          await createDirectRoom()
           return
         }
 
@@ -516,33 +555,7 @@ function Index() {
         const room = await res.json()
 
         if (room.name !== directRoomName) {
-          const defaultMode = directRoomType === 'coop' ? 'cooperative' : 'classic'
-          const createRes = await fetch(`/api/rooms`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              gameMode: defaultMode,
-              host: username,
-              name: directRoomName,
-            }),
-          })
-
-          if (!createRes.ok) {
-            const errorPayload = await createRes.json().catch(() => ({}))
-            console.error('Failed to create direct room')
-            returnHomeWithNotice(
-              createRes.status === 409
-                ? 'Room already used'
-                : 
-              errorPayload?.error === 'User is already in a room'
-                ? 'User already connected'
-                : 'Room already used'
-            )
-            return
-          }
-
-          const room = await createRes.json()
-          setDirectRoomId(room.id)
+          await createDirectRoom()
           return
         }
 
@@ -554,6 +567,11 @@ function Index() {
         }
         if (directRoomType === 'multi' && isCoopMode) {
           console.error('Room type mismatch for multi.')
+          returnHomeWithNotice('Room already used')
+          return
+        }
+        if (room.status === 'started') {
+          console.error('Room already started.')
           returnHomeWithNotice('Room already used')
           return
         }
@@ -742,12 +760,12 @@ function Index() {
                         setShowGame(true)
                       }}
                     />
-                  ) : showDirectRoom && !showGame ? (
+                  ) : showDirectRoom && !showGame && directRoomId ? (
                     <CreateRoom
                       theme={theme}
                       username={username}
                       userProfile={userProfile}
-                      mode={directRoomId ? 'join' : 'create'}
+                      mode="join"
                       roomId={directRoomId}
                       roomType={directRoomType === 'coop' ? 'cooperative' : 'multiplayer'}
                       desiredRoomName={directRoomName}

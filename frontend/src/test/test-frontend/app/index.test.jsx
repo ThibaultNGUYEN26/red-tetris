@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
 const navigateMock = vi.fn()
-let mockParams = { username: 'Titi', roomName: undefined }
+let mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
 
 vi.mock('react-router-dom', () => ({
   useParams: () => mockParams,
@@ -11,7 +11,7 @@ vi.mock('react-router-dom', () => ({
 }))
 
 vi.mock('../../../socket', () => ({
-  socket: { emit: vi.fn() },
+  socket: { emit: vi.fn(), on: vi.fn(), off: vi.fn() },
 }))
 
 vi.mock('../../../components/GoodClouds/GoodClouds.jsx', () => ({
@@ -79,7 +79,7 @@ describe('Index main page', () => {
   })
 
   it('clears the direct-room URL flow when leaving a room', async () => {
-    mockParams = { username: 'Titi', roomName: 'Room-ABC' }
+    mockParams = { username: 'Titi', roomName: 'Room-ABC', roomType: undefined }
 
     global.fetch.mockResolvedValueOnce({
       ok: false,
@@ -99,11 +99,11 @@ describe('Index main page', () => {
 
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
 
-    mockParams = { username: 'Titi', roomName: undefined }
+    mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
   })
 
   it('renders stats, leaderboard, and main menu buttons', () => {
-    mockParams = { username: 'Titi', roomName: undefined }
+    mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
     render(<Index />)
 
     expect(
@@ -122,11 +122,64 @@ describe('Index main page', () => {
   })
 
   it('rejects an invalid username from the room join URL', () => {
-    mockParams = { username: 'Bad Name', roomName: 'Room-ABC' }
+    mockParams = { username: 'Bad Name', roomName: 'Room-ABC', roomType: undefined }
 
     render(<Index />)
 
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
     expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+  })
+
+  it('joins an existing waiting multiplayer room after create returns 409', async () => {
+    mockParams = { username: 'Titi', roomName: 'test', roomType: 'multi' }
+
+    let byNameCalls = 0
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (String(url) === '/api/rooms/by-name/test') {
+        byNameCalls += 1
+        if (byNameCalls === 1) {
+          return {
+            ok: false,
+            status: 404,
+            json: async () => ({ error: 'Room not found' }),
+          }
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 12,
+            name: 'test',
+            game_mode: 'classic',
+            player_count: 1,
+            status: 'waiting',
+          }),
+        }
+      }
+
+      if (String(url) === '/api/rooms') {
+        return {
+          ok: false,
+          status: 409,
+          json: async () => ({ error: 'Room name already exists' }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    render(<Index />)
+
+    expect(await screen.findByTestId('create-room')).toBeInTheDocument()
+    expect(navigateMock).not.toHaveBeenCalledWith('/', { replace: true })
   })
 })
