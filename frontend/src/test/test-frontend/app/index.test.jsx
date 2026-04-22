@@ -2,8 +2,12 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
-const navigateMock = vi.fn()
-let mockParams = { username: 'Titi', roomName: undefined }
+let mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
+const navigateMock = vi.fn((target) => {
+  if (target === '/') {
+    mockParams = { username: undefined, roomName: undefined, roomType: undefined }
+  }
+})
 
 vi.mock('react-router-dom', () => ({
   useParams: () => mockParams,
@@ -11,7 +15,7 @@ vi.mock('react-router-dom', () => ({
 }))
 
 vi.mock('../../../socket', () => ({
-  socket: { emit: vi.fn() },
+  socket: { emit: vi.fn(), on: vi.fn(), off: vi.fn() },
 }))
 
 vi.mock('../../../components/GoodClouds/GoodClouds.jsx', () => ({
@@ -57,29 +61,80 @@ vi.mock('../../../components/Rooms/Rooms.jsx', () => ({
   ),
 }))
 
+vi.mock('../../../components/CreateRoom/CreateRoom.jsx', () => ({
+  default: ({ onBack }) => (
+    <div data-testid="create-room">
+      <button onClick={onBack}>Back</button>
+    </div>
+  ),
+}))
+
 vi.mock('../../../components/Game/Game.jsx', () => ({
   default: () => <div data-testid="game" />,
 }))
 
 import Index from '../../../index.jsx'
 
+global.fetch = vi.fn()
+
 describe('Index main page', () => {
-  it('clears the joined-room URL flow when leaving a room', () => {
-    mockParams = { username: 'Titi', roomName: 'Room-ABC' }
+  beforeEach(() => {
+    vi.clearAllMocks()
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url).startsWith('/api/player/connection')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ connected: false }),
+        }
+      }
+
+      if (String(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (String(url).startsWith('/api/rooms/by-player/')) {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => ({ error: 'Room not found' }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+  })
+
+  it('clears the direct-room URL flow when leaving a room', async () => {
+    mockParams = { username: 'Titi', roomName: 'Room-ABC', roomType: undefined }
+
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: async () => ({}),
+    })
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 1, name: 'Room-ABC', game_mode: 'classic' }),
+    })
 
     render(<Index />)
 
-    expect(screen.getByTestId('rooms')).toBeInTheDocument()
+    expect(screen.getByTestId('create-room')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /leave joined room/i }))
+    fireEvent.click(screen.getByRole('button', { name: /back/i }))
 
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
 
-    mockParams = { username: 'Titi', roomName: undefined }
+    mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
   })
 
   it('renders stats, leaderboard, and main menu buttons', () => {
-    mockParams = { username: 'Titi', roomName: undefined }
+    mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
     render(<Index />)
 
     expect(
@@ -98,11 +153,298 @@ describe('Index main page', () => {
   })
 
   it('rejects an invalid username from the room join URL', () => {
-    mockParams = { username: 'Bad Name', roomName: 'Room-ABC' }
+    mockParams = { username: 'Bad Name', roomName: 'Room-ABC', roomType: undefined }
 
     render(<Index />)
 
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
     expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+  })
+
+  it('joins an existing waiting multiplayer room after create returns 409', async () => {
+    mockParams = { username: 'Titi', roomName: 'test', roomType: 'multi' }
+
+    let byNameCalls = 0
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url).startsWith('/api/player/connection')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ connected: false }),
+        }
+      }
+
+      if (String(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (String(url).startsWith('/api/rooms/by-player/')) {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => ({ error: 'Room not found' }),
+        }
+      }
+
+      if (String(url) === '/api/rooms/by-name/test') {
+        byNameCalls += 1
+        if (byNameCalls === 1) {
+          return {
+            ok: false,
+            status: 404,
+            json: async () => ({ error: 'Room not found' }),
+          }
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 12,
+            name: 'test',
+            game_mode: 'classic',
+            player_count: 1,
+            status: 'waiting',
+          }),
+        }
+      }
+
+      if (String(url) === '/api/rooms') {
+        return {
+          ok: false,
+          status: 409,
+          json: async () => ({ error: 'Room name already exists' }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    render(<Index />)
+
+    expect(await screen.findByTestId('create-room')).toBeInTheDocument()
+    expect(navigateMock).not.toHaveBeenCalledWith('/', { replace: true })
+  })
+
+  it('redirects to the profile page with a connected notice when the URL user is already in another room', async () => {
+    mockParams = { username: 'Riri', roomName: 'test', roomType: 'multi' }
+
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url) === '/api/player/connection?username=Riri') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ connected: false }),
+        }
+      }
+
+      if (String(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (String(url) === '/api/rooms/by-player/Riri') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 99,
+            name: 'other-room',
+            game_mode: 'classic',
+            player_count: 2,
+            players: ['Riri', 'Titi'],
+            status: 'waiting',
+          }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    render(<Index />)
+
+    expect(await screen.findByText('User already connected')).toBeInTheDocument()
+    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
+    expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+  })
+
+  it('redirects to the profile page with a connected notice when the URL user is already in the same started room', async () => {
+    mockParams = { username: 'Riri', roomName: 'test', roomType: 'multi' }
+
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url) === '/api/player/connection?username=Riri') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ connected: false }),
+        }
+      }
+
+      if (String(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (String(url) === '/api/rooms/by-player/Riri') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 12,
+            name: 'test',
+            game_mode: 'classic',
+            player_count: 2,
+            players: ['Riri', 'Titi'],
+            status: 'started',
+          }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    render(<Index />)
+
+    expect(await screen.findByText('User already connected')).toBeInTheDocument()
+    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
+    expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+  })
+
+  it('prefers connected notice when the fetched room already contains the same user', async () => {
+    mockParams = { username: 'Titi', roomName: 'test', roomType: 'multi' }
+
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url) === '/api/player/connection?username=Titi') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ connected: false }),
+        }
+      }
+
+      if (String(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (String(url) === '/api/rooms/by-player/Titi') {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => ({ error: 'Room not found' }),
+        }
+      }
+
+      if (String(url) === '/api/rooms/by-name/test') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 12,
+            name: 'test',
+            game_mode: 'classic',
+            player_count: 2,
+            players: ['Titi', 'Riri'],
+            status: 'started',
+          }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    render(<Index />)
+
+    expect(await screen.findByText('User already connected')).toBeInTheDocument()
+    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
+    expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+  })
+
+  it('checks live connection state first for direct room URLs', async () => {
+    mockParams = { username: 'Titi', roomName: 'test', roomType: 'multi' }
+
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url) === '/api/player/connection?username=Titi') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ connected: true }),
+        }
+      }
+
+      if (String(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    render(<Index />)
+
+    expect(await screen.findByText('User already connected')).toBeInTheDocument()
+    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
+    expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+  })
+
+  it('shows the backend invalid room name error for an oversized direct room URL', async () => {
+    mockParams = { username: 'Titi', roomName: 'RoomNameWayTooLong', roomType: 'multi' }
+
+    global.fetch.mockImplementation(async (url) => {
+      if (String(url) === '/api/player/connection?username=Titi') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ connected: false }),
+        }
+      }
+
+      if (String(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (String(url) === '/api/rooms/by-player/Titi') {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => ({ error: 'Room not found' }),
+        }
+      }
+
+      if (String(url) === '/api/rooms/by-name/RoomNameWayTooLong') {
+        return {
+          ok: false,
+          status: 400,
+          json: async () => ({ error: 'Invalid room name' }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    render(<Index />)
+
+    expect(await screen.findByText('Invalid room name')).toBeInTheDocument()
+    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
   })
 })

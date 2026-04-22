@@ -8,12 +8,19 @@ const API_URL = import.meta.env.VITE_API_URL || ''
 function CreateRoom({
   theme,
   onBack,
+  onJoinError,
+  onNotice,
   existingRooms = [],
   username,
   userProfile,
   mode = 'create',
   roomId: joinedRoomId,
-  onRoomCreated
+  isSolo = false,
+  roomType: initialRoomType = 'multiplayer',
+  desiredRoomName,
+  onRoomCreated,
+  onRoomRenamed,
+  onStartGame
 }) {
   const sharedBoardModes = ['cooperative', 'cooperative_roles']
   const defaultAvatar = {
@@ -25,7 +32,11 @@ function CreateRoom({
   const [roomName, setRoomName] = useState('')
   const [roomNameDraft, setRoomNameDraft] = useState('')
   const [isEditingName, setIsEditingName] = useState(false)
-  const [selectedMode, setSelectedMode] = useState('classic')
+  const [roomType, setRoomType] = useState(initialRoomType)
+  const [preferredRoomName, setPreferredRoomName] = useState(desiredRoomName || null)
+  const [selectedMode, setSelectedMode] = useState(
+    initialRoomType === 'cooperative' ? 'cooperative' : 'classic'
+  )
   const [players, setPlayers] = useState(
     mode === 'create'
       ? [{
@@ -39,19 +50,60 @@ function CreateRoom({
   const [roomId, setRoomId] = useState(joinedRoomId || null)
   const [hostName, setHostName] = useState('')
   const [committedMode, setCommittedMode] = useState('classic')
+  const [joinError, setJoinError] = useState('')
 
   const hasCreatedRoom = useRef(false)
   const hasEditedName = useRef(false)
   const hasStartedGame = useRef(false)
+  const hasJoinedRoom = useRef(false)
+
+  const resolvedRoomName = (nameFromServer) => {
+    if (preferredRoomName) return preferredRoomName
+    return nameFromServer
+  }
+
+  const getJoinErrorMessage = (error) => {
+    switch (error) {
+      case 'Username already connected':
+        return 'This username is already connected in this room.'
+      case 'Room is full':
+        return 'This room is already full.'
+      case 'User is already in a room':
+        return 'This player is already busy in another room.'
+      default:
+        return 'This room is already busy. Please try another room or username.'
+    }
+  }
+
+  const getRoomActionErrorMessage = (error) => {
+    switch (error) {
+      case 'Room already used':
+      case 'Room name already exists':
+        return 'Room already used.'
+      case 'Invalid room name':
+        return 'Invalid room name'
+      case 'Invalid game mode':
+        return 'Invalid game mode'
+      case 'Only the host can rename the room':
+        return 'Only the host can rename the room.'
+      default:
+        return 'Unable to update the room right now.'
+    }
+  }
 
   // Define available game modes
-  const availableGameModes = [
+  const multiplayerModes = [
     { value: 'classic', label: 'Classic', maxPlayers: 6 },
     { value: 'mirror', label: 'Mirror', maxPlayers: 6 },
-    { value: 'cooperative', label: 'Co-op Alternate', maxPlayers: 2 },
-    { value: 'cooperative_roles', label: 'Co-op Roles', maxPlayers: 2 },
     { value: 'giant', label: 'Giant', maxPlayers: 6 }
   ]
+  const cooperativeModes = [
+    { value: 'cooperative', label: 'Co-op Alternate', maxPlayers: 2 },
+    { value: 'cooperative_roles', label: 'Co-op Roles', maxPlayers: 2 }
+  ]
+
+  const availableGameModes =
+    roomType === 'cooperative' ? cooperativeModes : multiplayerModes
 
   // Filter modes based on current player count
   const getAvailableModes = () => {
@@ -73,18 +125,23 @@ function CreateRoom({
   /* ---------------- CREATE ROOM (HOST) ---------------- */
 
   useEffect(() => {
+    setPreferredRoomName(desiredRoomName || null)
+  }, [desiredRoomName])
+
+  useEffect(() => {
     if (mode !== 'create') return
     if (hasCreatedRoom.current) return
 
     const createRoom = async () => {
       try {
         console.log('[CreateRoom] Creating room', { username, gameMode: selectedMode })
-        const response = await fetch(`${API_URL}/api/rooms`, {
+        const response = await fetch(`/api/rooms`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             gameMode: selectedMode,
             host: username,
+            name: desiredRoomName || undefined,
           }),
         })
 
@@ -93,6 +150,17 @@ function CreateRoom({
         // [Play Again] If user is already in a room, the backend rejects creation.
         if (room.error === 'User is already in a room') {
           console.log('[CreateRoom] User already in a room, retrieving existing room')
+          onJoinError?.(room.error)
+          return
+        }
+
+        if (!response.ok) {
+          const message = getRoomActionErrorMessage(room.error)
+          setJoinError(message)
+          onNotice?.(message)
+          if (response.status === 409) {
+            onJoinError?.('Room already used')
+          }
           return
         }
         
@@ -104,12 +172,17 @@ function CreateRoom({
         console.log('[CreateRoom] Room created', { roomId: room.id, name: room.name, roomObj: room })
 
         setRoomId(room.id)
-        setRoomName(room.name)
-        setRoomNameDraft(room.name)
+        setRoomName(resolvedRoomName(room.name))
+        setRoomNameDraft(resolvedRoomName(room.name))
         setSelectedMode(room.game_mode)
         setCommittedMode(room.game_mode)
+        setRoomType(
+          ['cooperative', 'cooperative_roles'].includes(room.game_mode)
+            ? 'cooperative'
+            : 'multiplayer'
+        )
 
-        onRoomCreated?.(room.id, room.name)
+        onRoomCreated?.(room.id, desiredRoomName || room.name, roomType)
 
         hasCreatedRoom.current = true
       } catch (err) {
@@ -125,45 +198,108 @@ function CreateRoom({
   useEffect(() => {
     if (!roomId) return
 
-    socket.emit("joinRoom", { roomId: String(roomId), username });
-    console.log('Emitting getRoomState', roomId);
-
     const handleRoomState = (room) => {
       console.log('🟢 Room updated:', room)
 
-      const avatars = room.player_avatars || {}
-      const readyAgainPlayers =
-        room.status !== 'started' && Array.isArray(room.ready_again) && room.ready_again.length
-          ? room.ready_again
-          : null
-      const displayedPlayers = readyAgainPlayers || room.players || []
-
-      setRoomName(room.name)
-      if (!isEditingName) {
-        setRoomNameDraft(room.name)
-      }
-      setSelectedMode(room.game_mode)
-      setCommittedMode(room.game_mode)
-      setHostName(room.host)
-      setPlayers(
-        displayedPlayers.map((name, index) => ({
-          id: index + 1,
-          name,
-          isHost: name === room.host,
-          avatar: avatars[name] || resolveAvatar(name),
-        }))
-      )
+      applyRoomState(room)
     }
 
     socket.on('roomState', handleRoomState)
 
-    // initial sync
-    socket.emit('getRoomState', { roomId: String(roomId) })
+    return () => {
+      socket.off('roomState', handleRoomState)
+    }
+  }, [roomId, isEditingName, username, userProfile])
+
+  useEffect(() => {
+    if (!roomId) {
+      hasJoinedRoom.current = false
+      return
+    }
+    if (hasJoinedRoom.current) return
+
+    let cancelled = false
+
+    socket.emit("joinRoom", { roomId: String(roomId), username }, (response) => {
+      if (cancelled) return
+
+      if (!response?.ok) {
+        console.error('Failed to join room:', response?.error || 'Unknown error')
+        setJoinError(getJoinErrorMessage(response?.error))
+        setRoomId(null)
+        onJoinError?.(response?.error)
+        return
+      }
+
+      setJoinError('')
+      hasJoinedRoom.current = true
+      console.log('Emitting getRoomState', roomId)
+      socket.emit('getRoomState', { roomId: String(roomId) })
+    })
 
     return () => {
-      socket.off('roomState', handleRoomState);
+      cancelled = true
+      hasJoinedRoom.current = false
     }
-  }, [roomId, username, userProfile, isEditingName])
+  }, [roomId, username])
+
+  useEffect(() => {
+    if (!roomId) return
+
+    const handleAvailableRooms = (rooms = []) => {
+      const currentRoom = Array.isArray(rooms)
+        ? rooms.find((room) => String(room.id) === String(roomId))
+        : null
+
+      const shouldUseAvailableRoomsAsFallback =
+        currentRoom &&
+        ['cooperative', 'cooperative_roles'].includes(currentRoom.game_mode) &&
+        currentRoom.player_count === 1
+
+      if (shouldUseAvailableRoomsAsFallback) {
+        applyRoomState(currentRoom)
+        return
+      }
+
+      socket.emit('getRoomState', { roomId: String(roomId) })
+    }
+
+    socket.on('availableRooms', handleAvailableRooms)
+
+    return () => {
+      socket.off('availableRooms', handleAvailableRooms)
+    }
+  }, [roomId, isEditingName, username, userProfile])
+
+  useEffect(() => {
+    if (!roomId) return
+
+    const currentRoom = existingRooms.find(
+      (room) => String(room.id) === String(roomId)
+    )
+
+    if (!currentRoom) return
+    if (!['cooperative', 'cooperative_roles'].includes(currentRoom.game_mode)) return
+    if (currentRoom.player_count !== 1) return
+
+    const fallbackPlayers = Array.isArray(currentRoom.players) && currentRoom.players.length
+      ? currentRoom.players
+      : [username]
+    const fallbackHost = currentRoom.host || fallbackPlayers[0] || username
+
+    setSelectedMode(currentRoom.game_mode)
+    setCommittedMode(currentRoom.game_mode)
+    setRoomType('cooperative')
+    setHostName(fallbackHost)
+    setPlayers(
+      fallbackPlayers.map((name, index) => ({
+        id: index + 1,
+        name,
+        isHost: name === fallbackHost,
+        avatar: resolveAvatar(name),
+      }))
+    )
+  }, [existingRooms, roomId, username])
 
   // Update game mode (only host)
   useEffect(() => {
@@ -173,7 +309,7 @@ function CreateRoom({
 
     const timeoutId = setTimeout(async () => {
       try {
-        const response = await fetch(`${API_URL}/api/rooms/${roomId}/mode`, {
+        const response = await fetch(`/api/rooms/${roomId}/mode`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -224,6 +360,41 @@ function CreateRoom({
     return defaultAvatar
   }
 
+  const applyRoomState = (room) => {
+    if (!room) return
+    if (roomId && String(room.id) !== String(roomId)) return
+
+    const avatars = room.player_avatars || {}
+    const readyAgainPlayers =
+      room.status !== 'started' && Array.isArray(room.ready_again) && room.ready_again.length
+        ? room.ready_again
+        : null
+    const displayedPlayers = readyAgainPlayers || room.players || []
+    const effectiveHost =
+      displayedPlayers.includes(room.host) ? room.host : (displayedPlayers[0] || '')
+
+    setRoomName(resolvedRoomName(room.name))
+    if (!isEditingName) {
+      setRoomNameDraft(resolvedRoomName(room.name))
+    }
+    setSelectedMode(room.game_mode)
+    setCommittedMode(room.game_mode)
+    setRoomType(
+      ['cooperative', 'cooperative_roles'].includes(room.game_mode)
+        ? 'cooperative'
+        : 'multiplayer'
+    )
+    setHostName(effectiveHost)
+    setPlayers(
+      displayedPlayers.map((name, index) => ({
+        id: index + 1,
+        name,
+        isHost: name === effectiveHost,
+        avatar: avatars[name] || resolveAvatar(name),
+      }))
+    )
+  }
+
   const handleEditClick = () => {
     hasEditedName.current = true
     setRoomNameDraft(roomName)
@@ -245,7 +416,7 @@ function CreateRoom({
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/rooms/${roomId}/name`, {
+      const response = await fetch(`/api/rooms/${roomId}/name`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -255,12 +426,24 @@ function CreateRoom({
       })
 
       if (!response.ok) {
-        throw new Error(`Rename failed with status ${response.status}`)
+        const errorPayload = await response.json().catch(() => ({}))
+        const message =
+          response.status === 409
+            ? 'Room already used.'
+            : getRoomActionErrorMessage(errorPayload?.error)
+        setJoinError(message)
+        if (response.status === 409) {
+          onNotice?.(message)
+        }
+        return
       }
 
       const updatedRoom = await response.json()
+      setJoinError('')
+      setPreferredRoomName(updatedRoom.name)
       setRoomName(updatedRoom.name)
       setRoomNameDraft(updatedRoom.name)
+      onRoomRenamed?.(updatedRoom.name, updatedRoom.game_mode)
       socket.emit('getRoomState', { roomId: String(roomId) })
     } catch (err) {
       setRoomNameDraft(roomName)
@@ -283,7 +466,8 @@ function CreateRoom({
   }
 
   const handleStartGame = async () => {
-    if (players.length < 2) return
+    if (!roomId) return
+    if (!isSolo && players.length < 2) return
     if (sharedBoardModes.includes(selectedMode) && players.length !== 2) return
     if (hostName && hostName !== username) return
     if (hasStartedGame.current) return // Prevent duplicate submissions
@@ -292,6 +476,7 @@ function CreateRoom({
       hasStartedGame.current = true
       console.log('🎮 Emitting startGame event:', { roomId: String(roomId), username });
       socket.emit('startGame', { roomId: String(roomId), username })
+      onStartGame?.(roomId)
     } catch (err) {
       console.error('Failed to start game:', err)
       hasStartedGame.current = false
@@ -363,7 +548,7 @@ function CreateRoom({
             className="mode-select"
             disabled={hostName && hostName !== username}
           >
-            {availableGameModes.map((m) => (
+            {getAvailableModes().map((m) => (
               <option
                 key={m.value}
                 value={m.value}
@@ -376,36 +561,39 @@ function CreateRoom({
         </div>
 
         {/* Players */}
-        <div className="players-section">
-          <h3>Players ({players.length}/{availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2})</h3>
+        {!isSolo && (
+          <div className="players-section">
+            <h3>Players ({players.length}/{availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2})</h3>
 
-          <div className="players-list">
-            {players.map((player) => (
-              <div key={player.id} className="player-item has-avatar">
-                <FaceAvatar faceConfig={player.avatar} size="small" />
-                <span className="player-name">
-                  {player.name}
-                  {player.isHost && <span className="host-crown">{'\u{1F451}'}</span>}
-                </span>
-              </div>
-            ))}
+            <div className="players-list">
+              {players.map((player) => (
+                <div key={player.id} className="player-item has-avatar">
+                  <FaceAvatar faceConfig={player.avatar} size="small" />
+                  <span className="player-name">
+                    {player.name}
+                    {player.isHost && <span className="host-crown">{'\u{1F451}'}</span>}
+                  </span>
+                </div>
+              ))}
 
-            {players.length < (availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2) && (
-              <div className="player-item waiting">
-                {/* Animated waiting text */}
-                {Array.from('Waiting for players...').map((char, i) => (
-                  <span key={i} className="wave-text">{char}</span>
-                ))}
-              </div>
-            )}
+              {players.length < (availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2) && (
+                <div className="player-item waiting">
+                  {/* Animated waiting text */}
+                  {Array.from('Waiting for players...').map((char, i) => (
+                    <span key={i} className="wave-text">{char}</span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <button
           className="start-button"
           onClick={handleStartGame}
           disabled={
-            players.length < 2 ||
+            !roomId ||
+            (!isSolo && players.length < 2) ||
             (sharedBoardModes.includes(selectedMode) && players.length !== 2) ||
             (hostName && hostName !== username)
           }

@@ -2,11 +2,7 @@
 -- PostgreSQL database dump
 --
 
-<<<<<<< HEAD
-\restrict itEIBIoV0yG9PkAJrCHwMTMF8Pd3PTGxdb4w9fxebiZfd0dBdrtsTqrpws4QAAJ
-=======
 \restrict 45uAIZdkzyAKbQgoK2whcLxmCAlAs3OcdRDMgFe2ZOPx1dh4icLFowRSOS4qy9H
->>>>>>> origin/frontend
 
 -- Dumped from database version 15.17 (Debian 15.17-1.pgdg13+1)
 -- Dumped by pg_dump version 15.17 (Debian 15.17-1.pgdg13+1)
@@ -27,7 +23,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: coop_scores; Type: TABLE; Schema: public; Owner: riri
+-- Name: coop_scores; Type: TABLE; Schema: public
 --
 
 CREATE TABLE public.coop_scores (
@@ -39,10 +35,7 @@ CREATE TABLE public.coop_scores (
 );
 
 
-ALTER TABLE public.coop_scores OWNER TO riri;
-
---
--- Name: coop_scores_id_seq; Type: SEQUENCE; Schema: public; Owner: riri
+-- Name: coop_scores_id_seq; Type: SEQUENCE; Schema: public
 --
 
 CREATE SEQUENCE public.coop_scores_id_seq
@@ -54,17 +47,14 @@ CREATE SEQUENCE public.coop_scores_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.coop_scores_id_seq OWNER TO riri;
-
---
--- Name: coop_scores_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: riri
+-- Name: coop_scores_id_seq; Type: SEQUENCE OWNED BY; Schema: public
 --
 
 ALTER SEQUENCE public.coop_scores_id_seq OWNED BY public.coop_scores.id;
 
 
 --
--- Name: rooms; Type: TABLE; Schema: public; Owner: riri
+-- Name: rooms; Type: TABLE; Schema: public
 --
 
 CREATE TABLE public.rooms (
@@ -80,10 +70,7 @@ CREATE TABLE public.rooms (
 );
 
 
-ALTER TABLE public.rooms OWNER TO riri;
-
---
--- Name: rooms_id_seq; Type: SEQUENCE; Schema: public; Owner: riri
+-- Name: rooms_id_seq; Type: SEQUENCE; Schema: public
 --
 
 CREATE SEQUENCE public.rooms_id_seq
@@ -95,17 +82,14 @@ CREATE SEQUENCE public.rooms_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.rooms_id_seq OWNER TO riri;
-
---
--- Name: rooms_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: riri
+-- Name: rooms_id_seq; Type: SEQUENCE OWNED BY; Schema: public
 --
 
 ALTER SEQUENCE public.rooms_id_seq OWNED BY public.rooms.id;
 
 
 --
--- Name: solo_scores; Type: TABLE; Schema: public; Owner: riri
+-- Name: solo_scores; Type: TABLE; Schema: public
 --
 
 CREATE TABLE public.solo_scores (
@@ -116,10 +100,7 @@ CREATE TABLE public.solo_scores (
 );
 
 
-ALTER TABLE public.solo_scores OWNER TO riri;
-
---
--- Name: solo_scores_id_seq; Type: SEQUENCE; Schema: public; Owner: riri
+-- Name: solo_scores_id_seq; Type: SEQUENCE; Schema: public
 --
 
 CREATE SEQUENCE public.solo_scores_id_seq
@@ -131,17 +112,14 @@ CREATE SEQUENCE public.solo_scores_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.solo_scores_id_seq OWNER TO riri;
-
---
--- Name: solo_scores_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: riri
+-- Name: solo_scores_id_seq; Type: SEQUENCE OWNED BY; Schema: public
 --
 
 ALTER SEQUENCE public.solo_scores_id_seq OWNED BY public.solo_scores.id;
 
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: riri
+-- Name: users; Type: TABLE; Schema: public
 --
 
 CREATE TABLE public.users (
@@ -156,10 +134,7 @@ CREATE TABLE public.users (
 );
 
 
-ALTER TABLE public.users OWNER TO riri;
-
---
--- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: riri
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public
 --
 
 CREATE SEQUENCE public.users_id_seq
@@ -171,45 +146,42 @@ CREATE SEQUENCE public.users_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.users_id_seq OWNER TO riri;
-
---
--- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: riri
+-- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public
 --
 
 ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
--- Name: coop_scores id; Type: DEFAULT; Schema: public; Owner: riri
+-- Name: coop_scores id; Type: DEFAULT; Schema: public
 --
 
 ALTER TABLE ONLY public.coop_scores ALTER COLUMN id SET DEFAULT nextval('public.coop_scores_id_seq'::regclass);
 
 
 --
--- Name: rooms id; Type: DEFAULT; Schema: public; Owner: riri
+-- Name: rooms id; Type: DEFAULT; Schema: public
 --
 
 ALTER TABLE ONLY public.rooms ALTER COLUMN id SET DEFAULT nextval('public.rooms_id_seq'::regclass);
 
 
 --
--- Name: solo_scores id; Type: DEFAULT; Schema: public; Owner: riri
+-- Name: solo_scores id; Type: DEFAULT; Schema: public
 --
 
 ALTER TABLE ONLY public.solo_scores ALTER COLUMN id SET DEFAULT nextval('public.solo_scores_id_seq'::regclass);
 
 
 --
--- Name: users id; Type: DEFAULT; Schema: public; Owner: riri
+-- Name: users id; Type: DEFAULT; Schema: public
 --
 
 ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_id_seq'::regclass);
 
 
 --
--- Data for Name: coop_scores; Type: TABLE DATA; Schema: public; Owner: riri
+-- Data for Name: coop_scores; Type: TABLE DATA; Schema: public
 --
 
 COPY public.coop_scores (id, player_one, player_two, score, created_at) FROM stdin;
@@ -223,7 +195,7 @@ COPY public.coop_scores (id, player_one, player_two, score, created_at) FROM std
 
 
 --
--- Data for Name: rooms; Type: TABLE DATA; Schema: public; Owner: riri
+-- Data for Name: rooms; Type: TABLE DATA; Schema: public
 --
 
 COPY public.rooms (id, name, game_mode, host, player_count, status, created_at, players, ready_again) FROM stdin;
@@ -231,7 +203,7 @@ COPY public.rooms (id, name, game_mode, host, player_count, status, created_at, 
 
 
 --
--- Data for Name: solo_scores; Type: TABLE DATA; Schema: public; Owner: riri
+-- Data for Name: solo_scores; Type: TABLE DATA; Schema: public
 --
 
 COPY public.solo_scores (id, username, score, created_at) FROM stdin;
@@ -293,7 +265,7 @@ COPY public.solo_scores (id, username, score, created_at) FROM stdin;
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: riri
+-- Data for Name: users; Type: TABLE DATA; Schema: public
 --
 
 COPY public.users (id, username, avatar, solo_games_played, highest_solo_score, multiplayer_games_played, multiplayer_wins, multiplayer_losses) FROM stdin;
@@ -319,35 +291,35 @@ COPY public.users (id, username, avatar, solo_games_played, highest_solo_score, 
 
 
 --
--- Name: coop_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
+-- Name: coop_scores_id_seq; Type: SEQUENCE SET; Schema: public
 --
 
 SELECT pg_catalog.setval('public.coop_scores_id_seq', 6, true);
 
 
 --
--- Name: rooms_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
+-- Name: rooms_id_seq; Type: SEQUENCE SET; Schema: public
 --
 
 SELECT pg_catalog.setval('public.rooms_id_seq', 85, true);
 
 
 --
--- Name: solo_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
+-- Name: solo_scores_id_seq; Type: SEQUENCE SET; Schema: public
 --
 
 SELECT pg_catalog.setval('public.solo_scores_id_seq', 54, true);
 
 
 --
--- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public
 --
 
 SELECT pg_catalog.setval('public.users_id_seq', 72, true);
 
 
 --
--- Name: coop_scores coop_scores_pkey; Type: CONSTRAINT; Schema: public; Owner: riri
+-- Name: coop_scores coop_scores_pkey; Type: CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public.coop_scores
@@ -355,7 +327,7 @@ ALTER TABLE ONLY public.coop_scores
 
 
 --
--- Name: rooms rooms_name_key; Type: CONSTRAINT; Schema: public; Owner: riri
+-- Name: rooms rooms_name_key; Type: CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public.rooms
@@ -363,7 +335,7 @@ ALTER TABLE ONLY public.rooms
 
 
 --
--- Name: rooms rooms_pkey; Type: CONSTRAINT; Schema: public; Owner: riri
+-- Name: rooms rooms_pkey; Type: CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public.rooms
@@ -371,7 +343,7 @@ ALTER TABLE ONLY public.rooms
 
 
 --
--- Name: solo_scores solo_scores_pkey; Type: CONSTRAINT; Schema: public; Owner: riri
+-- Name: solo_scores solo_scores_pkey; Type: CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public.solo_scores
@@ -379,7 +351,7 @@ ALTER TABLE ONLY public.solo_scores
 
 
 --
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: riri
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public.users
@@ -387,7 +359,7 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: users users_username_key; Type: CONSTRAINT; Schema: public; Owner: riri
+-- Name: users users_username_key; Type: CONSTRAINT; Schema: public
 --
 
 ALTER TABLE ONLY public.users

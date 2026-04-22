@@ -51,7 +51,7 @@ function PlayerStats({ theme, userProfile, username }) {
 
       try {
         const res = await fetch(
-          `${API_URL}/api/player/stats?username=${encodeURIComponent(profileName)}`,
+          `/api/player/stats?username=${encodeURIComponent(profileName)}`,
           {
           credentials: 'include',
           }

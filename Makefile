@@ -7,25 +7,55 @@ frontend:
 backend:
 	cd backend && npm run dev
 
+build:
+	./get_ip.sh
+	docker compose build --no-cache
+	docker compose up -d
+
+logs-backend:
+	docker compose logs -f backend
+
+logs-frontend:
+	docker compose logs -f frontend
+
 create-db:
 	docker compose --env-file .env up -d
 
+wait-db:
+	@echo "Waiting for Postgres to be ready..."
+	@until docker compose exec -T postgres \
+		pg_isready -h localhost -p 5432 -U $(DB_USER) -d $(DB_NAME) > /dev/null 2>&1; do \
+		sleep 1; \
+	done
+	@echo "Postgres is ready !"
+
 db:
-	docker exec -it red_tetris_postgres psql -h localhost -U ${DB_USER} -d ${DB_NAME}
+	docker compose exec postgres \
+		psql -h localhost -U $(DB_USER) -d $(DB_NAME)
 
 update-db:
-	docker exec -it red_tetris_postgres pg_dump -U ${DB_USER} ${DB_NAME} > backup.sql
+	docker compose exec -T postgres \
+		env PGPASSWORD=$(DB_PASSWORD) \
+		pg_dump -U $(DB_USER) $(DB_NAME) > backup.sql
 
 delete-db:
 	rm -rf backup.sql
 
-wait-db:
-	@echo "Waiting for Postgres to be ready..."
-	@until docker exec red_tetris_postgres \
-		pg_isready -h localhost -p 5432 -U $(DB_USER) > /dev/null 2>&1; do \
-		sleep 1; \
-	done
-	@echo "Postgres is ready !"
+init-db:
+	@echo "Running db-init.sql..."
+	@docker compose exec -T postgres \
+		env PGPASSWORD=$(DB_PASSWORD) \
+		psql -h localhost -U $(DB_USER) $(DB_NAME) < db-init.sql
+	@if [ -f backup.sql ]; then \
+		echo "Restoring database from backup.sql..."; \
+		docker compose exec -T postgres \
+			env PGPASSWORD=$(DB_PASSWORD) \
+			psql -h localhost -U $(DB_USER) $(DB_NAME) < backup.sql && \
+		echo "Database restored" || \
+		echo "Database restore FAILED"; \
+	else \
+		echo "No backup.sql found, skipping DB restore"; \
+	fi
 
 down:
 	@echo "Stopping containers..."
@@ -44,32 +74,19 @@ setup:
 	./get_ip.sh
 	@$(MAKE) create-db
 	@$(MAKE) wait-db
-	@echo "Running db-init.sql..."
-	@docker exec -i red_tetris_postgres \
-		env PGPASSWORD=$(DB_PASSWORD) \
-		psql -h localhost -U $(DB_USER) $(DB_NAME) < db-init.sql
-	@if [ -f backup.sql ]; then \
-		echo "Restoring database from backup.sql..."; \
-		docker exec -i red_tetris_postgres \
-			env PGPASSWORD=$(DB_PASSWORD) \
-			psql -h localhost -U $(DB_USER) $(DB_NAME) < backup.sql && \
-		echo "Database restored" || \
-		echo "Database restore FAILED"; \
-	else \
-		echo "No backup.sql found, skipping DB restore"; \
-	fi
+	@$(MAKE) init-db
 
 install: setup
 	npm install --prefix frontend
 	npm install --prefix backend
 
 test-frontend:
-	cd frontend && npm run test:coverage
+	npm run test:run --prefix frontend
 
 test-backend:
-	cd backend && npm run test:coverage
+	npm run test --prefix backend
 
-test: test-frontend test-backend
-	@node -e "const fs=require('fs'); const paths=[['Frontend','frontend/coverage/coverage-summary.json'],['Backend','backend/coverage/coverage-summary.json']]; console.log('\nCoverage Summary'); for (const [name,path] of paths) { const total=JSON.parse(fs.readFileSync(path,'utf8')).total; console.log(name+':'); console.log('  Statements '+total.statements.pct+'%'); console.log('  Branches   '+total.branches.pct+'%'); console.log('  Functions  '+total.functions.pct+'%'); console.log('  Lines      '+total.lines.pct+'%'); }"
+test:
+	npm run coverage
 
-.PHONY: frontend backend db setup-frontend install test-frontend test-backend test-backend-coverage test
+.PHONY: frontend backend build create-db db update-db delete-db wait-db init-db down prune setup install test-frontend test-backend test

@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockQuery = vi.fn()
+const mockIsUsernameConnected = vi.fn()
 
 vi.mock('../../src/config/db.js', () => ({
   pool: {
     query: mockQuery,
   },
+}))
+
+vi.mock('../../src/socket/index.js', () => ({
+  isUsernameConnected: mockIsUsernameConnected,
 }))
 
 const buildRes = () => {
@@ -25,6 +30,7 @@ const getHandler = (router, method, path) =>
 describe('profile routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockIsUsernameConnected.mockReset()
   })
 
   it('returns 400 when username is missing for player stats', async () => {
@@ -81,6 +87,23 @@ describe('profile routes', () => {
 
     expect(res.status).toHaveBeenCalledWith(404)
     expect(res.json).toHaveBeenCalledWith({ error: 'User not found' })
+  })
+
+  it('returns connection state for a username', async () => {
+    mockIsUsernameConnected.mockReturnValueOnce(true)
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/player/connection')
+    const res = buildRes()
+
+    await handler({ query: { username: 'Titi' } }, res)
+
+    expect(mockIsUsernameConnected).toHaveBeenCalledWith('Titi')
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith({
+      username: 'Titi',
+      connected: true,
+    })
   })
 
   it('maps the solo leaderboard response', async () => {

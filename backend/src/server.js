@@ -11,27 +11,30 @@ import roomRoutes from "./routes/rooms.routes.js";
 import setupSockets from "./socket/index.js";
 import { pool } from "./config/db.js";
 
-const HOST = process.env.DB_HOST;
-const FRONTEND_ORIGIN = `http://${HOST}:5173`;
-const DEV_ORIGINS = [
-  FRONTEND_ORIGIN,
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-];
+const PORT = process.env.PORT || 3000;
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:8080";
 
 // App and HTTP Server
 const app = express();
 const httpServer = createServer(app);
+app.set("etag", false);
 
 app.use(
   cors({
-    origin: DEV_ORIGINS,
+    origin: FRONTEND_URL,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     credentials: true,
   })
 );
 
 app.use(express.json());
+
+app.use("/api", (req, res, next) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -55,16 +58,15 @@ app.get("/health", (req, res) => {
 
 const io = new Server(httpServer, {
   cors: {
-    origin: DEV_ORIGINS,
+    origin: FRONTEND_URL,
   },
 });
 
 app.set("io", io);
 setupSockets(io);
 
-const BIND_HOST = process.env.BACKEND_HOST || "0.0.0.0";
-httpServer.listen(3000, BIND_HOST, async () => {
-  console.log(`Backend running on http://${BIND_HOST}:3000`);
+httpServer.listen(PORT, "0.0.0.0", async () => {
+  console.log(`Backend running on port ${PORT}`);
 
   try {
     await pool.query("SELECT 1");

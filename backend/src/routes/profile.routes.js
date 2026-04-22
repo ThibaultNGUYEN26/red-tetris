@@ -1,5 +1,6 @@
 import express from "express";
 import { pool } from "../config/db.js";
+import { isUsernameConnected } from "../socket/index.js";
 
 const router = express.Router();
 
@@ -68,6 +69,19 @@ router.get("/player/stats", async (req, res) => {
     console.error("Fetch player stats failed:", err);
     res.status(500).json({ error: "Server error" });
   }
+});
+
+router.get("/player/connection", (req, res) => {
+  const { username } = req.query;
+
+  if (!username || typeof username !== "string") {
+    return res.status(400).json({ error: "Missing username" });
+  }
+
+  return res.status(200).json({
+    username,
+    connected: isUsernameConnected(username),
+  });
 });
 
 router.get("/leaderboard/solo", async (req, res) => {

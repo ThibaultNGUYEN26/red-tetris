@@ -35,7 +35,8 @@ const getHandler = (router, method, path) =>
 
 describe('rooms routes', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    mockQuery.mockReset()
+    mockBroadcastAvailableRooms.mockReset()
   })
 
   it('validates room creation input before querying', async () => {
@@ -122,14 +123,40 @@ describe('rooms routes', () => {
     )
   })
 
+  it('returns a room by player username', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 7,
+        name: 'TeamRoom',
+        game_mode: 'classic',
+        host: 'Riri',
+        player_count: 2,
+        players: ['Riri', 'Titi'],
+        status: 'waiting',
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'get', '/by-player/:username')
+    const res = buildRes()
+
+    await handler(buildReq({ params: { username: 'Riri' } }), res)
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'TeamRoom', host: 'Riri' })
+    )
+  })
+
   it('renames a room only for the host and emits roomState', async () => {
     mockQuery
       .mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi' }] })
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
       .mockResolvedValueOnce({
         rowCount: 1,
         rows: [{
           id: 1,
-          name: 'New Room',
+          name: 'New-Room',
           host: 'Titi',
           players: ['Titi'],
           game_mode: 'classic',
@@ -149,20 +176,21 @@ describe('rooms routes', () => {
 
     await handler(buildReq({
       params: { roomId: '1' },
-      body: { name: 'New Room', username: 'Titi' },
+      body: { name: 'New-Room', username: 'Titi' },
       app,
     }), res)
 
+    expect(io.to).toHaveBeenCalledWith('1')
     expect(emit).toHaveBeenCalledWith(
       'roomState',
       expect.objectContaining({
-        name: 'New Room',
+        name: 'New-Room',
         player_avatars: { Titi: { eyeType: 'happy' } },
       })
     )
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'New Room',
+        name: 'New-Room',
         player_avatars: { Titi: { eyeType: 'happy' } },
       })
     )
@@ -215,10 +243,17 @@ describe('rooms routes', () => {
       app,
     }), res)
 
-    expect(mockQuery).toHaveBeenCalledWith(
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('SELECT host, player_count FROM rooms WHERE id = $1'),
+      ['1']
+    )
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      2,
       expect.stringContaining('SET game_mode = $1'),
       ['giant', '1']
     )
+    expect(io.to).toHaveBeenCalledWith('1')
     expect(emit).toHaveBeenCalledWith(
       'roomState',
       expect.objectContaining({ game_mode: 'giant' })
@@ -262,6 +297,7 @@ describe('rooms routes', () => {
       app,
     }), res)
 
+    expect(io.to).toHaveBeenCalledWith('1')
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ game_mode: 'cooperative_roles' })
     )

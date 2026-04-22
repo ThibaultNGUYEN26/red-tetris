@@ -93,7 +93,7 @@ function ProfileMenu({ onSubmit, theme }) {
 
       try {
         console.log('API URL:', API_URL)
-        const response = await fetch(`${API_URL}/api/profile`, {
+        const response = await fetch(`/api/profile`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
