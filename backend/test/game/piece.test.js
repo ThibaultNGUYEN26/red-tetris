@@ -53,6 +53,30 @@ describe('Piece', () => {
     expect(piece.rotation).toBe(1)
     expect(piece.shape).not.toBe(initialShape)
 
+
+  it('canSpawn returns false for out-of-bounds and continues for negative y', () => {
+    const board = makeBoard()
+    const piece = new Piece('I')
+    // Out of bounds (boardX < 0)
+    piece.x = -10
+    expect(piece.canSpawn(board)).toBe(false)
+    // Out of bounds (boardX >= boardWidth)
+    piece.x = 20
+    expect(piece.canSpawn(board)).toBe(false)
+    // Out of bounds (boardY >= boardHeight)
+    piece.x = 0
+    piece.y = 25
+    expect(piece.canSpawn(board)).toBe(false)
+    // boardY < 0 triggers continue (should not throw)
+    piece.x = 0
+    piece.y = -5
+    expect(piece.canSpawn(board)).toBe(true)
+    // Collision with existing blocks
+    piece.x = 3
+    piece.y = 0
+    board[0][3] = 'filled'
+    expect(piece.canSpawn(board)).toBe(false)
+  })
     piece.rotate()
     piece.rotate()
     piece.rotate()

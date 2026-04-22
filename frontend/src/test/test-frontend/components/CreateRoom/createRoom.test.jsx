@@ -80,7 +80,8 @@ describe('CreateRoom Component', () => {
           method: 'POST',
           body: JSON.stringify({
             gameMode: 'classic',
-            host: 'TestUser'
+            host: 'TestUser',
+            isListed: true,
           })
         })
       )

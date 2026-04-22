@@ -30,6 +30,14 @@ describe('Player', () => {
     expect(player.nextPiece).toBeNull()
   })
 
+  it('spawnPiece returns false if piece cannot spawn', () => {
+    const player = new Player('Titi', 'socket-1')
+    // Fill the spawn area to block spawning
+    player.board[0].fill('filled')
+    expect(player.spawnPiece('T', player.board)).toBe(false)
+    expect(player.currentPiece).toBeNull()
+  })
+
   it('serializes the public player state', () => {
     const player = new Player('Titi', 'socket-1')
     player.setNextPiece('L')

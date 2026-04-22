@@ -256,4 +256,181 @@ describe('Game', () => {
       })
     )
   })
+
+  it('advances alternating cooperative turns to the next alive player or clears the turn', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2'), new Player('Lulu', '3')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+
+    game.currentTurnIndex = 0
+    players[1].die()
+    game.advanceTurn()
+    expect(game.currentTurnUsername).toBe('Lulu')
+
+    players[2].die()
+    players[0].die()
+    game.advanceTurn()
+    expect(game.currentTurnUsername).toBe(null)
+  })
+
+  it('marks players dead when the initial spawn fails', () => {
+    const soloPlayer = new Player('Solo', '1')
+    const soloGame = new Game('solo-room', [soloPlayer], 'classic', 'solo', 'Solo')
+    vi.spyOn(soloGame, 'spawnForPlayer').mockReturnValue(false)
+
+    soloGame.start()
+    expect(soloPlayer.isAlive).toBe(false)
+
+    const coopPlayers = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const coopGame = new Game('coop-room', coopPlayers, 'cooperative', 'multi', 'Titi')
+    vi.spyOn(coopGame, 'spawnForPlayer').mockReturnValue(false)
+
+    coopGame.start()
+    expect(coopPlayers[0].isAlive).toBe(false)
+    expect(coopPlayers[1].isAlive).toBe(false)
+  })
+
+  it('enqueues inputs directly for non-cooperative games', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    game.enqueueInput('Titi', 'left')
+
+    expect(player.inputQueue).toEqual(['left'])
+  })
+
+  it('allows canPlace checks above the board and rejects invalid moves or rotations', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    expect(game.canPlace('I', 0, 3, -1, player.board)).toBe(true)
+
+    player.currentPiece = {
+      type: 'O',
+      rotation: 0,
+      shape: [[1, 1], [1, 1]],
+      x: 0,
+      y: 0,
+    }
+    let canPlaceSpy = vi.spyOn(game, 'canPlace').mockReturnValue(false)
+    expect(game.tryMove(player, -1, 0)).toBe(false)
+    canPlaceSpy.mockRestore()
+
+    player.currentPiece = {
+      type: 'T',
+      rotation: 0,
+      shape: [[0, 1, 0], [1, 1, 1]],
+      x: 4,
+      y: 0,
+    }
+    canPlaceSpy = vi.spyOn(game, 'canPlace').mockReturnValue(false)
+
+    expect(game.tryRotate(player)).toBe(false)
+
+    canPlaceSpy.mockRestore()
+
+    // Explicitly test the continue and return false branches in canPlace
+    // Out of bounds (boardX < 0)
+    expect(game.canPlace('I', 0, -5, 0, player.board)).toBe(false)
+    // Out of bounds (boardX >= boardWidth)
+    expect(game.canPlace('I', 0, 20, 0, player.board)).toBe(false)
+    // Out of bounds (boardY >= boardHeight)
+    expect(game.canPlace('I', 0, 0, 25, player.board)).toBe(false)
+    // boardY < 0 triggers continue (should not throw)
+    expect(game.canPlace('I', 0, 0, -5, player.board)).toBe(true)
+    // Collision with existing blocks
+    const board = player.board.map(row => row.slice())
+    board[0][3] = 'filled'
+    expect(game.canPlace('I', 0, 3, 0, board)).toBe(false)
+  })
+
+  it('processes queued inputs including lock paths and gravity lock', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    const moveSpy = vi.spyOn(game, 'tryMove')
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(false)
+    const rotateSpy = vi.spyOn(game, 'tryRotate').mockReturnValue(true)
+    const lockSpy = vi.spyOn(game, 'lockCurrentPiece').mockImplementation(() => {})
+
+    player.currentPiece = { type: 'I', rotation: 0, x: 3, y: 0 }
+    player.inputQueue = ['left', 'right', 'rotate', 'drop', 'hardDrop']
+
+    game.processInputs(player)
+
+    expect(rotateSpy).toHaveBeenCalled()
+    expect(lockSpy).toHaveBeenCalledTimes(2)
+
+    player.dropAccumulator = 500
+    game.applyGravity(player)
+    expect(lockSpy).toHaveBeenCalledTimes(3)
+    expect(player.dropAccumulator).toBe(60)
+
+    moveSpy.mockRestore()
+    rotateSpy.mockRestore()
+    lockSpy.mockRestore()
+  })
+
+  it('locks a cooperative piece and advances the turn', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+
+    const advanceSpy = vi.spyOn(game, 'advanceTurn')
+    vi.spyOn(game, 'spawnForPlayer').mockReturnValue(true)
+
+    const sharedPlayer = players[0]
+    sharedPlayer.board = Array.from({ length: game.boardHeight }, () =>
+      Array(game.boardWidth).fill('empty')
+    )
+    sharedPlayer.currentPiece = {
+      type: 'O',
+      rotation: 0,
+      x: 4,
+      y: 0,
+    }
+
+    game.lockCurrentPiece(sharedPlayer)
+
+    expect(advanceSpy).toHaveBeenCalled()
+  })
+
+  it('handles cooperative game-over checks and tick spawn failures', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+    const sharedPlayer = players[0]
+
+    sharedPlayer.die()
+    expect(game.checkGameOver()).toEqual({ over: true, winner: null })
+
+    sharedPlayer.isAlive = true
+    expect(game.checkGameOver()).toEqual({ over: false })
+
+    sharedPlayer.currentPiece = null
+    game.isRunning = true
+    vi.spyOn(game, 'spawnForPlayer').mockReturnValue(false)
+    const syncSpy = vi.spyOn(game, 'syncCooperativeStateFrom')
+
+    game.tick()
+
+    expect(sharedPlayer.isAlive).toBe(false)
+    expect(syncSpy).toHaveBeenCalledWith(sharedPlayer)
+  })
+
+  it('marks multiplayer players dead when tick-time spawning fails', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'multi', 'Titi')
+
+    game.isRunning = true
+    player.currentPiece = null
+    vi.spyOn(game, 'spawnForPlayer').mockReturnValue(false)
+
+    game.tick()
+
+    expect(player.isAlive).toBe(false)
+  })
 })
