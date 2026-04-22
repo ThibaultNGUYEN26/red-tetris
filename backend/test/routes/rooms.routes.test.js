@@ -98,6 +98,41 @@ describe('rooms routes', () => {
     expect(mockBroadcastAvailableRooms).toHaveBeenCalledWith(io)
   })
 
+  it('creates a solo room as unlisted', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'SoloRoom',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 1,
+          is_listed: false,
+          players: ['Titi'],
+        }],
+      })
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const res = buildRes()
+
+    await handler(buildReq({
+      body: { gameMode: 'classic', host: 'Titi', name: 'SoloRoom', isListed: false },
+    }), res)
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO rooms (name, game_mode, host, player_count, is_listed, players)'),
+      ['SoloRoom', 'classic', 'Titi', false, ['Titi']]
+    )
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ is_listed: false })
+    )
+  })
+
   it('returns a room by name', async () => {
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,

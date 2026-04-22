@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   host TEXT NOT NULL,
   player_count INT NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'waiting',
+  is_listed BOOLEAN NOT NULL DEFAULT TRUE,
   players JSONB NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
@@ -45,12 +46,22 @@ CREATE TABLE IF NOT EXISTS rooms (
 ALTER TABLE rooms
   ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'waiting';
 
+ALTER TABLE rooms
+  ADD COLUMN IF NOT EXISTS is_listed BOOLEAN DEFAULT TRUE;
+
 UPDATE rooms
 SET status = 'waiting'
 WHERE status IS NULL;
 
+UPDATE rooms
+SET is_listed = TRUE
+WHERE is_listed IS NULL;
+
 ALTER TABLE rooms
   ALTER COLUMN status SET NOT NULL;
+
+ALTER TABLE rooms
+  ALTER COLUMN is_listed SET NOT NULL;
 
 ALTER TABLE rooms
   ADD COLUMN IF NOT EXISTS ready_again TEXT[] DEFAULT '{}';

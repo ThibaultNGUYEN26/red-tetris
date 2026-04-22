@@ -59,7 +59,7 @@ function generateRoomName() {
 // Create a new room
 router.post("/", async (req, res) => {
   try {
-    const { gameMode, host, name: requestedName } = req.body;
+    const { gameMode, host, name: requestedName, isListed = true } = req.body;
 
     if (!gameMode || !host) {
       console.log("Missing data:", { gameMode, host });
@@ -112,12 +112,12 @@ router.post("/", async (req, res) => {
       }
 
       const query = `
-        INSERT INTO rooms (name, game_mode, host, player_count, players)
-        VALUES ($1, $2, $3, 1, $4)
+        INSERT INTO rooms (name, game_mode, host, player_count, is_listed, players)
+        VALUES ($1, $2, $3, 1, $4, $5)
         RETURNING *;
       `;
 
-      const values = [trimmedName, gameMode, host, [host]];
+      const values = [trimmedName, gameMode, host, Boolean(isListed), [host]];
       const result = await pool.query(query, values);
       room = result.rows[0];
     }
@@ -126,13 +126,13 @@ router.post("/", async (req, res) => {
       const name = generateRoomName();
 
       const query = `
-        INSERT INTO rooms (name, game_mode, host, player_count, players)
-        VALUES ($1, $2, $3, 1, $4)
+        INSERT INTO rooms (name, game_mode, host, player_count, is_listed, players)
+        VALUES ($1, $2, $3, 1, $4, $5)
         ON CONFLICT (name) DO NOTHING
         RETURNING *;
       `;
 
-      const values = [name, gameMode, host, [host]];
+      const values = [name, gameMode, host, Boolean(isListed), [host]];
       const result = await pool.query(query, values);
 
       if (result.rowCount > 0) {

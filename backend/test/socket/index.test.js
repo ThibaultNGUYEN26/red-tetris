@@ -72,6 +72,7 @@ describe('socket setup', () => {
       rows: [
         { id: 1, name: 'A', game_mode: 'classic', host: 'Titi', player_count: 2, players: ['Titi'] },
         { id: 2, name: 'B', game_mode: 'cooperative', host: 'Riri', player_count: 2, players: ['Riri'] },
+        { id: 3, name: 'SoloRoom', game_mode: 'classic', host: 'Solo', player_count: 1, players: ['Solo'], is_listed: false },
       ],
     })
 
@@ -86,6 +87,7 @@ describe('socket setup', () => {
         maxPlayers: 6,
       }),
     ])
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('AND is_listed = TRUE'))
   })
 
   it('registerUser rejects a missing username', async () => {

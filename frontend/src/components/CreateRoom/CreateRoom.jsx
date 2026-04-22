@@ -142,6 +142,7 @@ function CreateRoom({
             gameMode: selectedMode,
             host: username,
             name: desiredRoomName || undefined,
+            isListed: !isSolo,
           }),
         })
 

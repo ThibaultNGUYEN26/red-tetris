@@ -59,10 +59,12 @@ export async function broadcastAvailableRooms(io) {
     `SELECT id, name, game_mode, host, player_count, players
       FROM rooms
       WHERE status = 'waiting'
+        AND is_listed = TRUE
       ORDER BY created_at ASC;`
   );
 
   const rows = result.rows
+    .filter((room) => room.is_listed !== false)
     .map((room) => ({
       ...room,
       maxPlayers: getMaxPlayers(room.game_mode),

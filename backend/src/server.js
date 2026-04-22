@@ -9,7 +9,7 @@ import profileRoutes from "./routes/profile.routes.js";
 import roomRoutes from "./routes/rooms.routes.js";
 
 import setupSockets from "./socket/index.js";
-import { pool } from "./config/db.js";
+import { ensureSchema, pool } from "./config/db.js";
 
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:8080";
@@ -70,6 +70,7 @@ httpServer.listen(PORT, "0.0.0.0", async () => {
 
   try {
     await pool.query("SELECT 1");
+    await ensureSchema();
     console.log("DB connected");
   } catch (err) {
     console.error("DB connection failed:", err);

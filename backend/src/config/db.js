@@ -8,3 +8,21 @@ export const pool = new Pool({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
 });
+
+export async function ensureSchema() {
+  await pool.query(`
+    ALTER TABLE rooms
+      ADD COLUMN IF NOT EXISTS is_listed BOOLEAN DEFAULT TRUE;
+  `);
+
+  await pool.query(`
+    UPDATE rooms
+    SET is_listed = TRUE
+    WHERE is_listed IS NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE rooms
+      ALTER COLUMN is_listed SET NOT NULL;
+  `);
+}
