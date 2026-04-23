@@ -52,6 +52,19 @@ describe('Player', () => {
     })
   })
 
+  it('serializes nextType as null when there is no next piece', () => {
+    const player = new Player('Titi', 'socket-1')
+
+    expect(player.serialize()).toEqual({
+      username: 'Titi',
+      isAlive: true,
+      score: 0,
+      lines: 0,
+      level: 1,
+      nextType: null,
+    })
+  })
+
   it('applyLineClear updates score, lines, and level', () => {
     const player = new Player('Titi', 'socket-1')
     player.lines = 9
@@ -79,5 +92,20 @@ describe('Player', () => {
 
     player.die()
     expect(player.isAlive).toBe(false)
+  })
+
+  it('applyLineClear uses zero base score for unsupported line counts', () => {
+    const player = new Player('Titi', 'socket-1')
+
+    const result = player.applyLineClear(5)
+
+    expect(result).toEqual({
+      scoreDelta: 0,
+      lines: 5,
+      level: 1,
+    })
+    expect(player.score).toBe(0)
+    expect(player.lines).toBe(5)
+    expect(player.level).toBe(1)
   })
 })

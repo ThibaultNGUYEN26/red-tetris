@@ -11,6 +11,7 @@ describe('Game', () => {
   afterEach(() => {
     vi.clearAllTimers()
     vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   it('starts a solo game, spawns pieces, and stops cleanly', () => {
@@ -339,7 +340,7 @@ describe('Game', () => {
     expect(game.canPlace('I', 0, 0, -5, player.board)).toBe(true)
     // Collision with existing blocks
     const board = player.board.map(row => row.slice())
-    board[0][3] = 'filled'
+    board[1][3] = 'filled'
     expect(game.canPlace('I', 0, 3, 0, board)).toBe(false)
   })
 
@@ -432,5 +433,214 @@ describe('Game', () => {
     game.tick()
 
     expect(player.isAlive).toBe(false)
+  })
+
+  it('processes inputs and gravity for alive cooperative shared player', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+    const sharedPlayer = players[0]
+
+    game.isRunning = true
+    sharedPlayer.isAlive = true
+    sharedPlayer.currentPiece = { type: 'T', rotation: 0, x: 4, y: 0 }
+
+    const processSpy = vi.spyOn(game, 'processInputs').mockImplementation(() => {})
+    const gravitySpy = vi.spyOn(game, 'applyGravity').mockImplementation(() => {})
+    const syncSpy = vi.spyOn(game, 'syncCooperativeStateFrom').mockImplementation(() => {})
+
+    game.tick()
+
+    expect(processSpy).toHaveBeenCalledWith(sharedPlayer)
+    expect(gravitySpy).toHaveBeenCalledWith(sharedPlayer)
+    expect(syncSpy).toHaveBeenCalledWith(sharedPlayer)
+  })
+
+  it('returns early in tick when game is stopped, over, or paused', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+    const processSpy = vi.spyOn(game, 'processInputs')
+
+    game.tick()
+    expect(processSpy).not.toHaveBeenCalled()
+
+    game.isRunning = true
+    game.isOver = true
+    game.tick()
+    expect(processSpy).not.toHaveBeenCalled()
+
+    game.isOver = false
+    game.isPaused = true
+    game.tick()
+    expect(processSpy).not.toHaveBeenCalled()
+  })
+
+  it('renders active blocks without ghost when includeGhost is false', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.board = Array.from({ length: game.boardHeight }, () =>
+      Array(game.boardWidth).fill('empty')
+    )
+    player.currentPiece = {
+      type: 'O',
+      rotation: 0,
+      x: 4,
+      y: 0,
+    }
+
+    const rendered = game.getRenderBoard(player, { includeActive: true, includeGhost: false })
+
+    expect(rendered.flat()).toContain('o')
+    expect(rendered.flat()).not.toContain('ghost')
+  })
+
+  it('does not overwrite occupied cells when drawing ghost and active pieces', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.board = Array.from({ length: game.boardHeight }, () =>
+      Array(game.boardWidth).fill('empty')
+    )
+    player.currentPiece = {
+      type: 'O',
+      rotation: 0,
+      x: 4,
+      y: 0,
+    }
+    player.board[0][5] = 'black'
+
+    vi.spyOn(game, 'canPlace').mockReturnValue(false)
+
+    const rendered = game.getRenderBoard(player, { includeActive: true, includeGhost: true })
+
+    expect(rendered[0][5]).toBe('black')
+    expect(rendered.flat()).not.toContain('ghost')
+  })
+
+  it('serializes cooperative mode with safe fallbacks when no shared player is available', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+
+    vi.spyOn(game, 'getCooperativePlayer').mockReturnValue(null)
+
+    const state = game.serialize()
+
+    expect(state.players).toEqual([
+      expect.objectContaining({
+        username: 'Titi',
+        isAlive: false,
+        score: 0,
+        lines: 0,
+        level: 1,
+        nextType: null,
+        board: [],
+        boardLocked: [],
+      }),
+      expect.objectContaining({
+        username: 'Riri',
+        isAlive: false,
+        score: 0,
+        lines: 0,
+        level: 1,
+        nextType: null,
+        board: [],
+        boardLocked: [],
+      }),
+    ])
+  })
+
+  it('evaluates non-cooperative isCurrentTurn from username comparison branch', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'classic', 'multi', 'Titi')
+
+    game.currentTurnUsername = 'Riri'
+    vi.spyOn(game, 'isCooperativeMode')
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true)
+      .mockReturnValueOnce(true)
+
+    const state = game.serialize()
+
+    expect(state.players.find((player) => player.username === 'Titi')?.isCurrentTurn).toBe(false)
+    expect(state.players.find((player) => player.username === 'Riri')?.isCurrentTurn).toBe(true)
+  })
+
+  it('handles out-of-bounds render cells and active-disabled rendering paths', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.board = Array.from({ length: game.boardHeight }, () =>
+      Array(game.boardWidth).fill('empty')
+    )
+    player.currentPiece = {
+      type: 'O',
+      rotation: 0,
+      x: 4,
+      y: -2,
+    }
+
+    vi.spyOn(game, 'canPlace').mockReturnValue(false)
+
+    const ghostOnly = game.getRenderBoard(player, { includeActive: false, includeGhost: true })
+    expect(ghostOnly.flat()).not.toContain('ghost')
+
+    const activeOnly = game.getRenderBoard(player, { includeActive: true, includeGhost: false })
+    expect(activeOnly.flat()).not.toContain('o')
+  })
+
+  it('skips cooperative tick body when shared player is not alive', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+    const sharedPlayer = players[0]
+
+    game.isRunning = true
+    sharedPlayer.isAlive = false
+
+    const processSpy = vi.spyOn(game, 'processInputs')
+    const gravitySpy = vi.spyOn(game, 'applyGravity')
+    const syncSpy = vi.spyOn(game, 'syncCooperativeStateFrom')
+
+    game.tick()
+
+    expect(processSpy).not.toHaveBeenCalled()
+    expect(gravitySpy).not.toHaveBeenCalled()
+    expect(syncSpy).not.toHaveBeenCalled()
+  })
+
+  it('continues cooperative tick when spawning succeeds', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+    const sharedPlayer = players[0]
+
+    game.isRunning = true
+    sharedPlayer.isAlive = true
+    sharedPlayer.currentPiece = null
+
+    vi.spyOn(game, 'spawnForPlayer').mockReturnValue(true)
+    const processSpy = vi.spyOn(game, 'processInputs').mockImplementation(() => {})
+    const gravitySpy = vi.spyOn(game, 'applyGravity').mockImplementation(() => {})
+
+    game.tick()
+
+    expect(processSpy).toHaveBeenCalledWith(sharedPlayer)
+    expect(gravitySpy).toHaveBeenCalledWith(sharedPlayer)
+  })
+
+  it('continues multiplayer tick when spawning succeeds', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'multi', 'Titi')
+
+    game.isRunning = true
+    player.currentPiece = null
+    player.isAlive = true
+
+    vi.spyOn(game, 'spawnForPlayer').mockReturnValue(true)
+    const processSpy = vi.spyOn(game, 'processInputs').mockImplementation(() => {})
+    const gravitySpy = vi.spyOn(game, 'applyGravity').mockImplementation(() => {})
+
+    game.tick()
+
+    expect(processSpy).toHaveBeenCalledWith(player)
+    expect(gravitySpy).toHaveBeenCalledWith(player)
   })
 })

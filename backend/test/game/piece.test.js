@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 
 import Piece from '../../src/game/Piece.js'
 
@@ -6,6 +6,10 @@ const makeBoard = (width = 10, height = 20) =>
   Array.from({ length: height }, () => Array(width).fill('empty'))
 
 describe('Piece', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('spawns pieces in SRS rotation state 0', () => {
     const iPiece = new Piece('I')
     const tPiece = new Piece('T')
@@ -52,7 +56,12 @@ describe('Piece', () => {
     piece.rotate()
     expect(piece.rotation).toBe(1)
     expect(piece.shape).not.toBe(initialShape)
+    piece.rotate()
+    piece.rotate()
+    piece.rotate()
 
+    expect(piece.rotation).toBe(0)
+  })
 
   it('canSpawn returns false for out-of-bounds and continues for negative y', () => {
     const board = makeBoard()
@@ -74,14 +83,8 @@ describe('Piece', () => {
     // Collision with existing blocks
     piece.x = 3
     piece.y = 0
-    board[0][3] = 'filled'
+    board[1][3] = 'filled'
     expect(piece.canSpawn(board)).toBe(false)
-  })
-    piece.rotate()
-    piece.rotate()
-    piece.rotate()
-
-    expect(piece.rotation).toBe(0)
   })
 
   it('getCells returns occupied board coordinates', () => {
@@ -93,5 +96,13 @@ describe('Piece', () => {
       { x: piece.x + 1, y: 1 },
       { x: piece.x + 2, y: 1 },
     ])
+  })
+
+  it('falls back to y = 0 when no occupied spawn row is found', () => {
+    vi.spyOn(Array.prototype, 'findIndex').mockReturnValueOnce(-1)
+
+    const piece = new Piece('T')
+
+    expect(piece.y).toBe(0)
   })
 })
