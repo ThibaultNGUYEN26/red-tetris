@@ -79,6 +79,10 @@ vi.mock('../src/routes/rooms.routes.js', () => ({
   default: 'rooms-routes',
 }))
 
+vi.mock('../src/routes/auth.routes.js', () => ({
+  default: 'auth-routes',
+}))
+
 vi.mock('../src/socket/index.js', () => ({
   default: setupSocketsMock,
 }))
@@ -124,6 +128,7 @@ describe('server bootstrap', () => {
     expect(appUse).toHaveBeenCalledWith('cors-middleware')
     expect(appUse).toHaveBeenCalledWith('json-middleware')
     expect(appUse).toHaveBeenCalledWith('/api', 'profile-routes')
+    expect(appUse).toHaveBeenCalledWith('/api/auth', 'auth-routes')
     expect(appUse).toHaveBeenCalledWith('/api/rooms', 'rooms-routes')
 
     expect(createServerMock).toHaveBeenCalledWith(appInstance)

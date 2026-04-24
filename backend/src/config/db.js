@@ -11,6 +11,11 @@ export const pool = new Pool({
 
 export async function ensureSchema() {
   await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS password_hash TEXT;
+  `);
+
+  await pool.query(`
     ALTER TABLE rooms
       ADD COLUMN IF NOT EXISTS is_listed BOOLEAN DEFAULT TRUE;
   `);

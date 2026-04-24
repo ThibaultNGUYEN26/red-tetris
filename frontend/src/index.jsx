@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
-import ProfileMenu from './components/ProfileMenu/ProfileMenu.jsx'
+import AuthMenu from './components/AuthMenu/AuthMenu.jsx'
 import ModeMenuSelector from './components/ModeMenuSelector/ModeMenuSelector.jsx'
 import Leaderboard from './components/Leaderboard/Leaderboard.jsx'
 import PlayerStats from './components/PlayerStats/PlayerStats.jsx'
@@ -16,6 +16,7 @@ import { socket } from './socket'
 import bopSound from './res/sounds/bop.mp3'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
+const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
 const DEFAULT_URL_AVATAR = {
   skinColor: '#cccccc',
   eyeType: 'normal',
@@ -39,9 +40,20 @@ const buildRoomPath = (roomName, type, username) => {
 const getMaxPlayers = (gameMode) =>
   ['cooperative', 'cooperative_roles'].includes(gameMode) ? 2 : 6
 
-function Index() {
+function Index({ authMode = 'register' }) {
   const { roomName: urlRoomName, roomType: urlRoomType, username: urlUsername } = useParams()
   const navigate = useNavigate()
+  const savedAuth = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(AUTH_STORAGE_KEY)
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      if (!parsed?.username || !USERNAME_PATTERN.test(parsed.username)) return null
+      return parsed
+    } catch {
+      return null
+    }
+  }, [])
   const hasValidUrlUsername = urlUsername ? USERNAME_PATTERN.test(urlUsername) : false
   const parsedUrlRoom = useMemo(
     () => parseRoomParams(urlRoomName, urlRoomType),
@@ -49,14 +61,14 @@ function Index() {
   )
 
   const [username, setUsername] = useState(
-    hasValidUrlUsername ? urlUsername : null
+    savedAuth?.username || null
   )
   const [theme, setTheme] = useState('light')
   const [showRooms, setShowRooms] = useState(false)
   const [showGame, setShowGame] = useState(false)
   const [showSoloRoom, setShowSoloRoom] = useState(false)
   const [showDirectRoom, setShowDirectRoom] = useState(false)
-  const [userProfile, setUserProfile] = useState(null)
+  const [userProfile, setUserProfile] = useState(savedAuth || null)
   const [soloRoomName, setSoloRoomName] = useState(
     parsedUrlRoom.type === 'solo' && hasValidUrlUsername ? parsedUrlRoom.name : null
   )
@@ -109,8 +121,6 @@ function Index() {
       return
     }
 
-    if (urlUsername && !username) setUsername(urlUsername)
-
     // Rooms opened from the regular multiplayer lobby also update the URL,
     // but they should stay in the lobby flow instead of switching to direct-room mode.
     if (showRooms) {
@@ -132,6 +142,20 @@ function Index() {
       }
     }
   }, [urlUsername, urlRoomName, username, soloRoomName, parsedUrlRoom, navigate, showRooms])
+
+  useEffect(() => {
+    if (username && userProfile?.avatar) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+        username,
+        avatar: userProfile.avatar,
+      }))
+      return
+    }
+
+    if (!username) {
+      localStorage.removeItem(AUTH_STORAGE_KEY)
+    }
+  }, [username, userProfile])
 
   useEffect(() => {
     if (!username) return
@@ -248,14 +272,28 @@ function Index() {
 
   /* ---------------- PROFILE ---------------- */
 
-  const handleUsernameSubmit = (profileOrUsername, avatar) => {
-    if (typeof profileOrUsername === 'object' && profileOrUsername !== null) {
-      setUserProfile(profileOrUsername)
-      setUsername(profileOrUsername.username)
-    } else {
-      setUsername(profileOrUsername)
-      setUserProfile({ username: profileOrUsername, avatar })
+  const handleAuthSubmit = async (profile) => {
+    const regResult = await new Promise((resolve) => {
+      if (!socket?.emit) {
+        resolve({ ok: true })
+        return
+      }
+      socket.timeout(2000).emit('registerUser', { username: profile.username }, (err, res) => {
+        if (err) {
+          resolve({ ok: false, error: 'Server not responding' })
+          return
+        }
+        resolve(res || { ok: false, error: 'Unknown error' })
+      })
+    })
+
+    if (!regResult?.ok) {
+      setRouteNotice(regResult?.error || 'Username already connected')
+      return
     }
+
+    setUserProfile(profile)
+    setUsername(profile.username)
 
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }
@@ -272,6 +310,7 @@ function Index() {
     if (username) {
       socket.emit('unregisterUser', { username })
     }
+    localStorage.removeItem(AUTH_STORAGE_KEY)
     setUsername(null)
     setShowRooms(false)
     setShowGame(false)
@@ -815,7 +854,7 @@ function Index() {
             )}
 
             {!username ? (
-              <ProfileMenu onSubmit={handleUsernameSubmit} theme={theme} />
+              <AuthMenu onAuthenticated={handleAuthSubmit} theme={theme} initialMode={authMode} />
             ) : (
               <>
                   {!showGame && !showRooms && !showSoloRoom && !showDirectRoom && <Title />}

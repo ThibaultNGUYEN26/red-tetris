@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(50) UNIQUE NOT NULL,
   avatar JSONB NOT NULL,
+  password_hash TEXT,
   solo_games_played INT NOT NULL DEFAULT 0,
   highest_solo_score INT NOT NULL DEFAULT 0,
   multiplayer_games_played INT NOT NULL DEFAULT 0,
@@ -16,7 +17,8 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE users
   ADD COLUMN IF NOT EXISTS multiplayer_games_played INT NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS multiplayer_wins INT NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS multiplayer_losses INT NOT NULL DEFAULT 0;
+  ADD COLUMN IF NOT EXISTS multiplayer_losses INT NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS password_hash TEXT;
 
 UPDATE users
 SET
@@ -73,7 +75,7 @@ ALTER TABLE rooms
 DO $$
 BEGIN
   IF EXISTS (
-    SELECT 1 FROM information_schema.columns 
+    SELECT 1 FROM information_schema.columns
     WHERE table_name='rooms' AND column_name='players' AND data_type='jsonb'
   ) THEN
     UPDATE rooms
