@@ -2,11 +2,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import bcrypt from 'bcryptjs'
 
 const mockQuery = vi.fn()
+const VALID_PASSWORD = 'Secret123!'
+const sendResetPasswordEmail = vi.fn()
 
 vi.mock('../../src/config/db.js', () => ({
   pool: {
     query: mockQuery,
   },
+}))
+
+vi.mock('../../src/services/mail.service.js', () => ({
+  sendResetPasswordEmail,
 }))
 
 const buildRes = () => {
@@ -26,6 +32,7 @@ const getHandler = (router, method, path) =>
 describe('auth routes', () => {
   beforeEach(() => {
     mockQuery.mockReset()
+    sendResetPasswordEmail.mockReset()
   })
 
   it('validates register payload', async () => {
@@ -33,19 +40,23 @@ describe('auth routes', () => {
     const handler = getHandler(router, 'post', '/register')
 
     let res = buildRes()
-    await handler({ body: { username: '', password: '', confirmPassword: '', avatar: null } }, res)
+    await handler({ body: { username: '', email: '', password: '', confirmPassword: '', avatar: null } }, res)
     expect(res.status).toHaveBeenCalledWith(400)
 
     res = buildRes()
-    await handler({ body: { username: 'bad name', password: '123456', confirmPassword: '123456', avatar: {} } }, res)
+    await handler({ body: { username: 'bad name', email: 'test@example.com', password: VALID_PASSWORD, confirmPassword: VALID_PASSWORD, avatar: {} } }, res)
     expect(res.status).toHaveBeenCalledWith(400)
 
     res = buildRes()
-    await handler({ body: { username: 'Titi', password: '123', confirmPassword: '123', avatar: {} } }, res)
+    await handler({ body: { username: 'Titi', email: 'wrong-email', password: VALID_PASSWORD, confirmPassword: VALID_PASSWORD, avatar: {} } }, res)
     expect(res.status).toHaveBeenCalledWith(400)
 
     res = buildRes()
-    await handler({ body: { username: 'Titi', password: '123456', confirmPassword: '654321', avatar: {} } }, res)
+    await handler({ body: { username: 'Titi', email: 'test@example.com', password: '123', confirmPassword: '123', avatar: {} } }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
+    await handler({ body: { username: 'Titi', email: 'test@example.com', password: VALID_PASSWORD, confirmPassword: 'Other123!', avatar: {} } }, res)
     expect(res.status).toHaveBeenCalledWith(400)
   })
 
@@ -54,7 +65,7 @@ describe('auth routes', () => {
       .mockResolvedValueOnce({ rowCount: 0, rows: [] })
       .mockResolvedValueOnce({
         rowCount: 1,
-        rows: [{ id: 1, username: 'Titi', avatar: { eyeType: 'happy' } }],
+        rows: [{ id: 1, username: 'Titi', email: 'titi@example.com', avatar: { eyeType: 'happy' } }],
       })
 
     const { default: router } = await import('../../src/routes/auth.routes.js')
@@ -64,18 +75,24 @@ describe('auth routes', () => {
     await handler({
       body: {
         username: 'Titi',
-        password: 'secret123',
-        confirmPassword: 'secret123',
+        email: 'titi@example.com',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
         avatar: { eyeType: 'happy' },
       },
     }, res)
 
     expect(res.status).toHaveBeenCalledWith(201)
-    expect(res.json).toHaveBeenCalledWith({ id: 1, username: 'Titi', avatar: { eyeType: 'happy' } })
+    expect(res.json).toHaveBeenCalledWith({
+      id: 1,
+      username: 'Titi',
+      email: 'titi@example.com',
+      avatar: { eyeType: 'happy' },
+    })
   })
 
   it('returns 409 when registering an existing username', async () => {
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 4 }] })
+    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ username: 'Titi', email: 'other@example.com' }] })
 
     const { default: router } = await import('../../src/routes/auth.routes.js')
     const handler = getHandler(router, 'post', '/register')
@@ -84,14 +101,39 @@ describe('auth routes', () => {
     await handler({
       body: {
         username: 'Titi',
-        password: 'secret123',
-        confirmPassword: 'secret123',
+        email: 'titi@example.com',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
         avatar: { eyeType: 'happy' },
       },
     }, res)
 
     expect(res.status).toHaveBeenCalledWith(409)
     expect(res.json).toHaveBeenCalledWith({ error: 'Username already exists' })
+  })
+
+  it('returns 409 when registering an existing email', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{ username: 'SomeoneElse', email: 'titi@example.com' }],
+    })
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/register')
+    const res = buildRes()
+
+    await handler({
+      body: {
+        username: 'Titi',
+        email: 'titi@example.com',
+        password: VALID_PASSWORD,
+        confirmPassword: VALID_PASSWORD,
+        avatar: { eyeType: 'happy' },
+      },
+    }, res)
+
+    expect(res.status).toHaveBeenCalledWith(409)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Email already exists' })
   })
 
   it('validates login payload', async () => {
@@ -103,7 +145,7 @@ describe('auth routes', () => {
     expect(res.status).toHaveBeenCalledWith(400)
 
     res = buildRes()
-    await handler({ body: { username: 'bad name', password: 'secret123' } }, res)
+    await handler({ body: { username: 'bad name', password: VALID_PASSWORD } }, res)
     expect(res.status).toHaveBeenCalledWith(400)
   })
 
@@ -114,7 +156,7 @@ describe('auth routes', () => {
     const handler = getHandler(router, 'post', '/login')
     const res = buildRes()
 
-    await handler({ body: { username: 'Titi', password: 'secret123' } }, res)
+    await handler({ body: { username: 'Titi', password: VALID_PASSWORD } }, res)
 
     expect(res.status).toHaveBeenCalledWith(401)
     expect(res.json).toHaveBeenCalledWith({ error: 'Invalid credentials' })
@@ -130,13 +172,13 @@ describe('auth routes', () => {
     const handler = getHandler(router, 'post', '/login')
     const res = buildRes()
 
-    await handler({ body: { username: 'Titi', password: 'secret123' } }, res)
+    await handler({ body: { username: 'Titi', password: VALID_PASSWORD } }, res)
 
     expect(res.status).toHaveBeenCalledWith(401)
   })
 
   it('returns 401 when password is incorrect', async () => {
-    const hash = await bcrypt.hash('secret123', 10)
+    const hash = await bcrypt.hash(VALID_PASSWORD, 10)
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
       rows: [{ id: 1, username: 'Titi', avatar: { eyeType: 'happy' }, password_hash: hash }],
@@ -152,7 +194,7 @@ describe('auth routes', () => {
   })
 
   it('logs in with valid credentials', async () => {
-    const hash = await bcrypt.hash('secret123', 10)
+    const hash = await bcrypt.hash(VALID_PASSWORD, 10)
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
       rows: [{ id: 1, username: 'Titi', avatar: { eyeType: 'happy' }, password_hash: hash }],
@@ -162,7 +204,7 @@ describe('auth routes', () => {
     const handler = getHandler(router, 'post', '/login')
     const res = buildRes()
 
-    await handler({ body: { username: 'Titi', password: 'secret123' } }, res)
+    await handler({ body: { username: 'Titi', password: VALID_PASSWORD } }, res)
 
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({
@@ -170,5 +212,110 @@ describe('auth routes', () => {
       username: 'Titi',
       avatar: { eyeType: 'happy' },
     })
+  })
+
+  it('validates forgot password payload', async () => {
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/forgot-password')
+
+    let res = buildRes()
+    await handler({ body: { username: '', email: '' } }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
+    await handler({ body: { username: 'bad name', email: 'titi@example.com' } }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
+    await handler({ body: { username: 'Titi', email: 'bad-email' } }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+  })
+
+  it('returns a reset link when forgot password email exists', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 8 }] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+    sendResetPasswordEmail.mockResolvedValueOnce()
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/forgot-password')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi', email: 'titi@example.com' } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(sendResetPasswordEmail).toHaveBeenCalledWith(expect.objectContaining({
+      username: 'Titi',
+      email: 'titi@example.com',
+      resetUrl: expect.stringContaining('/reset-password?token='),
+    }))
+    expect(res.json).toHaveBeenCalledWith({
+      ok: true,
+      message: 'Password reset email sent',
+    })
+  })
+
+  it('succeeds silently when forgot password email does not exist', async () => {
+    mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/forgot-password')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi', email: 'missing@example.com' } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith({
+      ok: true,
+      message: 'If that email exists, a reset link has been generated',
+    })
+  })
+
+  it('validates reset password payload', async () => {
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/reset-password')
+
+    let res = buildRes()
+    await handler({ body: { token: '', password: '', confirmPassword: '' } }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
+    await handler({ body: { token: 'abc', password: '123', confirmPassword: '123' } }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
+    await handler({ body: { token: 'abc', password: VALID_PASSWORD, confirmPassword: 'Different123!' } }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+  })
+
+  it('rejects an invalid reset token', async () => {
+    mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/reset-password')
+    const res = buildRes()
+
+    await handler({ body: { token: 'bad-token', password: VALID_PASSWORD, confirmPassword: VALID_PASSWORD } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Invalid or expired reset link' })
+  })
+
+  it('updates the password for a valid reset token', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ id: 3, reset_password_expires_at: new Date(Date.now() + 60_000).toISOString() }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/reset-password')
+    const res = buildRes()
+
+    await handler({ body: { token: 'good-token', password: VALID_PASSWORD, confirmPassword: VALID_PASSWORD } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith({ ok: true, message: 'Password updated' })
   })
 })

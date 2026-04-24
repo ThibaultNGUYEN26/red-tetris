@@ -40,7 +40,7 @@ const buildRoomPath = (roomName, type, username) => {
 const getMaxPlayers = (gameMode) =>
   ['cooperative', 'cooperative_roles'].includes(gameMode) ? 2 : 6
 
-function Index({ authMode = 'register' }) {
+function Index({ authMode = 'login' }) {
   const { roomName: urlRoomName, roomType: urlRoomType, username: urlUsername } = useParams()
   const navigate = useNavigate()
   const savedAuth = useMemo(() => {

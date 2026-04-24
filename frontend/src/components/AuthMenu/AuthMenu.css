@@ -8,7 +8,7 @@
   flex: 1;
   border: 1px solid rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  color: #3756a0;
   padding: 0.55rem 0.8rem;
   border-radius: 10px;
   cursor: pointer;
@@ -33,4 +33,122 @@
 
 .auth-alt-link a:hover {
   text-decoration: underline;
+}
+
+.auth-content {
+  width: 100%;
+}
+
+.auth-card.register-mode {
+  max-width: 720px;
+}
+
+.auth-card.login-mode {
+  max-width: 420px;
+}
+
+.auth-content.login-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.auth-content.register-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.85fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.auth-avatar-column,
+.auth-form-column {
+  min-width: 0;
+}
+
+.auth-form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+  height: 100%;
+}
+
+.auth-content.register-layout .avatar-section {
+  margin-bottom: 0;
+}
+
+.auth-content.register-layout .avatar-preview {
+  padding-top: 0;
+}
+
+.auth-content.register-layout .random-button {
+  width: fit-content;
+  align-self: center;
+}
+
+.auth-success {
+  color: #2e8b57;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0.2rem 0 0;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.25);
+}
+
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input {
+  padding-right: 3.1rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.8rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #3756a0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.password-toggle:hover {
+  opacity: 0.8;
+}
+
+.auth-secondary-action {
+  align-self: center;
+  border: none;
+  background: transparent;
+  color: #3756a0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.15rem 0.25rem;
+}
+
+.auth-secondary-action:hover {
+  text-decoration: underline;
+}
+
+.back-to-login {
+  margin-top: -0.1rem;
+}
+
+@media (max-width: 900px) {
+  .auth-card.register-mode {
+    max-width: 420px;
+  }
+
+  .auth-content.register-layout {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
 }

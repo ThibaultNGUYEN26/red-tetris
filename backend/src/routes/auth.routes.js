@@ -1,16 +1,45 @@
 import express from "express";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { pool } from "../config/db.js";
+import { sendResetPasswordEmail } from "../services/mail.service.js";
 
 const router = express.Router();
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/;
-const PASSWORD_MIN_LENGTH = 6;
+const PASSWORD_MIN_LENGTH = 8;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
+
+const buildResetUrl = (token) => {
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:8080";
+  return `${frontendUrl.replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(token)}`;
+};
+
+const getPasswordValidationError = (password) => {
+  if (typeof password !== "string" || password.length < PASSWORD_MIN_LENGTH) {
+    return "Password must be at least 8 characters";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least 1 uppercase letter";
+  }
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least 1 lowercase letter";
+  }
+  if (!/\d/.test(password)) {
+    return "Password must contain at least 1 number";
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return "Password must contain at least 1 special character";
+  }
+  return null;
+};
 
 router.post("/register", async (req, res) => {
   try {
-    const { username, password, confirmPassword, avatar } = req.body || {};
+    const { username, email, password, confirmPassword, avatar } = req.body || {};
+    const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
-    if (!username || !password || !confirmPassword || !avatar) {
+    if (!username || !normalizedEmail || !password || !confirmPassword || !avatar) {
       return res.status(400).json({ error: "Missing data" });
     }
 
@@ -18,23 +47,32 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Invalid username" });
     }
 
-    if (typeof password !== "string" || password.length < PASSWORD_MIN_LENGTH) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      return res.status(400).json({ error: "Invalid email" });
+    }
+
+    const passwordError = getPasswordValidationError(password);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
     }
 
     if (password !== confirmPassword) {
-      return res.status(400).json({ error: "Passwords do not match" });
+      return res.status(400).json({ error: "Password doesn't match" });
     }
 
     const existing = await pool.query(
-      `SELECT id
+      `SELECT username, email
        FROM users
-       WHERE username = $1`,
-      [username]
+       WHERE username = $1 OR LOWER(email) = $2`,
+      [username, normalizedEmail]
     );
 
     if (existing.rowCount > 0) {
-      return res.status(409).json({ error: "Username already exists" });
+      const existingUser = existing.rows[0];
+      if (existingUser.username === username) {
+        return res.status(409).json({ error: "Username already exists" });
+      }
+      return res.status(409).json({ error: "Email already exists" });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -42,6 +80,7 @@ router.post("/register", async (req, res) => {
     const result = await pool.query(
       `INSERT INTO users (
         username,
+        email,
         avatar,
         password_hash,
         solo_games_played,
@@ -50,14 +89,17 @@ router.post("/register", async (req, res) => {
         multiplayer_wins,
         multiplayer_losses
       )
-      VALUES ($1, $2, $3, 0, 0, 0, 0, 0)
-      RETURNING id, username, avatar`,
-      [username, JSON.stringify(avatar), passwordHash]
+      VALUES ($1, $2, $3, $4, 0, 0, 0, 0, 0)
+      RETURNING id, username, email, avatar`,
+      [username, normalizedEmail, JSON.stringify(avatar), passwordHash]
     );
 
     return res.status(201).json(result.rows[0]);
   } catch (err) {
     if (err?.code === "23505") {
+      if (String(err?.constraint).includes("email")) {
+        return res.status(409).json({ error: "Email already exists" });
+      }
       return res.status(409).json({ error: "Username already exists" });
     }
     console.error("Register failed:", err);
@@ -105,6 +147,121 @@ router.post("/login", async (req, res) => {
     });
   } catch (err) {
     console.error("Login failed:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const username = typeof req.body?.username === "string" ? req.body.username.trim() : "";
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+
+    if (!username || !email) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
+    if (!USERNAME_PATTERN.test(username)) {
+      return res.status(400).json({ error: "Invalid username" });
+    }
+
+    if (!EMAIL_PATTERN.test(email)) {
+      return res.status(400).json({ error: "Invalid email" });
+    }
+
+    const userResult = await pool.query(
+      `SELECT id
+       FROM users
+       WHERE username = $1 AND LOWER(email) = $2`,
+      [username, email]
+    );
+
+    if (!userResult.rowCount) {
+      return res.status(200).json({
+        ok: true,
+        message: "If that email exists, a reset link has been generated",
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+
+    await pool.query(
+      `UPDATE users
+       SET reset_password_token = $1,
+           reset_password_expires_at = $2
+       WHERE id = $3`,
+      [resetToken, expiresAt, userResult.rows[0].id]
+    );
+
+    const resetUrl = buildResetUrl(resetToken);
+    await sendResetPasswordEmail({
+      username,
+      email,
+      resetUrl,
+    });
+
+    return res.status(200).json({
+      ok: true,
+      message: "Password reset email sent",
+    });
+  } catch (err) {
+    console.error("Forgot password failed:", err);
+    if (err?.message === "Mail service not configured") {
+      return res.status(500).json({ error: "Mail service not configured" });
+    }
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
+    const password = req.body?.password;
+    const confirmPassword = req.body?.confirmPassword;
+
+    if (!token || !password || !confirmPassword) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
+    const passwordError = getPasswordValidationError(password);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: "Password doesn't match" });
+    }
+
+    const userResult = await pool.query(
+      `SELECT id, reset_password_expires_at
+       FROM users
+       WHERE reset_password_token = $1`,
+      [token]
+    );
+
+    if (!userResult.rowCount) {
+      return res.status(400).json({ error: "Invalid or expired reset link" });
+    }
+
+    const user = userResult.rows[0];
+    if (!user.reset_password_expires_at || new Date(user.reset_password_expires_at).getTime() < Date.now()) {
+      return res.status(400).json({ error: "Invalid or expired reset link" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await pool.query(
+      `UPDATE users
+       SET password_hash = $1,
+           reset_password_token = NULL,
+           reset_password_expires_at = NULL
+       WHERE id = $2`,
+      [passwordHash, user.id]
+    );
+
+    return res.status(200).json({ ok: true, message: "Password updated" });
+  } catch (err) {
+    console.error("Reset password failed:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });

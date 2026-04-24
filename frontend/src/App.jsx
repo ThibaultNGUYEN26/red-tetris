@@ -6,9 +6,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Index authMode="register" />} />
+        <Route path="/" element={<Index authMode="login" />} />
         <Route path="/register" element={<Index authMode="register" />} />
         <Route path="/login" element={<Index authMode="login" />} />
+        <Route path="/forgot-password" element={<Index authMode="forgot" />} />
+        <Route path="/reset-password" element={<Index authMode="reset" />} />
         <Route path="/:roomName/:roomType/:username" element={<Index />} />
         <Route path="/:roomName/:username" element={<Index />} />
         <Route path="/:roomName/:roomType/spectate/:username" element={<Spectate />} />
