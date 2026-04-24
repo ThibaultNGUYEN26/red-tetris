@@ -106,6 +106,64 @@ describe('profile routes', () => {
     })
   })
 
+  it('returns 400 when username is missing for player connection', async () => {
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/player/connection')
+    const res = buildRes()
+
+    await handler({ query: {} }, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Missing username' })
+  })
+
+  it('uses default zero values when player stats fields are null', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        username: 'Titi',
+        avatar: { eyeType: 'happy' },
+        solo_games_played: null,
+        highest_solo_score: null,
+        multiplayer_games_played: null,
+        multiplayer_wins: null,
+        multiplayer_losses: null,
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/player/stats')
+    const res = buildRes()
+
+    await handler({ query: { username: 'Titi' } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith({
+      name: 'Titi',
+      avatar: { eyeType: 'happy' },
+      soloGames: 0,
+      soloTopScore: 0,
+      multiGames: 0,
+      wins: 0,
+      losses: 0,
+    })
+  })
+
+  it('returns 500 when fetching player stats fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockQuery.mockRejectedValueOnce(new Error('db down'))
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/player/stats')
+    const res = buildRes()
+
+    await handler({ query: { username: 'Titi' } }, res)
+
+    expect(consoleError).toHaveBeenCalledWith('Fetch player stats failed:', expect.any(Error))
+    expect(res.status).toHaveBeenCalledWith(500)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
+  })
+
   it('maps the solo leaderboard response', async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [
@@ -125,6 +183,38 @@ describe('profile routes', () => {
       { rank: 1, name: 'Titi', avatar: { eyeType: 'happy' }, score: 1200 },
       { rank: 2, name: 'Riri', avatar: { eyeType: 'sad' }, score: 900 },
     ])
+  })
+
+  it('defaults solo leaderboard score to 0 when score is null', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ username: 'Titi', avatar: { eyeType: 'happy' }, score: null }],
+    })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/leaderboard/solo')
+    const res = buildRes()
+
+    await handler({}, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith([
+      { rank: 1, name: 'Titi', avatar: { eyeType: 'happy' }, score: 0 },
+    ])
+  })
+
+  it('returns 500 when fetching solo leaderboard fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockQuery.mockRejectedValueOnce(new Error('db down'))
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/leaderboard/solo')
+    const res = buildRes()
+
+    await handler({}, res)
+
+    expect(consoleError).toHaveBeenCalledWith('Fetch solo leaderboard failed:', expect.any(Error))
+    expect(res.status).toHaveBeenCalledWith(500)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
   })
 
   it('maps the coop leaderboard response', async () => {
@@ -155,6 +245,51 @@ describe('profile routes', () => {
         score: 2500,
       },
     ])
+  })
+
+  it('defaults coop leaderboard score to 0 when score is null', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{
+        player_one: 'Titi',
+        avatar_one: { eyeType: 'happy' },
+        player_two: 'Riri',
+        avatar_two: { eyeType: 'sad' },
+        score: null,
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/leaderboard/coop')
+    const res = buildRes()
+
+    await handler({}, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith([
+      {
+        rank: 1,
+        players: [
+          { name: 'Titi', avatar: { eyeType: 'happy' } },
+          { name: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+        score: 0,
+      },
+    ])
+  })
+
+  it('returns 500 when fetching coop leaderboard fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockQuery.mockRejectedValueOnce(new Error('db down'))
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/leaderboard/coop')
+    const res = buildRes()
+
+    await handler({}, res)
+
+    expect(consoleError).toHaveBeenCalledWith('Fetch coop leaderboard failed:', expect.any(Error))
+    expect(res.status).toHaveBeenCalledWith(500)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
   })
 
   it('validates profile payloads before upserting', async () => {
@@ -242,5 +377,49 @@ describe('profile routes', () => {
       username: 'Titi',
       avatar: { eyeType: 'happy' },
     })
+  })
+
+  it('returns 500 when profile upsert throws a non-recoverable error', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockQuery.mockRejectedValueOnce(new Error('db down'))
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'post', '/profile')
+    const res = buildRes()
+
+    await handler({
+      body: {
+        username: 'Titi',
+        avatar: { eyeType: 'happy' },
+      },
+    }, res)
+
+    expect(consoleError).toHaveBeenCalledWith('Profile upsert failed:', expect.any(Error))
+    expect(res.status).toHaveBeenCalledWith(500)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
+  })
+
+  it('rethrows duplicate errors that are not users_pkey and returns 500', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const duplicateOnOtherConstraint = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+      constraint: 'users_username_key',
+    })
+    mockQuery.mockRejectedValueOnce(duplicateOnOtherConstraint)
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'post', '/profile')
+    const res = buildRes()
+
+    await handler({
+      body: {
+        username: 'Titi',
+        avatar: { eyeType: 'happy' },
+      },
+    }, res)
+
+    expect(consoleError).toHaveBeenCalledWith('Profile upsert failed:', duplicateOnOtherConstraint)
+    expect(res.status).toHaveBeenCalledWith(500)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
   })
 })

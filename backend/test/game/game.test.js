@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import Game from '../../src/game/Game.js'
 import Player from '../../src/game/Player.js'
+import { GIANT_BOARD_HEIGHT, GIANT_BOARD_WIDTH } from '../../src/config/constants.js'
 
 describe('Game', () => {
   beforeEach(() => {
@@ -28,6 +29,13 @@ describe('Game', () => {
     game.stop()
     expect(game.isOver).toBe(true)
     expect(game.tickHandle).toBeNull()
+  })
+
+  it('uses giant board dimensions in giant mode', () => {
+    const game = new Game('room-giant', [new Player('Titi', '1')], 'giant', 'solo', 'Titi')
+
+    expect(game.boardWidth).toBe(GIANT_BOARD_WIDTH)
+    expect(game.boardHeight).toBe(GIANT_BOARD_HEIGHT)
   })
 
   it('supports pause and resume only while running', () => {
@@ -138,6 +146,59 @@ describe('Game', () => {
     expect(defender.pendingPenaltyLines).toBe(0)
     expect(defender.board.at(-1).every((cell) => cell === 'black')).toBe(true)
     expect(attacker.currentPiece).not.toBeNull()
+  })
+
+  it('start does not create a second timer when tickHandle already exists', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+    game.tickHandle = 123
+
+    game.start()
+
+    expect(game.tickHandle).toBe(123)
+    game.stop()
+  })
+
+  it('advanceTurn returns early in non-alternating mode and with no players', () => {
+    const classic = new Game('room-1', [new Player('Titi', '1')], 'classic', 'multi', 'Titi')
+    classic.currentTurnUsername = 'Titi'
+    classic.advanceTurn()
+    expect(classic.currentTurnUsername).toBe('Titi')
+
+    const emptyCoop = new Game('room-2', [], 'cooperative', 'multi', 'Titi')
+    emptyCoop.advanceTurn()
+    expect(emptyCoop.currentTurnUsername).toBeNull()
+  })
+
+  it('starts cooperative mode safely when no shared player exists', () => {
+    const game = new Game('coop-room', [], 'cooperative', 'multi', 'Titi')
+
+    const result = game.start()
+
+    expect(result).toEqual({ started: true })
+    game.stop()
+  })
+
+  it('returns early in cooperative enqueueInput when shared player is dead', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+
+    game.currentTurnUsername = 'Titi'
+    players[0].die()
+    game.enqueueInput('Titi', 'left')
+
+    expect(players[0].inputQueue).toEqual([])
+  })
+
+  it('returns early in cooperative enqueueInput when shared player is null', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+
+    game.currentTurnUsername = 'Titi'
+    vi.spyOn(game, 'getCooperativePlayer').mockReturnValue(null)
+    game.enqueueInput('Titi', 'left')
+
+    expect(players[0].inputQueue).toEqual([])
   })
 
   it('produces render boards with active and ghost pieces', () => {
@@ -642,5 +703,283 @@ describe('Game', () => {
 
     expect(processSpy).toHaveBeenCalledWith(player)
     expect(gravitySpy).toHaveBeenCalledWith(player)
+  })
+
+  it('assignCooperativeRoles returns early when not role-split mode or < 2 players', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    game.assignCooperativeRoles()
+    expect(game.cooperativeRoles).toEqual({})
+
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const coopGame = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+    coopGame.assignCooperativeRoles()
+    expect(coopGame.cooperativeRoles).toEqual({})
+  })
+
+  it('assignCooperativeRoles assigns rotate and place roles in cooperative_roles mode', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative_roles', 'multi', 'Titi')
+
+    game.assignCooperativeRoles()
+
+    const roles = Object.values(game.cooperativeRoles)
+    expect(roles).toContain('rotate')
+    expect(roles).toContain('place')
+  })
+
+  it('assignCooperativeRoles covers alternate random branch', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9)
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative_roles', 'multi', 'Titi')
+
+    game.assignCooperativeRoles()
+
+    expect(game.cooperativeRoles[players[1].username]).toBe('rotate')
+    expect(game.cooperativeRoles[players[0].username]).toBe('place')
+    randomSpy.mockRestore()
+  })
+
+  it('initializeTurn uses hostUsername to find start index', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Riri')
+
+    game.initializeTurn()
+
+    expect(game.currentTurnUsername).toBe('Riri')
+    expect(game.currentTurnIndex).toBe(1)
+  })
+
+  it('syncCooperativeStateFrom returns early if not cooperative or no sourcePlayer', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    game.syncCooperativeStateFrom(null)
+    game.syncCooperativeStateFrom(player)
+
+    expect(player.board).toBeDefined()
+  })
+
+  it('syncCooperativeStateFrom syncs state from source to other cooperative players', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+    const sourcePlayer = players[0]
+
+    sourcePlayer.score = 100
+    sourcePlayer.lines = 5
+    sourcePlayer.level = 2
+    sourcePlayer.isAlive = true
+
+    game.syncCooperativeStateFrom(sourcePlayer)
+
+    expect(players[1].score).toBe(100)
+    expect(players[1].lines).toBe(5)
+    expect(players[1].level).toBe(2)
+  })
+
+  it('start creates tickHandle when none exists', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    expect(game.tickHandle).toBeNull()
+
+    game.start()
+
+    expect(game.tickHandle).not.toBeNull()
+
+    game.stop()
+  })
+
+  it('pause and resume return early if not running or over', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    game.pause()
+    expect(game.isPaused).toBe(false)
+
+    game.isRunning = true
+    game.isOver = true
+    game.pause()
+    expect(game.isPaused).toBe(false)
+
+    game.resume()
+    expect(game.isPaused).toBe(false)
+  })
+
+  it('enqueueInput returns early for dead player or non-turn in alternating coop', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+
+    game.currentTurnUsername = 'Titi'
+    game.enqueueInput('Riri', 'left')
+    expect(players[0].inputQueue).toEqual([])
+
+    players[1].die()
+    game.enqueueInput('Riri', 'left')
+    expect(players[0].inputQueue).toEqual([])
+  })
+
+  it('enqueueInput filters actions in role-split cooperative mode', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0)
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative_roles', 'multi', 'Titi')
+
+    game.start()
+
+    game.enqueueInput('Titi', 'rotate')
+    game.enqueueInput('Riri', 'left')
+
+    const sharedPlayer = players[0]
+    expect(sharedPlayer.inputQueue.length).toBeGreaterThan(0)
+
+    randomSpy.mockRestore()
+    game.stop()
+  })
+
+  it('tryMove and tryRotate return false for null currentPiece', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = null
+    expect(game.tryMove(player, 1, 0)).toBe(false)
+    expect(game.tryRotate(player)).toBe(false)
+  })
+
+  it('tryRotate returns false when kickTable is undefined', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = {
+      type: 'T',
+      rotation: 99,
+      x: 4,
+      y: 0,
+      shape: [[0, 1, 0], [1, 1, 1]],
+    }
+
+    expect(game.tryRotate(player)).toBe(false)
+  })
+
+  it('tryRotate covers I and O kick table branches', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = {
+      type: 'I',
+      rotation: 0,
+      x: 3,
+      y: 0,
+      shape: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]],
+    }
+    expect(game.tryRotate(player)).toBe(true)
+
+    player.currentPiece = {
+      type: 'O',
+      rotation: 0,
+      x: 4,
+      y: 0,
+      shape: [[1, 1], [1, 1]],
+    }
+    expect(game.tryRotate(player)).toBe(true)
+  })
+
+  it('lockCurrentPiece returns early for null piece', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = null
+    const spawnSpy = vi.spyOn(game, 'spawnForPlayer')
+
+    game.lockCurrentPiece(player)
+
+    expect(spawnSpy).not.toHaveBeenCalled()
+  })
+
+  it('lockCurrentPiece clears lines with no match in score base', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.board = Array.from({ length: game.boardHeight }, () =>
+      Array(game.boardWidth).fill('empty')
+    )
+
+    for (let i = 0; i < 5; i++) {
+      player.board[game.boardHeight - 1 - i] = Array(game.boardWidth).fill('t')
+    }
+
+    player.currentPiece = {
+      type: 'O',
+      rotation: 0,
+      x: 4,
+      y: game.boardHeight - 6,
+    }
+
+    vi.spyOn(game, 'spawnForPlayer').mockReturnValue(true)
+    game.lockCurrentPiece(player)
+
+    expect(player.score).toBe(0)
+  })
+
+  it('processInputs handles drop lock path when piece cannot move', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = { type: 'O', rotation: 0, x: 4, y: 0 }
+    player.inputQueue = ['drop']
+
+    vi.spyOn(game, 'tryMove').mockReturnValue(false)
+    const lockSpy = vi.spyOn(game, 'lockCurrentPiece').mockImplementation(() => {})
+
+    game.processInputs(player)
+
+    expect(lockSpy).toHaveBeenCalled()
+  })
+
+  it('processInputs does not lock on drop when piece can move', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = { type: 'O', rotation: 0, x: 4, y: 0 }
+    player.inputQueue = ['drop']
+
+    vi.spyOn(game, 'tryMove').mockReturnValue(true)
+    const lockSpy = vi.spyOn(game, 'lockCurrentPiece').mockImplementation(() => {})
+
+    game.processInputs(player)
+
+    expect(lockSpy).not.toHaveBeenCalled()
+  })
+
+  it('applyGravity locks piece when drop interval met and move fails', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = { type: 'O', rotation: 0, x: 4, y: 0 }
+    player.dropAccumulator = 500
+    player.level = 1
+
+    vi.spyOn(game, 'tryMove').mockReturnValue(false)
+    const lockSpy = vi.spyOn(game, 'lockCurrentPiece').mockImplementation(() => {})
+
+    game.applyGravity(player)
+
+    expect(lockSpy).toHaveBeenCalled()
+  })
+
+  it('applyGravity does not lock when move succeeds after interval', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = { type: 'O', rotation: 0, x: 4, y: 0 }
+    player.dropAccumulator = 500
+    player.level = 1
+
+    vi.spyOn(game, 'tryMove').mockReturnValue(true)
+    const lockSpy = vi.spyOn(game, 'lockCurrentPiece').mockImplementation(() => {})
+
+    game.applyGravity(player)
+
+    expect(lockSpy).not.toHaveBeenCalled()
   })
 })
