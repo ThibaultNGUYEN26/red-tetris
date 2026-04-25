@@ -159,6 +159,26 @@ describe('Game', () => {
     game.stop()
   })
 
+  it('counts active play time only while ticking and not paused', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    game.start()
+    for (let i = 0; i < 20; i += 1) {
+      game.tick()
+    }
+
+    game.pause()
+    for (let i = 0; i < 20; i += 1) {
+      game.tick()
+    }
+
+    const summary = game.endGame()
+
+    expect(summary.durationSeconds).toBe(1)
+    expect(summary.results[0].durationSeconds).toBe(1)
+  })
+
   it('advanceTurn returns early in non-alternating mode and with no players', () => {
     const classic = new Game('room-1', [new Player('Titi', '1')], 'classic', 'multi', 'Titi')
     classic.currentTurnUsername = 'Titi'

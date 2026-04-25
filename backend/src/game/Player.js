@@ -16,6 +16,9 @@ export default class Player {
     this.score = 0;
     this.lines = 0;
     this.level = 1;
+    this.tetrisCount = 0;
+    this.linesSent = 0;
+    this.maxLinesCleared = 0;
 
     this.pendingPenaltyLines = 0;
 
@@ -51,6 +54,9 @@ export default class Player {
       score: this.score,
       lines: this.lines,
       level: this.level,
+      tetrisCount: this.tetrisCount,
+      linesSent: this.linesSent,
+      maxLinesCleared: this.maxLinesCleared,
       nextType: this.nextPiece ? this.nextPiece.type.toLowerCase() : null,
     };
   }
@@ -69,6 +75,10 @@ export default class Player {
 
     this.score += scoreDelta;
     this.lines += clearedLines;
+    this.maxLinesCleared = Math.max(this.maxLinesCleared, clearedLines);
+    if (clearedLines === 4) {
+      this.tetrisCount += 1;
+    }
     this.level = 1 + Math.floor(this.lines / LINES_PER_LEVEL);
 
     return { scoreDelta, lines: this.lines, level: this.level };

@@ -47,6 +47,10 @@ CREATE TABLE public.coop_scores (
     player_one character varying(50) NOT NULL,
     player_two character varying(50) NOT NULL,
     score integer NOT NULL,
+    lines integer DEFAULT 0 NOT NULL,
+    level integer DEFAULT 1 NOT NULL,
+    tetris_count integer DEFAULT 0 NOT NULL,
+    duration_seconds integer DEFAULT 0 NOT NULL,
     created_at timestamp without time zone DEFAULT now()
 );
 
@@ -73,6 +77,49 @@ ALTER TABLE public.coop_scores_id_seq OWNER TO riri;
 --
 
 ALTER SEQUENCE public.coop_scores_id_seq OWNED BY public.coop_scores.id;
+
+
+--
+-- Name: multiplayer_scores; Type: TABLE; Schema: public; Owner: riri
+--
+
+CREATE TABLE public.multiplayer_scores (
+    id integer NOT NULL,
+    username character varying(50) NOT NULL,
+    score integer DEFAULT 0 NOT NULL,
+    lines integer DEFAULT 0 NOT NULL,
+    level integer DEFAULT 1 NOT NULL,
+    tetris_count integer DEFAULT 0 NOT NULL,
+    lines_sent integer DEFAULT 0 NOT NULL,
+    duration_seconds integer DEFAULT 0 NOT NULL,
+    is_winner boolean DEFAULT false NOT NULL,
+    game_mode text DEFAULT 'classic'::text NOT NULL,
+    created_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.multiplayer_scores OWNER TO riri;
+
+--
+-- Name: multiplayer_scores_id_seq; Type: SEQUENCE; Schema: public; Owner: riri
+--
+
+CREATE SEQUENCE public.multiplayer_scores_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.multiplayer_scores_id_seq OWNER TO riri;
+
+--
+-- Name: multiplayer_scores_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: riri
+--
+
+ALTER SEQUENCE public.multiplayer_scores_id_seq OWNED BY public.multiplayer_scores.id;
 
 
 --
@@ -126,6 +173,10 @@ CREATE TABLE public.solo_scores (
     id integer NOT NULL,
     username character varying(50) NOT NULL,
     score integer NOT NULL,
+    lines integer DEFAULT 0 NOT NULL,
+    level integer DEFAULT 1 NOT NULL,
+    tetris_count integer DEFAULT 0 NOT NULL,
+    duration_seconds integer DEFAULT 0 NOT NULL,
     created_at timestamp without time zone DEFAULT now()
 );
 
@@ -206,6 +257,13 @@ ALTER TABLE ONLY public.coop_scores ALTER COLUMN id SET DEFAULT nextval('public.
 
 
 --
+-- Name: multiplayer_scores id; Type: DEFAULT; Schema: public; Owner: riri
+--
+
+ALTER TABLE ONLY public.multiplayer_scores ALTER COLUMN id SET DEFAULT nextval('public.multiplayer_scores_id_seq'::regclass);
+
+
+--
 -- Name: rooms id; Type: DEFAULT; Schema: public; Owner: riri
 --
 
@@ -230,7 +288,15 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 -- Data for Name: coop_scores; Type: TABLE DATA; Schema: public; Owner: riri
 --
 
-COPY public.coop_scores (id, player_one, player_two, score, created_at) FROM stdin;
+COPY public.coop_scores (id, player_one, player_two, score, lines, level, tetris_count, duration_seconds, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: multiplayer_scores; Type: TABLE DATA; Schema: public; Owner: riri
+--
+
+COPY public.multiplayer_scores (id, username, score, lines, level, tetris_count, lines_sent, duration_seconds, is_winner, game_mode, created_at) FROM stdin;
 \.
 
 
@@ -246,7 +312,7 @@ COPY public.rooms (id, name, game_mode, host, player_count, status, created_at, 
 -- Data for Name: solo_scores; Type: TABLE DATA; Schema: public; Owner: riri
 --
 
-COPY public.solo_scores (id, username, score, created_at) FROM stdin;
+COPY public.solo_scores (id, username, score, lines, level, tetris_count, duration_seconds, created_at) FROM stdin;
 \.
 
 
@@ -264,6 +330,13 @@ COPY public.users (id, username, avatar, solo_games_played, highest_solo_score, 
 --
 
 SELECT pg_catalog.setval('public.coop_scores_id_seq', 1, false);
+
+
+--
+-- Name: multiplayer_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
+--
+
+SELECT pg_catalog.setval('public.multiplayer_scores_id_seq', 1, false);
 
 
 --
@@ -293,6 +366,14 @@ SELECT pg_catalog.setval('public.users_id_seq', 4, true);
 
 ALTER TABLE ONLY public.coop_scores
     ADD CONSTRAINT coop_scores_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: multiplayer_scores multiplayer_scores_pkey; Type: CONSTRAINT; Schema: public; Owner: riri
+--
+
+ALTER TABLE ONLY public.multiplayer_scores
+    ADD CONSTRAINT multiplayer_scores_pkey PRIMARY KEY (id);
 
 
 --
@@ -361,4 +442,3 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 --
 
 \unrestrict Cfw3vQKhVtS2I7Iqzh8aSzpGMsOQwvTdWT2ereTUwW8QshM1KNnw4xy2cyfKrH3
-

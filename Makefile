@@ -40,7 +40,7 @@ update-db:
 	docker compose exec -T postgres \
 		env PGPASSWORD=$(DB_PASSWORD) \
 		psql -h localhost -U $(DB_USER) $(DB_NAME) -c \
-		"DELETE FROM solo_scores s WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.username = s.username); DELETE FROM coop_scores c WHERE NOT EXISTS (SELECT 1 FROM users u1 WHERE u1.username = c.player_one) OR NOT EXISTS (SELECT 1 FROM users u2 WHERE u2.username = c.player_two); DELETE FROM rooms r WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.username = r.host);"
+		"DELETE FROM solo_scores s WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.username = s.username); DELETE FROM coop_scores c WHERE NOT EXISTS (SELECT 1 FROM users u1 WHERE u1.username = c.player_one) OR NOT EXISTS (SELECT 1 FROM users u2 WHERE u2.username = c.player_two); DELETE FROM multiplayer_scores m WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.username = m.username); DELETE FROM rooms r WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.username = r.host);"
 	docker compose exec -T postgres \
 		env PGPASSWORD=$(DB_PASSWORD) \
 		pg_dump -U $(DB_USER) $(DB_NAME) > backup.sql

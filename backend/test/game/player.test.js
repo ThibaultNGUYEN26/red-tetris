@@ -13,6 +13,9 @@ describe('Player', () => {
     expect(player.score).toBe(0)
     expect(player.lines).toBe(0)
     expect(player.level).toBe(1)
+    expect(player.tetrisCount).toBe(0)
+    expect(player.linesSent).toBe(0)
+    expect(player.maxLinesCleared).toBe(0)
     expect(player.isAlive).toBe(true)
   })
 
@@ -48,6 +51,9 @@ describe('Player', () => {
       score: 0,
       lines: 0,
       level: 1,
+      tetrisCount: 0,
+      linesSent: 0,
+      maxLinesCleared: 0,
       nextType: 'l',
     })
   })
@@ -61,6 +67,9 @@ describe('Player', () => {
       score: 0,
       lines: 0,
       level: 1,
+      tetrisCount: 0,
+      linesSent: 0,
+      maxLinesCleared: 0,
       nextType: null,
     })
   })
@@ -79,6 +88,7 @@ describe('Player', () => {
     expect(player.score).toBe(40)
     expect(player.lines).toBe(10)
     expect(player.level).toBe(2)
+    expect(player.maxLinesCleared).toBe(1)
   })
 
   it('applyLineClear ignores invalid inputs and die marks the player dead', () => {
@@ -107,5 +117,7 @@ describe('Player', () => {
     expect(player.score).toBe(0)
     expect(player.lines).toBe(5)
     expect(player.level).toBe(1)
+    expect(player.tetrisCount).toBe(0)
+    expect(player.maxLinesCleared).toBe(5)
   })
 })

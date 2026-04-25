@@ -29,6 +29,7 @@ export default class Game {
     this.isOver = false;
     this.statsUpdated = false;
     this.isPaused = false;
+    this.activePlayTimeMs = 0;
 
     this.onTick = null;
     this.onGameOver = null;
@@ -111,6 +112,9 @@ export default class Game {
       player.score = sourcePlayer.score;
       player.lines = sourcePlayer.lines;
       player.level = sourcePlayer.level;
+      player.tetrisCount = sourcePlayer.tetrisCount;
+      player.linesSent = sourcePlayer.linesSent;
+      player.maxLinesCleared = sourcePlayer.maxLinesCleared;
       player.currentPiece = sourcePlayer.currentPiece
         ? { ...sourcePlayer.currentPiece }
         : null;
@@ -148,6 +152,9 @@ export default class Game {
     player.score = 0;
     player.lines = 0;
     player.level = 1;
+    player.tetrisCount = 0;
+    player.linesSent = 0;
+    player.maxLinesCleared = 0;
     player.currentPiece = null;
     player.nextPiece = null;
     player.inputQueue = [];
@@ -161,6 +168,7 @@ export default class Game {
     this.isOver = false;
     this.statsUpdated = false;
     this.isPaused = false;
+    this.activePlayTimeMs = 0;
 
     this.players.forEach(player => this.resetPlayer(player));
     this.assignCooperativeRoles();
@@ -356,12 +364,19 @@ export default class Game {
       const scoreDelta = base * player.level;
       player.score += scoreDelta;
       player.lines += cleared;
+      player.maxLinesCleared = Math.max(player.maxLinesCleared, cleared);
+      if (cleared === 4) {
+        player.tetrisCount += 1;
+      }
       player.level = 1 + Math.floor(player.lines / LINES_PER_LEVEL);
     }
 
     // In multiplayer mode, queue penalty lines (n-1) for other alive players
     if (this.mode_player === "multi" && cleared > 1) {
       const penaltyLines = cleared - 1;
+      player.linesSent += penaltyLines * this.players.filter(otherPlayer =>
+        otherPlayer.username !== player.username && otherPlayer.isAlive
+      ).length;
       this.players.forEach(otherPlayer => {
         if (otherPlayer.username !== player.username && otherPlayer.isAlive) {
           otherPlayer.pendingPenaltyLines += penaltyLines;
@@ -524,6 +539,8 @@ export default class Game {
     if (!this.isRunning || this.isOver) return;
     if (this.isPaused) return;
 
+    this.activePlayTimeMs += TICK_MS;
+
     if (this.isCooperativeMode()) {
       const sharedPlayer = this.getCooperativePlayer();
       if (sharedPlayer?.isAlive) {
@@ -618,6 +635,7 @@ export default class Game {
     return {
       roomId: this.roomId,
       mode: this.mode,
+      durationSeconds: Math.floor(this.activePlayTimeMs / 1000),
       winner:
         this.mode_player === "multi" && !this.isCooperativeMode()
           ? alive[0]?.username ?? null
@@ -627,6 +645,10 @@ export default class Game {
         score: p.score,
         lines: p.lines,
         level: p.level,
+        tetrisCount: p.tetrisCount,
+        linesSent: p.linesSent,
+        maxLinesCleared: p.maxLinesCleared,
+        durationSeconds: Math.floor(this.activePlayTimeMs / 1000),
         isAlive: p.isAlive
       }))
     };

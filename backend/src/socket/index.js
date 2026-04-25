@@ -188,17 +188,17 @@ export default function setupSockets(io) {
 
       try {
         await pool.query(
-          `INSERT INTO solo_scores (username, score)
-           VALUES ($1, $2)`,
-          [player.username, player.score]
+          `INSERT INTO solo_scores (username, score, lines, level, tetris_count, duration_seconds)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [player.username, player.score, player.lines, player.level, player.tetrisCount, Math.floor((game.activePlayTimeMs ?? 0) / 1000)]
         );
       } catch (err) {
         if (err?.code === "23505" && err?.constraint === "solo_scores_pkey") {
           await syncSoloScoresSequence();
           await pool.query(
-            `INSERT INTO solo_scores (username, score)
-             VALUES ($1, $2)`,
-            [player.username, player.score]
+            `INSERT INTO solo_scores (username, score, lines, level, tetris_count, duration_seconds)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [player.username, player.score, player.lines, player.level, player.tetrisCount, Math.floor((game.activePlayTimeMs ?? 0) / 1000)]
           );
         } else {
           throw err;
@@ -230,11 +230,20 @@ export default function setupSockets(io) {
         game.getCooperativePlayer?.()?.score ?? 0,
         ...summaryScores
       );
+      const sharedPlayer = game.getCooperativePlayer?.() ?? {};
 
       await pool.query(
-        `INSERT INTO coop_scores (player_one, player_two, score)
-         VALUES ($1, $2, $3)`,
-        [usernames[0], usernames[1], sharedScore]
+        `INSERT INTO coop_scores (player_one, player_two, score, lines, level, tetris_count, duration_seconds)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          usernames[0],
+          usernames[1],
+          sharedScore,
+          sharedPlayer.lines ?? 0,
+          sharedPlayer.level ?? 1,
+          sharedPlayer.tetrisCount ?? 0,
+          summary?.durationSeconds ?? Math.floor((game.activePlayTimeMs ?? 0) / 1000),
+        ]
       );
 
       const leaderboard = await fetchCoopLeaderboard();
@@ -284,6 +293,24 @@ export default function setupSockets(io) {
                multiplayer_losses = multiplayer_losses + $3
            WHERE username = $1`,
           [player.username, isWinner ? 1 : 0, isWinner ? 0 : 1]
+        );
+
+        await pool.query(
+          `INSERT INTO multiplayer_scores (
+             username, score, lines, level, tetris_count, lines_sent, duration_seconds, is_winner, game_mode
+           )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            player.username,
+            player.score ?? 0,
+            player.lines ?? 0,
+            player.level ?? 1,
+            player.tetrisCount ?? 0,
+            player.linesSent ?? 0,
+            player.durationSeconds ?? summary.durationSeconds ?? 0,
+            Boolean(isWinner),
+            summary.mode || "classic",
+          ]
         );
       }
 
