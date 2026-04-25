@@ -12,6 +12,7 @@ const navigateMock = vi.fn((target) => {
 vi.mock('react-router-dom', () => ({
   useParams: () => mockParams,
   useNavigate: () => navigateMock,
+  useLocation: () => ({ search: '' }),
 }))
 
 vi.mock('../../../socket', () => ({
@@ -81,10 +82,23 @@ vi.mock('../../../components/Game/Game.jsx', () => ({
 import Index from '../../../index.jsx'
 
 global.fetch = vi.fn()
+const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
+
+const setSavedUser = (username = 'Titi') => {
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+    username,
+    avatar: {
+      skinColor: '#cccccc',
+      eyeType: 'happy',
+      mouthType: 'neutral',
+    },
+  }))
+}
 
 describe('Index main page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     global.fetch.mockImplementation(async (url) => {
       if (String(url).startsWith('/api/player/connection')) {
         return {
@@ -116,6 +130,7 @@ describe('Index main page', () => {
 
   it('clears the direct-room URL flow when leaving a room', async () => {
     mockParams = { username: 'Titi', roomName: 'Room-ABC', roomType: undefined }
+    setSavedUser('Titi')
 
     global.fetch.mockResolvedValueOnce({
       ok: false,
@@ -140,10 +155,11 @@ describe('Index main page', () => {
 
   it('renders stats, leaderboard, and main menu buttons', () => {
     mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
+    setSavedUser('Titi')
     render(<Index />)
 
     expect(
-      screen.getByRole('button', { name: /change profile/i })
+      screen.getByRole('button', { name: /open profile menu/i })
     ).toBeInTheDocument()
     expect(screen.getByTestId('player-stats')).toBeInTheDocument()
     expect(screen.getByTestId('leaderboard')).toBeInTheDocument()
@@ -163,11 +179,12 @@ describe('Index main page', () => {
     render(<Index />)
 
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
-    expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+    expect(screen.getByText(/login to your account/i)).toBeInTheDocument()
   })
 
   it('joins an existing waiting multiplayer room after create returns 409', async () => {
     mockParams = { username: 'Titi', roomName: 'test', roomType: 'multi' }
+    setSavedUser('Titi')
 
     let byNameCalls = 0
     global.fetch.mockImplementation(async (url) => {
@@ -237,6 +254,7 @@ describe('Index main page', () => {
 
   it('redirects to the profile page with a connected notice when the URL user is already in another room', async () => {
     mockParams = { username: 'Riri', roomName: 'test', roomType: 'multi' }
+    setSavedUser('Riri')
 
     global.fetch.mockImplementation(async (url) => {
       if (String(url) === '/api/player/connection?username=Riri') {
@@ -277,11 +295,12 @@ describe('Index main page', () => {
 
     expect(await screen.findByText('User already connected')).toBeInTheDocument()
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
-    expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+    expect(screen.getByText(/login to your account/i)).toBeInTheDocument()
   })
 
   it('redirects to the profile page with a connected notice when the URL user is already in the same started room', async () => {
     mockParams = { username: 'Riri', roomName: 'test', roomType: 'multi' }
+    setSavedUser('Riri')
 
     global.fetch.mockImplementation(async (url) => {
       if (String(url) === '/api/player/connection?username=Riri') {
@@ -322,11 +341,12 @@ describe('Index main page', () => {
 
     expect(await screen.findByText('User already connected')).toBeInTheDocument()
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
-    expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+    expect(screen.getByText(/login to your account/i)).toBeInTheDocument()
   })
 
   it('prefers connected notice when the fetched room already contains the same user', async () => {
     mockParams = { username: 'Titi', roomName: 'test', roomType: 'multi' }
+    setSavedUser('Titi')
 
     global.fetch.mockImplementation(async (url) => {
       if (String(url) === '/api/player/connection?username=Titi') {
@@ -375,11 +395,12 @@ describe('Index main page', () => {
 
     expect(await screen.findByText('User already connected')).toBeInTheDocument()
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
-    expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+    expect(screen.getByText(/login to your account/i)).toBeInTheDocument()
   })
 
   it('checks live connection state first for direct room URLs', async () => {
     mockParams = { username: 'Titi', roomName: 'test', roomType: 'multi' }
+    setSavedUser('Titi')
 
     global.fetch.mockImplementation(async (url) => {
       if (String(url) === '/api/player/connection?username=Titi') {
@@ -405,11 +426,12 @@ describe('Index main page', () => {
 
     expect(await screen.findByText('User already connected')).toBeInTheDocument()
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
-    expect(screen.getByTestId('profile-menu')).toBeInTheDocument()
+    expect(screen.getByText(/login to your account/i)).toBeInTheDocument()
   })
 
   it('shows the backend invalid room name error for an oversized direct room URL', async () => {
     mockParams = { username: 'Titi', roomName: 'RoomNameWayTooLong', roomType: 'multi' }
+    setSavedUser('Titi')
 
     global.fetch.mockImplementation(async (url) => {
       if (String(url) === '/api/player/connection?username=Titi') {
@@ -455,6 +477,7 @@ describe('Index main page', () => {
 
   it('keeps play again available for direct-room multiplayer games', async () => {
     mockParams = { username: 'Titi', roomName: 'test', roomType: 'multi' }
+    setSavedUser('Titi')
 
     global.fetch.mockImplementation(async (url) => {
       if (String(url) === '/api/player/connection?username=Titi') {

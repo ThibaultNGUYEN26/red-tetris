@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import bcrypt from 'bcryptjs'
 
 const mockQuery = vi.fn()
 const VALID_PASSWORD = 'Secret123!'
 const sendResetPasswordEmail = vi.fn()
+const mockBcryptHash = vi.fn(async (password) => `hashed:${password}`)
+const mockBcryptCompare = vi.fn(async (password, hash) => hash === `hashed:${password}`)
 
 vi.mock('../../src/config/db.js', () => ({
   pool: {
@@ -13,6 +14,15 @@ vi.mock('../../src/config/db.js', () => ({
 
 vi.mock('../../src/services/mail.service.js', () => ({
   sendResetPasswordEmail,
+}))
+
+vi.mock('bcryptjs', () => ({
+  default: {
+    hash: mockBcryptHash,
+    compare: mockBcryptCompare,
+  },
+  hash: mockBcryptHash,
+  compare: mockBcryptCompare,
 }))
 
 const buildRes = () => {
@@ -33,6 +43,8 @@ describe('auth routes', () => {
   beforeEach(() => {
     mockQuery.mockReset()
     sendResetPasswordEmail.mockReset()
+    mockBcryptHash.mockClear()
+    mockBcryptCompare.mockClear()
   })
 
   it('validates register payload', async () => {
@@ -178,7 +190,7 @@ describe('auth routes', () => {
   })
 
   it('returns 401 when password is incorrect', async () => {
-    const hash = await bcrypt.hash(VALID_PASSWORD, 10)
+    const hash = await mockBcryptHash(VALID_PASSWORD, 10)
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
       rows: [{ id: 1, username: 'Titi', avatar: { eyeType: 'happy' }, password_hash: hash }],
@@ -194,7 +206,7 @@ describe('auth routes', () => {
   })
 
   it('logs in with valid credentials', async () => {
-    const hash = await bcrypt.hash(VALID_PASSWORD, 10)
+    const hash = await mockBcryptHash(VALID_PASSWORD, 10)
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
       rows: [{ id: 1, username: 'Titi', avatar: { eyeType: 'happy' }, password_hash: hash }],
@@ -333,7 +345,7 @@ describe('auth routes', () => {
     expect(res.status).toHaveBeenCalledWith(200)
 
     const updatedHash = mockQuery.mock.calls[0][1][0]
-    expect(await bcrypt.compare(VALID_PASSWORD, updatedHash)).toBe(true)
+    expect(await mockBcryptCompare(VALID_PASSWORD, updatedHash)).toBe(true)
 
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
