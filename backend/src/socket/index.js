@@ -36,6 +36,37 @@ const unregisterUsername = (username, socket) => {
   }
 };
 
+async function syncUsersIdSequence() {
+  await pool.query(`
+    SELECT setval(
+      pg_get_serial_sequence('users', 'id'),
+      COALESCE((SELECT MAX(id) FROM users), 0) + 1,
+      false
+    )
+  `);
+}
+
+async function updateProfile(username, avatar) {
+  const query = `
+    INSERT INTO users (
+      username,
+      avatar,
+      solo_games_played,
+      highest_solo_score,
+      multiplayer_games_played,
+      multiplayer_wins,
+      multiplayer_losses
+    )
+    VALUES ($1, $2, 0, 0, 0, 0, 0)
+    ON CONFLICT (username)
+    DO UPDATE SET avatar = EXCLUDED.avatar
+    RETURNING id, username, avatar;
+  `;
+
+  const values = [username, JSON.stringify(avatar)];
+  return pool.query(query, values);
+}
+
 function getMaxPlayers(gameMode = "classic") {
   switch (gameMode) {
     case "cooperative":
@@ -126,6 +157,16 @@ export default function setupSockets(io) {
         ],
         score: row.score ?? 0,
       }));
+    };
+
+    const broadcastLeaderboards = async () => {
+      const [soloLeaderboard, coopLeaderboard] = await Promise.all([
+        fetchSoloLeaderboard(),
+        fetchCoopLeaderboard(),
+      ]);
+
+      io.emit("leaderboardSolo", soloLeaderboard);
+      io.emit("leaderboardCoop", coopLeaderboard);
     };
 
     const updateSoloStats = async (game) => {
@@ -285,6 +326,53 @@ export default function setupSockets(io) {
       const ack = typeof callback === "function" ? callback : null;
       unregisterUsername(username, socket);
       if (ack) ack({ ok: true });
+    });
+
+    socket.on("updateProfile", async ({ username, avatar }, callback) => {
+      const ack = typeof callback === "function" ? callback : null;
+
+      if (!username || !avatar) {
+        if (ack) ack({ ok: false, error: "Missing data" });
+        return;
+      }
+
+      if (!USERNAME_PATTERN.test(username)) {
+        if (ack) ack({ ok: false, error: "Invalid username" });
+        return;
+      }
+
+      const existing = activeUsers.get(username);
+      if (existing && existing !== socket.id) {
+        if (ack) ack({ ok: false, error: "Username already connected" });
+        return;
+      }
+
+      try {
+        let result;
+        try {
+          result = await updateProfile(username, avatar);
+        } catch (err) {
+          if (err?.code === "23505" && err?.constraint === "users_pkey") {
+            await syncUsersIdSequence();
+            result = await updateProfile(username, avatar);
+          } else {
+            throw err;
+          }
+        }
+
+        const reg = registerUsername(username, socket);
+        if (!reg.ok) {
+          if (ack) ack(reg);
+          return;
+        }
+
+        await broadcastLeaderboards();
+        const profile = result.rows[0];
+        if (ack) ack({ ok: true, profile });
+      } catch (err) {
+        console.error("updateProfile failed:", err);
+        if (ack) ack({ ok: false, error: "Server error" });
+      }
     });
 
     // Joining room Socket

@@ -5,6 +5,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
 import AuthMenu from './components/AuthMenu/AuthMenu.jsx'
+import ProfileMenu from './components/ProfileMenu/ProfileMenu.jsx'
+import FaceAvatar from './components/FaceAvatar/FaceAvatar.jsx'
 import ModeMenuSelector from './components/ModeMenuSelector/ModeMenuSelector.jsx'
 import Leaderboard from './components/Leaderboard/Leaderboard.jsx'
 import PlayerStats from './components/PlayerStats/PlayerStats.jsx'
@@ -87,7 +89,9 @@ function Index({ authMode = 'login' }) {
   const [activeGameType, setActiveGameType] = useState(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [routeNotice, setRouteNotice] = useState('')
+  const [showProfileCard, setShowProfileCard] = useState(false)
   const bopAudioRef = useRef(null)
+  const profileMenuRef = useRef(null)
   const soundEnabledRef = useRef(soundEnabled)
 
   const API_URL = import.meta.env.VITE_API_URL || ''
@@ -323,7 +327,14 @@ function Index({ authMode = 'login' }) {
     setSoloRoomId(null)
     setDirectRoomId(null)
     setActiveGameType(null)
-    navigate('/')
+    setShowProfileCard(false)
+    navigate('/login', { replace: true })
+  }
+
+  const handleProfileUpdate = (profile) => {
+    setUserProfile(profile)
+    setUsername(profile.username)
+    setShowProfileCard(false)
   }
 
   const handleExitJoinedRoom = () => {
@@ -781,6 +792,18 @@ function Index({ authMode = 'login' }) {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [username])
 
+  useEffect(() => {
+    if (!showProfileCard) return
+
+    const handlePointerDown = (event) => {
+      if (profileMenuRef.current?.contains(event.target)) return
+      setShowProfileCard(false)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    return () => document.removeEventListener('mousedown', handlePointerDown)
+  }, [showProfileCard])
+
   /* ---------------- STARS (DARK MODE) ---------------- */
 
   const starsRef = useRef(null)
@@ -838,12 +861,29 @@ function Index({ authMode = 'login' }) {
           <>
               {username && !showRooms && !showGame && !showSoloRoom && !showDirectRoom && (
               <>
-                <button
-                  className="return-profile-btn"
-                  onClick={handleReturnToProfile}
-                >
-                  ← Change profile
-                </button>
+                <div className="profile-menu-anchor" ref={profileMenuRef}>
+                  <button
+                    className="profile-avatar-btn"
+                    onClick={() => setShowProfileCard((current) => !current)}
+                    aria-label="Open profile menu"
+                    aria-expanded={showProfileCard}
+                    type="button"
+                  >
+                    <FaceAvatar faceConfig={userProfile?.avatar || DEFAULT_URL_AVATAR} size="small" />
+                  </button>
+                  {showProfileCard && (
+                    <div className="profile-popover">
+                      <ProfileMenu
+                        theme={theme}
+                        initialProfile={userProfile || { username, avatar: DEFAULT_URL_AVATAR }}
+                        title="Profile"
+                        submitLabel="Save"
+                        onSubmit={handleProfileUpdate}
+                        onLogout={handleReturnToProfile}
+                      />
+                    </div>
+                  )}
+                </div>
                 <PlayerStats
                   theme={theme}
                   userProfile={userProfile}

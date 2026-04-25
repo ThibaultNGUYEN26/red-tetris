@@ -4,8 +4,8 @@ import '@testing-library/jest-dom/vitest'
 import ProfileMenu from '../../../../components/ProfileMenu/ProfileMenu'
 
 const mockSocketEmit = vi.fn((event, payload, callback) => {
-  if (event === 'registerUser' && typeof callback === 'function') {
-    callback(null, { ok: true })
+  if (event === 'updateProfile' && typeof callback === 'function') {
+    callback(null, { ok: true, profile: payload })
   }
 })
 
@@ -18,11 +18,6 @@ vi.mock('../../../../socket', () => ({
   },
 }))
 
-// Mock fetch
-global.fetch = vi.fn()
-
-const API_URL = ''
-
 describe('ProfileMenu Component', () => {
   const mockOnSubmit = vi.fn()
   const defaultProps = {
@@ -33,22 +28,9 @@ describe('ProfileMenu Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSocketEmit.mockImplementation((event, payload, callback) => {
-      if (event === 'registerUser' && typeof callback === 'function') {
-        callback(null, { ok: true })
+      if (event === 'updateProfile' && typeof callback === 'function') {
+        callback(null, { ok: true, profile: payload })
       }
-    })
-    
-    // Default successful fetch response
-    global.fetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        username: 'TestUser',
-        avatar: {
-          skinColor: '#70d4d4',
-          eyeType: 'normal',
-          mouthType: 'uwu'
-        }
-      })
     })
   })
 
@@ -116,11 +98,10 @@ describe('ProfileMenu Component', () => {
       fireEvent.click(screen.getByRole('button', { name: /submit|start|play/i }))
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/profile'),
-          expect.objectContaining({
-            body: expect.stringContaining('"username":"A"')
-          })
+        expect(mockSocketEmit).toHaveBeenCalledWith(
+          'updateProfile',
+          expect.objectContaining({ username: 'A' }),
+          expect.any(Function)
         )
       })
     })
@@ -144,11 +125,10 @@ describe('ProfileMenu Component', () => {
       fireEvent.click(submitButton)
       
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/profile'),
-          expect.objectContaining({
-            body: expect.stringContaining('"username":"TestUser"')
-          })
+        expect(mockSocketEmit).toHaveBeenCalledWith(
+          'updateProfile',
+          expect.objectContaining({ username: 'TestUser' }),
+          expect.any(Function)
         )
       })
     })
@@ -296,16 +276,16 @@ describe('ProfileMenu Component', () => {
       fireEvent.click(submitButton)
       
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled()
+        expect(mockSocketEmit).toHaveBeenCalled()
       }, { timeout: 2000 })
       
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/profile'),
+      expect(mockSocketEmit).toHaveBeenCalledWith(
+        'updateProfile',
         expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: expect.stringContaining('TestUser')
-        })
+          username: 'TestUser',
+          avatar: expect.any(Object),
+        }),
+        expect.any(Function)
       )
     })
 
@@ -319,12 +299,12 @@ describe('ProfileMenu Component', () => {
       fireEvent.click(submitButton)
       
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled()
+        expect(mockSocketEmit).toHaveBeenCalled()
       }, { timeout: 2000 })
       
-      const callArgs = global.fetch.mock.calls[0]
-      expect(callArgs[1].body).toMatch(/"avatar":/)
-      expect(callArgs[1].body).toMatch(/"skinColor":/)
+      const callArgs = mockSocketEmit.mock.calls[0]
+      expect(callArgs[1].avatar).toBeTruthy()
+      expect(callArgs[1].avatar.skinColor).toBeTruthy()
     })
 
     it('should call onSubmit with backend response', async () => {
@@ -350,9 +330,12 @@ describe('ProfileMenu Component', () => {
       })
     })
 
-    it('should handle backend failure gracefully', async () => {
-      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-      global.fetch.mockRejectedValueOnce(new Error('Network error'))
+    it('should handle socket failure gracefully', async () => {
+      mockSocketEmit.mockImplementation((event, payload, callback) => {
+        if (event === 'updateProfile' && typeof callback === 'function') {
+          callback(new Error('timeout'))
+        }
+      })
       
       render(<ProfileMenu {...defaultProps} />)
       
@@ -363,22 +346,17 @@ describe('ProfileMenu Component', () => {
       fireEvent.click(submitButton)
       
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith(
-          'Failed to send profile to backend:',
-          expect.any(String)
-        )
+        expect(screen.getByText('Server not responding')).toBeInTheDocument()
       })
       
-      // Should still call onSubmit with local data
-      expect(mockOnSubmit).toHaveBeenCalled()
-      
-      consoleError.mockRestore()
+      expect(mockOnSubmit).not.toHaveBeenCalled()
     })
 
-    it('should use fallback data if backend response is missing fields', async () => {
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({})
+    it('should use fallback data if socket response is missing profile', async () => {
+      mockSocketEmit.mockImplementation((event, payload, callback) => {
+        if (event === 'updateProfile' && typeof callback === 'function') {
+          callback(null, { ok: true })
+        }
       })
       
       render(<ProfileMenu {...defaultProps} />)
@@ -398,9 +376,9 @@ describe('ProfileMenu Component', () => {
       })
     })
 
-    it('should show an error when registerUser fails after a successful profile save', async () => {
+    it('should show an error when updateProfile fails', async () => {
       mockSocketEmit.mockImplementation((event, payload, callback) => {
-        if (event === 'registerUser' && typeof callback === 'function') {
+        if (event === 'updateProfile' && typeof callback === 'function') {
           callback(null, { ok: false, error: 'Username already connected' })
         }
       })
@@ -417,9 +395,9 @@ describe('ProfileMenu Component', () => {
       expect(mockOnSubmit).not.toHaveBeenCalled()
     })
 
-    it('should show a fallback error when registerUser returns no response data', async () => {
+    it('should show a fallback error when updateProfile returns no response data', async () => {
       mockSocketEmit.mockImplementation((event, payload, callback) => {
-        if (event === 'registerUser' && typeof callback === 'function') {
+        if (event === 'updateProfile' && typeof callback === 'function') {
           callback(null, undefined)
         }
       })
@@ -434,10 +412,9 @@ describe('ProfileMenu Component', () => {
       })
     })
 
-    it('should show a socket timeout error when registerUser fails after backend failure', async () => {
-      global.fetch.mockRejectedValueOnce(new Error('Network error'))
+    it('should show a socket timeout error when updateProfile times out', async () => {
       mockSocketEmit.mockImplementation((event, payload, callback) => {
-        if (event === 'registerUser' && typeof callback === 'function') {
+        if (event === 'updateProfile' && typeof callback === 'function') {
           callback(new Error('timeout'))
         }
       })
@@ -454,10 +431,9 @@ describe('ProfileMenu Component', () => {
       expect(mockOnSubmit).not.toHaveBeenCalled()
     })
 
-    it('should show a fallback error when registerUser returns no response after backend failure', async () => {
-      global.fetch.mockRejectedValueOnce(new Error('Network error'))
+    it('should show a fallback error when updateProfile returns no response', async () => {
       mockSocketEmit.mockImplementation((event, payload, callback) => {
-        if (event === 'registerUser' && typeof callback === 'function') {
+        if (event === 'updateProfile' && typeof callback === 'function') {
           callback(null, undefined)
         }
       })

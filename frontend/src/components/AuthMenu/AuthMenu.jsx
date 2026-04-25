@@ -248,7 +248,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
 
       const data = await response.json().catch(() => ({}))
       if (!response.ok) {
-        const nextError = data?.error === 'Invalid credentials'
+        const nextError = mode === 'login' && data?.error === 'Invalid credentials'
           ? 'Invalid password'
           : data?.error || 'Authentication failed'
         setErrorMessage(nextError)

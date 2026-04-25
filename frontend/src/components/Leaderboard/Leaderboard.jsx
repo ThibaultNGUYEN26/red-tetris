@@ -9,13 +9,23 @@ const DEFAULT_AVATAR = {
   mouthType: 'neutral',
 }
 
+const hasScoreEntries = (data) =>
+  Array.isArray(data) && data.some((entry) => Number(entry?.score || 0) > 0)
+
 function Leaderboard({ theme }) {
-  const [leaderboardData, setLeaderboardData] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [soloData, setSoloData] = useState([])
+  const [coopData, setCoopData] = useState([])
+  const [soloLoaded, setSoloLoaded] = useState(false)
+  const [coopLoaded, setCoopLoaded] = useState(false)
   const [mode, setMode] = useState('solo')
-  const [hasCoopScores, setHasCoopScores] = useState(false)
 
   const [currentPage, setCurrentPage] = useState(0)
+  const leaderboardData = mode === 'coop' ? coopData : soloData
+  const loading = mode === 'coop' ? !coopLoaded : !soloLoaded
+  const hasSoloScores = hasScoreEntries(soloData)
+  const hasCoopScores = hasScoreEntries(coopData)
+  const allLeaderboardsLoaded = soloLoaded && coopLoaded
+  const shouldHideLeaderboard = allLeaderboardsLoaded && !hasSoloScores && !hasCoopScores
   const totalPages = Math.ceil(leaderboardData.length / 10)
 
   const displayedData = leaderboardData.slice(currentPage * 10, (currentPage + 1) * 10)
@@ -29,44 +39,45 @@ function Leaderboard({ theme }) {
   }
 
   useEffect(() => {
-    const isSolo = mode === 'solo'
-    const eventName = isSolo ? 'leaderboardSolo' : 'leaderboardCoop'
-    const requestName = isSolo ? 'getLeaderboardSolo' : 'getLeaderboardCoop'
-
-    setLoading(true)
-    setLeaderboardData([])
-    setCurrentPage(0)
-
-    const handleLeaderboard = (data) => {
-      setLeaderboardData(Array.isArray(data) ? data : [])
-      setLoading(false)
+    const handleSoloLeaderboard = (data) => {
+      setSoloData(Array.isArray(data) ? data : [])
+      setSoloLoaded(true)
     }
 
-    socket.on(eventName, handleLeaderboard)
-    socket.emit(requestName)
-
-    return () => {
-      socket.off(eventName, handleLeaderboard)
-    }
-  }, [mode])
-
-  useEffect(() => {
     const handleCoopLeaderboard = (data) => {
-      const hasScores =
-        Array.isArray(data) && data.some((entry) => Number(entry?.score || 0) > 0)
-      setHasCoopScores(hasScores)
-      if (!hasScores && mode === 'coop') {
-        setMode('solo')
-      }
+      setCoopData(Array.isArray(data) ? data : [])
+      setCoopLoaded(true)
     }
 
+    socket.on('leaderboardSolo', handleSoloLeaderboard)
     socket.on('leaderboardCoop', handleCoopLeaderboard)
+    socket.emit('getLeaderboardSolo')
     socket.emit('getLeaderboardCoop')
 
     return () => {
+      socket.off('leaderboardSolo', handleSoloLeaderboard)
       socket.off('leaderboardCoop', handleCoopLeaderboard)
     }
+  }, [])
+
+  useEffect(() => {
+    setCurrentPage(0)
   }, [mode])
+
+  useEffect(() => {
+    if (mode === 'coop' && coopLoaded && !hasCoopScores) {
+      setMode('solo')
+      return
+    }
+
+    if (mode === 'solo' && soloLoaded && !hasSoloScores && hasCoopScores) {
+      setMode('coop')
+    }
+  }, [mode, soloLoaded, coopLoaded, hasSoloScores, hasCoopScores])
+
+  if (shouldHideLeaderboard) {
+    return null
+  }
 
   const renderSoloEntry = (entry) => (
     <div key={entry.rank} className={`leaderboard-entry ${entry.rank <= 3 ? `top-${entry.rank}` : ''}`}>
@@ -108,13 +119,15 @@ function Leaderboard({ theme }) {
       <div className="leaderboard-header">
         <h3 className="leaderboard-title">🏆 Leaderboard</h3>
         <div className="leaderboard-tabs">
-          <button
-            type="button"
-            onClick={() => setMode('solo')}
-            className={`leaderboard-tab ${mode === 'solo' ? 'active' : ''}`}
-          >
-            Solo
-          </button>
+          {(!allLeaderboardsLoaded || hasSoloScores) && (
+            <button
+              type="button"
+              onClick={() => setMode('solo')}
+              className={`leaderboard-tab ${mode === 'solo' ? 'active' : ''}`}
+            >
+              Solo
+            </button>
+          )}
           {hasCoopScores && (
             <button
               type="button"

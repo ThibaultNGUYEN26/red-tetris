@@ -18,7 +18,10 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS multiplayer_games_played INT NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS multiplayer_wins INT NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS multiplayer_losses INT NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS password_hash TEXT;
+  ADD COLUMN IF NOT EXISTS password_hash TEXT,
+  ADD COLUMN IF NOT EXISTS email TEXT,
+  ADD COLUMN IF NOT EXISTS reset_password_token TEXT,
+  ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMPTZ;
 
 UPDATE users
 SET
@@ -30,6 +33,14 @@ ALTER TABLE users
   ALTER COLUMN multiplayer_games_played SET NOT NULL,
   ALTER COLUMN multiplayer_wins SET NOT NULL,
   ALTER COLUMN multiplayer_losses SET NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx
+  ON users (LOWER(email))
+  WHERE email IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_reset_password_token_unique_idx
+  ON users (reset_password_token)
+  WHERE reset_password_token IS NOT NULL;
 
 -- ROOMS TABLE
 

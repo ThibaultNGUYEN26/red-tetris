@@ -149,7 +149,7 @@ describe('auth routes', () => {
     expect(res.status).toHaveBeenCalledWith(400)
   })
 
-  it('returns 401 when login credentials are invalid', async () => {
+  it('returns 404 when login username does not exist', async () => {
     mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
 
     const { default: router } = await import('../../src/routes/auth.routes.js')
@@ -158,8 +158,8 @@ describe('auth routes', () => {
 
     await handler({ body: { username: 'Titi', password: VALID_PASSWORD } }, res)
 
-    expect(res.status).toHaveBeenCalledWith(401)
-    expect(res.json).toHaveBeenCalledWith({ error: 'Invalid credentials' })
+    expect(res.status).toHaveBeenCalledWith(404)
+    expect(res.json).toHaveBeenCalledWith({ error: 'User does not exist' })
   })
 
   it('returns 401 when user has no password hash', async () => {
@@ -302,12 +302,10 @@ describe('auth routes', () => {
   })
 
   it('updates the password for a valid reset token', async () => {
-    mockQuery
-      .mockResolvedValueOnce({
-        rowCount: 1,
-        rows: [{ id: 3, reset_password_expires_at: new Date(Date.now() + 60_000).toISOString() }],
-      })
-      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{ id: 3 }],
+    })
 
     const { default: router } = await import('../../src/routes/auth.routes.js')
     const handler = getHandler(router, 'post', '/reset-password')
@@ -317,5 +315,39 @@ describe('auth routes', () => {
 
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({ ok: true, message: 'Password updated' })
+  })
+
+  it('allows login with the new password after reset', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{ id: 3 }],
+    })
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const resetHandler = getHandler(router, 'post', '/reset-password')
+    const loginHandler = getHandler(router, 'post', '/login')
+
+    let res = buildRes()
+    await resetHandler({ body: { token: 'good-token', password: VALID_PASSWORD, confirmPassword: VALID_PASSWORD } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+
+    const updatedHash = mockQuery.mock.calls[0][1][0]
+    expect(await bcrypt.compare(VALID_PASSWORD, updatedHash)).toBe(true)
+
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{ id: 3, username: 'Titi', avatar: { eyeType: 'happy' }, password_hash: updatedHash }],
+    })
+
+    res = buildRes()
+    await loginHandler({ body: { username: 'Titi', password: VALID_PASSWORD } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith({
+      id: 3,
+      username: 'Titi',
+      avatar: { eyeType: 'happy' },
+    })
   })
 })

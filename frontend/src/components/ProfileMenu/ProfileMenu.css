@@ -362,6 +362,32 @@
   box-shadow: none;
 }
 
+.logout-button {
+  width: 100%;
+  padding: 0.75rem 1.2rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #9c2424;
+  background: linear-gradient(135deg, rgba(255, 238, 238, 0.78) 0%, rgba(255, 210, 210, 0.72) 100%);
+  border: 3px solid rgba(190, 60, 60, 0.35);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow:
+    0 4px 8px rgba(120, 30, 30, 0.12),
+    inset 0 1px 2px rgba(255, 255, 255, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.logout-button:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 12px rgba(120, 30, 30, 0.18),
+    0 0 12px rgba(255, 120, 120, 0.22),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
 /* Dark Theme */
 .username-card.dark {
   background: linear-gradient(135deg, rgba(20, 20, 40, 0.4) 0%, rgba(10, 10, 30, 0.5) 100%);
@@ -423,6 +449,15 @@
     0 6px 12px rgba(0, 0, 0, 0.4),
     0 0 20px rgba(100, 150, 255, 0.5),
     inset 0 1px 2px rgba(100, 150, 255, 0.3);
+}
+
+.username-card.dark .logout-button {
+  color: #ffd6d6;
+  background: linear-gradient(135deg, rgba(120, 35, 35, 0.58) 0%, rgba(80, 20, 20, 0.62) 100%);
+  border-color: rgba(255, 120, 120, 0.35);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    0 0 14px rgba(255, 90, 90, 0.16);
 }
 
 .username-card.dark .avatar-section h3 {

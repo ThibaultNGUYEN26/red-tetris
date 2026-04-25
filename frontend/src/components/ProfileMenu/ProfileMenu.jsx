@@ -3,11 +3,17 @@ import { useState, useEffect, useRef } from 'react'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { socket } from '../../socket'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 
-function ProfileMenu({ onSubmit, theme }) {
-  const [username, setUsername] = useState('')
+function ProfileMenu({
+  onSubmit,
+  theme,
+  initialProfile = null,
+  title = 'Create Your Profile',
+  submitLabel = "Let's Play!",
+  onLogout,
+}) {
+  const [username, setUsername] = useState(initialProfile?.username || '')
   const [errorMessage, setErrorMessage] = useState('')
   const inputRef = useRef(null)
 
@@ -26,9 +32,20 @@ function ProfileMenu({ onSubmit, theme }) {
   const mouthTypes = ['uwu', 'neutral', 'smile', 'not_smile', 'laugth', 'sad', 'open', 'kiss', 'scared', 'scream', 'horrified']
 
   // Individual feature selections - initialize with random values
-  const [selectedSkin, setSelectedSkin] = useState(() => Math.floor(Math.random() * skinColors.length))
-  const [selectedEyes, setSelectedEyes] = useState(() => Math.floor(Math.random() * eyeTypes.length))
-  const [selectedMouth, setSelectedMouth] = useState(() => Math.floor(Math.random() * mouthTypes.length))
+  const getInitialIndex = (items, value) => {
+    const index = items.indexOf(value)
+    return index >= 0 ? index : Math.floor(Math.random() * items.length)
+  }
+
+  const [selectedSkin, setSelectedSkin] = useState(() =>
+    getInitialIndex(skinColors, initialProfile?.avatar?.skinColor)
+  )
+  const [selectedEyes, setSelectedEyes] = useState(() =>
+    getInitialIndex(eyeTypes, initialProfile?.avatar?.eyeType)
+  )
+  const [selectedMouth, setSelectedMouth] = useState(() =>
+    getInitialIndex(mouthTypes, initialProfile?.avatar?.mouthType)
+  )
 
   // Build current avatar config
   const currentAvatar = {
@@ -82,79 +99,34 @@ function ProfileMenu({ onSubmit, theme }) {
     setErrorMessage('')
     const profileData = {
       username: trimmedUsername,
-        avatar: {
-          skinColor: currentAvatar.skinColor,
-          eyeType: currentAvatar.eyeType,
-          mouthType: currentAvatar.mouthType,
-        },
+      avatar: {
+        skinColor: currentAvatar.skinColor,
+        eyeType: currentAvatar.eyeType,
+        mouthType: currentAvatar.mouthType,
+      },
+    }
+
+    const updateResult = await new Promise((resolve) => {
+      if (!socket?.timeout) {
+        resolve({ ok: false, error: 'Server unavailable' })
+        return
       }
 
-      console.log('Sending profile to backend:', JSON.stringify(profileData, null, 2))
-
-      try {
-        console.log('API URL:', API_URL)
-        const response = await fetch(`/api/profile`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(profileData),
-        })
-
-        const data = await response.json()
-        console.log('Backend response:', data)
-        console.log('Profile sent successfully')
-        console.log('Response status:', response.status)
-        // Fallback if backend response is missing username
-        const safeData = {
-          username: data.username || trimmedUsername,
-          avatar: data.avatar || profileData.avatar,
-          ...data
-        }
-        const regResult = await new Promise((resolve) => {
-          if (!socket?.emit) {
-            resolve({ ok: true })
-            return
-          }
-          socket.timeout(2000).emit('registerUser', { username: safeData.username }, (err, res) => {
-            if (err) {
-              resolve({ ok: false, error: 'Server not responding' })
-              return
-            }
-            resolve(res || { ok: false, error: 'Unknown error' })
-          })
-        })
-
-        if (!regResult?.ok) {
-          setErrorMessage(regResult?.error || 'Username already connected')
+      socket.timeout(2000).emit('updateProfile', profileData, (err, res) => {
+        if (err) {
+          resolve({ ok: false, error: 'Server not responding' })
           return
         }
+        resolve(res || { ok: false, error: 'Unknown error' })
+      })
+    })
 
-        onSubmit(safeData)
-      } catch (error) {
-        console.error('Failed to send profile to backend:', error.message)
-        console.log('This is expected since backend is not running yet')
-        // fallback: pass local data
-        const regResult = await new Promise((resolve) => {
-          if (!socket?.emit) {
-            resolve({ ok: true })
-            return
-          }
-          socket.timeout(2000).emit('registerUser', { username: trimmedUsername }, (err, res) => {
-            if (err) {
-              resolve({ ok: false, error: 'Server not responding' })
-              return
-            }
-            resolve(res || { ok: false, error: 'Unknown error' })
-          })
-        })
-        if (!regResult?.ok) {
-          setErrorMessage(regResult?.error || 'Username already connected')
-          return
-        }
+    if (!updateResult?.ok) {
+      setErrorMessage(updateResult?.error || 'Profile update failed')
+      return
+    }
 
-        onSubmit({ username: trimmedUsername, avatar: profileData.avatar })
-      }
+    onSubmit(updateResult.profile || profileData)
   }
 
   const handleKeyPress = (e) => {
@@ -171,7 +143,7 @@ function ProfileMenu({ onSubmit, theme }) {
 
   return (
     <div className={`username-card ${theme === 'dark' ? 'dark' : ''}`}>
-      <h2>Create Your Profile</h2>
+      <h2>{title}</h2>
 
       {/* Avatar Customization */}
       <div className="avatar-section">
@@ -252,8 +224,17 @@ function ProfileMenu({ onSubmit, theme }) {
         onClick={handleSubmit}
         disabled={username.length === 0}
       >
-        Let's Play!
+        {submitLabel}
       </button>
+      {onLogout && (
+        <button
+          className="logout-button"
+          onClick={onLogout}
+          type="button"
+        >
+          Disconnect
+        </button>
+      )}
     </div>
   )
 }

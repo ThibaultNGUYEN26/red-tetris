@@ -156,6 +156,22 @@ describe('Leaderboard Component', () => {
       })
     })
 
+    it('should hide when solo and co-op have no scores', async () => {
+      render(<Leaderboard {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+        expect(socket.on).toHaveBeenCalledWith('leaderboardCoop', expect.any(Function))
+      })
+
+      triggerSocketEvent('leaderboardSolo', [])
+      triggerSocketEvent('leaderboardCoop', [])
+
+      await waitFor(() => {
+        expect(screen.queryByText(/leaderboard/i)).not.toBeInTheDocument()
+      })
+    })
+
     it('should display player ranks', async () => {
       render(<Leaderboard {...defaultProps} />)
 

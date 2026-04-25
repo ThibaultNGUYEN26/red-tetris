@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict ismNv1TJHiAspkCebDcqwOqBrFUOL0bNOR6bTUwDzN9248Np5UwpdVn5Ej4Xf4a
+\restrict Moo2X7jeJZ23QyJwT81BKVykfnvpBecc4W3WEBMasDkcxTLdIUCyWB9ahe6oViV
 
--- Dumped from database version 15.16 (Debian 15.16-1.pgdg13+1)
--- Dumped by pg_dump version 15.16 (Debian 15.16-1.pgdg13+1)
+-- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
+-- Dumped by pg_dump version 15.15 (Debian 15.15-1.pgdg13+1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -17,6 +17,22 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: riri
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+ALTER SCHEMA public OWNER TO riri;
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: riri
+--
+
+COMMENT ON SCHEMA public IS '';
+
 
 SET default_tablespace = '';
 
@@ -65,15 +81,16 @@ ALTER SEQUENCE public.coop_scores_id_seq OWNED BY public.coop_scores.id;
 
 CREATE TABLE public.rooms (
     id integer NOT NULL,
-    name text NOT NULL,
-    game_mode text NOT NULL,
-    host text NOT NULL,
-    player_count integer NOT NULL,
+    name character varying(100) NOT NULL,
+    game_mode character varying(20) NOT NULL,
+    host character varying(100) NOT NULL,
+    player_count integer DEFAULT 1 NOT NULL,
     status character varying(20) DEFAULT 'waiting'::character varying NOT NULL,
-    is_listed boolean DEFAULT true NOT NULL,
     created_at timestamp without time zone DEFAULT now(),
     ready_again text[] DEFAULT '{}'::text[],
-    players text[] DEFAULT '{}'::text[]
+    players text[] DEFAULT '{}'::text[],
+    players_tmp text[] DEFAULT '{}'::text[],
+    is_listed boolean DEFAULT true NOT NULL
 );
 
 
@@ -143,15 +160,14 @@ ALTER SEQUENCE public.solo_scores_id_seq OWNED BY public.solo_scores.id;
 
 CREATE TABLE public.users (
     id integer NOT NULL,
-    username character varying(50) NOT NULL,
+    username character varying(100) NOT NULL,
     avatar jsonb NOT NULL,
-    password_hash text,
     solo_games_played integer DEFAULT 0 NOT NULL,
     highest_solo_score integer DEFAULT 0 NOT NULL,
     multiplayer_games_played integer DEFAULT 0 NOT NULL,
     multiplayer_wins integer DEFAULT 0 NOT NULL,
     multiplayer_losses integer DEFAULT 0 NOT NULL,
-    created_at timestamp without time zone DEFAULT now(),
+    password_hash text,
     email text,
     reset_password_token text,
     reset_password_expires_at timestamp with time zone
@@ -215,12 +231,6 @@ ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_
 --
 
 COPY public.coop_scores (id, player_one, player_two, score, created_at) FROM stdin;
-1	riri	Titi	0	2026-04-03 09:32:45.261756
-2	riri	Titi	120	2026-04-03 09:34:24.477138
-3	riri	Titi	40	2026-04-03 09:36:06.134892
-4	riri	Titi	2120	2026-04-03 09:46:59.065248
-5	riri	Titi	1860	2026-04-03 09:50:22.216508
-6	riri	Titi	56560	2026-04-03 09:59:07.816415
 \.
 
 
@@ -228,7 +238,7 @@ COPY public.coop_scores (id, player_one, player_two, score, created_at) FROM std
 -- Data for Name: rooms; Type: TABLE DATA; Schema: public; Owner: riri
 --
 
-COPY public.rooms (id, name, game_mode, host, player_count, status, is_listed, created_at, ready_again, players) FROM stdin;
+COPY public.rooms (id, name, game_mode, host, player_count, status, created_at, ready_again, players, players_tmp, is_listed) FROM stdin;
 \.
 
 
@@ -237,60 +247,6 @@ COPY public.rooms (id, name, game_mode, host, player_count, status, is_listed, c
 --
 
 COPY public.solo_scores (id, username, score, created_at) FROM stdin;
-1	Titi	40	2026-02-24 19:53:37.569791
-2	Titi	17820	2026-03-06 22:01:04.603488
-3	Titi	0	2026-03-07 08:18:09.247155
-4	Titi	0	2026-03-07 08:18:37.719448
-5	Titi	0	2026-03-07 08:24:22.2098
-6	Titi	23600	2026-04-01 09:00:57.302614
-7	nonion	960	2026-04-01 12:20:24.394961
-8	Titi	2700	2026-04-01 12:48:41.785705
-9	Titi	11420	2026-04-01 14:44:48.559245
-10	hanmin	12480	2026-04-01 14:44:57.086123
-11	riri	1500	2026-04-01 14:54:16.495214
-12	Titi	16620	2026-04-01 14:54:48.879444
-13	riri	2840	2026-04-01 14:55:34.088608
-14	riri	2000	2026-04-01 15:02:56.254595
-15	riri	1920	2026-04-01 15:04:53.104818
-16	Titi	53360	2026-04-01 15:04:54.284829
-17	riri	2500	2026-04-01 15:07:55.266851
-18	riri	140	2026-04-01 15:08:23.678165
-19	riri	1080	2026-04-01 15:10:33.175442
-20	riri	7480	2026-04-01 15:13:20.49803
-21	Titi	2380	2026-04-01 15:13:27.669964
-22	riri	26800	2026-04-01 15:19:22.366975
-23	Titi	5560	2026-04-01 15:22:44.482487
-24	Heinz	15060	2026-04-01 15:23:05.919714
-25	Heinz	0	2026-04-01 15:23:16.404778
-26	Heinz	0	2026-04-01 15:23:21.645856
-27	Heinz	1840	2026-04-01 15:25:27.304808
-28	riri	26060	2026-04-01 15:26:17.747022
-29	Heinz	4280	2026-04-01 15:27:39.330022
-30	Heinz	0	2026-04-01 15:27:55.692234
-31	Heinz	0	2026-04-01 15:28:02.187172
-32	Heinz	12080	2026-04-01 15:32:32.083299
-33	Heinz	1840	2026-04-01 15:34:37.359467
-34	rriham	0	2026-04-01 15:55:59.454809
-35	Titi	0	2026-04-01 15:56:31.650282
-36	Titi	0	2026-04-01 15:56:40.227881
-37	Titi	0	2026-04-01 16:50:02.895764
-38	Titi	0	2026-04-01 16:50:06.833554
-39	Titi	15200	2026-04-02 13:00:04.670609
-40	Titi	2520	2026-04-02 13:02:09.14514
-41	Titi	10580	2026-04-03 08:05:44.311889
-42	Titi	51560	2026-04-03 08:15:43.921987
-43	Titi	340	2026-04-03 08:21:34.581197
-44	riri	14840	2026-04-03 09:40:34.827667
-45	Hiro	27680	2026-04-03 09:56:53.48502
-46	Hiro	5860	2026-04-03 10:01:17.384046
-47	Hiro	27660	2026-04-03 10:08:02.363875
-48	Titi	11240	2026-04-03 10:08:14.811716
-49	Hiro	0	2026-04-03 10:09:00.314557
-50	Hiro	9220	2026-04-03 10:12:08.22557
-51	Hiro	0	2026-04-03 10:12:15.708859
-52	Hiro	22280	2026-04-03 10:18:03.707402
-53	Hiro	9160	2026-04-03 10:21:35.068168
-54	Hiro	4180	2026-04-03 10:24:15.36154
 \.
 
 
@@ -298,7 +254,7 @@ COPY public.solo_scores (id, username, score, created_at) FROM stdin;
 -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: riri
 --
 
-COPY public.users (id, username, avatar, password_hash, solo_games_played, highest_solo_score, multiplayer_games_played, multiplayer_wins, multiplayer_losses, created_at, email, reset_password_token, reset_password_expires_at) FROM stdin;
+COPY public.users (id, username, avatar, solo_games_played, highest_solo_score, multiplayer_games_played, multiplayer_wins, multiplayer_losses, password_hash, email, reset_password_token, reset_password_expires_at) FROM stdin;
 \.
 
 
@@ -306,28 +262,28 @@ COPY public.users (id, username, avatar, password_hash, solo_games_played, highe
 -- Name: coop_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.coop_scores_id_seq', 6, true);
+SELECT pg_catalog.setval('public.coop_scores_id_seq', 1, false);
 
 
 --
 -- Name: rooms_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.rooms_id_seq', 85, true);
+SELECT pg_catalog.setval('public.rooms_id_seq', 1, false);
 
 
 --
 -- Name: solo_scores_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.solo_scores_id_seq', 54, true);
+SELECT pg_catalog.setval('public.solo_scores_id_seq', 1, false);
 
 
 --
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 72, true);
+SELECT pg_catalog.setval('public.users_id_seq', 1, false);
 
 
 --
@@ -393,8 +349,15 @@ CREATE UNIQUE INDEX users_reset_password_token_unique_idx ON public.users USING 
 
 
 --
+-- Name: SCHEMA public; Type: ACL; Schema: -; Owner: riri
+--
+
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ismNv1TJHiAspkCebDcqwOqBrFUOL0bNOR6bTUwDzN9248Np5UwpdVn5Ej4Xf4a
+\unrestrict Moo2X7jeJZ23QyJwT81BKVykfnvpBecc4W3WEBMasDkcxTLdIUCyWB9ahe6oViV
 

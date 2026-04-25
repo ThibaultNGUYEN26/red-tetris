@@ -127,7 +127,7 @@ router.post("/login", async (req, res) => {
     );
 
     if (!result.rowCount) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(404).json({ error: "User does not exist" });
     }
 
     const user = result.rows[0];
@@ -232,32 +232,23 @@ router.post("/reset-password", async (req, res) => {
       return res.status(400).json({ error: "Password doesn't match" });
     }
 
-    const userResult = await pool.query(
-      `SELECT id, reset_password_expires_at
-       FROM users
-       WHERE reset_password_token = $1`,
-      [token]
-    );
-
-    if (!userResult.rowCount) {
-      return res.status(400).json({ error: "Invalid or expired reset link" });
-    }
-
-    const user = userResult.rows[0];
-    if (!user.reset_password_expires_at || new Date(user.reset_password_expires_at).getTime() < Date.now()) {
-      return res.status(400).json({ error: "Invalid or expired reset link" });
-    }
-
     const passwordHash = await bcrypt.hash(password, 10);
 
-    await pool.query(
+    const updateResult = await pool.query(
       `UPDATE users
        SET password_hash = $1,
            reset_password_token = NULL,
            reset_password_expires_at = NULL
-       WHERE id = $2`,
-      [passwordHash, user.id]
+       WHERE reset_password_token = $2
+         AND reset_password_expires_at IS NOT NULL
+         AND reset_password_expires_at >= NOW()
+       RETURNING id`,
+      [passwordHash, token]
     );
+
+    if (!updateResult.rowCount) {
+      return res.status(400).json({ error: "Invalid or expired reset link" });
+    }
 
     return res.status(200).json({ ok: true, message: "Password updated" });
   } catch (err) {

@@ -114,6 +114,57 @@ describe('socket setup', () => {
     expect(socket.emit).toHaveBeenCalledWith('usernameTaken', { username: 'Bad Name' })
   })
 
+  it('updateProfile saves through sockets and broadcasts fresh leaderboards', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ id: 1, username: 'Titi', avatar: { eyeType: 'happy' } }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Titi', avatar: { eyeType: 'happy' }, score: 42 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{
+          player_one: 'Titi',
+          avatar_one: { eyeType: 'happy' },
+          player_two: 'Riri',
+          avatar_two: { eyeType: 'sad' },
+          score: 100,
+        }],
+      })
+
+    const { io, socket } = await setupConnectedSocket()
+    const updateProfileHandler = socket.handlers.get('updateProfile')
+    const ack = vi.fn()
+
+    await updateProfileHandler({
+      username: 'Titi',
+      avatar: { eyeType: 'happy' },
+    }, ack)
+
+    expect(ack).toHaveBeenCalledWith({
+      ok: true,
+      profile: { id: 1, username: 'Titi', avatar: { eyeType: 'happy' } },
+    })
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO users'),
+      ['Titi', JSON.stringify({ eyeType: 'happy' })]
+    )
+    expect(io.emit).toHaveBeenCalledWith('leaderboardSolo', [
+      { rank: 1, name: 'Titi', avatar: { eyeType: 'happy' }, score: 42 },
+    ])
+    expect(io.emit).toHaveBeenCalledWith('leaderboardCoop', [
+      {
+        rank: 1,
+        players: [
+          { name: 'Titi', avatar: { eyeType: 'happy' } },
+          { name: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+        score: 100,
+      },
+    ])
+  })
+
   it('joinRoom validates required fields', async () => {
     const { socket } = await setupConnectedSocket()
 
