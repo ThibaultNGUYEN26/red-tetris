@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Moo2X7jeJZ23QyJwT81BKVykfnvpBecc4W3WEBMasDkcxTLdIUCyWB9ahe6oViV
+\restrict Cfw3vQKhVtS2I7Iqzh8aSzpGMsOQwvTdWT2ereTUwW8QshM1KNnw4xy2cyfKrH3
 
 -- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
 -- Dumped by pg_dump version 15.15 (Debian 15.15-1.pgdg13+1)
@@ -255,6 +255,7 @@ COPY public.solo_scores (id, username, score, created_at) FROM stdin;
 --
 
 COPY public.users (id, username, avatar, solo_games_played, highest_solo_score, multiplayer_games_played, multiplayer_wins, multiplayer_losses, password_hash, email, reset_password_token, reset_password_expires_at) FROM stdin;
+4	Titi	{"eyeType": "uwu", "mouthType": "scream", "skinColor": "#d4d470"}	0	0	0	0	0	$2b$10$qgThazB8iwHZHt0LnwSs7Oei/x9BEWrjoh6sexKZOjIMv/wxmgvXq	thibault2605@gmail.com	\N	\N
 \.
 
 
@@ -269,7 +270,7 @@ SELECT pg_catalog.setval('public.coop_scores_id_seq', 1, false);
 -- Name: rooms_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.rooms_id_seq', 1, false);
+SELECT pg_catalog.setval('public.rooms_id_seq', 2, true);
 
 
 --
@@ -283,7 +284,7 @@ SELECT pg_catalog.setval('public.solo_scores_id_seq', 1, false);
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 1, false);
+SELECT pg_catalog.setval('public.users_id_seq', 4, true);
 
 
 --
@@ -359,5 +360,5 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Moo2X7jeJZ23QyJwT81BKVykfnvpBecc4W3WEBMasDkcxTLdIUCyWB9ahe6oViV
+\unrestrict Cfw3vQKhVtS2I7Iqzh8aSzpGMsOQwvTdWT2ereTUwW8QshM1KNnw4xy2cyfKrH3
 

@@ -164,16 +164,17 @@ html, body, #root {
 }
 
 .profile-popover {
-  position: absolute;
-  top: 76px;
-  left: 0;
-  width: min(90vw, 380px);
+  position: fixed;
+  top: 96px;
+  left: 24px;
+  width: 380px;
+  transform-origin: top left;
 }
 
-.profile-popover .username-card {
+.profile-popover .profile-card {
   width: 100%;
   max-width: none;
-  max-height: calc(100vh - 116px);
+  max-height: none;
 }
 
 /* DARK MODE */
@@ -194,4 +195,59 @@ html, body, #root {
   background: linear-gradient(135deg, rgba(120, 35, 35, 0.8), rgba(80, 20, 20, 0.82));
   color: #ffd6d6;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-height: 760px) {
+  .profile-popover {
+    transform: scale(0.88);
+  }
+}
+
+@media (max-height: 680px) {
+  .profile-popover {
+    top: 84px;
+    transform: scale(0.78);
+  }
+}
+
+@media (max-height: 590px) {
+  .profile-popover {
+    top: 72px;
+    transform: scale(0.74);
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-menu-anchor {
+    top: 16px;
+    left: 16px;
+  }
+
+  .profile-avatar-btn {
+    width: 56px;
+    height: 56px;
+    padding: 5px;
+  }
+
+  .profile-popover {
+    top: 84px;
+    left: 50%;
+    width: 380px;
+    transform: translateX(-50%) scale(0.9);
+    transform-origin: top center;
+  }
+}
+
+@media (max-width: 380px) {
+  .profile-popover {
+    top: 76px;
+    transform: translateX(-50%) scale(0.82);
+  }
+}
+
+@media (max-width: 340px) {
+  .profile-popover {
+    top: 72px;
+    transform: translateX(-50%) scale(0.74);
+  }
 }

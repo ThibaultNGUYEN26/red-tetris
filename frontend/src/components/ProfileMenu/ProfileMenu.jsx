@@ -61,19 +61,6 @@ function ProfileMenu({
     inputRef.current?.focus()
   }, [])
 
-  useEffect(() => {
-    const logScreenSize = () => {
-      console.log('[ProfileMenu] Screen size', {
-        innerWidth: window.innerWidth,
-        innerHeight: window.innerHeight,
-        devicePixelRatio: window.devicePixelRatio,
-      })
-    }
-    logScreenSize()
-    window.addEventListener('resize', logScreenSize)
-    return () => window.removeEventListener('resize', logScreenSize)
-  }, [])
-
   const handleUsernameChange = (e) => {
     const sanitizedValue = e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 15)
     setUsername(sanitizedValue)
@@ -142,7 +129,7 @@ function ProfileMenu({
   }
 
   return (
-    <div className={`username-card ${theme === 'dark' ? 'dark' : ''}`}>
+    <div className={`username-card profile-card ${theme === 'dark' ? 'dark' : ''}`}>
       <h2>{title}</h2>
 
       {/* Avatar Customization */}

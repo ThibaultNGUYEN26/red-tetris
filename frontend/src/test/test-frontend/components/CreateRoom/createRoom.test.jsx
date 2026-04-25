@@ -253,20 +253,19 @@ describe('CreateRoom Component', () => {
       })
 
       const modeSelect = screen.getByRole('combobox')
-      vi.useFakeTimers()
       fireEvent.change(modeSelect, { target: { value: 'giant' } })
 
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(600)
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/rooms/1/mode',
+          expect.objectContaining({ method: 'PATCH' })
+        )
       })
 
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(600)
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveValue('classic')
       })
 
-      expect(screen.getByRole('combobox')).toHaveValue('classic')
-
-      vi.useRealTimers()
       consoleError.mockRestore()
     })
   })
@@ -276,7 +275,7 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} />)
 
       await waitFor(() => {
-        expect(screen.getByText('Room 1')).toBeInTheDocument()
+        expect(socket.on).toHaveBeenCalledWith('roomState', expect.any(Function))
       })
 
       const handleRoomState = socket.on.mock.calls.find(

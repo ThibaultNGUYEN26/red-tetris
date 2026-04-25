@@ -103,6 +103,10 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
     setMode(safeMode)
     setPassword('')
     setConfirmPassword('')
+    if (safeMode === 'register') {
+      setUsername('')
+      setEmail('')
+    }
     resetPasswordToggles()
     clearMessages()
 
@@ -266,6 +270,8 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
 
       if (mode === 'register') {
         setSuccessMessage('Account created. Please log in.')
+        setUsername('')
+        setEmail('')
         setPassword('')
         setConfirmPassword('')
         resetPasswordToggles()
