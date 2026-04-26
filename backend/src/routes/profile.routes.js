@@ -196,7 +196,7 @@ router.get("/player/stats", async (req, res) => {
 });
 
 router.get("/player/connection", (req, res) => {
-  const { username } = req.query;
+  const { username, socketId } = req.query;
 
   if (!username || typeof username !== "string") {
     return res.status(400).json({ error: "Missing username" });
@@ -204,7 +204,10 @@ router.get("/player/connection", (req, res) => {
 
   return res.status(200).json({
     username,
-    connected: isUsernameConnected(username),
+    connected: isUsernameConnected(
+      username,
+      typeof socketId === "string" ? socketId : null
+    ),
   });
 });
 

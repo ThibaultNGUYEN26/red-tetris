@@ -165,11 +165,28 @@ describe('profile routes', () => {
 
     await handler({ query: { username: 'Titi' } }, res)
 
-    expect(mockIsUsernameConnected).toHaveBeenCalledWith('Titi')
+    expect(mockIsUsernameConnected).toHaveBeenCalledWith('Titi', null)
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({
       username: 'Titi',
       connected: true,
+    })
+  })
+
+  it('passes socketId through when resolving connection state', async () => {
+    mockIsUsernameConnected.mockReturnValueOnce(false)
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/player/connection')
+    const res = buildRes()
+
+    await handler({ query: { username: 'Titi', socketId: 'socket-1' } }, res)
+
+    expect(mockIsUsernameConnected).toHaveBeenCalledWith('Titi', 'socket-1')
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith({
+      username: 'Titi',
+      connected: false,
     })
   })
 

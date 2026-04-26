@@ -176,6 +176,20 @@ describe('socket setup', () => {
     expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Missing roomId or username' })
   })
 
+  it('does not count the same socket as a duplicate username connection', async () => {
+    const { socket } = await setupConnectedSocket()
+
+    const registerHandler = socket.handlers.get('registerUser')
+    const ack = vi.fn()
+
+    registerHandler({ username: 'Titi' }, ack)
+
+    const { isUsernameConnected } = await import('../../src/socket/index.js')
+    expect(isUsernameConnected('Titi')).toBe(true)
+    expect(isUsernameConnected('Titi', socket.id)).toBe(false)
+    expect(isUsernameConnected('Titi', 'socket-2')).toBe(true)
+  })
+
   it('joinRoom rejects an invalid username', async () => {
     const { socket } = await setupConnectedSocket()
 

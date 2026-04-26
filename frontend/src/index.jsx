@@ -99,7 +99,12 @@ function Index({ authMode = 'login' }) {
   const isUsernameAlreadyConnected = async (name) => {
     if (!name) return false
 
-    const response = await fetch(`/api/player/connection?username=${encodeURIComponent(name)}`, {
+    const params = new URLSearchParams({ username: name })
+    if (socket.id) {
+      params.set('socketId', socket.id)
+    }
+
+    const response = await fetch(`/api/player/connection?${params.toString()}`, {
       cache: 'no-store',
     })
 
