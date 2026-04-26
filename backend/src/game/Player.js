@@ -11,6 +11,7 @@ export default class Player {
     this.inputQueue = [];
     this.sequenceIndex = 0;
     this.dropAccumulator = 0;
+    this.chaoticSwapMs = 0;
 
     this.isAlive = true;
     this.score = 0;

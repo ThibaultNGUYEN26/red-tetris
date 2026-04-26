@@ -338,6 +338,46 @@ describe('rooms routes', () => {
     )
   })
 
+  it('accepts the chaotic mode for the host', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 2 }] })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          host: 'Titi',
+          players: ['Titi', 'Riri'],
+          game_mode: 'chaotic',
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+      })
+
+    const emit = vi.fn()
+    const io = { to: vi.fn(() => ({ emit })) }
+    const app = { get: vi.fn(() => io) }
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'patch', '/:roomId/mode')
+    const res = buildRes()
+
+    await handler(buildReq({
+      params: { roomId: '1' },
+      body: { mode: 'chaotic', username: 'Titi' },
+      app,
+    }), res)
+
+    expect(io.to).toHaveBeenCalledWith('1')
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ game_mode: 'chaotic' })
+    )
+  })
+
   it('rejects a mode change when the room has too many players for that mode', async () => {
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
@@ -540,6 +580,11 @@ describe('rooms routes', () => {
     res = buildRes()
     await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'mirror', username: 'Titi' } }), res)
     expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Mirror with 7 players' })
+
+    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 7 }] })
+    res = buildRes()
+    await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'chaotic', username: 'Titi' } }), res)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Chaotic with 7 players' })
 
     mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 7 }] })
     res = buildRes()

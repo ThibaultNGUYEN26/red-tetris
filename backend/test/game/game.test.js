@@ -38,6 +38,44 @@ describe('Game', () => {
     expect(game.boardHeight).toBe(GIANT_BOARD_HEIGHT)
   })
 
+  it('chaotic mode swaps the current piece into the next queued piece before lock', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-chaotic', [player], 'chaotic', 'solo', 'Titi')
+    vi.spyOn(game, 'getChaoticSwapDelay').mockReturnValue(60)
+
+    game.sequenceBuffer = ['I', 'O', 'T']
+    expect(game.spawnForPlayer(player)).toBe(true)
+    const originalX = player.currentPiece.x
+    const originalY = player.currentPiece.y
+
+    expect(player.currentPiece.type).toBe('I')
+    expect(player.nextPiece.type).toBe('O')
+
+    expect(game.applyChaoticSwap(player)).toBe(true)
+
+    expect(player.currentPiece.type).toBe('O')
+    expect(player.currentPiece.x).toBe(originalX)
+    expect(player.currentPiece.y).toBe(originalY)
+    expect(player.nextPiece.type).toBe('T')
+    expect(player.sequenceIndex).toBe(1)
+  })
+
+  it('chaotic mode kills the player when the swapped piece cannot fit', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-chaotic', [player], 'chaotic', 'solo', 'Titi')
+    vi.spyOn(game, 'getChaoticSwapDelay').mockReturnValue(60)
+    vi.spyOn(game, 'canPlace').mockReturnValue(false)
+
+    player.currentPiece = { type: 'I', rotation: 0, x: 4, y: 0 }
+    player.nextPiece = { type: 'O' }
+    player.chaoticSwapMs = 60
+
+    expect(game.applyChaoticSwap(player)).toBe(false)
+    expect(player.isAlive).toBe(false)
+    expect(player.currentPiece).toBeNull()
+    expect(player.nextPiece).toBeNull()
+  })
+
   it('supports pause and resume only while running', () => {
     const game = new Game('room-1', [new Player('Titi', 'socket-1')], 'classic', 'solo', 'Titi')
 

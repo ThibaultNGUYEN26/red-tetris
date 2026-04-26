@@ -4,6 +4,8 @@ import { BOARD_HEIGHT, BOARD_WIDTH, GIANT_BOARD_HEIGHT, GIANT_BOARD_WIDTH, LINES
 
 const TICK_MS = 60;
 const BASE_DROP_MS = 500;
+const CHAOTIC_MIN_SWAP_MS = 2500;
+const CHAOTIC_MAX_SWAP_MS = 5500;
 const COOPERATIVE_MODES = new Set(["cooperative", "cooperative_roles"]);
 const ROLE_ACTIONS = {
   rotate: new Set(["rotate"]),
@@ -62,6 +64,16 @@ export default class Game {
 
   isRoleSplitCooperativeMode() {
     return this.mode === "cooperative_roles";
+  }
+
+  isChaoticMode() {
+    return this.mode === "chaotic";
+  }
+
+  getChaoticSwapDelay() {
+    return CHAOTIC_MIN_SWAP_MS + Math.floor(
+      Math.random() * (CHAOTIC_MAX_SWAP_MS - CHAOTIC_MIN_SWAP_MS + 1)
+    );
   }
 
   assignCooperativeRoles() {
@@ -160,6 +172,7 @@ export default class Game {
     player.inputQueue = [];
     player.sequenceIndex = 0;
     player.dropAccumulator = 0;
+    player.chaoticSwapMs = this.isChaoticMode() ? this.getChaoticSwapDelay() : 0;
     player.pendingPenaltyLines = 0;
   }
 
@@ -422,8 +435,49 @@ export default class Game {
     player.currentPiece = piece;
     const nextType = this.getSequenceAt(player.sequenceIndex + 1);
     player.nextPiece = new Piece(nextType, this.boardWidth, this.boardHeight);
+    player.chaoticSwapMs = this.isChaoticMode() ? this.getChaoticSwapDelay() : 0;
 
     return true;
+  }
+
+  applyChaoticSwap(player) {
+    if (!this.isChaoticMode() || !player.currentPiece || !player.nextPiece) return true;
+
+    player.chaoticSwapMs -= TICK_MS;
+    if (player.chaoticSwapMs > 0) return true;
+
+    const current = player.currentPiece;
+    const swapped = new Piece(player.nextPiece.type, this.boardWidth, this.boardHeight);
+    const kicks = [
+      [0, 0],
+      [-1, 0],
+      [1, 0],
+      [-2, 0],
+      [2, 0],
+      [0, -1],
+      [-1, -1],
+      [1, -1],
+    ];
+
+    for (const [dx, dy] of kicks) {
+      const nextX = current.x + dx;
+      const nextY = current.y + dy;
+      if (this.canPlace(swapped.type, swapped.rotation, nextX, nextY, player.board)) {
+        swapped.x = nextX;
+        swapped.y = nextY;
+        player.currentPiece = swapped;
+        player.sequenceIndex += 1;
+        const nextType = this.getSequenceAt(player.sequenceIndex + 1);
+        player.nextPiece = new Piece(nextType, this.boardWidth, this.boardHeight);
+        player.chaoticSwapMs = this.getChaoticSwapDelay();
+        return true;
+      }
+    }
+
+    player.die();
+    player.currentPiece = null;
+    player.nextPiece = null;
+    return false;
   }
 
   processInputs(player) {
@@ -552,8 +606,10 @@ export default class Game {
         }
 
         if (sharedPlayer.isAlive) {
-          this.processInputs(sharedPlayer);
-          this.applyGravity(sharedPlayer);
+          if (this.applyChaoticSwap(sharedPlayer)) {
+            this.processInputs(sharedPlayer);
+            this.applyGravity(sharedPlayer);
+          }
         }
         this.syncCooperativeStateFrom(sharedPlayer);
       }
@@ -568,6 +624,9 @@ export default class Game {
           }
         }
 
+        if (!this.applyChaoticSwap(player)) {
+          return;
+        }
         this.processInputs(player);
         this.applyGravity(player);
       });
