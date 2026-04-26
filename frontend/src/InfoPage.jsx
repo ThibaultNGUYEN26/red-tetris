@@ -126,15 +126,6 @@ const pages = {
           'The app uses browser local storage for necessary features such as keeping you signed in locally and remembering interface preferences. No advertising or analytics cookies are currently required for the core game.',
       },
       {
-        title: 'Advertising Partners',
-        body:
-          'Advertising is not currently enabled. If ads are enabled later, third-party vendors including Google may use cookies to serve ads based on prior visits to this or other websites, and the site will add the required consent and privacy disclosures before those ads are activated.',
-        link: {
-          href: 'https://policies.google.com/technologies/partner-sites',
-          label: 'How Google Uses Data',
-        },
-      },
-      {
         title: 'Security',
         body:
           'Passwords are stored as hashes, not plain text. Production deployments should use HTTPS and restrict database, SMTP, and server credentials to authorized maintainers only.',
