@@ -193,7 +193,7 @@ describe('auth routes', () => {
     const hash = await mockBcryptHash(VALID_PASSWORD, 10)
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
-      rows: [{ id: 1, username: 'Titi', avatar: { eyeType: 'happy' }, password_hash: hash }],
+      rows: [{ id: 1, username: 'Titi', email: 'titi@example.com', avatar: { eyeType: 'happy' }, password_hash: hash }],
     })
 
     const { default: router } = await import('../../src/routes/auth.routes.js')
@@ -209,7 +209,7 @@ describe('auth routes', () => {
     const hash = await mockBcryptHash(VALID_PASSWORD, 10)
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
-      rows: [{ id: 1, username: 'Titi', avatar: { eyeType: 'happy' }, password_hash: hash }],
+      rows: [{ id: 1, username: 'Titi', email: 'titi@example.com', avatar: { eyeType: 'happy' }, password_hash: hash }],
     })
 
     const { default: router } = await import('../../src/routes/auth.routes.js')
@@ -222,6 +222,7 @@ describe('auth routes', () => {
     expect(res.json).toHaveBeenCalledWith({
       id: 1,
       username: 'Titi',
+      email: 'titi@example.com',
       avatar: { eyeType: 'happy' },
     })
   })
@@ -349,7 +350,7 @@ describe('auth routes', () => {
 
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
-      rows: [{ id: 3, username: 'Titi', avatar: { eyeType: 'happy' }, password_hash: updatedHash }],
+      rows: [{ id: 3, username: 'Titi', email: 'titi@example.com', avatar: { eyeType: 'happy' }, password_hash: updatedHash }],
     })
 
     res = buildRes()
@@ -359,6 +360,7 @@ describe('auth routes', () => {
     expect(res.json).toHaveBeenCalledWith({
       id: 3,
       username: 'Titi',
+      email: 'titi@example.com',
       avatar: { eyeType: 'happy' },
     })
   })

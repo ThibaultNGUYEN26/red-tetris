@@ -1,6 +1,6 @@
 import './index.css'
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
@@ -19,6 +19,7 @@ import bopSound from './res/sounds/bop.mp3'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
+const THEME_STORAGE_KEY = 'red-tetris-theme'
 const DEFAULT_URL_AVATAR = {
   skinColor: '#cccccc',
   eyeType: 'normal',
@@ -65,7 +66,9 @@ function Index({ authMode = 'login' }) {
   const [username, setUsername] = useState(
     savedAuth?.username || null
   )
-  const [theme, setTheme] = useState('light')
+  const [theme, setTheme] = useState(() => (
+    localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
+  ))
   const [showRooms, setShowRooms] = useState(false)
   const [showGame, setShowGame] = useState(false)
   const [showSoloRoom, setShowSoloRoom] = useState(false)
@@ -156,6 +159,7 @@ function Index({ authMode = 'login' }) {
     if (username && userProfile?.avatar) {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
         username,
+        email: userProfile.email,
         avatar: userProfile.avatar,
       }))
       return
@@ -308,7 +312,9 @@ function Index({ authMode = 'login' }) {
   }
 
   const handleThemeChange = (newTheme) => {
-    setTheme(newTheme)
+    const nextTheme = newTheme === 'dark' ? 'dark' : 'light'
+    localStorage.setItem(THEME_STORAGE_KEY, nextTheme)
+    setTheme(nextTheme)
   }
 
   const handleSoundChange = (enabled) => {
@@ -849,6 +855,14 @@ function Index({ authMode = 'login' }) {
           <div className="route-notice" role="alert">
             {routeNotice}
           </div>
+        )}
+        {!showGame && (
+          <nav className="site-info-links" aria-label="Site information">
+            <Link to="/about">About</Link>
+            <Link to="/contact">Contact</Link>
+            <Link to="/terms">Terms</Link>
+            <Link to="/privacy-policy">Privacy</Link>
+          </nav>
         )}
         {showRooms && username ? (
           <Rooms

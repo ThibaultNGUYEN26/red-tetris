@@ -10,6 +10,7 @@ const navigateMock = vi.fn((target) => {
 })
 
 vi.mock('react-router-dom', () => ({
+  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
   useParams: () => mockParams,
   useNavigate: () => navigateMock,
   useLocation: () => ({ search: '' }),

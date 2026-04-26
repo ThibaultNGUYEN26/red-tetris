@@ -120,7 +120,7 @@ router.post("/login", async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, username, avatar, password_hash
+      `SELECT id, username, email, avatar, password_hash
        FROM users
        WHERE username = $1`,
       [username]
@@ -143,6 +143,7 @@ router.post("/login", async (req, res) => {
     return res.status(200).json({
       id: user.id,
       username: user.username,
+      email: user.email,
       avatar: user.avatar,
     });
   } catch (err) {

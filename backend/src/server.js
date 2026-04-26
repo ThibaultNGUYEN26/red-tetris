@@ -8,6 +8,7 @@ import cors from "cors";
 import profileRoutes from "./routes/profile.routes.js";
 import roomRoutes from "./routes/rooms.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
 
 import setupSockets from "./socket/index.js";
 import { ensureSchema, pool } from "./config/db.js";
@@ -52,6 +53,7 @@ app.use((req, res, next) => {
 
 app.use("/api", profileRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/contact", contactRoutes);
 app.use("/api/rooms", roomRoutes);
 
 app.get("/health", (req, res) => {

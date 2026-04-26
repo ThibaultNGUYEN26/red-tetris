@@ -45,3 +45,39 @@ export const sendResetPasswordEmail = async ({ username, email, resetUrl }) => {
     `,
   });
 };
+
+const escapeHtml = (value) =>
+  String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+export const sendContactEmail = async ({ object, message, userEmail }) => {
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const to = process.env.CONTACT_EMAIL || process.env.SMTP_USER;
+  const transporter = createTransport();
+
+  await transporter.sendMail({
+    from,
+    to,
+    replyTo: userEmail || undefined,
+    subject: `Red Tetris contact: ${object}`,
+    text: [
+      "New Red Tetris contact message",
+      "",
+      `From: ${userEmail || "Unknown user email"}`,
+      "",
+      `Object: ${object}`,
+      "",
+      message,
+    ].join("\n"),
+    html: `
+      <p><strong>New Red Tetris contact message</strong></p>
+      <p><strong>From:</strong> ${escapeHtml(userEmail || "Unknown user email")}</p>
+      <p><strong>Object:</strong> ${escapeHtml(object)}</p>
+      <p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>
+    `,
+  });
+};

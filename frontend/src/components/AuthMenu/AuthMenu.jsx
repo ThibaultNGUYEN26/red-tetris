@@ -292,6 +292,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
 
       await onAuthenticated({
         username: data.username || username.trim(),
+        email: data.email || email.trim().toLowerCase(),
         avatar: data.avatar || {
           skinColor: currentAvatar.skinColor,
           eyeType: currentAvatar.eyeType,
