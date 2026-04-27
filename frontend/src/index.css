@@ -31,6 +31,10 @@ html, body, #root {
   z-index: 1;
 }
 
+.content-wrapper.has-site-footer {
+  padding-bottom: 76px;
+}
+
 .route-notice {
   position: fixed;
   top: 24px;
@@ -50,11 +54,19 @@ html, body, #root {
   backdrop-filter: blur(10px);
 }
 
-.site-info-links {
-  position: fixed;
-  right: 24px;
-  bottom: 22px;
+.site-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
   z-index: 20;
+  display: flex;
+  justify-content: center;
+  padding: 0 24px;
+  pointer-events: none;
+}
+
+.site-info-links {
   display: grid;
   grid-template-columns: repeat(4, minmax(74px, auto));
   gap: 10px;
@@ -64,6 +76,7 @@ html, body, #root {
   background: rgba(255, 255, 255, 0.24);
   box-shadow: 0 8px 18px rgba(35, 70, 130, 0.14);
   backdrop-filter: blur(10px);
+  pointer-events: auto;
 }
 
 .site-info-links a {
@@ -390,8 +403,12 @@ html, body, #root {
   );
   border-color: rgba(120, 150, 255, 0.6);
   color: #f0f5ff !important;
-  box-shadow: 0 0 12px rgba(120, 150, 255, 0.4);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(100, 100, 200, 0.25),
+    inset 0 2px 4px rgba(100, 100, 200, 0.2);
   text-shadow: 0 0 10px rgba(150, 180, 255, 0.8);
+  animation: pulse-panel 4s ease-in-out infinite;
 }
 
 .sky-background.dark ~ .content-wrapper .route-notice {
@@ -404,7 +421,11 @@ html, body, #root {
 .sky-background.dark ~ .content-wrapper .site-info-links {
   border-color: rgba(120, 150, 255, 0.44);
   background: rgba(20, 20, 40, 0.58);
-  box-shadow: 0 0 12px rgba(120, 150, 255, 0.22);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(100, 100, 200, 0.25),
+    inset 0 2px 4px rgba(100, 100, 200, 0.2);
+  animation: pulse-panel 4s ease-in-out infinite;
 }
 
 .sky-background.dark ~ .content-wrapper .site-info-links a {
@@ -532,9 +553,6 @@ html, body, #root {
   }
 
   .site-info-links {
-    right: 50%;
-    bottom: 14px;
-    transform: translateX(50%);
     grid-template-columns: repeat(2, minmax(94px, 1fr));
     border-radius: 18px;
   }

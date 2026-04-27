@@ -234,7 +234,7 @@ function PlayerStats({ theme, userProfile, username }) {
             <Stat label="Multiplayer Games" value={stats.multiGames} />
             <Stat label="Multiplayer Wins" value={stats.wins} />
             <Stat label="Multiplayer Losses" value={stats.losses} />
-            <Stat label="Multiplayer Winrate" value={`${ratio}%`} highlight />
+            <Stat label="Multiplayer Winrate" value={`${ratio} %`} highlight />
           </div>
 
           <button
@@ -278,14 +278,14 @@ function formatDuration(totalSeconds = 0) {
   const remainingSeconds = Math.floor(seconds % 60)
 
   if (hours > 0) {
-    return `${hours}h ${minutes}m ${remainingSeconds}s`
+    return `${hours} h ${minutes} m ${remainingSeconds} s`
   }
 
   if (minutes > 0) {
-    return `${minutes}m ${remainingSeconds}s`
+    return `${minutes} m ${remainingSeconds} s`
   }
 
-  return `${remainingSeconds}s`
+  return `${remainingSeconds} s`
 }
 
 function Stat({ label, value, highlight }) {

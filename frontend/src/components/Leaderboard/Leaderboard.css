@@ -28,8 +28,9 @@
   border-color: rgba(100, 100, 200, 0.5);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(100, 100, 200, 0.2),
+    0 0 20px rgba(100, 100, 200, 0.25),
     inset 0 2px 4px rgba(100, 100, 200, 0.2);
+  animation: pulse-panel 4s ease-in-out infinite;
 }
 
 .leaderboard-title {

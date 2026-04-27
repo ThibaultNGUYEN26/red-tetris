@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict u9a0u5V8bcfJ3abei4IA9a8OSoq1VHJQCyA8SBgE7REL5aB2lRfU2z3jv44jxJT
+\restrict fb0jTWgEm7uKuo8PKGaFyedRzBh9nMxWaaE17YHAJMgPRqxfg9UYRYuQBF2jMzq
 
 -- Dumped from database version 15.15 (Debian 15.15-1.pgdg13+1)
 -- Dumped by pg_dump version 15.15 (Debian 15.15-1.pgdg13+1)
@@ -321,6 +321,7 @@ COPY public.solo_scores (id, username, score, lines, level, tetris_count, durati
 --
 
 COPY public.users (id, username, avatar, solo_games_played, highest_solo_score, multiplayer_games_played, multiplayer_wins, multiplayer_losses, password_hash, email, reset_password_token, reset_password_expires_at) FROM stdin;
+6	Titi	{"eyeType": "very_sad", "mouthType": "sad", "skinColor": "#d47070"}	0	0	0	0	0	$2b$10$gj9SmfTZu/E5z.5nU1aACeE8GTZY5qLf5w/x7Gh6cUgrfMWZufAeG	thibault2605@gmail.com	\N	\N
 \.
 
 
@@ -356,7 +357,7 @@ SELECT pg_catalog.setval('public.solo_scores_id_seq', 1, false);
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: riri
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 5, true);
+SELECT pg_catalog.setval('public.users_id_seq', 6, true);
 
 
 --
@@ -440,5 +441,5 @@ REVOKE USAGE ON SCHEMA public FROM PUBLIC;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict u9a0u5V8bcfJ3abei4IA9a8OSoq1VHJQCyA8SBgE7REL5aB2lRfU2z3jv44jxJT
+\unrestrict fb0jTWgEm7uKuo8PKGaFyedRzBh9nMxWaaE17YHAJMgPRqxfg9UYRYuQBF2jMzq
 

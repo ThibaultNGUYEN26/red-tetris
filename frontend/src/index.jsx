@@ -850,19 +850,21 @@ function Index({ authMode = 'login' }) {
       </div>
 
       {/* Content wrapper always rendered */}
-      <div className="content-wrapper">
+      <div className={`content-wrapper ${!showGame ? 'has-site-footer' : ''}`}>
         {routeNotice && (
           <div className="route-notice" role="alert">
             {routeNotice}
           </div>
         )}
         {!showGame && (
-          <nav className="site-info-links" aria-label="Site information">
+          <footer className="site-footer">
+            <nav className="site-info-links" aria-label="Site information">
             <Link to="/about">About</Link>
             <Link to="/contact">Contact</Link>
             <Link to="/terms">Terms</Link>
             <Link to="/privacy-policy">Privacy</Link>
           </nav>
+          </footer>
         )}
         {showRooms && username ? (
           <Rooms
