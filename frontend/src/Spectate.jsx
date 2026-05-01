@@ -4,8 +4,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { socket } from './socket'
 import SpectatorView from './components/SpectatorView/SpectatorView.jsx'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
-
 function Spectate() {
   const { roomName, username } = useParams()
   const navigate = useNavigate()
@@ -29,7 +27,7 @@ function Spectate() {
         if (!res.ok) throw new Error('Room not found')
         const room = await res.json()
         setRoomId(room.id)
-      } catch (err) {
+      } catch {
         setError('Room not found')
         setLoading(false)
       }

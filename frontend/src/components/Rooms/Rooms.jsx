@@ -88,6 +88,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         socket.emit('getRoomState', { roomId: String(roomId) })
         setCurrentRoomId(roomId)
         if (roomInfo?.name) {
+          setCurrentRoomName(roomInfo.name)
           navigate(buildRoomPath(roomInfo.name, roomInfo.game_mode), { replace: true })
         }
       })

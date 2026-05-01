@@ -1,16 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import Rooms from '../../../../components/Rooms/Rooms'
 import { socket } from '../../../../socket'
 
+const navigateMock = vi.hoisted(() => vi.fn())
+
 vi.mock('react-router-dom', () => ({
-  useNavigate: () => vi.fn(),
+  useNavigate: () => navigateMock,
 }))
 
 // Mock the socket
 vi.mock('../../../../socket', () => ({
   socket: {
+    connected: false,
     emit: vi.fn(),
     on: vi.fn(),
     off: vi.fn(),
@@ -19,19 +22,21 @@ vi.mock('../../../../socket', () => ({
 
 // Mock CreateRoom component
 vi.mock('../../../../components/CreateRoom/CreateRoom.jsx', () => ({
-  default: ({ onBack, onRoomCreated }) => (
+  default: ({ onBack, onRoomCreated, onRoomRenamed }) => (
     <div data-testid="create-room-mock">
       <button onClick={onBack}>Back to Rooms</button>
-      <button onClick={() => onRoomCreated(1, 'Test Room')}>Create Room</button>
+      <button onClick={() => onRoomCreated(1, 'Test Room', 'cooperative')}>Create Room</button>
+      <button onClick={() => onRoomRenamed('Renamed Room', 'mirror')}>Rename Room</button>
     </div>
   )
 }))
 
 vi.mock('../../../../components/Game/Game.jsx', () => ({
-  default: ({ onPlayAgain, onBack }) => (
+  default: ({ onPlayAgain, onBack, onSpectate }) => (
     <div data-testid="game-mock">
       <button onClick={onPlayAgain}>Play again</button>
       <button onClick={onBack}>Back to menu</button>
+      <button onClick={onSpectate}>Spectate</button>
     </div>
   )
 }))
@@ -85,6 +90,11 @@ describe('Rooms Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    navigateMock.mockClear()
+    socket.connected = false
+    socket.emit.mockReset()
+    socket.on.mockReset()
+    socket.off.mockReset()
     socket.emit.mockImplementation((event, payload, callback) => {
       if (event === 'joinRoom' && typeof callback === 'function') {
         callback({ ok: true })
@@ -96,6 +106,7 @@ describe('Rooms Component', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
@@ -228,6 +239,53 @@ describe('Rooms Component', () => {
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
       })
+    })
+
+    it('should create multiplayer rooms from the picker', async () => {
+      const mockOnRoomCreated = vi.fn()
+      render(<Rooms {...defaultProps} onRoomCreated={mockOnRoomCreated} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /multiplayer/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Create Room'))
+
+      expect(mockOnRoomCreated).toHaveBeenCalledWith(1, 'Test Room', 'cooperative')
+      expect(navigateMock).toHaveBeenCalledWith(
+        '/Test Room/coop/TestUser',
+        { replace: true }
+      )
+    })
+
+    it('should update route and room list when the current room is renamed', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([mockRooms[0]])
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Rename Room'))
+
+      expect(navigateMock).toHaveBeenCalledWith(
+        '/Renamed Room/multi/TestUser',
+        { replace: true }
+      )
     })
 
     it('should return to rooms list when back button is clicked', async () => {
@@ -535,6 +593,63 @@ describe('Rooms Component', () => {
         expect.any(Function)
       )
     })
+
+    it('should clear stale current room when no room state arrives', async () => {
+      vi.useFakeTimers()
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      await act(async () => {
+        availableRoomsCallback?.(mockRooms)
+      })
+
+      expect(screen.getByText('Room 1')).toBeInTheDocument()
+
+      fireEvent.click(screen.getAllByRole('button', { name: /join/i })[0])
+
+      await act(async () => {
+        await Promise.resolve()
+      })
+
+      expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1600)
+      })
+
+      expect(screen.queryByTestId('create-room-mock')).not.toBeInTheDocument()
+    })
+
+    it('should clear current room when socket reports room not found', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      availableRoomsCallback?.(mockRooms)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getAllByRole('button', { name: /join/i })[0])
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      const errorHandler = socket.on.mock.calls
+        .filter(call => call[0] === 'error')
+        .at(-1)?.[1]
+
+      errorHandler?.({ message: 'Room not found' })
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('create-room-mock')).not.toBeInTheDocument()
+      })
+    })
   })
 
   describe('Room Filtering and Status', () => {
@@ -597,6 +712,65 @@ describe('Rooms Component', () => {
   })
 
   describe('Leave Flows', () => {
+    it('should emit playerLeave on browser unload while inside a room', async () => {
+      socket.connected = true
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      availableRoomsCallback?.(mockRooms)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getAllByRole('button', { name: /join/i })[0])
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      window.dispatchEvent(new Event('beforeunload'))
+
+      expect(socket.emit).toHaveBeenCalledWith('playerLeave', { roomId: '1' })
+    })
+
+    it('should log leave errors and still clear local room state', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      render(<Rooms {...defaultProps} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cooperative/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Create Room'))
+
+      socket.emit.mockImplementation((event) => {
+        if (event === 'playerLeave') {
+          throw new Error('socket down')
+        }
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /back to rooms/i }))
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith(
+          'Failed to leave room/game:',
+          expect.any(Error)
+        )
+      })
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('create-room-mock')).not.toBeInTheDocument()
+      })
+
+      consoleError.mockRestore()
+    })
+
     it('should leave lobby and clear state', async () => {
       render(<Rooms {...defaultProps} />)
 
@@ -621,6 +795,47 @@ describe('Rooms Component', () => {
       })
 
       expect(mockOnLeaveRoom).toHaveBeenCalled()
+    })
+
+    it('should navigate to spectator mode from game view', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      availableRoomsCallback?.([mockRooms[1]])
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 2')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      const roomStateCallback = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      await act(async () => {
+        roomStateCallback?.(mockRooms[1])
+      })
+
+      const gameStartedCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'gameStarted')
+        .at(-1)?.[1]
+
+      gameStartedCallback?.({ roomId: '2' })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+
+      expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
     })
 
     it('should return to the room card when play again is clicked after multiplayer game over', async () => {

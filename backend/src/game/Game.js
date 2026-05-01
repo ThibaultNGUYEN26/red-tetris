@@ -4,6 +4,8 @@ import { BOARD_HEIGHT, BOARD_WIDTH, GIANT_BOARD_HEIGHT, GIANT_BOARD_WIDTH, LINES
 
 const TICK_MS = 60;
 const BASE_DROP_MS = 500;
+const LOCK_DELAY_MS = 500;
+const LOCK_RESET_LIMIT = 15;
 const CHAOTIC_MIN_SWAP_MS = 2500;
 const CHAOTIC_MAX_SWAP_MS = 5500;
 const COOPERATIVE_MODES = new Set(["cooperative", "cooperative_roles"]);
@@ -141,6 +143,8 @@ export default class Game {
       }
       player.sequenceIndex = sourcePlayer.sequenceIndex;
       player.dropAccumulator = sourcePlayer.dropAccumulator;
+      player.lockDelayMs = sourcePlayer.lockDelayMs;
+      player.lockResetCount = sourcePlayer.lockResetCount;
       player.inputQueue = [];
     });
   }
@@ -172,6 +176,8 @@ export default class Game {
     player.inputQueue = [];
     player.sequenceIndex = 0;
     player.dropAccumulator = 0;
+    player.lockDelayMs = 0;
+    player.lockResetCount = 0;
     player.chaoticSwapMs = this.isChaoticMode() ? this.getChaoticSwapDelay() : 0;
     player.pendingPenaltyLines = 0;
   }
@@ -288,6 +294,7 @@ export default class Game {
     }
     piece.x = nextX;
     piece.y = nextY;
+    this.updateLockDelayAfterMove(player, dx, dy);
     return true;
   }
 
@@ -327,8 +334,71 @@ export default class Game {
         piece.shape = rotations[to];
         piece.x += dx;
         piece.y += dy;
+        this.resetLockDelayAfterGroundedAction(player);
         return true;
       }
+    }
+
+    return false;
+  }
+
+  isPieceGrounded(player) {
+    const piece = player.currentPiece;
+    if (!piece) return false;
+    return !this.canPlace(piece.type, piece.rotation, piece.x, piece.y + 1, player.board);
+  }
+
+  clearLockDelay(player) {
+    player.lockDelayMs = 0;
+    player.lockResetCount = 0;
+  }
+
+  startLockDelay(player) {
+    if (player.lockDelayMs <= 0) {
+      player.lockDelayMs = LOCK_DELAY_MS;
+    }
+  }
+
+  resetLockDelayAfterGroundedAction(player) {
+    if (!this.isPieceGrounded(player)) {
+      this.clearLockDelay(player);
+      return;
+    }
+
+    if (player.lockDelayMs > 0 && player.lockResetCount < LOCK_RESET_LIMIT) {
+      player.lockDelayMs = LOCK_DELAY_MS;
+      player.lockResetCount += 1;
+      return;
+    }
+
+    this.startLockDelay(player);
+  }
+
+  updateLockDelayAfterMove(player, dx, dy) {
+    if (!this.isPieceGrounded(player)) {
+      this.clearLockDelay(player);
+      return;
+    }
+
+    if (dy === 0 || dx !== 0) {
+      this.resetLockDelayAfterGroundedAction(player);
+      return;
+    }
+
+    this.startLockDelay(player);
+  }
+
+  advanceLockDelay(player) {
+    if (!this.isPieceGrounded(player)) {
+      this.clearLockDelay(player);
+      return false;
+    }
+
+    this.startLockDelay(player);
+    player.lockDelayMs -= TICK_MS;
+    if (player.lockDelayMs <= 0) {
+      this.lockCurrentPiece(player);
+      return true;
     }
 
     return false;
@@ -412,6 +482,7 @@ export default class Game {
     // instead of the previously active piece floating in place.
     player.currentPiece = null;
     player.nextPiece = null;
+    this.clearLockDelay(player);
 
     player.sequenceIndex += 1;
     const ok = this.spawnForPlayer(player);
@@ -496,7 +567,7 @@ export default class Game {
         case "drop": {
           const moved = this.tryMove(player, 0, 1);
           if (!moved) {
-            this.lockCurrentPiece(player);
+            this.startLockDelay(player);
           }
           break;
         }
@@ -513,6 +584,13 @@ export default class Game {
   }
 
   applyGravity(player) {
+    if (this.isPieceGrounded(player)) {
+      this.advanceLockDelay(player);
+      return;
+    }
+
+    this.clearLockDelay(player);
+
     const dropInterval = this.getDropInterval(player.level);
     player.dropAccumulator += TICK_MS;
     if (player.dropAccumulator < dropInterval) return;
@@ -520,7 +598,7 @@ export default class Game {
     player.dropAccumulator -= dropInterval;
     const moved = this.tryMove(player, 0, 1);
     if (!moved) {
-      this.lockCurrentPiece(player);
+      this.startLockDelay(player);
     }
   }
 

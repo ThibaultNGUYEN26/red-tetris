@@ -17,6 +17,8 @@ export default defineConfig({
         '*.config.js',
         'src/main.jsx',
         'src/index.jsx',
+        '**/*.css',
+        'src/res/',
       ],
       statements: 70,
       branches: 50,

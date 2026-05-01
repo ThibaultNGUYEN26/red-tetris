@@ -484,11 +484,11 @@ describe('Game', () => {
     game.processInputs(player)
 
     expect(rotateSpy).toHaveBeenCalled()
-    expect(lockSpy).toHaveBeenCalledTimes(2)
+    expect(lockSpy).toHaveBeenCalledTimes(1)
 
     player.dropAccumulator = 500
     game.applyGravity(player)
-    expect(lockSpy).toHaveBeenCalledTimes(3)
+    expect(lockSpy).toHaveBeenCalledTimes(1)
     expect(player.dropAccumulator).toBe(60)
 
     moveSpy.mockRestore()
@@ -979,7 +979,7 @@ describe('Game', () => {
     expect(player.score).toBe(0)
   })
 
-  it('processInputs handles drop lock path when piece cannot move', () => {
+  it('processInputs starts lock delay when soft drop cannot move', () => {
     const player = new Player('Titi', '1')
     const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
 
@@ -991,7 +991,8 @@ describe('Game', () => {
 
     game.processInputs(player)
 
-    expect(lockSpy).toHaveBeenCalled()
+    expect(lockSpy).not.toHaveBeenCalled()
+    expect(player.lockDelayMs).toBe(500)
   })
 
   it('processInputs does not lock on drop when piece can move', () => {
@@ -1009,7 +1010,7 @@ describe('Game', () => {
     expect(lockSpy).not.toHaveBeenCalled()
   })
 
-  it('applyGravity locks piece when drop interval met and move fails', () => {
+  it('applyGravity starts lock delay when drop interval is met and move fails', () => {
     const player = new Player('Titi', '1')
     const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
 
@@ -1022,7 +1023,39 @@ describe('Game', () => {
 
     game.applyGravity(player)
 
+    expect(lockSpy).not.toHaveBeenCalled()
+    expect(player.lockDelayMs).toBe(500)
+  })
+
+  it('locks a grounded piece only after lock delay expires', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = { type: 'O', rotation: 0, x: 4, y: game.boardHeight - 2 }
+    const lockSpy = vi.spyOn(game, 'lockCurrentPiece').mockImplementation(() => {})
+
+    for (let i = 0; i < 8; i += 1) {
+      game.applyGravity(player)
+    }
+
+    expect(lockSpy).not.toHaveBeenCalled()
+    expect(player.lockDelayMs).toBe(20)
+
+    game.applyGravity(player)
+
     expect(lockSpy).toHaveBeenCalled()
+  })
+
+  it('resets lock delay after grounded movement', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = { type: 'O', rotation: 0, shape: [[1, 1], [1, 1]], x: 4, y: game.boardHeight - 2 }
+    player.lockDelayMs = 100
+
+    expect(game.tryMove(player, -1, 0)).toBe(true)
+    expect(player.lockDelayMs).toBe(500)
+    expect(player.lockResetCount).toBe(1)
   })
 
   it('applyGravity does not lock when move succeeds after interval', () => {

@@ -128,8 +128,8 @@ describe('Tetris Game Logic', () => {
     })
 
     it('should have 4 cells for each shape rotation', () => {
-      Object.entries(SHAPES).forEach(([type, rotations]) => {
-        rotations.forEach((rotation, idx) => {
+      Object.values(SHAPES).forEach((rotations) => {
+        rotations.forEach((rotation) => {
           expect(rotation).toHaveLength(4)
         })
       })

@@ -140,4 +140,174 @@ describe('PlayerStats Component', () => {
     expect(screen.getByText('1h 2m 5s')).toBeInTheDocument()
     expect(screen.getByText('25')).toBeInTheDocument()
   })
+
+  it('renders snake_case profile stats and default fallbacks', async () => {
+    render(
+      <PlayerStats
+        theme="light"
+        userProfile={{
+          solo_games_played: 5,
+          highest_solo_score: 1200,
+          multiplayer_games_played: 3,
+          multiplayer_wins: 2,
+          multiplayer_losses: 1,
+        }}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/player stats/i)).toBeInTheDocument()
+    })
+
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(screen.getByText('Player')).toBeInTheDocument()
+    expect(screen.getByText(/1\D?200/)).toBeInTheDocument()
+    expect(screen.getByText('66.7%')).toBeInTheDocument()
+  })
+
+  it('uses default profile values when optional profile stats are missing', async () => {
+    render(
+      <PlayerStats
+        theme="light"
+        userProfile={{
+          username: 'SoloOnly',
+          soloGames: 0,
+        }}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('SoloOnly')).toBeInTheDocument()
+    })
+
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(screen.getAllByText('0').length).toBeGreaterThan(0)
+    expect(screen.getByText('0%')).toBeInTheDocument()
+  })
+
+  it('uses fetch fallbacks when the response omits optional fields', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        soloGames: 1,
+        soloTopScore: 50,
+        multiGames: 0,
+        wins: 0,
+        losses: 0,
+      }),
+    })
+
+    render(<PlayerStats theme="light" username="FallbackName" />)
+
+    await waitFor(() => {
+      expect(screen.getByText('FallbackName')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('50')).toBeInTheDocument()
+    expect(screen.getByText('0%')).toBeInTheDocument()
+  })
+
+  it('uses profile avatar when fetched stats omit an avatar', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        name: 'FetchedName',
+        soloGames: 1,
+        soloTopScore: 75,
+        multiGames: 0,
+        wins: 0,
+        losses: 0,
+      }),
+    })
+
+    render(
+      <PlayerStats
+        theme="light"
+        username="FallbackName"
+        userProfile={{
+          username: 'ProfileName',
+          avatar: { skinColor: '#123456', eyeType: 'happy', mouthType: 'smile' },
+        }}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('FetchedName')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('75')).toBeInTheDocument()
+  })
+
+  it('renders default stats without fetching when no username is available', async () => {
+    render(<PlayerStats theme="dark" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/player stats/i)).toBeInTheDocument()
+    })
+
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(screen.getByText('Player')).toBeInTheDocument()
+    expect(screen.getByText('0%')).toBeInTheDocument()
+    expect(document.querySelector('.player-stats-panel.dark')).toBeTruthy()
+  })
+
+  it('keeps default stats and logs when fetching fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    global.fetch.mockRejectedValueOnce(new Error('network down'))
+
+    render(<PlayerStats theme="light" username="Titi" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/player stats/i)).toBeInTheDocument()
+    })
+
+    expect(consoleError).toHaveBeenCalledWith(
+      'Failed to fetch player stats',
+      expect.any(Error)
+    )
+    expect(screen.getByText('Player')).toBeInTheDocument()
+    expect(screen.getByText('0%')).toBeInTheDocument()
+
+    consoleError.mockRestore()
+  })
+
+  it('closes advanced stats when the overlay is clicked', async () => {
+    render(
+      <PlayerStats
+        theme="light"
+        username="Titi"
+        userProfile={{
+          username: 'Titi',
+          soloGames: 1,
+          soloTopScore: 100,
+          multiGames: 0,
+          wins: 0,
+          losses: 0,
+        }}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText(/player stats/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /advanced stats/i }))
+    expect(screen.getByRole('dialog', { name: /advanced stats/i })).toBeInTheDocument()
+
+    fireEvent.click(document.querySelector('.advanced-stats-overlay'))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('applies dark theme to the advanced stats modal', async () => {
+    render(<PlayerStats theme="dark" username="Titi" />)
+
+    await waitFor(() => {
+      expect(screen.getByText(/player stats/i)).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /advanced stats/i }))
+
+    expect(screen.getByRole('dialog', { name: /advanced stats/i })).toHaveClass('dark')
+  })
 })

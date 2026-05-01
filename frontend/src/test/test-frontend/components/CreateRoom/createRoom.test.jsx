@@ -7,6 +7,7 @@ import { socket } from '../../../../socket'
 // Mock the socket
 vi.mock('../../../../socket', () => ({
   socket: {
+    connected: false,
     emit: vi.fn(),
     on: vi.fn(),
     off: vi.fn(),
@@ -39,6 +40,11 @@ describe('CreateRoom Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    socket.connected = false
+    socket.emit.mockReset()
+    socket.on.mockReset()
+    socket.off.mockReset()
+    global.fetch.mockReset()
     
     // Default successful fetch response
     global.fetch.mockResolvedValue({
@@ -580,6 +586,181 @@ describe('CreateRoom Component', () => {
         { roomId: '1' }
       )
     })
+
+    it('should report a duplicate room name and keep editing state consistent', async () => {
+      const { container } = render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls
+        .filter(call => call[0] === 'roomState')
+        .at(-1)?.[1]
+
+      await act(async () => {
+        handleRoomState?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      })
+
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: async () => ({ error: 'Room name already exists' })
+      })
+
+      fireEvent.click(container.querySelector('.edit-button'))
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'TakenName' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(mockOnNotice).toHaveBeenCalledWith('Room already used.')
+      })
+    })
+
+    it('should map generic room name update errors', async () => {
+      const { container } = render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      await act(async () => {
+        handleRoomState?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      })
+
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ error: 'Invalid room name' })
+      })
+
+      fireEvent.click(container.querySelector('.edit-button'))
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'BadName' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/rooms/1/name',
+          expect.objectContaining({ method: 'PATCH' })
+        )
+      })
+      expect(mockOnNotice).not.toHaveBeenCalledWith('Invalid room name')
+    })
+
+    it('should restore the previous room name on Escape and on failed update', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { container } = render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      await act(async () => {
+        handleRoomState?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      })
+
+      await waitFor(() => {
+        expect(container.querySelector('.edit-button')).toBeTruthy()
+      })
+
+      fireEvent.click(container.querySelector('.edit-button'))
+      let input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'DraftName' } })
+      fireEvent.keyDown(input, { key: 'Escape' })
+
+      expect(screen.getByText('Room 1')).toBeInTheDocument()
+
+      global.fetch.mockRejectedValueOnce(new Error('network down'))
+
+      await waitFor(() => {
+        expect(container.querySelector('.edit-button')).toBeTruthy()
+      })
+      fireEvent.click(container.querySelector('.edit-button'))
+      input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'NewName' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith(
+          'Failed to update room name:',
+          expect.any(Error)
+        )
+      })
+
+      consoleError.mockRestore()
+    })
+
+    it('should cancel edits on blur and ignore empty room names', async () => {
+      const { container } = render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      await act(async () => {
+        handleRoomState?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      })
+
+      fireEvent.click(container.querySelector('.edit-button'))
+      let input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'DraftName' } })
+      fireEvent.blur(input)
+
+      expect(screen.getByText('Room 1')).toBeInTheDocument()
+
+      global.fetch.mockClear()
+      fireEvent.click(container.querySelector('.edit-button'))
+      input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: '   ' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+      expect(global.fetch).not.toHaveBeenCalled()
+    })
   })
 
   describe('Start Game', () => {
@@ -620,6 +801,80 @@ describe('CreateRoom Component', () => {
           expect.objectContaining({ roomId: '1', username: 'TestUser' })
         )
       })
+    })
+
+    it('should report start game errors and allow retry state', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      await act(async () => {
+        handleRoomState?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser', 'Player2'],
+          player_avatars: {}
+        })
+      })
+
+      socket.emit.mockImplementation((event) => {
+        if (event === 'startGame') {
+          throw new Error('socket down')
+        }
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /start game/i }))
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith(
+          'Failed to start game:',
+          expect.any(Error)
+        )
+      })
+
+      consoleError.mockRestore()
+    })
+  })
+
+  describe('Navigation and unload', () => {
+    it('should call onBack when the back button is clicked', async () => {
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+
+      expect(mockOnBack).toHaveBeenCalled()
+    })
+
+    it('should notify the socket when the tab unloads from a room', async () => {
+      socket.connected = true
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={7} />)
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'joinRoom',
+          { roomId: '7', username: 'TestUser' },
+          expect.any(Function)
+        )
+      })
+
+      window.dispatchEvent(new Event('beforeunload'))
+
+      expect(socket.emit).toHaveBeenCalledWith('playerLeave', { roomId: '7' })
+      socket.connected = false
     })
   })
 })

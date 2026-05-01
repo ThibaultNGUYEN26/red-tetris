@@ -3,8 +3,6 @@ import { useState, useEffect, useRef } from 'react'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { socket } from '../../socket'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
-
 function CreateRoom({
   theme,
   onBack,
@@ -50,7 +48,7 @@ function CreateRoom({
   const [roomId, setRoomId] = useState(joinedRoomId || null)
   const [hostName, setHostName] = useState('')
   const [committedMode, setCommittedMode] = useState('classic')
-  const [joinError, setJoinError] = useState('')
+  const [, setJoinError] = useState('')
 
   const hasCreatedRoom = useRef(false)
   const hasEditedName = useRef(false)

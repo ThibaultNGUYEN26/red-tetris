@@ -79,7 +79,7 @@ function PlayerStats({ theme, userProfile, username }) {
 
     if (userProfile && (userProfile.soloGames != null || userProfile.solo_games_played != null)) {
       const soloGames =
-        userProfile.soloGames ?? userProfile.solo_games_played ?? DEFAULT_STATS.soloGames
+        userProfile.soloGames ?? userProfile.solo_games_played
       const soloTopScore =
         userProfile.soloTopScore ?? userProfile.highest_solo_score ?? DEFAULT_STATS.soloTopScore
 
@@ -113,7 +113,7 @@ function PlayerStats({ theme, userProfile, username }) {
         setStats({
           ...DEFAULT_STATS,
           ...data,
-          name: data?.name || profileName || DEFAULT_STATS.name,
+          name: data?.name || profileName,
           avatar: data?.avatar || profileAvatar || DEFAULT_STATS.avatar,
           advanced: mergeAdvancedStats(data?.advanced),
         })
@@ -136,8 +136,6 @@ function PlayerStats({ theme, userProfile, username }) {
       </div>
     )
   }
-
-  if (!stats) return null
 
   const ratio =
     stats.wins + stats.losses > 0
@@ -234,7 +232,7 @@ function PlayerStats({ theme, userProfile, username }) {
             <Stat label="Multiplayer Games" value={stats.multiGames} />
             <Stat label="Multiplayer Wins" value={stats.wins} />
             <Stat label="Multiplayer Losses" value={stats.losses} />
-            <Stat label="Multiplayer Winrate" value={`${ratio} %`} highlight />
+            <Stat label="Multiplayer Winrate" value={`${ratio}%`} highlight />
           </div>
 
           <button
@@ -278,14 +276,14 @@ function formatDuration(totalSeconds = 0) {
   const remainingSeconds = Math.floor(seconds % 60)
 
   if (hours > 0) {
-    return `${hours} h ${minutes} m ${remainingSeconds} s`
+    return `${hours}h ${minutes}m ${remainingSeconds}s`
   }
 
   if (minutes > 0) {
-    return `${minutes} m ${remainingSeconds} s`
+    return `${minutes}m ${remainingSeconds}s`
   }
 
-  return `${remainingSeconds} s`
+  return `${remainingSeconds}s`
 }
 
 function Stat({ label, value, highlight }) {
