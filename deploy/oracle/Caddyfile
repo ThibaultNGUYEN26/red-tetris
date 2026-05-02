@@ -1,0 +1,3 @@
+api.thibault-nguyen.dev {
+	reverse_proxy backend:3000
+}
