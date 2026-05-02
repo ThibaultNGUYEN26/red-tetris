@@ -576,7 +576,6 @@ describe('socket setup', () => {
   })
 
   it('startGame stops when the caller is not the host', async () => {
-    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {})
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
       rows: [{
@@ -595,7 +594,7 @@ describe('socket setup', () => {
     await startGameHandler({ roomId: '1' })
 
     expect(mockCreateGame).not.toHaveBeenCalled()
-    expect(consoleLog).toHaveBeenCalled()
+    expect(socket.emit).not.toHaveBeenCalledWith('gameStarted', expect.anything())
   })
 
   it('startGame emits an error for invalid cooperative player count', async () => {
@@ -698,14 +697,13 @@ describe('socket setup', () => {
   })
 
   it('startGame returns early for invalid payload ids', async () => {
-    const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {})
     const { socket } = await setupConnectedSocket()
     socket.data.username = 'Titi'
 
     const startGameHandler = socket.handlers.get('startGame')
     await startGameHandler({ roomId: 'abc' })
 
-    expect(consoleLog).toHaveBeenCalledWith('Invalid startGame payload:', 'abc')
+    expect(mockQuery).not.toHaveBeenCalled()
     expect(mockCreateGame).not.toHaveBeenCalled()
   })
 

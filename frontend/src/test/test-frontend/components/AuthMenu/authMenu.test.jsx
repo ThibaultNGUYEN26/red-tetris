@@ -58,7 +58,7 @@ describe('AuthMenu', () => {
     submit(container)
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', expect.objectContaining({
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/auth/login'), expect.objectContaining({
         method: 'POST',
         body: expect.stringContaining('"username":"Titi"'),
       }))
@@ -133,7 +133,7 @@ describe('AuthMenu', () => {
     submit(container)
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/register', expect.objectContaining({
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/auth/register'), expect.objectContaining({
         body: expect.stringContaining('"email":"newuser@example.com"'),
       }))
       expect(screen.getByText('Account created. Please log in.')).toBeInTheDocument()
@@ -185,7 +185,7 @@ describe('AuthMenu', () => {
     submit(container)
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/forgot-password', expect.any(Object))
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/auth/forgot-password'), expect.any(Object))
       expect(screen.getByText('Password reset email sent')).toBeInTheDocument()
       expect(navigateMock).toHaveBeenCalledWith('/reset-password?token=abc', { replace: true })
     })
@@ -220,7 +220,7 @@ describe('AuthMenu', () => {
     submit(container)
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/auth/reset-password', expect.objectContaining({
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/auth/reset-password'), expect.objectContaining({
         body: expect.stringContaining('"token":"abc"'),
       }))
       expect(screen.getByText('Password updated')).toBeInTheDocument()

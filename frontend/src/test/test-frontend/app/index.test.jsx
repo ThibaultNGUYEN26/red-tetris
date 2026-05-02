@@ -84,6 +84,10 @@ import Index from '../../../index.jsx'
 
 global.fetch = vi.fn()
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
+const requestPath = (url) => {
+  const parsed = new URL(String(url), 'http://test.local')
+  return `${parsed.pathname}${parsed.search}`
+}
 
 const setSavedUser = (username = 'Titi') => {
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
@@ -101,7 +105,7 @@ describe('Index main page', () => {
     vi.clearAllMocks()
     localStorage.clear()
     global.fetch.mockImplementation(async (url) => {
-      if (String(url).startsWith('/api/player/connection')) {
+      if (requestPath(url).startsWith('/api/player/connection')) {
         return {
           ok: true,
           status: 200,
@@ -109,7 +113,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url).startsWith('/api/player/stats')) {
+      if (requestPath(url).startsWith('/api/player/stats')) {
         return {
           ok: true,
           status: 200,
@@ -117,7 +121,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url).startsWith('/api/rooms/by-player/')) {
+      if (requestPath(url).startsWith('/api/rooms/by-player/')) {
         return {
           ok: false,
           status: 404,
@@ -189,7 +193,7 @@ describe('Index main page', () => {
 
     let byNameCalls = 0
     global.fetch.mockImplementation(async (url) => {
-      if (String(url).startsWith('/api/player/connection')) {
+      if (requestPath(url).startsWith('/api/player/connection')) {
         return {
           ok: true,
           status: 200,
@@ -197,7 +201,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url).startsWith('/api/player/stats')) {
+      if (requestPath(url).startsWith('/api/player/stats')) {
         return {
           ok: true,
           status: 200,
@@ -205,7 +209,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url).startsWith('/api/rooms/by-player/')) {
+      if (requestPath(url).startsWith('/api/rooms/by-player/')) {
         return {
           ok: false,
           status: 404,
@@ -213,7 +217,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url) === '/api/rooms/by-name/test') {
+      if (requestPath(url) === '/api/rooms/by-name/test') {
         byNameCalls += 1
         if (byNameCalls === 1) {
           return {
@@ -236,7 +240,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url) === '/api/rooms') {
+      if (requestPath(url) === '/api/rooms') {
         return {
           ok: false,
           status: 409,
@@ -258,7 +262,7 @@ describe('Index main page', () => {
     setSavedUser('Riri')
 
     global.fetch.mockImplementation(async (url) => {
-      if (String(url) === '/api/player/connection?username=Riri') {
+      if (requestPath(url) === '/api/player/connection?username=Riri') {
         return {
           ok: true,
           status: 200,
@@ -266,7 +270,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url).startsWith('/api/player/stats')) {
+      if (requestPath(url).startsWith('/api/player/stats')) {
         return {
           ok: true,
           status: 200,
@@ -274,7 +278,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url) === '/api/rooms/by-player/Riri') {
+      if (requestPath(url) === '/api/rooms/by-player/Riri') {
         return {
           ok: true,
           status: 200,
@@ -304,7 +308,7 @@ describe('Index main page', () => {
     setSavedUser('Riri')
 
     global.fetch.mockImplementation(async (url) => {
-      if (String(url) === '/api/player/connection?username=Riri') {
+      if (requestPath(url) === '/api/player/connection?username=Riri') {
         return {
           ok: true,
           status: 200,
@@ -312,7 +316,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url).startsWith('/api/player/stats')) {
+      if (requestPath(url).startsWith('/api/player/stats')) {
         return {
           ok: true,
           status: 200,
@@ -320,7 +324,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url) === '/api/rooms/by-player/Riri') {
+      if (requestPath(url) === '/api/rooms/by-player/Riri') {
         return {
           ok: true,
           status: 200,
@@ -350,7 +354,7 @@ describe('Index main page', () => {
     setSavedUser('Titi')
 
     global.fetch.mockImplementation(async (url) => {
-      if (String(url) === '/api/player/connection?username=Titi') {
+      if (requestPath(url) === '/api/player/connection?username=Titi') {
         return {
           ok: true,
           status: 200,
@@ -358,7 +362,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url).startsWith('/api/player/stats')) {
+      if (requestPath(url).startsWith('/api/player/stats')) {
         return {
           ok: true,
           status: 200,
@@ -366,7 +370,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url) === '/api/rooms/by-player/Titi') {
+      if (requestPath(url) === '/api/rooms/by-player/Titi') {
         return {
           ok: false,
           status: 404,
@@ -374,7 +378,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url) === '/api/rooms/by-name/test') {
+      if (requestPath(url) === '/api/rooms/by-name/test') {
         return {
           ok: true,
           status: 200,
@@ -404,7 +408,7 @@ describe('Index main page', () => {
     setSavedUser('Titi')
 
     global.fetch.mockImplementation(async (url) => {
-      if (String(url) === '/api/player/connection?username=Titi') {
+      if (requestPath(url) === '/api/player/connection?username=Titi') {
         return {
           ok: true,
           status: 200,
@@ -412,7 +416,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url).startsWith('/api/player/stats')) {
+      if (requestPath(url).startsWith('/api/player/stats')) {
         return {
           ok: true,
           status: 200,
@@ -435,7 +439,7 @@ describe('Index main page', () => {
     setSavedUser('Titi')
 
     global.fetch.mockImplementation(async (url) => {
-      if (String(url) === '/api/player/connection?username=Titi') {
+      if (requestPath(url) === '/api/player/connection?username=Titi') {
         return {
           ok: true,
           status: 200,
@@ -443,7 +447,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url).startsWith('/api/player/stats')) {
+      if (requestPath(url).startsWith('/api/player/stats')) {
         return {
           ok: true,
           status: 200,
@@ -451,7 +455,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url) === '/api/rooms/by-player/Titi') {
+      if (requestPath(url) === '/api/rooms/by-player/Titi') {
         return {
           ok: false,
           status: 404,
@@ -459,7 +463,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url) === '/api/rooms/by-name/RoomNameWayTooLong') {
+      if (requestPath(url) === '/api/rooms/by-name/RoomNameWayTooLong') {
         return {
           ok: false,
           status: 400,
@@ -481,7 +485,7 @@ describe('Index main page', () => {
     setSavedUser('Titi')
 
     global.fetch.mockImplementation(async (url) => {
-      if (String(url) === '/api/player/connection?username=Titi') {
+      if (requestPath(url) === '/api/player/connection?username=Titi') {
         return {
           ok: true,
           status: 200,
@@ -489,7 +493,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url).startsWith('/api/player/stats')) {
+      if (requestPath(url).startsWith('/api/player/stats')) {
         return {
           ok: true,
           status: 200,
@@ -497,7 +501,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url) === '/api/rooms/by-player/Titi') {
+      if (requestPath(url) === '/api/rooms/by-player/Titi') {
         return {
           ok: false,
           status: 404,
@@ -505,7 +509,7 @@ describe('Index main page', () => {
         }
       }
 
-      if (String(url) === '/api/rooms/by-name/test') {
+      if (requestPath(url) === '/api/rooms/by-name/test') {
         return {
           ok: true,
           status: 200,

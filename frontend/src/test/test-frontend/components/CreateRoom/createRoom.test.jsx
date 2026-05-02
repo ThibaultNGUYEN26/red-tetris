@@ -261,7 +261,7 @@ describe('CreateRoom Component', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/rooms/1/mode',
+          expect.stringContaining('/api/rooms/1/mode'),
           expect.objectContaining({ method: 'PATCH' })
         )
       })
@@ -666,7 +666,7 @@ describe('CreateRoom Component', () => {
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/rooms/1/name',
+          expect.stringContaining('/api/rooms/1/name'),
           expect.objectContaining({ method: 'PATCH' })
         )
       })
