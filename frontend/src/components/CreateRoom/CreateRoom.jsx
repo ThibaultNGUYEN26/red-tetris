@@ -135,7 +135,6 @@ function CreateRoom({
 
     const createRoom = async () => {
       try {
-        console.log('[CreateRoom] Creating room', { username, gameMode: selectedMode })
         const response = await apiFetch(`/api/rooms`, {
           method: 'POST',
           ...authFetchOptions(),
@@ -151,7 +150,6 @@ function CreateRoom({
         
         // [Play Again] If user is already in a room, the backend rejects creation.
         if (room.error === 'User is already in a room') {
-          console.log('[CreateRoom] User already in a room, retrieving existing room')
           onJoinError?.(room.error)
           return
         }
@@ -170,8 +168,6 @@ function CreateRoom({
           console.error('[CreateRoom] Room creation failed:', room.error || 'No roomId returned')
           return
         }
-
-        console.log('[CreateRoom] Room created', { roomId: room.id, name: room.name, roomObj: room })
 
         setRoomId(room.id)
         setRoomName(resolvedRoomName(room.name))
@@ -212,8 +208,6 @@ function CreateRoom({
     if (!roomId) return
 
     const handleRoomState = (room) => {
-      console.log('🟢 Room updated:', room)
-
       applyRoomState(room)
     }
 
@@ -246,7 +240,6 @@ function CreateRoom({
 
       setJoinError('')
       hasJoinedRoom.current = true
-      console.log('Emitting getRoomState', roomId)
       socket.emit('getRoomState', { roomId: String(roomId) })
     })
 
@@ -487,7 +480,6 @@ function CreateRoom({
 
     try {
       hasStartedGame.current = true
-      console.log('🎮 Emitting startGame event:', { roomId: String(roomId), username });
       socket.emit('startGame', { roomId: String(roomId), username })
       onStartGame?.(roomId)
     } catch (err) {

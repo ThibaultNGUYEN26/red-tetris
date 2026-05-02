@@ -4,13 +4,11 @@ function Options({ onBack, theme, onThemeChange, soundEnabled, onSoundChange }) 
   const handleThemeToggle = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark'
     onThemeChange(newTheme)
-    console.log('Theme changed to:', newTheme)
   }
 
   const handleSoundToggle = () => {
     const newSound = !soundEnabled
     onSoundChange?.(newSound)
-    console.log('Sound:', newSound ? 'enabled' : 'disabled')
   }
 
   return (

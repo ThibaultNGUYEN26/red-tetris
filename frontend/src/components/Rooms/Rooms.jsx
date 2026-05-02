@@ -82,8 +82,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
           return
         }
 
-        console.log('[Rooms] Joined room', { roomId, username })
-
         // Sync room state (in case of late listeners)
         socket.emit('getRoomState', { roomId: String(roomId) })
         setCurrentRoomId(roomId)
@@ -162,7 +160,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
     const handleGameStarted = ({ roomId }) => {
       if (!roomId) return
       if (String(roomId) !== String(currentRoomId)) return
-      console.log('[Rooms] Game started', { roomId, username })
       setShowGame(true)
     }
 
@@ -173,7 +170,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   /* ---------------- CREATE ROOM ---------------- */
 
   const handleCreateRoom = () => {
-    console.log('[Rooms] Create room clicked', { username })
     setShowCreateRoomPicker(true)
   }
 
@@ -184,7 +180,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   }
 
   const handleRoomCreated = (roomId, roomName, roomType) => {
-    console.log('[Rooms] Room created', { roomId, username })
     setCurrentRoomId(roomId)
     setCurrentRoomName(roomName)
     navigate(
@@ -237,7 +232,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         });
       });
 
-      console.log("[Rooms] Successfully left room/game", { roomId: currentRoomId });
       socket.emit("getAvailableRooms");
     }
     catch (err) {

@@ -349,7 +349,6 @@ function Game({
 
     const handleGameOver = ({ winner }) => {
       if (!isMultiplayer && exitingRef.current) return
-      console.log('Game over! Winner:', winner)
       setWinner(winner || null)
       setIsEliminated(true)
       setIsGameOver(true)

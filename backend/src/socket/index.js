@@ -111,8 +111,6 @@ export async function broadcastAvailableRooms(io) {
 
 export default function setupSockets(io) {
   io.on("connection", (socket) => {
-    console.log(`Socket connected: ${socket.id}`);
-
     // Helper functions
     const syncSoloScoresSequence = async () => {
       await pool.query(`
@@ -705,8 +703,6 @@ export default function setupSockets(io) {
         const player = game.getPlayer(effectiveUsername);
         if (player) {
           player.isAlive = false;
-          console.log(`${effectiveUsername} left the room`);
-
           if (typeof game.checkGameOver === "function" && typeof game.endGame === "function") {
             const result = game.checkGameOver();
             if (result.over && game.onGameOver) {
@@ -778,7 +774,6 @@ export default function setupSockets(io) {
       const id = Number(roomId);
 
       if (!Number.isInteger(id) || id <= 0 || !username) {
-        console.log("Invalid startGame payload:", roomId);
         return;
       }
 
@@ -794,7 +789,6 @@ export default function setupSockets(io) {
 
         // Only host can start
         if (room.host !== username) {
-          console.log(`User is not host. Host: ${room.host}, User: ${username}`);
           return;
         }
 
@@ -890,8 +884,6 @@ export default function setupSockets(io) {
         // Emit start event; tick will emit gameState
         io.to(String(roomId)).emit("gameStarted", { roomId });
 
-        console.log(`Game started in room ${roomId} by host ${username}`);
-
       } catch (err) {
         console.error("startGame failed:", err);
       }
@@ -944,7 +936,6 @@ export default function setupSockets(io) {
         }
       }
 
-      console.log(`Socket disconnected: ${socket.id}`);
     });
   });
 }

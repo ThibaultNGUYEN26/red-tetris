@@ -65,7 +65,6 @@ router.post("/", async (req, res) => {
     const { gameMode, name: requestedName, isListed = true } = req.body;
 
     if (!gameMode) {
-      console.log("Missing data:", { gameMode });
       return res.status(400).json({ error: "Missing data" });
     }
 
@@ -86,7 +85,6 @@ router.post("/", async (req, res) => {
     );
 
     if (checkResult.rowCount > 0) {
-      console.log("User already in a room:", host);
       return res.status(400).json({
         error: "User is already in a room"
       });
@@ -94,7 +92,6 @@ router.post("/", async (req, res) => {
 
     const allowedModes = ["classic", "mirror", "chaotic", "cooperative", "cooperative_roles", "giant"];
     if (!allowedModes.includes(gameMode)) {
-      console.log("Invalid game mode:", gameMode);
       return res.status(400).json({ error: "Invalid game mode" });
     }
 

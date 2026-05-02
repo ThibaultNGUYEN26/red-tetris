@@ -13,12 +13,10 @@ function ModeMenuSelector({
   const [showOptions, setShowOptions] = useState(false)
 
   const handleSolo = () => {
-    console.log('Solo mode selected')
     onShowSoloRoom?.(true)
   }
 
   const handleMultiplayer = () => {
-    console.log('Multiplayer mode selected')
     onShowRooms(true)
   }
 

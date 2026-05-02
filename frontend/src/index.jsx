@@ -456,7 +456,6 @@ function Index({ authMode = 'login' }) {
           );
         });
 
-        console.log("[Index] Left solo room", { roomId: soloRoomId });
       } catch (err) {
         console.error("Failed to leave solo room:", err);
       }
@@ -495,7 +494,6 @@ function Index({ authMode = 'login' }) {
           );
         });
 
-        console.log("[Index] Left solo lobby", { roomId: soloRoomId });
       } catch (err) {
         console.error("Failed to leave solo lobby:", err);
       }

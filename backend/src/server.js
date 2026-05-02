@@ -40,19 +40,6 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
-app.use((req, res, next) => {
-  const start = Date.now();
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    console.log(
-      `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} → ${res.statusCode} (${duration}ms)`
-    );
-  });
-
-  next();
-});
-
 app.use("/api", profileRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/contact", contactRoutes);
@@ -76,15 +63,12 @@ export async function startServer() {
   try {
     await pool.query("SELECT 1");
     await ensureSchema();
-    console.log("DB connected");
   } catch (err) {
     console.error("DB connection failed:", err);
     throw err;
   }
 
-  return httpServer.listen(PORT, "0.0.0.0", () => {
-    console.log(`Backend running on port ${PORT}`);
-  });
+  return httpServer.listen(PORT, "0.0.0.0");
 }
 
 await startServer();
