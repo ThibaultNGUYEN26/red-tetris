@@ -1,5 +1,7 @@
 const originalConsoleError = console.error
 
+process.env.VITEST = 'true'
+
 console.log = () => {}
 console.info = () => {}
 console.debug = () => {}

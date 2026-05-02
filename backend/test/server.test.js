@@ -201,15 +201,16 @@ describe('server bootstrap', () => {
     expect(res.json).toHaveBeenCalledWith({ status: 'ok' })
   })
 
-  it('logs DB startup failures', async () => {
+  it('fails startup when DB initialization fails', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     const dbError = new Error('db down')
     poolQueryMock.mockRejectedValueOnce(dbError)
 
-    await import('../src/server.js')
+    await expect(import('../src/server.js')).rejects.toThrow('db down')
 
     expect(consoleError).toHaveBeenCalledWith('DB connection failed:', dbError)
     expect(ensureSchemaMock).not.toHaveBeenCalled()
+    expect(listenMock).not.toHaveBeenCalled()
   })
 
   it('falls back to default port and frontend URL when env vars are missing', async () => {
@@ -228,6 +229,7 @@ describe('server bootstrap', () => {
       expect.objectContaining({
         cors: {
           origin: 'http://localhost:8080',
+          credentials: true,
         },
       })
     )

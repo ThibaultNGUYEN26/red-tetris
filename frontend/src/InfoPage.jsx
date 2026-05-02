@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
+import { apiFetch } from './api'
 
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
@@ -202,7 +203,7 @@ function InfoPage({ type }) {
     setContactStatus({ type: '', message: '' })
 
     try {
-      const response = await fetch('/api/contact', {
+      const response = await apiFetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

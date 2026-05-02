@@ -534,6 +534,9 @@ describe('Index main page', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /play again/i }))
 
-    expect(socket.emit).toHaveBeenCalledWith('playAgain', { roomId: '12', username: 'Titi' })
+    expect(socket.emit).toHaveBeenCalledWith(
+      'playAgain',
+      expect.objectContaining({ roomId: '12', username: 'Titi' })
+    )
   })
 })

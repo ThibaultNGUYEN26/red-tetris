@@ -6,15 +6,22 @@ const rootDir = path.resolve(__dirname, '..')
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
 
 function runCommand(command, args, cwd) {
+  const env = {
+    ...process.env,
+    NODE_ENV: 'test',
+    VITEST: 'true',
+  }
   const isWindows = process.platform === 'win32'
   const result = isWindows
     ? spawnSync('cmd.exe', ['/d', '/s', '/c', command, ...args], {
         cwd,
+        env,
         stdio: 'inherit',
         shell: false,
       })
     : spawnSync(command, args, {
         cwd,
+        env,
         stdio: 'inherit',
         shell: false,
       })

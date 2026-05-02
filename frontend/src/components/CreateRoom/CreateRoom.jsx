@@ -2,6 +2,8 @@ import './CreateRoom.css'
 import { useState, useEffect, useRef } from 'react'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { socket } from '../../socket'
+import { authFetchOptions } from '../../authToken'
+import { apiFetch } from '../../api'
 
 function CreateRoom({
   theme,
@@ -134,12 +136,12 @@ function CreateRoom({
     const createRoom = async () => {
       try {
         console.log('[CreateRoom] Creating room', { username, gameMode: selectedMode })
-        const response = await fetch(`/api/rooms`, {
+        const response = await apiFetch(`/api/rooms`, {
           method: 'POST',
+          ...authFetchOptions(),
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             gameMode: selectedMode,
-            host: username,
             name: desiredRoomName || undefined,
             isListed: !isSolo,
           }),
@@ -176,6 +178,17 @@ function CreateRoom({
         setRoomNameDraft(resolvedRoomName(room.name))
         setSelectedMode(room.game_mode)
         setCommittedMode(room.game_mode)
+        setHostName(room.host || username)
+        if (Array.isArray(room.players) && room.players.length > 0) {
+          setPlayers(
+            room.players.map((name, index) => ({
+              id: index + 1,
+              name,
+              isHost: name === (room.host || username),
+              avatar: resolveAvatar(name),
+            }))
+          )
+        }
         setRoomType(
           ['cooperative', 'cooperative_roles'].includes(room.game_mode)
             ? 'cooperative'
@@ -309,12 +322,12 @@ function CreateRoom({
 
     const timeoutId = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/rooms/${roomId}/mode`, {
+        const response = await apiFetch(`/api/rooms/${roomId}/mode`, {
           method: 'PATCH',
+          ...authFetchOptions(),
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             mode: selectedMode,
-            username: username,
           }),
         })
 
@@ -416,12 +429,12 @@ function CreateRoom({
     }
 
     try {
-      const response = await fetch(`/api/rooms/${roomId}/name`, {
+      const response = await apiFetch(`/api/rooms/${roomId}/name`, {
         method: 'PATCH',
+        ...authFetchOptions(),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: trimmedName,
-          username,
         }),
       })
 

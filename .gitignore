@@ -24,6 +24,8 @@ lerna-debug.log*
 .env.*
 backend/.env
 frontend/.env
+certs/*
+!certs/.gitkeep
 
 ############################
 # Build output

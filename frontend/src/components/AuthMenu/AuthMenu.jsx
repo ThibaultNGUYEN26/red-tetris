@@ -3,6 +3,7 @@ import '../ProfileMenu/ProfileMenu.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
+import { apiFetch } from '../../api'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const PASSWORD_MIN_LENGTH = 8
@@ -244,8 +245,9 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
         }
       }
 
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })

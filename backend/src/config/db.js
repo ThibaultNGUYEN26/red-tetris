@@ -1,60 +1,67 @@
 import pkg from "pg";
-const { Pool } = pkg;
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 
-export const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-});
+const { Pool } = pkg;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : undefined,
+    }
+  : {
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT),
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+    };
+
+export const pool = new Pool(poolConfig);
 
 export async function ensureSchema() {
+  await runMigrations();
+}
+
+export async function runMigrations() {
   await pool.query(`
-    ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS password_hash TEXT;
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      name TEXT PRIMARY KEY,
+      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 
-  await pool.query(`
-    ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS email TEXT;
-  `);
+  const migrationsDir = path.resolve(__dirname, "migrations");
+  const migrationFiles = (await fs.readdir(migrationsDir))
+    .filter((file) => file.endsWith(".sql"))
+    .sort();
 
-  await pool.query(`
-    ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS reset_password_token TEXT;
-  `);
+  for (const file of migrationFiles) {
+    const applied = await pool.query(
+      "SELECT 1 FROM schema_migrations WHERE name = $1",
+      [file]
+    );
 
-  await pool.query(`
-    ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMPTZ;
-  `);
+    if (applied.rowCount > 0) {
+      continue;
+    }
 
-  await pool.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx
-    ON users (LOWER(email))
-    WHERE email IS NOT NULL;
-  `);
+    const sql = await fs.readFile(path.join(migrationsDir, file), "utf8");
 
-  await pool.query(`
-    CREATE UNIQUE INDEX IF NOT EXISTS users_reset_password_token_unique_idx
-    ON users (reset_password_token)
-    WHERE reset_password_token IS NOT NULL;
-  `);
-
-  await pool.query(`
-    ALTER TABLE rooms
-      ADD COLUMN IF NOT EXISTS is_listed BOOLEAN DEFAULT TRUE;
-  `);
-
-  await pool.query(`
-    UPDATE rooms
-    SET is_listed = TRUE
-    WHERE is_listed IS NULL;
-  `);
-
-  await pool.query(`
-    ALTER TABLE rooms
-      ALTER COLUMN is_listed SET NOT NULL;
-  `);
+    await pool.query("BEGIN");
+    try {
+      await pool.query(sql);
+      await pool.query(
+        "INSERT INTO schema_migrations (name) VALUES ($1)",
+        [file]
+      );
+      await pool.query("COMMIT");
+    } catch (err) {
+      await pool.query("ROLLBACK");
+      throw err;
+    }
+  }
 }

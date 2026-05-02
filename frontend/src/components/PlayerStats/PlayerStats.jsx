@@ -2,6 +2,7 @@ import './PlayerStats.css'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
+import { apiFetch } from '../../api'
 
 const DEFAULT_ADVANCED = {
   timePlayed: {
@@ -105,7 +106,7 @@ function PlayerStats({ theme, userProfile, username }) {
       }
 
       try {
-        const res = await fetch(
+        const res = await apiFetch(
           `/api/player/stats?username=${encodeURIComponent(profileName)}`,
           { credentials: 'include' }
         )

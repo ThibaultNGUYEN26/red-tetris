@@ -86,7 +86,6 @@ describe('CreateRoom Component', () => {
           method: 'POST',
           body: JSON.stringify({
             gameMode: 'classic',
-            host: 'TestUser',
             isListed: true,
           })
         })
@@ -223,7 +222,6 @@ describe('CreateRoom Component', () => {
           method: 'PATCH',
           body: JSON.stringify({
             mode: 'mirror',
-            username: 'TestUser'
           })
         })
       )
@@ -572,7 +570,7 @@ describe('CreateRoom Component', () => {
           expect.stringContaining('/api/rooms/1/name'),
           expect.objectContaining({
             method: 'PATCH',
-            body: JSON.stringify({ name: 'NewName', username: 'TestUser' })
+            body: JSON.stringify({ name: 'NewName' })
           })
         )
       })
@@ -615,6 +613,10 @@ describe('CreateRoom Component', () => {
         json: async () => ({ error: 'Room name already exists' })
       })
 
+      await waitFor(() => {
+        expect(container.querySelector('.edit-button')).toBeTruthy()
+      })
+
       fireEvent.click(container.querySelector('.edit-button'))
       const input = screen.getByRole('textbox')
       fireEvent.change(input, { target: { value: 'TakenName' } })
@@ -651,6 +653,10 @@ describe('CreateRoom Component', () => {
         ok: false,
         status: 400,
         json: async () => ({ error: 'Invalid room name' })
+      })
+
+      await waitFor(() => {
+        expect(container.querySelector('.edit-button')).toBeTruthy()
       })
 
       fireEvent.click(container.querySelector('.edit-button'))
@@ -866,7 +872,7 @@ describe('CreateRoom Component', () => {
       await waitFor(() => {
         expect(socket.emit).toHaveBeenCalledWith(
           'joinRoom',
-          { roomId: '7', username: 'TestUser' },
+          expect.objectContaining({ roomId: '7', username: 'TestUser' }),
           expect.any(Function)
         )
       })

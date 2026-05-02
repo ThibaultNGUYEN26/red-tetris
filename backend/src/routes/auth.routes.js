@@ -3,6 +3,12 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { pool } from "../config/db.js";
 import { sendResetPasswordEmail } from "../services/mail.service.js";
+import {
+  clearSessionCookie,
+  createSessionToken,
+  setSessionCookie,
+} from "../auth/session.js";
+import { authRateLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/;
@@ -36,6 +42,8 @@ const getPasswordValidationError = (password) => {
 
 router.post("/register", async (req, res) => {
   try {
+    if (authRateLimiter(req, res)) return;
+
     const { username, email, password, confirmPassword, avatar } = req.body || {};
     const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
@@ -109,6 +117,8 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
+    if (authRateLimiter(req, res)) return;
+
     const { username, password } = req.body || {};
 
     if (!username || !password) {
@@ -140,6 +150,9 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    const token = createSessionToken(user);
+    setSessionCookie(res, token);
+
     return res.status(200).json({
       id: user.id,
       username: user.username,
@@ -154,6 +167,8 @@ router.post("/login", async (req, res) => {
 
 router.post("/forgot-password", async (req, res) => {
   try {
+    if (authRateLimiter(req, res)) return;
+
     const username = typeof req.body?.username === "string" ? req.body.username.trim() : "";
     const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
 
@@ -216,6 +231,8 @@ router.post("/forgot-password", async (req, res) => {
 
 router.post("/reset-password", async (req, res) => {
   try {
+    if (authRateLimiter(req, res)) return;
+
     const token = typeof req.body?.token === "string" ? req.body.token.trim() : "";
     const password = req.body?.password;
     const confirmPassword = req.body?.confirmPassword;
@@ -256,6 +273,11 @@ router.post("/reset-password", async (req, res) => {
     console.error("Reset password failed:", err);
     return res.status(500).json({ error: "Server error" });
   }
+});
+
+router.post("/logout", (req, res) => {
+  clearSessionCookie(res);
+  res.status(200).json({ ok: true });
 });
 
 export default router;

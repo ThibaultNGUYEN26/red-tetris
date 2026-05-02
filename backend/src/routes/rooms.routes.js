@@ -1,6 +1,7 @@
 import express from "express";
 import { pool } from "../config/db.js";
 import { broadcastAvailableRooms } from "../socket/index.js";
+import { authenticateRequest, rejectUnauthenticated } from "../auth/session.js";
 
 const router = express.Router();
 const getMaxPlayers = (gameMode) =>
@@ -61,12 +62,16 @@ function generateRoomName() {
 // Create a new room
 router.post("/", async (req, res) => {
   try {
-    const { gameMode, host, name: requestedName, isListed = true } = req.body;
+    const { gameMode, name: requestedName, isListed = true } = req.body;
 
-    if (!gameMode || !host) {
-      console.log("Missing data:", { gameMode, host });
+    if (!gameMode) {
+      console.log("Missing data:", { gameMode });
       return res.status(400).json({ error: "Missing data" });
     }
+
+    const auth = authenticateRequest(req);
+    if (!auth) return rejectUnauthenticated(res);
+    const host = auth.username;
 
     const checkUserQuery = `
       SELECT id
@@ -216,11 +221,15 @@ router.get("/by-player/:username", async (req, res) => {
 // Update Room Name
 router.patch("/:roomId/name", async (req, res) => {
   const { roomId } = req.params;
-  const { name, username } = req.body;
+  const { name } = req.body;
 
   if (!name) {
     return res.status(400).json({ error: "Missing new room name" });
   }
+
+  const auth = authenticateRequest(req);
+  if (!auth) return rejectUnauthenticated(res);
+  const username = auth.username;
 
   const trimmedName = String(name).trim();
   const isValidName = /^[a-zA-Z0-9-]{1,15}$/.test(trimmedName);
@@ -289,7 +298,7 @@ router.patch("/:roomId/name", async (req, res) => {
 // Update Room Mode
 router.patch("/:roomId/mode", async (req, res) => {
   const { roomId } = req.params;
-  const { mode, username } = req.body;
+  const { mode } = req.body;
   const allowedModes = ["classic", "mirror", "chaotic", "cooperative", "cooperative_roles", "giant"];
 
   if (!mode) {
@@ -303,6 +312,10 @@ router.patch("/:roomId/mode", async (req, res) => {
       error: "Invalid game mode. Allowed: Classic, Mirror, Chaotic, Co-op Alternate, Co-op Roles, Giant",
     });
   }
+
+  const auth = authenticateRequest(req);
+  if (!auth) return rejectUnauthenticated(res);
+  const username = auth.username;
 
   try {
     const roomResult = await pool.query(

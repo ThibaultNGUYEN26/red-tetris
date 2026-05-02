@@ -2,6 +2,7 @@ import './index.css'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { socket } from './socket'
+import { apiFetch } from './api'
 import SpectatorView from './components/SpectatorView/SpectatorView.jsx'
 
 function Spectate() {
@@ -23,7 +24,7 @@ function Spectate() {
 
     const fetchRoom = async () => {
       try {
-        const res = await fetch(`/api/rooms/by-name/${encodeURIComponent(roomName)}`)
+        const res = await apiFetch(`/api/rooms/by-name/${encodeURIComponent(roomName)}`)
         if (!res.ok) throw new Error('Room not found')
         const room = await res.json()
         setRoomId(room.id)

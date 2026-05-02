@@ -27,6 +27,8 @@ vi.mock('bcryptjs', () => ({
 
 const buildRes = () => {
   const res = {
+    cookie: vi.fn(),
+    clearCookie: vi.fn(),
     status: vi.fn(),
     json: vi.fn(),
   }
@@ -95,12 +97,12 @@ describe('auth routes', () => {
     }, res)
 
     expect(res.status).toHaveBeenCalledWith(201)
-    expect(res.json).toHaveBeenCalledWith({
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       id: 1,
       username: 'Titi',
       email: 'titi@example.com',
       avatar: { eyeType: 'happy' },
-    })
+    }))
   })
 
   it('returns 409 when registering an existing username', async () => {
@@ -219,12 +221,16 @@ describe('auth routes', () => {
     await handler({ body: { username: 'Titi', password: VALID_PASSWORD } }, res)
 
     expect(res.status).toHaveBeenCalledWith(200)
-    expect(res.json).toHaveBeenCalledWith({
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       id: 1,
       username: 'Titi',
       email: 'titi@example.com',
       avatar: { eyeType: 'happy' },
-    })
+    }))
+    expect(res.cookie).toHaveBeenCalledWith('red_tetris_session', expect.any(String), expect.objectContaining({
+      httpOnly: true,
+      sameSite: 'lax',
+    }))
   })
 
   it('validates forgot password payload', async () => {
@@ -357,11 +363,30 @@ describe('auth routes', () => {
     await loginHandler({ body: { username: 'Titi', password: VALID_PASSWORD } }, res)
 
     expect(res.status).toHaveBeenCalledWith(200)
-    expect(res.json).toHaveBeenCalledWith({
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       id: 3,
       username: 'Titi',
       email: 'titi@example.com',
       avatar: { eyeType: 'happy' },
-    })
+    }))
+    expect(res.cookie).toHaveBeenCalledWith('red_tetris_session', expect.any(String), expect.objectContaining({
+      httpOnly: true,
+      sameSite: 'lax',
+    }))
+  })
+
+  it('clears the session cookie on logout', async () => {
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/logout')
+    const res = buildRes()
+
+    await handler({}, res)
+
+    expect(res.clearCookie).toHaveBeenCalledWith('red_tetris_session', expect.objectContaining({
+      httpOnly: true,
+      sameSite: 'lax',
+    }))
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith({ ok: true })
   })
 })

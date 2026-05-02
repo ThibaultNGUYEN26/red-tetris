@@ -12,9 +12,11 @@ import contactRoutes from "./routes/contact.routes.js";
 
 import setupSockets from "./socket/index.js";
 import { ensureSchema, pool } from "./config/db.js";
+import { assertSessionSecret } from "./auth/session.js";
 
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:8080";
+assertSessionSecret();
 
 // App and HTTP Server
 const app = express();
@@ -63,20 +65,26 @@ app.get("/health", (req, res) => {
 const io = new Server(httpServer, {
   cors: {
     origin: FRONTEND_URL,
+    credentials: true,
   },
 });
 
 app.set("io", io);
 setupSockets(io);
 
-httpServer.listen(PORT, "0.0.0.0", async () => {
-  console.log(`Backend running on port ${PORT}`);
-
+export async function startServer() {
   try {
     await pool.query("SELECT 1");
     await ensureSchema();
     console.log("DB connected");
   } catch (err) {
     console.error("DB connection failed:", err);
+    throw err;
   }
-});
+
+  return httpServer.listen(PORT, "0.0.0.0", () => {
+    console.log(`Backend running on port ${PORT}`);
+  });
+}
+
+await startServer();

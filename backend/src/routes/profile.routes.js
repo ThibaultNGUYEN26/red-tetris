@@ -1,6 +1,7 @@
 import express from "express";
 import { pool } from "../config/db.js";
 import { isUsernameConnected } from "../socket/index.js";
+import { authenticateRequest, rejectUnauthenticated } from "../auth/session.js";
 
 const router = express.Router();
 
@@ -266,11 +267,19 @@ router.get("/leaderboard/coop", async (req, res) => {
 
 router.post("/profile", async (req, res) => {
   try {
-    const { username, avatar } = req.body;
+    const { avatar } = req.body;
+    const auth = authenticateRequest(req);
 
-    if (!username || !avatar) {
+    if (!avatar) {
       return res.status(400).json({ error: "Missing data" });
     }
+
+    if (req.body?.username && !/^[a-zA-Z0-9]{1,15}$/.test(req.body.username)) {
+      return res.status(400).json({ error: "Invalid username" });
+    }
+
+    if (!auth) return rejectUnauthenticated(res);
+    const username = auth.username;
 
     if (!/^[a-zA-Z0-9]{1,15}$/.test(username)) {
       return res.status(400).json({ error: "Invalid username" });

@@ -15,10 +15,11 @@ import CreateRoom from './components/CreateRoom/CreateRoom.jsx'
 import Game from './components/Game/Game.jsx'
 import Title from './components/Title/Title.jsx'
 import { socket } from './socket'
+import { AUTH_STORAGE_KEY, authFetchOptions } from './authToken'
+import { apiFetch } from './api'
 import bopSound from './res/sounds/bop.mp3'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
-const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const DEFAULT_URL_AVATAR = {
   skinColor: '#cccccc',
@@ -42,6 +43,30 @@ const buildRoomPath = (roomName, type, username) => {
 
 const getMaxPlayers = (gameMode) =>
   ['cooperative', 'cooperative_roles'].includes(gameMode) ? 2 : 6
+
+const reconnectSocketWithSession = () =>
+  new Promise((resolve) => {
+    if (!socket?.connect) {
+      resolve()
+      return
+    }
+
+    const finish = () => {
+      clearTimeout(timeoutId)
+      socket.off?.('connect', finish)
+      socket.off?.('connect_error', finish)
+      resolve()
+    }
+
+    const timeoutId = setTimeout(finish, 2000)
+    socket.once?.('connect', finish)
+    socket.once?.('connect_error', finish)
+
+    if (socket.connected) {
+      socket.disconnect()
+    }
+    socket.connect()
+  })
 
 function Index({ authMode = 'login' }) {
   const { roomName: urlRoomName, roomType: urlRoomType, username: urlUsername } = useParams()
@@ -97,8 +122,6 @@ function Index({ authMode = 'login' }) {
   const profileMenuRef = useRef(null)
   const soundEnabledRef = useRef(soundEnabled)
 
-  const API_URL = import.meta.env.VITE_API_URL || ''
-
   const isUsernameAlreadyConnected = async (name) => {
     if (!name) return false
 
@@ -107,7 +130,7 @@ function Index({ authMode = 'login' }) {
       params.set('socketId', socket.id)
     }
 
-    const response = await fetch(`/api/player/connection?${params.toString()}`, {
+    const response = await apiFetch(`/api/player/connection?${params.toString()}`, {
       cache: 'no-store',
     })
 
@@ -178,7 +201,7 @@ function Index({ authMode = 'login' }) {
 
     const ensureUrlUserProfile = async () => {
       try {
-        const statsResponse = await fetch(
+        const statsResponse = await apiFetch(
           `/api/player/stats?username=${encodeURIComponent(username)}`
         )
 
@@ -198,8 +221,9 @@ function Index({ authMode = 'login' }) {
           return
         }
 
-        const profileResponse = await fetch(`/api/profile`, {
+        const profileResponse = await apiFetch(`/api/profile`, {
           method: 'POST',
+          ...authFetchOptions(),
           headers: {
             'Content-Type': 'application/json',
           },
@@ -234,7 +258,7 @@ function Index({ authMode = 'login' }) {
     return () => {
       cancelled = true
     }
-  }, [username, userProfile, API_URL])
+  }, [username, userProfile])
 
   useEffect(() => {
     soundEnabledRef.current = soundEnabled
@@ -286,6 +310,8 @@ function Index({ authMode = 'login' }) {
   /* ---------------- PROFILE ---------------- */
 
   const handleAuthSubmit = async (profile) => {
+    await reconnectSocketWithSession()
+
     const regResult = await new Promise((resolve) => {
       if (!socket?.emit) {
         resolve({ ok: true })
@@ -325,6 +351,10 @@ function Index({ authMode = 'login' }) {
     if (username) {
       socket.emit('unregisterUser', { username })
     }
+    apiFetch('/api/auth/logout', {
+      method: 'POST',
+      ...authFetchOptions(),
+    }).catch(() => {})
     localStorage.removeItem(AUTH_STORAGE_KEY)
     setUsername(null)
     setShowRooms(false)
@@ -533,7 +563,7 @@ function Index({ authMode = 'login' }) {
           return
         }
 
-        const res = await fetch(`/api/rooms/by-name/${encodeURIComponent(soloRoomName)}`, {
+        const res = await apiFetch(`/api/rooms/by-name/${encodeURIComponent(soloRoomName)}`, {
           cache: 'no-store',
         })
         if (res.status === 404) return
@@ -563,7 +593,7 @@ function Index({ authMode = 'login' }) {
     }
 
     fetchSoloRoom()
-  }, [showSoloRoom, soloRoomName, soloRoomId, API_URL, username, navigate])
+  }, [showSoloRoom, soloRoomName, soloRoomId, username, navigate])
 
   useEffect(() => {
     if (!showDirectRoom || !directRoomName || directRoomId) return
@@ -589,7 +619,7 @@ function Index({ authMode = 'login' }) {
           return true
         }
 
-        const userRoomRes = await fetch(`/api/rooms/by-player/${encodeURIComponent(username)}`, {
+        const userRoomRes = await apiFetch(`/api/rooms/by-player/${encodeURIComponent(username)}`, {
           cache: 'no-store',
         })
 
@@ -609,8 +639,9 @@ function Index({ authMode = 'login' }) {
 
       const createDirectRoom = async () => {
         const defaultMode = directRoomType === 'coop' ? 'cooperative' : 'classic'
-        const createRes = await fetch(`/api/rooms`, {
+        const createRes = await apiFetch(`/api/rooms`, {
           method: 'POST',
+          ...authFetchOptions(),
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             gameMode: defaultMode,
@@ -643,7 +674,7 @@ function Index({ authMode = 'login' }) {
 
         // Another player may have created the room between lookup and create.
         // Reload it and join if it is still waiting.
-        const existingRes = await fetch(`/api/rooms/by-name/${encodeURIComponent(directRoomName)}`, {
+        const existingRes = await apiFetch(`/api/rooms/by-name/${encodeURIComponent(directRoomName)}`, {
           cache: 'no-store',
         })
 
@@ -689,7 +720,7 @@ function Index({ authMode = 'login' }) {
           return
         }
 
-        const res = await fetch(`/api/rooms/by-name/${encodeURIComponent(directRoomName)}`, {
+        const res = await apiFetch(`/api/rooms/by-name/${encodeURIComponent(directRoomName)}`, {
           cache: 'no-store',
         })
         if (res.status === 404) {
@@ -745,7 +776,7 @@ function Index({ authMode = 'login' }) {
     }
 
     resolveDirectRoom()
-  }, [showDirectRoom, directRoomName, directRoomId, directRoomType, API_URL, username, navigate])
+  }, [showDirectRoom, directRoomName, directRoomId, directRoomType, username, navigate])
 
   useEffect(() => {
     if (!directRoomId) return

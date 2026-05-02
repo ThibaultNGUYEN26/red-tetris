@@ -1,8 +1,8 @@
 import { pool } from "../config/db.js";
 import { createGame, getGame, removeGame } from "../game/gameManager.js";
+import { resolveSocketUser, USERNAME_PATTERN } from "../auth/session.js";
 
 const activeUsers = new Map();
-const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/;
 
 export const isUsernameConnected = (username, socketId = null) => {
   if (!username) return false;
@@ -344,8 +344,15 @@ export default function setupSockets(io) {
     });
 
     // Register user (ensure username is unique per active connection)
-    socket.on("registerUser", ({ username }, callback) => {
+    socket.on("registerUser", (payload = {}, callback) => {
       const ack = typeof callback === "function" ? callback : null;
+      const resolved = resolveSocketUser(socket, payload);
+      const username = resolved.username || payload.username;
+      if (!resolved.ok) {
+        socket.emit("usernameTaken", { username });
+        if (ack) ack(resolved);
+        return;
+      }
       const result = registerUsername(username, socket);
       if (!result.ok) {
         socket.emit("usernameTaken", { username });
@@ -359,8 +366,16 @@ export default function setupSockets(io) {
       if (ack) ack({ ok: true });
     });
 
-    socket.on("updateProfile", async ({ username, avatar }, callback) => {
+    socket.on("updateProfile", async (payload = {}, callback) => {
       const ack = typeof callback === "function" ? callback : null;
+      const resolved = resolveSocketUser(socket, payload);
+      const username = resolved.username || payload.username;
+      const { avatar } = payload;
+
+      if (!resolved.ok) {
+        if (ack) ack(resolved);
+        return;
+      }
 
       if (!username || !avatar) {
         if (ack) ack({ ok: false, error: "Missing data" });
@@ -407,10 +422,18 @@ export default function setupSockets(io) {
     });
 
     // Joining room Socket
-    socket.on("joinRoom", async ({ roomId, username }, callback) => {
+    socket.on("joinRoom", async (payload = {}, callback) => {
       const ack = typeof callback === "function" ? callback : null;
+      const resolved = resolveSocketUser(socket, payload);
+      const { roomId } = payload;
+      const username = resolved.username || payload.username;
       if (!roomId || !username) {
         if (ack) ack({ ok: false, error: "Missing roomId or username" });
+        return;
+      }
+      if (!resolved.ok) {
+        if (ack) ack(resolved);
+        socket.emit("error", { message: resolved.error });
         return;
       }
 
@@ -498,10 +521,18 @@ export default function setupSockets(io) {
     });
 
     // Spectator join (players in the room can spectate)
-    socket.on("joinSpectator", async ({ roomId, username }, callback) => {
+    socket.on("joinSpectator", async (payload = {}, callback) => {
       const ack = typeof callback === "function" ? callback : null;
+      const resolved = resolveSocketUser(socket, payload);
+      const { roomId } = payload;
+      const username = resolved.username || payload.username;
       if (!roomId || !username) {
         if (ack) ack({ ok: false, error: "Missing roomId or username" });
+        return;
+      }
+      if (!resolved.ok) {
+        if (ack) ack(resolved);
+        socket.emit("error", { message: resolved.error });
         return;
       }
 
@@ -651,9 +682,16 @@ export default function setupSockets(io) {
       }
     };
 
-    socket.on("playerLeave", async ({ roomId, username }, callback) => {
+    socket.on("playerLeave", async (payload = {}, callback) => {
       const ack = typeof callback === "function" ? callback : null;
-      const effectiveUsername = socket.data.username || username;
+      const { roomId } = payload;
+      const resolved = resolveSocketUser(socket, payload);
+      const effectiveUsername = resolved.username;
+
+      if (!resolved.ok) {
+        if (ack) ack(resolved);
+        return;
+      }
 
       if (socket.data.isSpectator) {
         socket.leave(String(roomId));
@@ -690,8 +728,12 @@ export default function setupSockets(io) {
     });
 
     // playAgain: return players to lobby; first caller becomes new host if original host left
-    socket.on("playAgain", async ({ roomId, username }) => {
+    socket.on("playAgain", async (payload = {}) => {
       try {
+        const resolved = resolveSocketUser(socket, payload);
+        const { roomId } = payload;
+        const username = resolved.username;
+        if (!resolved.ok) return;
         if (!roomId || !username) return;
 
         const id = Number(roomId);

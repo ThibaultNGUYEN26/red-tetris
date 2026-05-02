@@ -363,7 +363,7 @@ describe('Game Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /leave game/i }))
     expect(socket.emit).toHaveBeenCalledWith(
       'playerLeave',
-      { roomId: '1' },
+      expect.objectContaining({ roomId: '1' }),
       expect.any(Function)
     )
     expect(onBack).toHaveBeenCalled()
