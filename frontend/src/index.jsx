@@ -869,6 +869,8 @@ function Index({ authMode = 'login' }) {
 
   /* ---------------- RENDER ---------------- */
 
+  const showSiteFooter = !showGame && !showRooms && !showSoloRoom && !showDirectRoom
+
   return (
     <>
       {/* Background always rendered */}
@@ -879,13 +881,13 @@ function Index({ authMode = 'login' }) {
       </div>
 
       {/* Content wrapper always rendered */}
-      <div className={`content-wrapper ${!showGame ? 'has-site-footer' : ''}`}>
+      <div className={`content-wrapper ${showSiteFooter ? 'has-site-footer' : ''}`}>
         {routeNotice && (
           <div className="route-notice" role="alert">
             {routeNotice}
           </div>
         )}
-        {!showGame && (
+        {showSiteFooter && (
           <footer className="site-footer">
             <nav className="site-info-links" aria-label="Site information">
             <Link to="/about">About</Link>

@@ -12,17 +12,17 @@ const pages = {
   about: {
     title: 'About Red Tetris',
     intro:
-      'Red Tetris is a 42 School project we built as a team of two. The goal was to create a real-time web version of Tetris with solo play, multiplayer rooms, and synchronized gameplay.',
+      'Red Tetris is a 42 School project we built as a team of two. The goal was to create a real-time web version of Tetris with solo play, cooperative rooms, multiplayer rooms, and synchronized gameplay.',
     sections: [
       {
         title: 'Game Modes',
         body:
-          'The game includes a solo mode to play at your own pace and improve your score, as well as a multiplayer mode where players join a room and compete in real time. In multiplayer, clearing lines can send penalties to opponents, making each game more strategic and competitive.',
+          'The game includes solo mode for chasing your best score, cooperative rooms where two players share a challenge, and multiplayer rooms where players compete in real time. In competitive multiplayer, clearing lines can send penalties to opponents, making each game more strategic.',
       },
       {
         title: 'Profiles And Scores',
         body:
-          'Player profiles keep track of useful statistics such as high scores, games played, lines cleared, levels reached, and multiplayer results, allowing players to follow their progress over time.',
+          'Player profiles keep track of useful statistics such as high scores, games played, lines cleared, levels reached, solo results, cooperative scores, and multiplayer results, allowing players to follow their progress over time.',
       },
       {
         title: 'Project',
@@ -33,7 +33,7 @@ const pages = {
   },
   contact: {
     title: 'Contact',
-    intro: 'Send bug reports, suggestions, account questions, or privacy requests directly to the Red Tetris mailbox.',
+    intro: 'Send bug reports, suggestions, account questions, or privacy requests directly to the Red Tetris mailbox. Replies are sent to the email address attached to your account or the address you provide in the form.',
     sections: [
       {
         title: 'Bug Reports',
@@ -90,7 +90,7 @@ const pages = {
       {
         title: 'Information We Collect',
         body:
-          'The site may store your username, email address, password hash, avatar settings, solo scores, multiplayer results, leaderboard entries, password reset tokens, contact messages, and technical data such as IP addresses used for security logs and anti-spam rate limiting.',
+          'The site may store your username, email address, password hash, avatar settings, solo scores, cooperative scores, multiplayer results, leaderboard entries, password reset tokens, contact messages, and technical data such as IP addresses used for security logs and anti-spam rate limiting.',
       },
       {
         title: 'How Information Is Used',
@@ -120,7 +120,7 @@ const pages = {
       {
         title: 'Recipients And Providers',
         body:
-          'Personal data is processed by the site backend, database, hosting environment, and email service used to send password reset and contact messages. Data is not sold.',
+          'Personal data is processed by the site backend, database, hosting environment, and transactional email provider used to send password reset and contact messages. Contact form messages include the email address you provide as the reply-to address. Data is not sold.',
       },
       {
         title: 'Cookies And Local Storage',
@@ -130,7 +130,7 @@ const pages = {
       {
         title: 'Security',
         body:
-          'Passwords are stored as hashes, not plain text. Production deployments should use HTTPS and restrict database, SMTP, and server credentials to authorized maintainers only.',
+          'Passwords are stored as hashes, not plain text. Production deployments use HTTPS and restrict database, email provider, and server credentials to authorized maintainers only.',
       },
       {
         title: 'Contact And Requests',
