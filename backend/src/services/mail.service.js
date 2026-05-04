@@ -1,6 +1,21 @@
 import nodemailer from "nodemailer";
+import dns from "node:dns/promises";
 
-const createTransport = () => {
+const resolveSmtpHost = async (host) => {
+  if (process.env.SMTP_FORCE_IPV4 === "false") {
+    return host;
+  }
+
+  try {
+    const addresses = await dns.resolve4(host);
+    return addresses[0] || host;
+  } catch (err) {
+    console.warn(`SMTP IPv4 lookup failed for ${host}:`, err?.message || err);
+    return host;
+  }
+};
+
+const createTransport = async () => {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT || 587);
   const user = process.env.SMTP_USER;
@@ -10,11 +25,16 @@ const createTransport = () => {
     throw new Error("Mail service not configured");
   }
 
+  const resolvedHost = await resolveSmtpHost(host);
+
   return nodemailer.createTransport({
-    host,
+    host: resolvedHost,
     port,
     secure: port === 465,
     family: 4,
+    tls: {
+      servername: host,
+    },
     connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 10000),
     greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT_MS || 10000),
     socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT_MS || 15000),
@@ -27,7 +47,7 @@ const createTransport = () => {
 
 export const sendResetPasswordEmail = async ({ username, email, resetUrl }) => {
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
-  const transporter = createTransport();
+  const transporter = await createTransport();
 
   await transporter.sendMail({
     from,
@@ -61,7 +81,7 @@ const escapeHtml = (value) =>
 export const sendContactEmail = async ({ object, message, userEmail }) => {
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
   const to = process.env.CONTACT_EMAIL || process.env.SMTP_USER;
-  const transporter = createTransport();
+  const transporter = await createTransport();
 
   await transporter.sendMail({
     from,
