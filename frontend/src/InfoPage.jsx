@@ -6,6 +6,7 @@ import { apiFetch } from './api'
 
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
+const CONTACT_TIMEOUT_MS = 15000
 
 const pages = {
   about: {
@@ -202,9 +203,13 @@ function InfoPage({ type }) {
     setIsContactSending(true)
     setContactStatus({ type: '', message: '' })
 
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), CONTACT_TIMEOUT_MS)
+
     try {
       const response = await apiFetch('/api/contact', {
         method: 'POST',
+        signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           object,
@@ -226,9 +231,12 @@ function InfoPage({ type }) {
     } catch (err) {
       setContactStatus({
         type: 'error',
-        message: err?.message || 'Unable to send message',
+        message: err?.name === 'AbortError'
+          ? 'Mail server timeout. Please try again later.'
+          : err?.message || 'Unable to send message',
       })
     } finally {
+      clearTimeout(timeoutId)
       setIsContactSending(false)
     }
   }

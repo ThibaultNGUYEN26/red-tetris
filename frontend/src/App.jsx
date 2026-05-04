@@ -24,6 +24,9 @@ function App() {
         <Route path="/:roomName/spectate" element={<Spectate />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <div className="screen-credit" aria-label="Titi and Riri">
+        ©Titi&amp;Riri
+      </div>
     </BrowserRouter>
   );
 }
