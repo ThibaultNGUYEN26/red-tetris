@@ -1,6 +1,8 @@
 import nodemailer from "nodemailer";
 import dns from "node:dns/promises";
 
+const RESEND_API_URL = "https://api.resend.com/emails";
+
 const resolveSmtpHost = async (host) => {
   if (process.env.SMTP_FORCE_IPV4 === "false") {
     return host;
@@ -45,12 +47,60 @@ const createTransport = async () => {
   });
 };
 
-export const sendResetPasswordEmail = async ({ username, email, resetUrl }) => {
-  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+const getDefaultFrom = () =>
+  process.env.RESEND_FROM || process.env.SMTP_FROM || process.env.SMTP_USER;
+
+const sendResendEmail = async ({ from, to, replyTo, subject, text, html }) => {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey || !from || !to) {
+    throw new Error("Mail service not configured");
+  }
+
+  const response = await fetch(RESEND_API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      reply_to: replyTo || undefined,
+      subject,
+      text,
+      html,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Resend email failed (${response.status}): ${errorBody}`);
+  }
+};
+
+const sendMail = async ({ to, replyTo, subject, text, html }) => {
+  const from = getDefaultFrom();
+
+  if (process.env.RESEND_API_KEY) {
+    await sendResendEmail({ from, to, replyTo, subject, text, html });
+    return;
+  }
+
   const transporter = await createTransport();
 
   await transporter.sendMail({
     from,
+    to,
+    replyTo: replyTo || undefined,
+    subject,
+    text,
+    html,
+  });
+};
+
+export const sendResetPasswordEmail = async ({ username, email, resetUrl }) => {
+  await sendMail({
     to: email,
     subject: "Red Tetris password reset",
     text: [
@@ -79,12 +129,9 @@ const escapeHtml = (value) =>
     .replace(/'/g, "&#039;");
 
 export const sendContactEmail = async ({ object, message, userEmail }) => {
-  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
   const to = process.env.CONTACT_EMAIL || process.env.SMTP_USER;
-  const transporter = await createTransport();
 
-  await transporter.sendMail({
-    from,
+  await sendMail({
     to,
     replyTo: userEmail || undefined,
     subject: `Red Tetris contact: ${object}`,
