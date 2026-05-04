@@ -188,6 +188,121 @@ const pages = {
   },
 }
 
+const tutorialCells = Array.from({ length: 140 }, (_, index) => index)
+const tutorialPieceBlocks = [
+  { row: 2, col: 4 },
+  { row: 2, col: 5 },
+  { row: 2, col: 6 },
+  { row: 1, col: 5 },
+]
+const rotatedPieceBlocks = [
+  { row: 7, col: 5 },
+  { row: 8, col: 5 },
+  { row: 9, col: 5 },
+  { row: 8, col: 6 },
+]
+
+const translateBlocks = (blocks, rowOffset, colOffset) => blocks.map((block) => ({
+  row: block.row + rowOffset,
+  col: block.col + colOffset,
+}))
+
+const tutorialControls = [
+  {
+    action: 'move-left',
+    ariaLabel: 'Left movement tutorial',
+    key: 'Left',
+    title: 'Move Left',
+    description: 'Press the left arrow key to slide the falling piece one column to the left.',
+    activeBlocks: tutorialPieceBlocks,
+    targetBlocks: translateBlocks(tutorialPieceBlocks, 6, -1),
+  },
+  {
+    action: 'move-right',
+    ariaLabel: 'Right movement tutorial',
+    key: 'Right',
+    title: 'Move Right',
+    description: 'Press the right arrow key to slide the falling piece one column to the right.',
+    activeBlocks: tutorialPieceBlocks,
+    targetBlocks: translateBlocks(tutorialPieceBlocks, 6, 1),
+  },
+  {
+    action: 'soft-drop',
+    ariaLabel: 'Soft drop tutorial',
+    key: 'Down',
+    title: 'Soft Drop',
+    description: 'Hold the down arrow key to drop the piece faster while keeping control.',
+    activeBlocks: tutorialPieceBlocks,
+    targetBlocks: translateBlocks(tutorialPieceBlocks, 8, 0),
+  },
+  {
+    action: 'hard-drop',
+    ariaLabel: 'Hard drop tutorial',
+    key: 'Space',
+    title: 'Hard Drop',
+    description: 'Press Space to send the piece straight to its landing position.',
+    activeBlocks: tutorialPieceBlocks,
+    targetBlocks: translateBlocks(tutorialPieceBlocks, 10, 0),
+  },
+  {
+    action: 'rotation',
+    ariaLabel: 'Rotation tutorial',
+    key: 'Up / X',
+    title: 'Rotation',
+    description: 'Press Up or X to rotate the falling piece into the shape you need.',
+    activeBlocks: tutorialPieceBlocks,
+    targetBlocks: rotatedPieceBlocks,
+  },
+]
+
+function TutorialBoardDemo({ demo }) {
+  return (
+    <section className={`tutorial-demo ${demo.action}`} aria-label={demo.ariaLabel}>
+      <div className="tutorial-board" aria-hidden="true">
+        <div className="tutorial-board-grid">
+          {tutorialCells.map((cell) => (
+            <span key={cell} className="tutorial-cell" />
+          ))}
+        </div>
+
+        <div className={`tutorial-piece active ${demo.action}`}>
+          {demo.activeBlocks.map((block) => (
+            <span
+              key={`${block.row}-${block.col}`}
+              className="tutorial-piece-block"
+              style={{ gridColumn: block.col, gridRow: block.row }}
+            />
+          ))}
+        </div>
+
+        <div className="tutorial-piece target">
+          {demo.targetBlocks.map((block) => (
+            <span
+              key={`${block.row}-${block.col}`}
+              className="tutorial-piece-block"
+              style={{ gridColumn: block.col, gridRow: block.row }}
+            />
+          ))}
+        </div>
+
+        <div className={`tutorial-action-cue ${demo.action}`} aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+      </div>
+
+      <div className="tutorial-demo-panel">
+        <span className="tutorial-key">{demo.key}</span>
+        <div>
+          <h2>{demo.title}</h2>
+          <p>{demo.description}</p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function InfoPage({ type }) {
   const page = pages[type] || pages.about
   const [theme] = useState(() => (
@@ -309,6 +424,14 @@ function InfoPage({ type }) {
 
           <h1>{page.title}</h1>
           <p className="info-page-intro">{page.intro}</p>
+
+          {type === 'tutorial' && (
+            <div className="tutorial-controls-list">
+              {tutorialControls.map((demo) => (
+                <TutorialBoardDemo key={demo.action} demo={demo} />
+              ))}
+            </div>
+          )}
 
           {type === 'contact' && (
             <form className="contact-form" onSubmit={handleContactSubmit}>
