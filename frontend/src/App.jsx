@@ -13,6 +13,7 @@ function App() {
         <Route path="/forgot-password" element={<Index authMode="forgot" />} />
         <Route path="/reset-password" element={<Index authMode="reset" />} />
         <Route path="/about" element={<InfoPage type="about" />} />
+        <Route path="/tutorial" element={<InfoPage type="tutorial" />} />
         <Route path="/contact" element={<InfoPage type="contact" />} />
         <Route path="/terms" element={<InfoPage type="terms" />} />
         <Route path="/privacy-policy" element={<InfoPage type="privacy" />} />
@@ -25,7 +26,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <div className="screen-credit" aria-label="Titi and Riri">
-        ©Titi&amp;Riri
+        Titi&amp;Riri
       </div>
     </BrowserRouter>
   );

@@ -31,6 +31,43 @@ const pages = {
       },
     ],
   },
+  tutorial: {
+    title: 'Tutorial',
+    intro:
+      'Learn the controls and game modes before jumping into a room.',
+    sections: [
+      {
+        title: 'Controls',
+        body:
+          'Use Left and Right to move the piece, Down for soft drop, Up or X to rotate, and Space for hard drop. Escape opens the pause/options menu in solo and the in-game menu in multiplayer.',
+      },
+      {
+        title: 'Solo',
+        body:
+          'Solo mode lets you play alone, clear lines, level up, and chase your best score. Your solo results can appear in your profile and on the solo leaderboard.',
+      },
+      {
+        title: 'Multiplayer',
+        body:
+          'In multiplayer rooms, players compete on separate boards in real time. Clearing multiple lines sends penalty lines to opponents, and the last surviving player wins.',
+      },
+      {
+        title: 'Co-op Alternate',
+        body:
+          'Co-op Alternate is a two-player shared-board mode. Players take turns controlling pieces, so communication and timing matter.',
+      },
+      {
+        title: 'Co-op Roles',
+        body:
+          'Co-op Roles is a two-player shared-board mode where one player handles rotation and the other handles movement and dropping. Both players must coordinate to survive.',
+      },
+      {
+        title: 'Spectate',
+        body:
+          'In multiplayer, eliminated players can spectate the remaining boards instead of leaving immediately.',
+      },
+    ],
+  },
   contact: {
     title: 'Contact',
     intro: 'Send bug reports, suggestions, account questions, or privacy requests directly to the Red Tetris mailbox. Replies are sent to the email address attached to your account or the address you provide in the form.',
@@ -85,7 +122,7 @@ const pages = {
       {
         title: 'Controller',
         body:
-          'The Red Tetris site operator is the data controller for account, profile, contact, and gameplay data processed by this site. Privacy requests can be sent through the contact page.',
+          'The Red Tetris project maintainers are the data controller for account, profile, contact, and gameplay data processed by this site. Controller contact is handled through the contact page, or by replying to an email sent from the Red Tetris mailbox.',
       },
       {
         title: 'Information We Collect',
@@ -115,17 +152,27 @@ const pages = {
       {
         title: 'Deletion Requests',
         body:
-          'To request account or data deletion, use the contact page and include your username and registered email. Some data may be retained temporarily when needed for security, abuse prevention, legal obligations, or backup integrity.',
+          'To request account deletion, data deletion, or a copy of your account data, use the contact page and include your username and registered email. Requests are reviewed manually so the account owner can be verified before data is exported or deleted. Some data may be retained temporarily when needed for security, abuse prevention, legal obligations, or backup integrity.',
       },
       {
         title: 'Recipients And Providers',
         body:
-          'Personal data is processed by the site backend, database, hosting environment, and transactional email provider used to send password reset and contact messages. Contact form messages include the email address you provide as the reply-to address. Data is not sold.',
+          'Personal data is processed by the site backend, the PostgreSQL database, Railway for backend and database hosting, Vercel for frontend hosting, and Resend for transactional emails such as password reset and contact messages. Contact form messages include the email address you provide as the reply-to address. Data is not sold.',
+      },
+      {
+        title: 'International Transfers',
+        body:
+          'Some providers used by the site, including Railway, Vercel, and Resend, may process or store data outside the European Union. Where this happens, transfers should rely on the safeguards made available by those providers, such as data processing agreements, standard contractual clauses, or equivalent transfer mechanisms.',
+      },
+      {
+        title: 'Processor Agreements',
+        body:
+          'The site operator should keep appropriate data processing terms or processor agreements in place with hosting, database, and email providers when those providers process personal data on behalf of the site.',
       },
       {
         title: 'Cookies And Local Storage',
         body:
-          'The app uses browser local storage for necessary features such as keeping you signed in locally and remembering interface preferences. No advertising or analytics cookies are currently required for the core game.',
+          'The app uses local storage for necessary features such as remembering the signed-in user locally, saved account details needed by the interface, and theme preferences. The backend may use a session cookie to keep you authenticated. These storage items are used for core service functionality, not advertising or cross-site tracking. No advertising or analytics cookies are currently required for the core game.',
       },
       {
         title: 'Security',
@@ -254,6 +301,7 @@ function InfoPage({ type }) {
           <nav className="info-page-nav" aria-label="Information pages">
             <Link to="/">Back</Link>
             <Link to="/about">About</Link>
+            <Link to="/tutorial">Tutorial</Link>
             <Link to="/contact">Contact</Link>
             <Link to="/terms">Terms</Link>
             <Link to="/privacy-policy">Privacy</Link>
