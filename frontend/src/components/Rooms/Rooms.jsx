@@ -16,8 +16,8 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   const [showGame, setShowGame] = useState(false)
   const [currentRoomName, setCurrentRoomName] = useState(joinRoomName || null)
   const [currentRoomId, setCurrentRoomId] = useState(null)
+  const [pendingPlayAgain, setPendingPlayAgain] = useState(false)
   const [createRoomPassword, setCreateRoomPassword] = useState('')
-  const [showCreateRoomPassword, setShowCreateRoomPassword] = useState(false)
   const [joinRoomPasswords, setJoinRoomPasswords] = useState({})
   const [activePasswordRoomId, setActivePasswordRoomId] = useState(null)
   const [showJoinRoomPasswords, setShowJoinRoomPasswords] = useState({})
@@ -126,6 +126,10 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
     const handleRoomState = (room) => {
       if (String(room.id) === String(currentRoomId)) {
         setCurrentRoomName(room.name)
+        if (pendingPlayAgain && Array.isArray(room.ready_again) && room.ready_again.includes(username)) {
+          setPendingPlayAgain(false)
+          setShowGame(false)
+        }
       }
       setRooms((prev) => {
         const exists = prev.find((r) => r.id === room.id)
@@ -138,7 +142,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
 
     socket.on('roomState', handleRoomState)
     return () => socket.off('roomState', handleRoomState)
-  }, [])
+  }, [currentRoomId, pendingPlayAgain, username])
 
   /* ---------------- STALE ROOM GUARD ---------------- */
 
@@ -195,7 +199,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   const handleCreateRoom = () => {
     setShowCreateRoomPicker(true)
     setCreateRoomPassword('')
-    setShowCreateRoomPassword(false)
   }
 
   const handleChooseRoomType = (type) => {
@@ -283,8 +286,8 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
 
   const handlePlayAgain = () => {
     if (!currentRoomId) return;
+    setPendingPlayAgain(true);
     socket.emit('playAgain', { roomId: String(currentRoomId), username });
-    setShowGame(false);
   };
 
   const handleSpectate = () => {
@@ -371,27 +374,14 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
           </div>
           <label className="room-password-option">
             Optional password
-            <div className="password-input-wrapper">
-              <input
-                type="text"
-                value={createRoomPassword}
-                onChange={(event) => setCreateRoomPassword(event.target.value)}
-                maxLength={64}
-                placeholder="Leave empty for public"
-                className={`password-input ${showCreateRoomPassword ? '' : 'masked-password-input'}`}
-                autoComplete="one-time-code"
-                data-lpignore="true"
-                data-1p-ignore="true"
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowCreateRoomPassword((current) => !current)}
-                aria-label={showCreateRoomPassword ? 'Hide password' : 'Show password'}
-              >
-                {showCreateRoomPassword ? '🙉' : '🙈'}
-              </button>
-            </div>
+            <input
+              type="text"
+              value={createRoomPassword}
+              onChange={(event) => setCreateRoomPassword(event.target.value)}
+              maxLength={64}
+              placeholder="Leave empty for public"
+              autoComplete="off"
+            />
           </label>
         </div>
       )}

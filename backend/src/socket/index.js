@@ -818,7 +818,7 @@ export default function setupSockets(io) {
       try {
         // Fetch current room
         const roomResult = await pool.query(
-          "SELECT host, players, status, game_mode, ready_again FROM rooms WHERE id=$1",
+          "SELECT host, players, status, game_mode, ready_again, is_listed FROM rooms WHERE id=$1",
           [roomId]
         );
         if (!roomResult.rowCount) return;
@@ -833,9 +833,9 @@ export default function setupSockets(io) {
         // Prevent restarting an already started game
         if (room.status === "started") return;
 
-        // If ready_again is not empty, use it as the current players
-        const playersToStart = (room.ready_again && room.ready_again.length)
-          ? room.ready_again
+        const isRestartingFinishedGame = room.status === "finished" || (room.ready_again && room.ready_again.length);
+        const playersToStart = isRestartingFinishedGame
+          ? (room.ready_again || [])
           : room.players;
 
         // Validate player count based on game mode
@@ -843,9 +843,10 @@ export default function setupSockets(io) {
         const maxPlayers = getMaxPlayers(gameMode);
         const playerCount = playersToStart.length;
         const isSoloStart = playerCount === 1;
+        const isPrivateSoloRoom = room.is_listed === false;
         const isCoop = ["cooperative", "cooperative_roles"].includes(gameMode);
         const canStart =
-          isSoloStart ||
+          (isSoloStart && isPrivateSoloRoom) ||
           (isCoop ? playerCount === 2 : playerCount >= 2 && playerCount <= maxPlayers);
 
         if (!canStart) {

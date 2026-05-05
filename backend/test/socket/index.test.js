@@ -704,6 +704,31 @@ describe('socket setup', () => {
     expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
   })
 
+  it('startGame refuses multiplayer restart until enough players clicked play again', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        host: 'Titi',
+        players: ['Titi', 'Riri'],
+        status: 'waiting',
+        game_mode: 'classic',
+        ready_again: ['Titi'],
+        is_listed: true,
+      }],
+    })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    const startGameHandler = socket.handlers.get('startGame')
+    await startGameHandler({ roomId: '1' })
+
+    expect(mockCreateGame).not.toHaveBeenCalled()
+    expect(socket.emit).toHaveBeenCalledWith('error', {
+      message: 'This room requires between 2 and 6 players to start.',
+    })
+  })
+
   it('startGame logs failures from the database path', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockQuery.mockRejectedValueOnce(new Error('db down'))
@@ -732,7 +757,7 @@ describe('socket setup', () => {
     mockQuery
       .mockResolvedValueOnce({
         rowCount: 1,
-        rows: [{ host: 'Titi', players: ['Titi'], status: 'waiting', game_mode: 'classic', ready_again: [] }],
+        rows: [{ host: 'Titi', players: ['Titi'], status: 'waiting', game_mode: 'classic', ready_again: [], is_listed: false }],
       })
       .mockResolvedValueOnce({ rowCount: 1, rows: [] })
       .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
@@ -975,6 +1000,7 @@ describe('socket setup', () => {
           status: 'waiting',
           game_mode: 'classic',
           ready_again: [],
+          is_listed: false,
         }],
       })
       .mockResolvedValueOnce({ rowCount: 1, rows: [] })

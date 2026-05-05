@@ -874,6 +874,21 @@ describe('Rooms Component', () => {
         expect.objectContaining({ roomId: '1', username: 'TestUser' })
       )
 
+      const roomStateCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'roomState')
+        .at(-1)?.[1]
+
+      roomStateCallback?.({
+        id: 1,
+        name: 'Room 1',
+        game_mode: 'cooperative',
+        host: 'TestUser',
+        player_count: 2,
+        players: ['TestUser', 'Other'],
+        ready_again: ['TestUser'],
+        status: 'waiting',
+      })
+
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
       })
