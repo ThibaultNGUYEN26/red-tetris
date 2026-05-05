@@ -275,6 +275,7 @@ describe('Game Component', () => {
           lines: 4,
           level: 2,
           nextType: 't',
+          nextRotation: 1,
         }, {
           username: 'Riri',
           boardLocked: makeBoard(20, 10, 'z'),
@@ -285,6 +286,10 @@ describe('Game Component', () => {
     await waitFor(() => {
       expect(screen.getByText(/1\D?234/)).toBeInTheDocument()
       expect(document.querySelectorAll('.next-grid .cell-t')).toHaveLength(4)
+      expect(document.querySelector('.next-grid > div')).toHaveStyle({
+        gridTemplateColumns: 'repeat(2, var(--cell-size))',
+        gridTemplateRows: 'repeat(3, var(--cell-size))',
+      })
     })
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' })

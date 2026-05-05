@@ -197,7 +197,7 @@
 /* keep your colored blocks (they pop more on light background) */
 .cell-i { background: #4dd7ff; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
 .cell-o { background: #ffd24d; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
-.cell-t { background: #b66bff; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
+.cell-t { background: #9966cc; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
 .cell-l { background: #ffb347; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
 .cell-j { background: #6fa8ff; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
 .cell-z { background: #ff6b6b; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
@@ -238,7 +238,7 @@
 
 .next-grid .cell-i { background: #4dd7ff; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
 .next-grid .cell-o { background: #ffd24d; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
-.next-grid .cell-t { background: #b66bff; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
+.next-grid .cell-t { background: #9966cc; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
 .next-grid .cell-l { background: #ffb347; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
 .next-grid .cell-j { background: #6fa8ff; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
 .next-grid .cell-z { background: #ff6b6b; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
@@ -444,7 +444,7 @@
 .game-screen.dark .cell-t {
   box-shadow:
     inset 0 0 6px rgba(255, 255, 255, 0.5),
-    0 0 10px rgba(182, 107, 255, 0.6);
+    0 0 10px rgba(153, 102, 204, 0.6);
 }
 .game-screen.dark .cell-l {
   box-shadow:

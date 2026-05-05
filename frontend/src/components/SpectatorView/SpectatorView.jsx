@@ -67,7 +67,13 @@ function SpectatorView({ players, onBack, username }) {
       ],
     }
 
-    const shape = SHAPES[nextType]?.[0]
+    const rotations = SHAPES[nextType]
+    if (!rotations) return { grid: [], width: 0, height: 0 }
+
+    const rotation = Number.isInteger(current?.nextRotation)
+      ? ((current.nextRotation % rotations.length) + rotations.length) % rotations.length
+      : 0
+    const shape = rotations[rotation]
     if (!shape) return { grid: [], width: 0, height: 0 }
 
     const rows = shape.map(([r]) => r)
@@ -88,7 +94,7 @@ function SpectatorView({ players, onBack, username }) {
     })
 
     return { grid: preview, width, height }
-  }, [current?.nextType])
+  }, [current?.nextType, current?.nextRotation])
 
   useEffect(() => {
     if (!list.length) return

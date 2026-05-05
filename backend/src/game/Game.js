@@ -736,6 +736,7 @@ export default class Game {
           lines: sharedPlayer?.lines ?? 0,
           level: sharedPlayer?.level ?? 1,
           nextType: sharedPlayer?.nextPiece ? sharedPlayer.nextPiece.type.toLowerCase() : null,
+          nextRotation: sharedPlayer?.nextPiece ? sharedPlayer.nextPiece.rotation : null,
           isCurrentTurn: player.username === this.currentTurnUsername,
           cooperativeRole: this.cooperativeRoles[player.username] ?? null,
           board: sharedPlayer
