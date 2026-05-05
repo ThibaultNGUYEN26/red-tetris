@@ -274,12 +274,12 @@ html, body, #root {
 }
 
 .tutorial-piece.active {
-  animation: tutorial-piece-before 2.4s steps(1, end) infinite;
+  animation: tutorial-piece-before 2.4s linear infinite;
 }
 
 .tutorial-piece.target {
   opacity: 0;
-  animation: tutorial-piece-after 2.4s steps(1, end) infinite;
+  animation: tutorial-piece-after 2.4s linear infinite;
 }
 
 .tutorial-piece-block {
@@ -390,13 +390,18 @@ html, body, #root {
 }
 
 @keyframes tutorial-piece-before {
-  0%,
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
   42% {
     opacity: 1;
+    transform: translateY(calc(3 * (var(--tutorial-cell-height) + var(--tutorial-board-gap))));
   }
   43%,
   100% {
     opacity: 0;
+    transform: translateY(calc(3 * (var(--tutorial-cell-height) + var(--tutorial-board-gap))));
   }
 }
 
@@ -404,10 +409,17 @@ html, body, #root {
   0%,
   42% {
     opacity: 0;
+    transform: translateY(calc(3 * (var(--tutorial-cell-height) + var(--tutorial-board-gap))));
   }
   43%,
   100% {
     opacity: 1;
+    transform: translateY(calc(3 * (var(--tutorial-cell-height) + var(--tutorial-board-gap))));
+  }
+  86%,
+  100% {
+    opacity: 1;
+    transform: translateY(calc(7 * (var(--tutorial-cell-height) + var(--tutorial-board-gap))));
   }
 }
 
