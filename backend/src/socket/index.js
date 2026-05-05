@@ -522,14 +522,6 @@ export default function setupSockets(io) {
           hasChanges = true;
         }
 
-        // Once a finished game is returning to the lobby, ready_again becomes
-        // the effective player list for the next start. Rejoining players must
-        // be added there too or they disappear from the lobby view.
-        if (updatedReadyAgain.length > 0 && !updatedReadyAgain.includes(username)) {
-          updatedReadyAgain = [...updatedReadyAgain, username];
-          hasChanges = true;
-        }
-
         if (hasChanges) {
           await pool.query(
             "UPDATE rooms SET players = $2, player_count = $3, ready_again = $4 WHERE id = $1",
@@ -626,7 +618,7 @@ export default function setupSockets(io) {
     socket.on("getRoomState", async ({ roomId }) => {
       try {
         const result = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status, room_password_hash
+          `SELECT id, name, game_mode, host, player_count, players, status, ready_again, room_password_hash
           FROM rooms WHERE id = $1`,
           [roomId]
         );

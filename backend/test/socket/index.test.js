@@ -242,7 +242,7 @@ describe('socket setup', () => {
     expect(ack).toHaveBeenCalledWith({ ok: true })
   })
 
-  it('joinRoom also adds a rejoining player to ready_again for a post-game lobby', async () => {
+  it('joinRoom keeps post-game players in the room without marking them ready again', async () => {
     mockQuery
       .mockResolvedValueOnce({
         rowCount: 1,
@@ -277,13 +277,13 @@ describe('socket setup', () => {
 
     expect(mockQuery).toHaveBeenCalledWith(
       "UPDATE rooms SET players = $2, player_count = $3, ready_again = $4 WHERE id = $1",
-      ['1', ['Host', 'Riri', 'Titi'], 3, ['Riri', 'Titi']]
+      ['1', ['Host', 'Riri', 'Titi'], 3, ['Riri']]
     )
     expect(io.roomEmit).toHaveBeenCalledWith(
       'roomState',
       expect.objectContaining({
         players: ['Host', 'Riri', 'Titi'],
-        ready_again: ['Riri', 'Titi'],
+        ready_again: ['Riri'],
       })
     )
     expect(ack).toHaveBeenCalledWith({ ok: true })
@@ -350,6 +350,7 @@ describe('socket setup', () => {
           player_count: 1,
           players: ['Host'],
           status: 'waiting',
+          ready_again: ['Host'],
         }],
       })
       .mockResolvedValueOnce({
@@ -366,6 +367,7 @@ describe('socket setup', () => {
       'roomState',
       expect.objectContaining({
         id: 1,
+        ready_again: ['Host'],
         player_avatars: { Host: { eyeType: 'happy' } },
       })
     )
