@@ -379,6 +379,9 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
                 maxLength={64}
                 placeholder="Leave empty for public"
                 className="password-input"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
               />
               <button
                 type="button"
@@ -435,6 +438,9 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
                           maxLength={64}
                           placeholder="Room password"
                           className="password-input"
+                          autoComplete="off"
+                          data-lpignore="true"
+                          data-1p-ignore="true"
                         />
                         <button
                           type="button"

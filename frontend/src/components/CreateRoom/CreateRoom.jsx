@@ -570,6 +570,9 @@ function CreateRoom({
                   if (passwordError) setPasswordError('')
                 }}
                 className="room-password-input password-input"
+                autoComplete="off"
+                data-lpignore="true"
+                data-1p-ignore="true"
                 autoFocus
               />
               <button
