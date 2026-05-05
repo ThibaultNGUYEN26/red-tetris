@@ -39,7 +39,7 @@ const pages = {
       {
         title: 'Controls',
         body:
-          'Use Left and Right to move the piece, Down for soft drop, Up or X to rotate, and Space for hard drop. Escape opens the pause/options menu in solo and the in-game menu in multiplayer.',
+          'Use Left and Right to move the piece, Down for soft drop, Up to rotate, and Space for hard drop. Escape opens the pause/options menu in solo and the in-game menu in multiplayer.',
       },
       {
         title: 'Solo',
@@ -207,6 +207,10 @@ const translateBlocks = (blocks, rowOffset, colOffset) => blocks.map((block) => 
   col: block.col + colOffset,
 }))
 
+const softDropTrailBlocks = [2, 4, 6].map((rowOffset) => (
+  translateBlocks(tutorialPieceBlocks, rowOffset, 0)
+))
+
 const tutorialControls = [
   {
     action: 'move-left',
@@ -247,9 +251,9 @@ const tutorialControls = [
   {
     action: 'rotation',
     ariaLabel: 'Rotation tutorial',
-    key: 'Up / X',
+    key: 'Up',
     title: 'Rotation',
-    description: 'Press Up or X to rotate the falling piece into the shape you need.',
+    description: 'Press Up to rotate the falling piece into the shape you need.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: rotatedPieceBlocks,
   },
@@ -275,7 +279,7 @@ function TutorialBoardDemo({ demo }) {
           ))}
         </div>
 
-        <div className="tutorial-piece target">
+        <div className={`tutorial-piece target ${demo.action}`}>
           {demo.targetBlocks.map((block) => (
             <span
               key={`${block.row}-${block.col}`}
@@ -284,6 +288,25 @@ function TutorialBoardDemo({ demo }) {
             />
           ))}
         </div>
+
+        {demo.action === 'soft-drop' && (
+          <div className="tutorial-soft-drop-trail">
+            {softDropTrailBlocks.map((blocks, trailIndex) => (
+              <div
+                key={`soft-drop-trail-${trailIndex}`}
+                className="tutorial-piece trail"
+              >
+                {blocks.map((block) => (
+                  <span
+                    key={`${block.row}-${block.col}`}
+                    className="tutorial-piece-block"
+                    style={{ gridColumn: block.col, gridRow: block.row }}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className={`tutorial-action-cue ${demo.action}`} aria-hidden="true">
           <span />
