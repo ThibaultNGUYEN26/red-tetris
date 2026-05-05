@@ -262,7 +262,7 @@ const tutorialControls = [
     title: 'Hard Drop',
     description: 'Press Space to send the piece straight to its landing position.',
     activeBlocks: tutorialPieceBlocks,
-    targetBlocks: translateBlocks(tutorialPieceBlocks, 10, 0),
+    targetBlocks: translateBlocks(tutorialPieceBlocks, 12, 0),
   },
   {
     action: 'rotation',
@@ -287,6 +287,16 @@ function TutorialBoardDemo({ demo }) {
 
         <div className={`tutorial-piece active ${demo.action}`}>
           {demo.activeBlocks.map((block) => (
+            <span
+              key={`${block.row}-${block.col}`}
+              className="tutorial-piece-block"
+              style={{ gridColumn: block.col, gridRow: block.row }}
+            />
+          ))}
+        </div>
+
+        <div className={`tutorial-piece phantom ${demo.action}`}>
+          {demo.targetBlocks.map((block) => (
             <span
               key={`${block.row}-${block.col}`}
               className="tutorial-piece-block"
