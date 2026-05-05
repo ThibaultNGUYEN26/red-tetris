@@ -218,6 +218,7 @@ router.get("/player/stats", async (req, res) => {
           COALESCE(ss.total_tetris, 0) AS solo_total_tetris,
           COALESCE(ss.average_score, 0) AS solo_average_score,
           COALESCE(ss.total_duration_seconds, 0) AS solo_duration_seconds,
+          COALESCE(ss.longest_duration_seconds, 0) AS solo_longest_duration_seconds,
           COALESCE(ms.highest_score, 0) AS multi_highest_score,
           COALESCE(ms.highest_level, 1) AS multi_highest_level,
           COALESCE(ms.highest_lines, 0) AS multi_highest_lines,
@@ -228,6 +229,7 @@ router.get("/player/stats", async (req, res) => {
           COALESCE(ms.total_tetris, 0) AS multi_total_tetris,
           COALESCE(ms.average_score, 0) AS multi_average_score,
           COALESCE(ms.total_duration_seconds, 0) AS multi_duration_seconds,
+          COALESCE(ms.longest_duration_seconds, 0) AS multi_longest_duration_seconds,
           COALESCE(cs.games, 0) AS coop_games,
           COALESCE(cs.highest_score, 0) AS coop_highest_score,
           COALESCE(cs.highest_level, 1) AS coop_highest_level,
@@ -235,7 +237,8 @@ router.get("/player/stats", async (req, res) => {
           COALESCE(cs.total_lines, 0) AS coop_total_lines,
           COALESCE(cs.highest_tetris, 0) AS coop_highest_tetris,
           COALESCE(cs.total_tetris, 0) AS coop_total_tetris,
-          COALESCE(cs.total_duration_seconds, 0) AS coop_duration_seconds
+          COALESCE(cs.total_duration_seconds, 0) AS coop_duration_seconds,
+          COALESCE(cs.longest_duration_seconds, 0) AS coop_longest_duration_seconds
        FROM users u
        LEFT JOIN (
          SELECT username,
@@ -246,7 +249,8 @@ router.get("/player/stats", async (req, res) => {
                 MAX(tetris_count) AS highest_tetris,
                 SUM(tetris_count) AS total_tetris,
                 AVG(score) AS average_score,
-                SUM(duration_seconds) AS total_duration_seconds
+                SUM(duration_seconds) AS total_duration_seconds,
+                MAX(duration_seconds) AS longest_duration_seconds
          FROM solo_scores
          GROUP BY username
        ) ss ON ss.username = u.username
@@ -261,7 +265,8 @@ router.get("/player/stats", async (req, res) => {
                 MAX(tetris_count) AS highest_tetris,
                 SUM(tetris_count) AS total_tetris,
                 AVG(score) AS average_score,
-                SUM(duration_seconds) AS total_duration_seconds
+                SUM(duration_seconds) AS total_duration_seconds,
+                MAX(duration_seconds) AS longest_duration_seconds
          FROM multiplayer_scores
          GROUP BY username
        ) ms ON ms.username = u.username
@@ -274,7 +279,8 @@ router.get("/player/stats", async (req, res) => {
                 SUM(lines) AS total_lines,
                 MAX(tetris_count) AS highest_tetris,
                 SUM(tetris_count) AS total_tetris,
-                SUM(duration_seconds) AS total_duration_seconds
+                SUM(duration_seconds) AS total_duration_seconds,
+                MAX(duration_seconds) AS longest_duration_seconds
          FROM (
            SELECT player_one AS player_name, score, lines, level, tetris_count, duration_seconds FROM coop_scores
            UNION ALL
@@ -318,6 +324,7 @@ router.get("/player/stats", async (req, res) => {
           totalLines: row.solo_total_lines ?? 0,
           highestTetris: row.solo_highest_tetris ?? 0,
           totalTetris: row.solo_total_tetris ?? 0,
+          longestGameSeconds: row.solo_longest_duration_seconds ?? 0,
         },
         multi: {
           games: row.multiplayer_games_played ?? 0,
@@ -336,6 +343,7 @@ router.get("/player/stats", async (req, res) => {
           totalLinesSent: row.multi_total_lines_sent ?? 0,
           highestTetris: row.multi_highest_tetris ?? 0,
           totalTetris: row.multi_total_tetris ?? 0,
+          longestGameSeconds: row.multi_longest_duration_seconds ?? 0,
         },
         coop: {
           games: row.coop_games ?? 0,
@@ -345,6 +353,7 @@ router.get("/player/stats", async (req, res) => {
           totalLines: row.coop_total_lines ?? 0,
           highestTetris: row.coop_highest_tetris ?? 0,
           totalTetris: row.coop_total_tetris ?? 0,
+          longestGameSeconds: row.coop_longest_duration_seconds ?? 0,
         },
       },
     });

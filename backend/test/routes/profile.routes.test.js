@@ -203,6 +203,7 @@ describe('profile routes', () => {
         solo_total_tetris: 9,
         solo_average_score: 4500,
         solo_duration_seconds: 3661,
+        solo_longest_duration_seconds: 1800,
         multi_highest_score: 8000,
         multi_highest_level: 6,
         multi_highest_lines: 30,
@@ -213,6 +214,7 @@ describe('profile routes', () => {
         multi_total_tetris: 5,
         multi_average_score: 3200,
         multi_duration_seconds: 61,
+        multi_longest_duration_seconds: 45,
         coop_games: 2,
         coop_highest_score: 6000,
         coop_highest_level: 5,
@@ -221,6 +223,7 @@ describe('profile routes', () => {
         coop_highest_tetris: 1,
         coop_total_tetris: 2,
         coop_duration_seconds: 125,
+        coop_longest_duration_seconds: 90,
       }],
     })
 
@@ -255,6 +258,7 @@ describe('profile routes', () => {
           totalLines: 120,
           highestTetris: 3,
           totalTetris: 9,
+          longestGameSeconds: 1800,
         },
         multi: {
           games: 7,
@@ -270,6 +274,7 @@ describe('profile routes', () => {
           totalLinesSent: 32,
           highestTetris: 2,
           totalTetris: 5,
+          longestGameSeconds: 45,
         },
         coop: {
           games: 2,
@@ -279,6 +284,7 @@ describe('profile routes', () => {
           totalLines: 44,
           highestTetris: 1,
           totalTetris: 2,
+          longestGameSeconds: 90,
         },
       },
     })
@@ -387,6 +393,7 @@ describe('profile routes', () => {
           totalLines: 0,
           highestTetris: 0,
           totalTetris: 0,
+          longestGameSeconds: 0,
         },
         multi: {
           games: 0,
@@ -402,6 +409,7 @@ describe('profile routes', () => {
           totalLinesSent: 0,
           highestTetris: 0,
           totalTetris: 0,
+          longestGameSeconds: 0,
         },
         coop: {
           games: 0,
@@ -411,6 +419,7 @@ describe('profile routes', () => {
           totalLines: 0,
           highestTetris: 0,
           totalTetris: 0,
+          longestGameSeconds: 0,
         },
       },
     })

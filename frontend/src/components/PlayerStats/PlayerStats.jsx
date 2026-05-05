@@ -20,6 +20,7 @@ const DEFAULT_ADVANCED = {
     totalLines: 0,
     highestTetris: 0,
     totalTetris: 0,
+    longestGameSeconds: 0,
   },
   multi: {
     games: 0,
@@ -35,6 +36,7 @@ const DEFAULT_ADVANCED = {
     totalLinesSent: 0,
     highestTetris: 0,
     totalTetris: 0,
+    longestGameSeconds: 0,
   },
   coop: {
     games: 0,
@@ -44,6 +46,7 @@ const DEFAULT_ADVANCED = {
     totalLines: 0,
     highestTetris: 0,
     totalTetris: 0,
+    longestGameSeconds: 0,
   },
 }
 
@@ -185,6 +188,7 @@ function PlayerStats({ theme, userProfile, username }) {
               ['Total lines', stats.advanced.solo.totalLines],
               ['Highest tetris', stats.advanced.solo.highestTetris],
               ['Total tetris', stats.advanced.solo.totalTetris],
+              ['Longest game', formatDuration(stats.advanced.solo.longestGameSeconds)],
             ]} />
             <AdvancedSection title="Multi" stats={[
               ['Games', stats.advanced.multi.games],
@@ -199,6 +203,7 @@ function PlayerStats({ theme, userProfile, username }) {
               ['Total sent', stats.advanced.multi.totalLinesSent],
               ['Highest tetris', stats.advanced.multi.highestTetris],
               ['Total tetris', stats.advanced.multi.totalTetris],
+              ['Longest game', formatDuration(stats.advanced.multi.longestGameSeconds)],
             ]} />
             <AdvancedSection title="Co-op" stats={[
               ['Games', stats.advanced.coop.games],
@@ -208,6 +213,7 @@ function PlayerStats({ theme, userProfile, username }) {
               ['Total lines', stats.advanced.coop.totalLines],
               ['Highest tetris', stats.advanced.coop.highestTetris],
               ['Total tetris', stats.advanced.coop.totalTetris],
+              ['Longest game', formatDuration(stats.advanced.coop.longestGameSeconds)],
             ]} />
           </div>
         </div>
