@@ -131,8 +131,8 @@ describe('rooms routes', () => {
     }), res)
 
     expect(mockQuery).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO rooms (name, game_mode, host, player_count, is_listed, players)'),
-      ['SoloRoom', 'classic', 'Titi', false, ['Titi']]
+      expect.stringContaining('INSERT INTO rooms (name, game_mode, host, player_count, is_listed, players, room_password_hash)'),
+      ['SoloRoom', 'classic', 'Titi', false, ['Titi'], null]
     )
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith(

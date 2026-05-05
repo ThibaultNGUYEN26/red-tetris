@@ -1,10 +1,12 @@
 import express from "express";
+import bcrypt from "bcryptjs";
 import { pool } from "../config/db.js";
 import { removeGame } from "../game/gameManager.js";
 import { broadcastAvailableRooms } from "../socket/index.js";
 import { authenticateRequest, rejectUnauthenticated } from "../auth/session.js";
 
 const router = express.Router();
+const ROOM_PASSWORD_MAX_LENGTH = 64;
 const getMaxPlayers = (gameMode) =>
   ["cooperative", "cooperative_roles"].includes(gameMode) ? 2 : 6;
 const formatModeLabel = (mode) => {
@@ -29,7 +31,7 @@ const formatModeLabel = (mode) => {
 async function attachPlayerAvatars(room) {
   const players = Array.isArray(room.players) ? room.players : [];
   if (players.length === 0) {
-    return { ...room, player_avatars: {} };
+    return exposeRoom({ ...room, player_avatars: {} });
   }
 
   const result = await pool.query(
@@ -45,7 +47,16 @@ async function attachPlayerAvatars(room) {
     player_avatars[row.username] = row.avatar;
   }
 
-  return { ...room, player_avatars };
+  return exposeRoom({ ...room, player_avatars });
+}
+
+function exposeRoom(room) {
+  if (!room) return room;
+  const { room_password_hash, ...safeRoom } = room;
+  return {
+    ...safeRoom,
+    has_password: Boolean(room_password_hash),
+  };
 }
 
 function generateRoomName() {
@@ -80,9 +91,15 @@ async function cleanupExistingSoloRooms(username) {
 router.post("/", async (req, res) => {
   try {
     const { gameMode, name: requestedName, isListed = true } = req.body;
+    const roomPassword = typeof req.body?.roomPassword === "string" ? req.body.roomPassword : "";
+    const trimmedRoomPassword = roomPassword.trim();
 
     if (!gameMode) {
       return res.status(400).json({ error: "Missing data" });
+    }
+
+    if (trimmedRoomPassword && trimmedRoomPassword.length > ROOM_PASSWORD_MAX_LENGTH) {
+      return res.status(400).json({ error: "Room password is too long" });
     }
 
     const auth = authenticateRequest(req);
@@ -116,6 +133,11 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Invalid game mode" });
     }
 
+    const roomPasswordHash =
+      Boolean(isListed) && trimmedRoomPassword
+        ? await bcrypt.hash(trimmedRoomPassword, 10)
+        : null;
+
     let room;
     let attempts = 0;
 
@@ -137,12 +159,12 @@ router.post("/", async (req, res) => {
       }
 
       const query = `
-        INSERT INTO rooms (name, game_mode, host, player_count, is_listed, players)
-        VALUES ($1, $2, $3, 1, $4, $5)
+        INSERT INTO rooms (name, game_mode, host, player_count, is_listed, players, room_password_hash)
+        VALUES ($1, $2, $3, 1, $4, $5, $6)
         RETURNING *;
       `;
 
-      const values = [trimmedName, gameMode, host, Boolean(isListed), [host]];
+      const values = [trimmedName, gameMode, host, Boolean(isListed), [host], roomPasswordHash];
       const result = await pool.query(query, values);
       room = result.rows[0];
     }
@@ -151,13 +173,13 @@ router.post("/", async (req, res) => {
       const name = generateRoomName();
 
       const query = `
-        INSERT INTO rooms (name, game_mode, host, player_count, is_listed, players)
-        VALUES ($1, $2, $3, 1, $4, $5)
+        INSERT INTO rooms (name, game_mode, host, player_count, is_listed, players, room_password_hash)
+        VALUES ($1, $2, $3, 1, $4, $5, $6)
         ON CONFLICT (name) DO NOTHING
         RETURNING *;
       `;
 
-      const values = [name, gameMode, host, Boolean(isListed), [host]];
+      const values = [name, gameMode, host, Boolean(isListed), [host], roomPasswordHash];
       const result = await pool.query(query, values);
 
       if (result.rowCount > 0) {
@@ -176,7 +198,7 @@ router.post("/", async (req, res) => {
       await broadcastAvailableRooms(io);
     }
 
-    res.status(200).json(room);
+    res.status(200).json(exposeRoom(room));
   } catch (err) {
     if (err?.code === "23505" && err?.constraint === "rooms_name_key") {
       return res.status(409).json({ error: "Room name already exists" });
@@ -193,7 +215,7 @@ router.get("/by-name/:name", async (req, res) => {
     if (!name) return res.status(400).json({ error: "Missing room name" });
 
     const result = await pool.query(
-      `SELECT id, name, game_mode, host, player_count, players, status
+      `SELECT id, name, game_mode, host, player_count, players, status, room_password_hash
        FROM rooms
        WHERE name COLLATE "C" = $1 COLLATE "C"`,
       [name]
@@ -203,7 +225,7 @@ router.get("/by-name/:name", async (req, res) => {
       return res.status(404).json({ error: "Room not found" });
     }
 
-    res.json(result.rows[0]);
+    res.json(exposeRoom(result.rows[0]));
   } catch (err) {
     console.error("Failed to get room by name:", err);
     res.status(500).json({ error: "Server error" });
@@ -216,7 +238,7 @@ router.get("/by-player/:username", async (req, res) => {
     if (!username) return res.status(400).json({ error: "Missing username" });
 
     const result = await pool.query(
-      `SELECT id, name, game_mode, host, player_count, players, status
+      `SELECT id, name, game_mode, host, player_count, players, status, room_password_hash
        FROM rooms
        WHERE players @> ARRAY[$1]::text[]
        ORDER BY created_at ASC
@@ -228,7 +250,7 @@ router.get("/by-player/:username", async (req, res) => {
       return res.status(404).json({ error: "Room not found" });
     }
 
-    res.json(result.rows[0]);
+    res.json(exposeRoom(result.rows[0]));
   } catch (err) {
     console.error("Failed to get room by player:", err);
     res.status(500).json({ error: "Server error" });

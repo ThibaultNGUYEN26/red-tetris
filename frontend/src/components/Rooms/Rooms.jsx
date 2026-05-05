@@ -16,6 +16,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   const [showGame, setShowGame] = useState(false)
   const [currentRoomName, setCurrentRoomName] = useState(joinRoomName || null)
   const [currentRoomId, setCurrentRoomId] = useState(null)
+  const [createRoomPassword, setCreateRoomPassword] = useState('')
 
   const hasJoinedRef = useRef(false)
 
@@ -74,10 +75,20 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
 
   const joinRoom = async (roomId, roomInfo) => {
     try {
+      const roomPassword = roomInfo?.has_password && !roomInfo?.players?.includes(username)
+        ? window.prompt('Room password') || ''
+        : ''
+      if (roomInfo?.has_password && !roomPassword && !roomInfo?.players?.includes(username)) {
+        return
+      }
+
       // Join room via socket (DB + socket room)
-      socket.emit('joinRoom', { roomId: String(roomId), username }, (res) => {
+      socket.emit('joinRoom', { roomId: String(roomId), username, roomPassword }, (res) => {
         if (!res?.ok) {
           console.error('Join failed:', res?.error || 'Failed to join room')
+          if (res?.error === 'Invalid room password') {
+            onNotice?.('Invalid room password')
+          }
           hasJoinedRef.current = false
           return
         }
@@ -171,6 +182,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
 
   const handleCreateRoom = () => {
     setShowCreateRoomPicker(true)
+    setCreateRoomPassword('')
   }
 
   const handleChooseRoomType = (type) => {
@@ -308,6 +320,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         roomId={currentRoomId}
         mode={showCreateRoom ? 'create' : 'join'}
         roomType={createRoomType}
+        initialRoomPassword={createRoomPassword}
         onBack={handleExitLobby}
         onRoomCreated={handleRoomCreated}
         onRoomRenamed={handleRoomRenamed}
@@ -343,6 +356,16 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
               Multiplayer
             </button>
           </div>
+          <label className="room-password-option">
+            Optional password
+            <input
+              type="password"
+              value={createRoomPassword}
+              onChange={(event) => setCreateRoomPassword(event.target.value)}
+              maxLength={64}
+              placeholder="Leave empty for public"
+            />
+          </label>
         </div>
       )}
 
@@ -359,6 +382,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
               <div key={`room-${room.id ?? index}`} className="room-entry">
                 <div className="room-info">
                   <span className="room-name">{room.name}</span>
+                  {room.has_password && <span className="room-lock">Password</span>}
                   <span className="room-host">Host: {room.host}</span>
                 </div>
 

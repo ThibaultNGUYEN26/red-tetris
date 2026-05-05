@@ -204,6 +204,46 @@
   color: #999;
 }
 
+.room-password-challenge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  width: 100%;
+}
+
+.room-password-challenge label {
+  color: #2a5298;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.room-password-input {
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.room-password-input:focus {
+  outline: none;
+  border-color: rgba(100, 150, 255, 0.6);
+  box-shadow:
+    0 4px 12px rgba(100, 150, 255, 0.2),
+    0 0 15px rgba(100, 150, 255, 0.2);
+}
+
+.room-password-error {
+  margin: 0;
+  color: #b33838;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
 .players-section {
   display: flex;
   flex-direction: column;

@@ -18,6 +18,7 @@ function CreateRoom({
   isSolo = false,
   roomType: initialRoomType = 'multiplayer',
   desiredRoomName,
+  initialRoomPassword = '',
   onRoomCreated,
   onRoomRenamed,
   onStartGame
@@ -51,6 +52,9 @@ function CreateRoom({
   const [hostName, setHostName] = useState('')
   const [committedMode, setCommittedMode] = useState('classic')
   const [, setJoinError] = useState('')
+  const [roomPassword, setRoomPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [needsRoomPassword, setNeedsRoomPassword] = useState(false)
 
   const hasCreatedRoom = useRef(false)
   const hasEditedName = useRef(false)
@@ -143,6 +147,9 @@ function CreateRoom({
             gameMode: selectedMode,
             name: desiredRoomName || undefined,
             isListed: !isSolo,
+            ...(!isSolo && initialRoomPassword.trim()
+              ? { roomPassword: initialRoomPassword.trim() }
+              : {}),
           }),
         })
 
@@ -227,10 +234,15 @@ function CreateRoom({
 
     let cancelled = false
 
-    socket.emit("joinRoom", { roomId: String(roomId), username }, (response) => {
+    socket.emit("joinRoom", { roomId: String(roomId), username, roomPassword }, (response) => {
       if (cancelled) return
 
       if (!response?.ok) {
+        if (response?.error === 'Room password required' || response?.error === 'Invalid room password') {
+          setNeedsRoomPassword(true)
+          setPasswordError(response.error === 'Invalid room password' ? 'Invalid room password' : '')
+          return
+        }
         console.error('Failed to join room:', response?.error || 'Unknown error')
         setJoinError(getJoinErrorMessage(response?.error))
         setRoomId(null)
@@ -239,6 +251,8 @@ function CreateRoom({
       }
 
       setJoinError('')
+      setPasswordError('')
+      setNeedsRoomPassword(false)
       hasJoinedRoom.current = true
       socket.emit('getRoomState', { roomId: String(roomId) })
     })
@@ -488,6 +502,33 @@ function CreateRoom({
     }
   }
 
+  const handleJoinPasswordSubmit = (event) => {
+    event.preventDefault()
+    if (!roomPassword.trim()) {
+      setPasswordError('Room password required')
+      return
+    }
+
+    setPasswordError('')
+    socket.emit("joinRoom", { roomId: String(roomId), username, roomPassword }, (response) => {
+      if (!response?.ok) {
+        setNeedsRoomPassword(true)
+        setPasswordError(
+          response?.error === 'Invalid room password'
+            ? 'Invalid room password'
+            : response?.error || 'Unable to join room'
+        )
+        return
+      }
+
+      setNeedsRoomPassword(false)
+      setPasswordError('')
+      setJoinError('')
+      hasJoinedRoom.current = true
+      socket.emit('getRoomState', { roomId: String(roomId) })
+    })
+  }
+
   const handleBack = async () => {
     onBack()
   }
@@ -515,6 +556,30 @@ function CreateRoom({
   return (
     <div className={`create-room-card ${theme === 'dark' ? 'dark' : ''}`}>
       <div className="create-room-form">
+        {needsRoomPassword ? (
+          <form className="room-password-challenge" onSubmit={handleJoinPasswordSubmit}>
+            <label htmlFor="room-password">Room Password</label>
+            <input
+              id="room-password"
+              type="password"
+              value={roomPassword}
+              onChange={(event) => {
+                setRoomPassword(event.target.value)
+                if (passwordError) setPasswordError('')
+              }}
+              className="room-password-input"
+              autoFocus
+            />
+            {passwordError && <p className="room-password-error">{passwordError}</p>}
+            <button className="start-button" type="submit">
+              Join Room
+            </button>
+            <button className="back-button" type="button" onClick={handleBack}>
+              Back
+            </button>
+          </form>
+        ) : (
+        <>
 
         {/* Room Name */}
         <div className="form-group room-name-section">
@@ -610,6 +675,8 @@ function CreateRoom({
           ← Back
         </button>
 
+        </>
+        )}
       </div>
     </div>
   )

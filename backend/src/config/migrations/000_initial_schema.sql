@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   player_count INT NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'waiting',
   is_listed BOOLEAN NOT NULL DEFAULT TRUE,
+  room_password_hash TEXT,
   ready_again TEXT[] NOT NULL DEFAULT '{}',
   players TEXT[] NOT NULL DEFAULT '{}',
   created_at TIMESTAMP DEFAULT NOW()
@@ -66,6 +67,7 @@ CREATE TABLE IF NOT EXISTS rooms (
 ALTER TABLE rooms
   ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'waiting',
   ADD COLUMN IF NOT EXISTS is_listed BOOLEAN DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS room_password_hash TEXT,
   ADD COLUMN IF NOT EXISTS ready_again TEXT[] DEFAULT '{}';
 
 DO $$

@@ -1,4 +1,5 @@
 import { pool } from "../config/db.js";
+import bcrypt from "bcryptjs";
 import { createGame, getGame, removeGame } from "../game/gameManager.js";
 import { resolveSocketUser, USERNAME_PATTERN } from "../auth/session.js";
 
@@ -88,6 +89,15 @@ function getMaxPlayers(gameMode = "classic") {
   }
 }
 
+function exposeRoom(room) {
+  if (!room) return room;
+  const { room_password_hash, ...safeRoom } = room;
+  return {
+    ...safeRoom,
+    has_password: Boolean(room_password_hash),
+  };
+}
+
 function getCoopStartError(gameMode) {
   return gameMode === "cooperative_roles"
     ? "Co-op Roles requires exactly 2 players to start."
@@ -96,7 +106,7 @@ function getCoopStartError(gameMode) {
 
 export async function broadcastAvailableRooms(io) {
   const result = await pool.query(
-    `SELECT id, name, game_mode, host, player_count, players
+    `SELECT id, name, game_mode, host, player_count, players, room_password_hash
       FROM rooms
       WHERE status = 'waiting'
         AND is_listed = TRUE
@@ -106,7 +116,7 @@ export async function broadcastAvailableRooms(io) {
   const rows = result.rows
     .filter((room) => room.is_listed !== false)
     .map((room) => ({
-      ...room,
+      ...exposeRoom(room),
       maxPlayers: getMaxPlayers(room.game_mode),
     }))
     .filter((room) => room.player_count < room.maxPlayers);
@@ -264,7 +274,7 @@ export default function setupSockets(io) {
     const attachPlayerAvatars = async (room) => {
       const players = Array.isArray(room.players) ? room.players : [];
       if (players.length === 0) {
-        return { ...room, player_avatars: {} };
+        return exposeRoom({ ...room, player_avatars: {} });
       }
 
       const result = await pool.query(
@@ -280,7 +290,7 @@ export default function setupSockets(io) {
         player_avatars[row.username] = row.avatar;
       }
 
-      return { ...room, player_avatars };
+      return exposeRoom({ ...room, player_avatars });
     };
 
     const updateMultiplayerStats = async (game, summary) => {
@@ -438,6 +448,7 @@ export default function setupSockets(io) {
       const ack = typeof callback === "function" ? callback : null;
       const resolved = resolveSocketUser(socket, payload);
       const { roomId } = payload;
+      const roomPassword = typeof payload.roomPassword === "string" ? payload.roomPassword : "";
       const username = resolved.username || payload.username;
       if (!roomId || !username) {
         if (ack) ack({ ok: false, error: "Missing roomId or username" });
@@ -457,12 +468,9 @@ export default function setupSockets(io) {
           return;
         }
 
-        socket.join(String(roomId));
-        socket.data.roomId = String(roomId);
-
         // Fetch current room state
         const result = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status, ready_again
+          `SELECT id, name, game_mode, host, player_count, players, status, ready_again, room_password_hash
            FROM rooms WHERE id = $1`,
           [roomId]
         );
@@ -483,10 +491,26 @@ export default function setupSockets(io) {
         const maxPlayers = getMaxPlayers(room.game_mode);
         const isAlreadyInRoom = currentPlayers.includes(username);
 
+        if (!isAlreadyInRoom && room.room_password_hash) {
+          if (!roomPassword) {
+            if (ack) ack({ ok: false, error: "Room password required" });
+            return;
+          }
+
+          const passwordMatches = await bcrypt.compare(roomPassword, room.room_password_hash);
+          if (!passwordMatches) {
+            if (ack) ack({ ok: false, error: "Invalid room password" });
+            return;
+          }
+        }
+
         if (!isAlreadyInRoom && normalizedPlayerCount >= maxPlayers) {
           if (ack) ack({ ok: false, error: "Room is full" });
           return socket.emit("error", { message: "Room is full" });
         }
+
+        socket.join(String(roomId));
+        socket.data.roomId = String(roomId);
 
         // Add new player if not already in list
         let updatedPlayers = currentPlayers;
@@ -602,7 +626,7 @@ export default function setupSockets(io) {
     socket.on("getRoomState", async ({ roomId }) => {
       try {
         const result = await pool.query(
-          `SELECT id, name, game_mode, host, player_count, players, status
+          `SELECT id, name, game_mode, host, player_count, players, status, room_password_hash
           FROM rooms WHERE id = $1`,
           [roomId]
         );

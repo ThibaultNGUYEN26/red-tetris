@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   player_count INT NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'waiting',
   is_listed BOOLEAN NOT NULL DEFAULT TRUE,
+  room_password_hash TEXT,
   players JSONB NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
@@ -69,6 +70,9 @@ ALTER TABLE rooms
 
 ALTER TABLE rooms
   ADD COLUMN IF NOT EXISTS is_listed BOOLEAN DEFAULT TRUE;
+
+ALTER TABLE rooms
+  ADD COLUMN IF NOT EXISTS room_password_hash TEXT;
 
 UPDATE rooms
 SET status = 'waiting'
