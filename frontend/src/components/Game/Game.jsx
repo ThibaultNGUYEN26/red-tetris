@@ -85,7 +85,6 @@ function Game({
   const [board, setBoard] = useState(() => makeEmptyBoard(DEFAULT_BOARD))
   const [boardSize, setBoardSize] = useState(DEFAULT_BOARD)
   const [nextType, setNextType] = useState(null)
-  const [nextRotation, setNextRotation] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [stats, setStats] = useState({ score: 0, lines: 0, level: 1 })
@@ -327,7 +326,6 @@ function Game({
           level: me.level ?? 1,
         })
         setNextType(me.nextType || null)
-        setNextRotation(me.nextRotation ?? 0)
 
         if (me.isAlive === false && !isLeavingSolo) {
           setIsEliminated(true)
@@ -507,11 +505,7 @@ function Game({
       return { grid: [], width: 0, height: 0 }
     }
 
-    const rotations = SHAPES[nextType]
-    const rotation = Number.isInteger(nextRotation)
-      ? ((nextRotation % rotations.length) + rotations.length) % rotations.length
-      : 0
-    const shape = rotations[rotation]
+    const shape = SHAPES[nextType][0]
     const rows = shape.map(([r]) => r)
     const cols = shape.map(([, c]) => c)
     const minRow = Math.min(...rows)
@@ -530,7 +524,7 @@ function Game({
     })
 
     return { grid: preview, width, height }
-  }, [nextType, nextRotation])
+  }, [nextType])
 
   const isAlternatingCooperativeMode = isMultiplayer && gameMode === 'cooperative'
   const isRoleSplitCooperativeMode = isMultiplayer && gameMode === 'cooperative_roles'

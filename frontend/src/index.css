@@ -324,10 +324,10 @@ html, body, #root {
 
 .tutorial-piece-block {
   border-radius: 5px;
-  background: #9966cc;
+  background: #4dd7ff;
   box-shadow:
     inset 0 0 7px rgba(255, 255, 255, 0.54),
-    0 0 12px rgba(153, 102, 204, 0.44);
+    0 0 12px rgba(77, 215, 255, 0.44);
 }
 
 .tutorial-piece.target .tutorial-piece-block {

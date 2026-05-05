@@ -55,7 +55,6 @@ describe('Player', () => {
       linesSent: 0,
       maxLinesCleared: 0,
       nextType: 'l',
-      nextRotation: 0,
     })
   })
 
@@ -72,7 +71,6 @@ describe('Player', () => {
       linesSent: 0,
       maxLinesCleared: 0,
       nextType: null,
-      nextRotation: null,
     })
   })
 

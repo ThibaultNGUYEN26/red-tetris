@@ -61,7 +61,6 @@ export default class Player {
       linesSent: this.linesSent,
       maxLinesCleared: this.maxLinesCleared,
       nextType: this.nextPiece ? this.nextPiece.type.toLowerCase() : null,
-      nextRotation: this.nextPiece ? this.nextPiece.rotation : null,
     };
   }
 
