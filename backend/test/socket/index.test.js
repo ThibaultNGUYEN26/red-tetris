@@ -242,7 +242,7 @@ describe('socket setup', () => {
     expect(ack).toHaveBeenCalledWith({ ok: true })
   })
 
-  it('joinRoom keeps post-game players in the room without marking them ready again', async () => {
+  it('joinRoom adds a new post-game lobby joiner to ready_again', async () => {
     mockQuery
       .mockResolvedValueOnce({
         rowCount: 1,
@@ -277,13 +277,56 @@ describe('socket setup', () => {
 
     expect(mockQuery).toHaveBeenCalledWith(
       "UPDATE rooms SET players = $2, player_count = $3, ready_again = $4 WHERE id = $1",
-      ['1', ['Host', 'Riri', 'Titi'], 3, ['Riri']]
+      ['1', ['Host', 'Riri', 'Titi'], 3, ['Riri', 'Titi']]
     )
     expect(io.roomEmit).toHaveBeenCalledWith(
       'roomState',
       expect.objectContaining({
         players: ['Host', 'Riri', 'Titi'],
-        ready_again: ['Riri'],
+        ready_again: ['Riri', 'Titi'],
+      })
+    )
+    expect(ack).toHaveBeenCalledWith({ ok: true })
+  })
+
+  it('joinRoom does not mark an existing post-game player ready again', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Host',
+          player_count: 2,
+          players: ['Host', 'Titi'],
+          status: 'waiting',
+          ready_again: ['Host'],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Host', avatar: { eyeType: 'happy' } }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 1, name: 'Room', game_mode: 'classic', host: 'Host', player_count: 2, players: ['Host', 'Titi'] }],
+      })
+
+    const { io, socket } = await setupConnectedSocket()
+
+    const joinRoomHandler = socket.handlers.get('joinRoom')
+    const ack = vi.fn()
+
+    await joinRoomHandler({ roomId: '1', username: 'Titi' }, ack)
+
+    expect(mockQuery).not.toHaveBeenCalledWith(
+      "UPDATE rooms SET players = $2, player_count = $3, ready_again = $4 WHERE id = $1",
+      expect.any(Array)
+    )
+    expect(io.roomEmit).toHaveBeenCalledWith(
+      'roomState',
+      expect.objectContaining({
+        players: ['Host', 'Titi'],
+        ready_again: ['Host'],
       })
     )
     expect(ack).toHaveBeenCalledWith({ ok: true })

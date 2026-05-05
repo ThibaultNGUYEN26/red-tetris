@@ -522,6 +522,14 @@ export default function setupSockets(io) {
           hasChanges = true;
         }
 
+        // During a post-game lobby, ready_again is the visible/starting player
+        // list. Existing room members must click Play again to enter it, but a
+        // player who actually joins the lobby after leaving should be visible.
+        if (!isAlreadyInRoom && updatedReadyAgain.length > 0 && !updatedReadyAgain.includes(username)) {
+          updatedReadyAgain = [...updatedReadyAgain, username];
+          hasChanges = true;
+        }
+
         if (hasChanges) {
           await pool.query(
             "UPDATE rooms SET players = $2, player_count = $3, ready_again = $4 WHERE id = $1",
