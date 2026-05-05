@@ -63,6 +63,7 @@ async function updateProfile(username, avatar) {
     VALUES ($1, $2, 0, 0, 0, 0, 0)
     ON CONFLICT (username)
     DO UPDATE SET avatar = EXCLUDED.avatar
+    WHERE users.deleted_at IS NULL
     RETURNING id, username, avatar;
   `;
 
@@ -126,7 +127,7 @@ export default function setupSockets(io) {
       const result = await pool.query(
         `SELECT s.username, u.avatar, s.score
          FROM solo_scores s
-         JOIN users u ON u.username = s.username
+         JOIN users u ON u.username = s.username AND u.deleted_at IS NULL
          ORDER BY s.score DESC, s.id ASC
          LIMIT 10`
       );
@@ -145,8 +146,8 @@ export default function setupSockets(io) {
                 c.player_two, u2.avatar AS avatar_two,
                 c.score
          FROM coop_scores c
-         LEFT JOIN users u1 ON u1.username = c.player_one
-         LEFT JOIN users u2 ON u2.username = c.player_two
+         JOIN users u1 ON u1.username = c.player_one AND u1.deleted_at IS NULL
+         JOIN users u2 ON u2.username = c.player_two AND u2.deleted_at IS NULL
          ORDER BY c.score DESC, c.id ASC
          LIMIT 10`
       );
@@ -181,11 +182,13 @@ export default function setupSockets(io) {
         `UPDATE users
          SET solo_games_played = solo_games_played + 1,
              highest_solo_score = GREATEST(highest_solo_score, $2)
-         WHERE username = $1`,
+         WHERE username = $1
+           AND deleted_at IS NULL`,
         [player.username, player.score]
       );
       if (result.rowCount === 0) {
         console.warn(`No user row found for solo stats update: ${player.username}`);
+        return;
       }
 
       try {
@@ -263,7 +266,8 @@ export default function setupSockets(io) {
       const result = await pool.query(
         `SELECT username, avatar
          FROM users
-         WHERE username = ANY($1::text[])`,
+         WHERE username = ANY($1::text[])
+           AND deleted_at IS NULL`,
         [players]
       );
 
@@ -293,7 +297,8 @@ export default function setupSockets(io) {
            SET multiplayer_games_played = multiplayer_games_played + 1,
                multiplayer_wins = multiplayer_wins + $2,
                multiplayer_losses = multiplayer_losses + $3
-           WHERE username = $1`,
+           WHERE username = $1
+             AND deleted_at IS NULL`,
           [player.username, isWinner ? 1 : 0, isWinner ? 0 : 1]
         );
 
@@ -402,6 +407,11 @@ export default function setupSockets(io) {
           } else {
             throw err;
           }
+        }
+
+        if ((result.rowCount ?? result.rows?.length ?? 0) === 0) {
+          if (ack) ack({ ok: false, error: "Account scheduled for deletion" });
+          return;
         }
 
         const reg = registerUsername(username, socket);

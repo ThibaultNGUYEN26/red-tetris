@@ -12,6 +12,7 @@ function ProfileMenu({
   title = 'Create Your Profile',
   submitLabel = "Let's Play!",
   onLogout,
+  onDeleteAccount,
 }) {
   const [username, setUsername] = useState(initialProfile?.username || '')
   const [errorMessage, setErrorMessage] = useState('')
@@ -220,6 +221,15 @@ function ProfileMenu({
           type="button"
         >
           Disconnect
+        </button>
+      )}
+      {onDeleteAccount && (
+        <button
+          className="delete-account-button"
+          onClick={onDeleteAccount}
+          type="button"
+        >
+          Delete account
         </button>
       )}
     </div>

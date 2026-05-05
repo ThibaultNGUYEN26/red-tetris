@@ -388,6 +388,26 @@
     inset 0 1px 2px rgba(255, 255, 255, 0.4);
 }
 
+.delete-account-button {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #7e2020;
+  background: rgba(255, 245, 245, 0.65);
+  border: 2px solid rgba(170, 55, 55, 0.35);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.delete-account-button:hover {
+  background: rgba(255, 226, 226, 0.82);
+  transform: translateY(-1px);
+}
+
 /* Dark Theme */
 .username-card.dark {
   background: linear-gradient(135deg, rgba(20, 20, 40, 0.4) 0%, rgba(10, 10, 30, 0.5) 100%);
@@ -459,6 +479,12 @@
   box-shadow:
     0 4px 8px rgba(0, 0, 0, 0.3),
     0 0 14px rgba(255, 90, 90, 0.16);
+}
+
+.username-card.dark .delete-account-button {
+  color: #ffd6d6;
+  background: rgba(80, 20, 20, 0.44);
+  border-color: rgba(255, 120, 120, 0.28);
 }
 
 .username-card.dark .avatar-section h3 {

@@ -233,6 +233,71 @@ describe('auth routes', () => {
     }))
   })
 
+  it('blocks login for accounts scheduled for deletion', async () => {
+    const hash = await mockBcryptHash(VALID_PASSWORD, 10)
+    const deleteAfter = new Date(Date.now() + 1000 * 60 * 60).toISOString()
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 1,
+        username: 'Titi',
+        email: 'titi@example.com',
+        avatar: { eyeType: 'happy' },
+        password_hash: hash,
+        deleted_at: new Date().toISOString(),
+        delete_after: deleteAfter,
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/login')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi', password: VALID_PASSWORD } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      error: 'Account scheduled for deletion',
+      canRestore: true,
+      deleteAfter,
+    }))
+  })
+
+  it('restores a soft-deleted account with valid credentials', async () => {
+    const hash = await mockBcryptHash(VALID_PASSWORD, 10)
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          username: 'Titi',
+          email: 'titi@example.com',
+          avatar: { eyeType: 'happy' },
+          password_hash: hash,
+          deleted_at: new Date().toISOString(),
+          delete_after: new Date(Date.now() + 1000 * 60 * 60).toISOString(),
+        }],
+      })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ id: 1, username: 'Titi', email: 'titi@example.com', avatar: { eyeType: 'happy' } }],
+      })
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/restore')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi', password: VALID_PASSWORD } }, res)
+
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('SET deleted_at = NULL'),
+      ['Titi']
+    )
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.cookie).toHaveBeenCalled()
+  })
+
   it('validates forgot password payload', async () => {
     const { default: router } = await import('../../src/routes/auth.routes.js')
     const handler = getHandler(router, 'post', '/forgot-password')
@@ -388,5 +453,35 @@ describe('auth routes', () => {
     }))
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({ ok: true })
+  })
+
+  it('soft deletes the authenticated account and clears the session cookie', async () => {
+    const deleteAfter = new Date(Date.now() + 1000 * 60 * 60).toISOString()
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        username: 'Titi',
+        deleted_at: new Date().toISOString(),
+        delete_after: deleteAfter,
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'delete', '/account')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi' } }, res)
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('SET deleted_at = NOW()'),
+      ['Titi', 30]
+    )
+    expect(res.clearCookie).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      ok: true,
+      username: 'Titi',
+      deleteAfter,
+    }))
   })
 })

@@ -64,8 +64,9 @@ vi.mock('../../../components/Rooms/Rooms.jsx', () => ({
 }))
 
 vi.mock('../../../components/CreateRoom/CreateRoom.jsx', () => ({
-  default: ({ onBack, onStartGame, roomId }) => (
+  default: ({ onBack, onStartGame, roomId, desiredRoomName }) => (
     <div data-testid="create-room">
+      <span data-testid="desired-room-name">{desiredRoomName || 'none'}</span>
       <button onClick={onBack}>Back</button>
       <button onClick={() => onStartGame?.(roomId || 12)}>Start game</button>
     </div>
@@ -478,6 +479,60 @@ describe('Index main page', () => {
 
     expect(await screen.findByText('Invalid room name')).toBeInTheDocument()
     expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
+  })
+
+  it('starts solo play again with a fresh room name instead of reusing the finished room', async () => {
+    mockParams = { username: 'Titi', roomName: 'oldsolo', roomType: undefined }
+    setSavedUser('Titi')
+
+    global.fetch.mockImplementation(async (url) => {
+      if (requestPath(url) === '/api/player/connection?username=Titi') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ connected: false }),
+        }
+      }
+
+      if (requestPath(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (requestPath(url) === '/api/rooms/by-name/oldsolo') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 12,
+            name: 'oldsolo',
+            game_mode: 'classic',
+            host: 'Titi',
+            player_count: 1,
+            players: ['Titi'],
+            status: 'waiting',
+          }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    render(<Index />)
+
+    expect(await screen.findByTestId('create-room')).toBeInTheDocument()
+    expect(screen.getByTestId('desired-room-name')).toHaveTextContent('oldsolo')
+
+    fireEvent.click(screen.getByRole('button', { name: /start game/i }))
+    expect(await screen.findByRole('button', { name: /play again/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+
+    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
+    expect(await screen.findByTestId('desired-room-name')).toHaveTextContent('none')
   })
 
   it('keeps play again available for direct-room multiplayer games', async () => {

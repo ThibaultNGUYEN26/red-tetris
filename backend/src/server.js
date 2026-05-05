@@ -13,6 +13,7 @@ import contactRoutes from "./routes/contact.routes.js";
 import setupSockets from "./socket/index.js";
 import { ensureSchema, pool } from "./config/db.js";
 import { assertSessionSecret } from "./auth/session.js";
+import { purgeExpiredDeletedAccounts } from "./services/accountDeletion.service.js";
 
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:8080";
@@ -63,10 +64,18 @@ export async function startServer() {
   try {
     await pool.query("SELECT 1");
     await ensureSchema();
+    await purgeExpiredDeletedAccounts();
   } catch (err) {
     console.error("DB connection failed:", err);
     throw err;
   }
+
+  const purgeTimer = setInterval(() => {
+    purgeExpiredDeletedAccounts().catch((err) => {
+      console.error("Expired account purge failed:", err);
+    });
+  }, 1000 * 60 * 60 * 24);
+  purgeTimer.unref?.();
 
   return httpServer.listen(PORT, "0.0.0.0");
 }

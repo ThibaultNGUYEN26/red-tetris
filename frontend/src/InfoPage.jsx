@@ -142,7 +142,7 @@ const pages = {
       {
         title: 'Retention',
         body:
-          'Account, profile, and score data are kept while the account exists or while needed to operate the game. Password reset tokens are temporary and expire after a short period. Contact messages and technical logs are kept only as long as needed for support, security, and abuse prevention, then deleted or anonymized when no longer necessary.',
+          'Account deletion can be requested from the profile menu. Deleted accounts are first scheduled for deletion and can be restored for 30 days by logging in again and choosing restore. After that restore window, the account and related profile, room, and score data are permanently removed from the database. Password reset tokens are temporary and expire after a short period. Contact messages and technical logs are kept only as long as needed for support, security, and abuse prevention, then deleted or anonymized when no longer necessary.',
       },
       {
         title: 'Your Rights',
@@ -182,7 +182,7 @@ const pages = {
       {
         title: 'Contact And Requests',
         body:
-          'For privacy questions, account data requests, or deletion requests, use the contact page and include the username and registered email for the account. If you believe your rights were not respected, you may contact your local data protection authority, such as the CNIL in France.',
+          'For privacy questions or account data requests, use the contact page and include the username and registered email for the account. Account deletion is available from the profile menu. If you believe your rights were not respected, you may contact your local data protection authority, such as the CNIL in France.',
       },
     ],
   },

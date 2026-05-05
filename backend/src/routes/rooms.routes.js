@@ -34,7 +34,8 @@ async function attachPlayerAvatars(room) {
   const result = await pool.query(
     `SELECT username, avatar
      FROM users
-     WHERE username = ANY($1::text[])`,
+     WHERE username = ANY($1::text[])
+       AND deleted_at IS NULL`,
     [players]
   );
 

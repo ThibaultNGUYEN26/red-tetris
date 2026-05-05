@@ -4,8 +4,14 @@ import crypto from "crypto";
 import { pool } from "../config/db.js";
 import { sendResetPasswordEmail } from "../services/mail.service.js";
 import {
+  restoreDeletedAccount,
+  softDeleteAccount,
+} from "../services/accountDeletion.service.js";
+import {
+  authenticateRequest,
   clearSessionCookie,
   createSessionToken,
+  rejectUnauthenticated,
   setSessionCookie,
 } from "../auth/session.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
@@ -69,7 +75,7 @@ router.post("/register", async (req, res) => {
     }
 
     const existing = await pool.query(
-      `SELECT username, email
+      `SELECT username, email, deleted_at, delete_after
        FROM users
        WHERE username = $1 OR LOWER(email) = $2`,
       [username, normalizedEmail]
@@ -77,6 +83,13 @@ router.post("/register", async (req, res) => {
 
     if (existing.rowCount > 0) {
       const existingUser = existing.rows[0];
+      if (existingUser.deleted_at) {
+        return res.status(409).json({
+          error: "Account scheduled for deletion",
+          canRestore: true,
+          deleteAfter: existingUser.delete_after,
+        });
+      }
       if (existingUser.username === username) {
         return res.status(409).json({ error: "Username already exists" });
       }
@@ -130,7 +143,7 @@ router.post("/login", async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, username, email, avatar, password_hash
+      `SELECT id, username, email, avatar, password_hash, deleted_at, delete_after
        FROM users
        WHERE username = $1`,
       [username]
@@ -141,6 +154,14 @@ router.post("/login", async (req, res) => {
     }
 
     const user = result.rows[0];
+    if (user.deleted_at) {
+      return res.status(403).json({
+        error: "Account scheduled for deletion",
+        canRestore: Boolean(user.delete_after && new Date(user.delete_after).getTime() > Date.now()),
+        deleteAfter: user.delete_after,
+      });
+    }
+
     if (!user.password_hash) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
@@ -161,6 +182,70 @@ router.post("/login", async (req, res) => {
     });
   } catch (err) {
     console.error("Login failed:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/restore", async (req, res) => {
+  try {
+    if (authRateLimiter(req, res)) return;
+
+    const { username, password } = req.body || {};
+
+    if (!username || !password) {
+      return res.status(400).json({ error: "Missing data" });
+    }
+
+    if (!USERNAME_PATTERN.test(username)) {
+      return res.status(400).json({ error: "Invalid username" });
+    }
+
+    const result = await pool.query(
+      `SELECT id, username, email, avatar, password_hash, deleted_at, delete_after
+       FROM users
+       WHERE username = $1`,
+      [username]
+    );
+
+    if (!result.rowCount) {
+      return res.status(404).json({ error: "User does not exist" });
+    }
+
+    const user = result.rows[0];
+    if (!user.deleted_at) {
+      return res.status(400).json({ error: "Account is not scheduled for deletion" });
+    }
+
+    if (!user.delete_after || new Date(user.delete_after).getTime() <= Date.now()) {
+      return res.status(410).json({ error: "Restore period expired" });
+    }
+
+    if (!user.password_hash) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const restored = await restoreDeletedAccount(username);
+    if (!restored.rowCount) {
+      return res.status(410).json({ error: "Restore period expired" });
+    }
+
+    const restoredUser = restored.rows[0];
+    const token = createSessionToken(restoredUser);
+    setSessionCookie(res, token);
+
+    return res.status(200).json({
+      id: restoredUser.id,
+      username: restoredUser.username,
+      email: restoredUser.email,
+      avatar: restoredUser.avatar,
+    });
+  } catch (err) {
+    console.error("Restore account failed:", err);
     return res.status(500).json({ error: "Server error" });
   }
 });
@@ -187,7 +272,7 @@ router.post("/forgot-password", async (req, res) => {
     const userResult = await pool.query(
       `SELECT id
        FROM users
-       WHERE username = $1 AND LOWER(email) = $2`,
+       WHERE username = $1 AND LOWER(email) = $2 AND deleted_at IS NULL`,
       [username, email]
     );
 
@@ -260,6 +345,7 @@ router.post("/reset-password", async (req, res) => {
        WHERE reset_password_token = $2
          AND reset_password_expires_at IS NOT NULL
          AND reset_password_expires_at >= NOW()
+         AND deleted_at IS NULL
        RETURNING id`,
       [passwordHash, token]
     );
@@ -278,6 +364,29 @@ router.post("/reset-password", async (req, res) => {
 router.post("/logout", (req, res) => {
   clearSessionCookie(res);
   res.status(200).json({ ok: true });
+});
+
+router.delete("/account", async (req, res) => {
+  try {
+    const auth = authenticateRequest(req);
+    if (!auth) return rejectUnauthenticated(res);
+
+    const result = await softDeleteAccount(auth.username);
+    if (!result.rowCount) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    clearSessionCookie(res);
+    return res.status(200).json({
+      ok: true,
+      username: result.rows[0].username,
+      deletedAt: result.rows[0].deleted_at,
+      deleteAfter: result.rows[0].delete_after,
+    });
+  } catch (err) {
+    console.error("Delete account failed:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
 });
 
 export default router;

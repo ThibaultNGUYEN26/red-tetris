@@ -29,6 +29,7 @@ async function updateProfile(username, avatar) {
     VALUES ($1, $2, 0, 0, 0, 0, 0)
     ON CONFLICT (username)
     DO UPDATE SET avatar = EXCLUDED.avatar
+    WHERE users.deleted_at IS NULL
     RETURNING id, username, avatar;
   `;
 
@@ -124,7 +125,8 @@ router.get("/player/stats", async (req, res) => {
          ) coop_player_scores
          GROUP BY player_name
        ) cs ON cs.player_name = u.username
-       WHERE u.username = $1`,
+       WHERE u.username = $1
+         AND u.deleted_at IS NULL`,
       [username]
     );
 
@@ -217,7 +219,7 @@ router.get("/leaderboard/solo", async (req, res) => {
     const result = await pool.query(
       `SELECT s.username, u.avatar, s.score
        FROM solo_scores s
-       JOIN users u ON u.username = s.username
+       JOIN users u ON u.username = s.username AND u.deleted_at IS NULL
        ORDER BY s.score DESC, s.id ASC
        LIMIT 10`
     );
@@ -243,8 +245,8 @@ router.get("/leaderboard/coop", async (req, res) => {
               c.player_two, u2.avatar AS avatar_two,
               c.score
        FROM coop_scores c
-       LEFT JOIN users u1 ON u1.username = c.player_one
-       LEFT JOIN users u2 ON u2.username = c.player_two
+       JOIN users u1 ON u1.username = c.player_one AND u1.deleted_at IS NULL
+       JOIN users u2 ON u2.username = c.player_two AND u2.deleted_at IS NULL
        ORDER BY c.score DESC, c.id ASC
        LIMIT 10`
     );
@@ -295,6 +297,10 @@ router.post("/profile", async (req, res) => {
       } else {
         throw err;
       }
+    }
+
+    if ((result.rowCount ?? result.rows?.length ?? 0) === 0) {
+      return res.status(403).json({ error: "Account scheduled for deletion" });
     }
 
     res.status(200).json(result.rows[0]);

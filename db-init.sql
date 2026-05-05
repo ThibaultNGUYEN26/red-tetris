@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
   multiplayer_games_played INT NOT NULL DEFAULT 0,
   multiplayer_wins INT NOT NULL DEFAULT 0,
   multiplayer_losses INT NOT NULL DEFAULT 0,
+  deleted_at TIMESTAMPTZ,
+  delete_after TIMESTAMPTZ,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -21,7 +23,9 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS password_hash TEXT,
   ADD COLUMN IF NOT EXISTS email TEXT,
   ADD COLUMN IF NOT EXISTS reset_password_token TEXT,
-  ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMPTZ;
+  ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS delete_after TIMESTAMPTZ;
 
 UPDATE users
 SET
@@ -41,6 +45,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx
 CREATE UNIQUE INDEX IF NOT EXISTS users_reset_password_token_unique_idx
   ON users (reset_password_token)
   WHERE reset_password_token IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS users_delete_after_idx
+  ON users (delete_after)
+  WHERE deleted_at IS NOT NULL;
 
 -- ROOMS TABLE
 

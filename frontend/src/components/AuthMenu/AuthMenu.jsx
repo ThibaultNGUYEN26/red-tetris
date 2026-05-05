@@ -56,6 +56,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [canRestoreAccount, setCanRestoreAccount] = useState(false)
   const inputRef = useRef(null)
 
   const resetToken = useMemo(
@@ -92,6 +93,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
   const clearMessages = () => {
     setErrorMessage('')
     setSuccessMessage('')
+    setCanRestoreAccount(false)
   }
 
   const resetPasswordToggles = () => {
@@ -254,6 +256,9 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
 
       const data = await response.json().catch(() => ({}))
       if (!response.ok) {
+        if (mode === 'login' && data?.canRestore) {
+          setCanRestoreAccount(true)
+        }
         const nextError = mode === 'login' && data?.error === 'Invalid credentials'
           ? 'Invalid password'
           : data?.error || 'Authentication failed'
@@ -292,6 +297,52 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
         return
       }
 
+      await onAuthenticated({
+        username: data.username || username.trim(),
+        email: data.email || email.trim().toLowerCase(),
+        avatar: data.avatar || {
+          skinColor: currentAvatar.skinColor,
+          eyeType: currentAvatar.eyeType,
+          mouthType: currentAvatar.mouthType,
+        },
+      })
+    } catch {
+      setErrorMessage('Server unavailable')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRestoreAccount = async () => {
+    const validationError = validate()
+    if (validationError) {
+      setErrorMessage(validationError)
+      setSuccessMessage('')
+      return
+    }
+
+    setIsSubmitting(true)
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    try {
+      const response = await apiFetch('/api/auth/restore', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username.trim(),
+          password,
+        }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        setErrorMessage(data?.error || 'Unable to restore account')
+        return
+      }
+
+      setCanRestoreAccount(false)
       await onAuthenticated({
         username: data.username || username.trim(),
         email: data.email || email.trim().toLowerCase(),
@@ -485,6 +536,17 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
           <button className="submit-button" onClick={handleSubmit} disabled={isSubmitting}>
             {submitLabel}
           </button>
+
+          {mode === 'login' && canRestoreAccount && (
+            <button
+              type="button"
+              className="auth-secondary-action"
+              onClick={handleRestoreAccount}
+              disabled={isSubmitting}
+            >
+              Restore account
+            </button>
+          )}
 
           {(mode === 'forgot' || mode === 'reset') && (
             <button
