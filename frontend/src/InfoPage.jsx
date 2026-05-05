@@ -7,6 +7,13 @@ import { apiFetch } from './api'
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
 const CONTACT_TIMEOUT_MS = 15000
+const PRIVACY_LAST_UPDATED = 'May 5, 2026'
+const PRIVACY_CONTROLLER_NAME =
+  import.meta.env.VITE_PRIVACY_CONTROLLER_NAME || 'the Red Tetris site operator'
+const PRIVACY_CONTROLLER_CONTACT =
+  import.meta.env.VITE_PRIVACY_CONTROLLER_CONTACT || 'the contact form at /contact'
+const PRIVACY_CONTROLLER_LOCATION =
+  import.meta.env.VITE_PRIVACY_CONTROLLER_LOCATION || 'France'
 
 const pages = {
   about: {
@@ -137,12 +144,12 @@ const pages = {
   privacy: {
     title: 'Privacy Policy',
     intro:
-      'This policy explains what Red Tetris collects, why it is used, how long it is kept, and how you can exercise your RGPD/GDPR rights.',
+      `Last updated ${PRIVACY_LAST_UPDATED}. This policy explains what Red Tetris collects, why it is used, how long it is kept, and how you can exercise your RGPD/GDPR rights.`,
     sections: [
       {
         title: 'Controller',
         body:
-          'The Red Tetris project maintainers are the data controller for account, profile, contact, and gameplay data processed by this site. Controller contact is handled through the contact page, or by replying to an email sent from the Red Tetris mailbox.',
+          `${PRIVACY_CONTROLLER_NAME} is the data controller for account, profile, contact, and gameplay data processed by this deployment of Red Tetris. Controller location: ${PRIVACY_CONTROLLER_LOCATION}. Privacy contact: ${PRIVACY_CONTROLLER_CONTACT}. No separate Data Protection Officer is appointed unless this section states otherwise.`,
       },
       {
         title: 'Information We Collect',
@@ -162,7 +169,7 @@ const pages = {
       {
         title: 'Retention',
         body:
-          'Account, profile, and score data are kept while the account exists or while needed to operate the game. Password reset tokens are temporary and expire after a short period. Contact messages and technical logs are kept only as long as needed for support, security, and abuse prevention, then deleted or anonymized when no longer necessary.',
+          'Account, profile, authentication, score, leaderboard, and room records are kept while the account exists. When a signed-in user deletes the account from this privacy page, the user account, password hash, email address, avatar, solo scores, multiplayer scores, cooperative scores involving that username, and active room records involving that username are deleted from the application database. Password reset tokens expire after 30 minutes and are cleared when used, replaced, or when the account is deleted. Session cookies last up to 7 days and are cleared on logout or account deletion. Local storage remains in the browser until logout, account deletion, or browser clearing. Contact emails are kept for support and privacy-request history for up to 12 months, unless a longer period is needed for legal claims, abuse handling, or security incidents. Database backups, if enabled by the hosting provider, may retain deleted data for up to 30 days before rotation.',
       },
       {
         title: 'Your Rights',
@@ -172,7 +179,7 @@ const pages = {
       {
         title: 'Deletion Requests',
         body:
-          'To request account deletion, data deletion, or a copy of your account data, use the contact page and include your username and registered email. Requests are reviewed manually so the account owner can be verified before data is exported or deleted. Some data may be retained temporarily when needed for security, abuse prevention, legal obligations, or backup integrity.',
+          'Signed-in users can export their account data or delete their account from this privacy page. You can also use the contact page for privacy requests that need manual review. Some data may be retained temporarily when needed for security, abuse prevention, legal obligations, or backup integrity.',
       },
       {
         title: 'Recipients And Providers',
@@ -182,17 +189,27 @@ const pages = {
       {
         title: 'International Transfers',
         body:
-          'Some providers used by the site, including Railway, Vercel, and Resend, may process or store data outside the European Union. Where this happens, transfers should rely on the safeguards made available by those providers, such as data processing agreements, standard contractual clauses, or equivalent transfer mechanisms.',
+          'Railway, Vercel, and Resend may process data outside the European Economic Area, including in the United States. Transfers rely on the provider data processing terms and transfer safeguards made available by those providers, including EU Standard Contractual Clauses and, where applicable, Data Privacy Framework commitments.',
+        links: [
+          { href: 'https://railway.com/legal/dpa', label: 'Railway DPA' },
+          { href: 'https://vercel.com/legal/dpa', label: 'Vercel DPA' },
+          { href: 'https://resend.com/legal/dpa', label: 'Resend DPA' },
+        ],
       },
       {
         title: 'Processor Agreements',
         body:
-          'The site operator should keep appropriate data processing terms or processor agreements in place with hosting, database, and email providers when those providers process personal data on behalf of the site.',
+          'The site operator must keep the relevant data processing terms or processor agreements in place with hosting, database, and email providers before using those providers for production personal data. These providers are used only to host the frontend, run the backend, store the database, deliver transactional email, maintain security, and provide operational reliability.',
       },
       {
         title: 'Cookies And Local Storage',
         body:
           'The app uses local storage for necessary features such as remembering the signed-in user locally, saved account details needed by the interface, and theme preferences. The backend may use a session cookie to keep you authenticated. These storage items are used for core service functionality, not advertising or cross-site tracking. No advertising or analytics cookies are currently required for the core game.',
+      },
+      {
+        title: 'IP Addresses And Logs',
+        body:
+          'The backend uses IP-derived request information for abuse prevention and rate limiting. Contact-form rate-limit entries are stored in server memory for the configured contact window, currently 1 hour by default. Authentication rate-limit entries are stored in server memory for 15 minutes by default. These in-memory entries are not used for advertising and disappear when the window expires or the server restarts. Hosting, reverse proxy, email, and database providers may also create operational logs containing IP addresses, timestamps, request metadata, or delivery metadata; those logs are kept for up to 30 days unless longer retention is required to investigate abuse, maintain security, resolve a legal issue, or comply with provider/legal obligations.',
       },
       {
         title: 'Security',
@@ -350,18 +367,26 @@ function InfoPage({ type }) {
   const [contactEmail, setContactEmail] = useState('')
   const [contactStatus, setContactStatus] = useState({ type: '', message: '' })
   const [isContactSending, setIsContactSending] = useState(false)
+  const [privacyStatus, setPrivacyStatus] = useState({ type: '', message: '' })
+  const [isExportingData, setIsExportingData] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [savedAuthUser, setSavedAuthUser] = useState(() => getSavedAuthUser())
   const starsRef = useRef(null)
 
-  const getSavedUserEmail = () => {
+  function getSavedAuthUser() {
     try {
       const savedAuth = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || '{}')
-      return typeof savedAuth?.email === 'string' ? savedAuth.email.trim().toLowerCase() : ''
+      return {
+        username: typeof savedAuth?.username === 'string' ? savedAuth.username.trim() : '',
+        email: typeof savedAuth?.email === 'string' ? savedAuth.email.trim().toLowerCase() : '',
+      }
     } catch {
-      return ''
+      return { username: '', email: '' }
     }
   }
 
-  const savedUserEmail = getSavedUserEmail()
+  const getSavedUserEmail = () => getSavedAuthUser().email
+  const savedUserEmail = savedAuthUser.email
 
   useEffect(() => {
     if (theme !== 'dark' || !starsRef.current) return
@@ -440,6 +465,73 @@ function InfoPage({ type }) {
     }
   }
 
+  const handleExportAccountData = async () => {
+    setIsExportingData(true)
+    setPrivacyStatus({ type: '', message: '' })
+
+    try {
+      const response = await apiFetch('/api/account/export')
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Unable to export account data')
+      }
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: 'application/json',
+      })
+      const downloadUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = `red-tetris-${payload?.account?.username || 'account'}-data.json`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(downloadUrl)
+
+      setPrivacyStatus({ type: 'success', message: 'Account data export downloaded.' })
+    } catch (err) {
+      setPrivacyStatus({
+        type: 'error',
+        message: err?.message || 'Unable to export account data',
+      })
+    } finally {
+      setIsExportingData(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!savedAuthUser.username) return
+
+    const confirmed = window.confirm(
+      `Delete the Red Tetris account "${savedAuthUser.username}" and its scores? This cannot be undone.`
+    )
+    if (!confirmed) return
+
+    setIsDeletingAccount(true)
+    setPrivacyStatus({ type: '', message: '' })
+
+    try {
+      const response = await apiFetch('/api/account', { method: 'DELETE' })
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Unable to delete account')
+      }
+
+      localStorage.removeItem(AUTH_STORAGE_KEY)
+      setSavedAuthUser({ username: '', email: '' })
+      setPrivacyStatus({ type: 'success', message: 'Account deleted.' })
+    } catch (err) {
+      setPrivacyStatus({
+        type: 'error',
+        message: err?.message || 'Unable to delete account',
+      })
+    } finally {
+      setIsDeletingAccount(false)
+    }
+  }
+
   return (
     <>
       <div className={`sky-background ${theme === 'dark' ? 'dark' : ''}`}>
@@ -461,6 +553,44 @@ function InfoPage({ type }) {
 
           <h1>{page.title}</h1>
           <p className="info-page-intro">{page.intro}</p>
+
+          {type === 'privacy' && (
+            <section className="privacy-account-tools" aria-label="Account privacy tools">
+              <h2>Account Tools</h2>
+              {savedAuthUser.username ? (
+                <>
+                  <p>
+                    Signed in as <strong>{savedAuthUser.username}</strong>.
+                  </p>
+                  <div className="privacy-tool-actions">
+                    <button
+                      className="info-page-action"
+                      type="button"
+                      onClick={handleExportAccountData}
+                      disabled={isExportingData || isDeletingAccount}
+                    >
+                      {isExportingData ? 'Exporting...' : 'Export my data'}
+                    </button>
+                    <button
+                      className="info-page-action danger"
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      disabled={isExportingData || isDeletingAccount}
+                    >
+                      {isDeletingAccount ? 'Deleting...' : 'Delete my account'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <p>Sign in to export your account data or delete your account directly.</p>
+              )}
+              {privacyStatus.message && (
+                <p className={`contact-status ${privacyStatus.type}`} role="status">
+                  {privacyStatus.message}
+                </p>
+              )}
+            </section>
+          )}
 
           {type === 'tutorial' && (
             <div className="tutorial-controls-list">
@@ -550,6 +680,21 @@ function InfoPage({ type }) {
                   >
                     {section.link.label}
                   </a>
+                )}
+                {section.links && (
+                  <div className="info-page-action-row">
+                    {section.links.map((link) => (
+                      <a
+                        key={link.href}
+                        className="info-page-action"
+                        href={link.href}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {link.label}
+                      </a>
+                    ))}
+                  </div>
                 )}
               </section>
             ))}

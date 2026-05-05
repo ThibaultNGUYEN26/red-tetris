@@ -1,7 +1,11 @@
 import express from "express";
 import { pool } from "../config/db.js";
 import { isUsernameConnected } from "../socket/index.js";
-import { authenticateRequest, rejectUnauthenticated } from "../auth/session.js";
+import {
+  authenticateRequest,
+  clearSessionCookie,
+  rejectUnauthenticated,
+} from "../auth/session.js";
 
 const router = express.Router();
 
@@ -35,6 +39,160 @@ async function updateProfile(username, avatar) {
   const values = [username, JSON.stringify(avatar)];
   return pool.query(query, values);
 }
+
+async function fetchAccountExport(username) {
+  const [
+    accountResult,
+    soloScoresResult,
+    multiplayerScoresResult,
+    coopScoresResult,
+    roomsResult,
+  ] = await Promise.all([
+    pool.query(
+      `SELECT
+          id,
+          username,
+          email,
+          avatar,
+          solo_games_played,
+          highest_solo_score,
+          multiplayer_games_played,
+          multiplayer_wins,
+          multiplayer_losses,
+          created_at,
+          password_hash IS NOT NULL AS password_hash_stored,
+          reset_password_expires_at IS NOT NULL
+            AND reset_password_expires_at >= NOW() AS reset_password_token_active,
+          reset_password_expires_at
+       FROM users
+       WHERE username = $1`,
+      [username]
+    ),
+    pool.query(
+      `SELECT id, username, score, lines, level, tetris_count, duration_seconds, created_at
+       FROM solo_scores
+       WHERE username = $1
+       ORDER BY created_at ASC, id ASC`,
+      [username]
+    ),
+    pool.query(
+      `SELECT id, username, score, lines, level, tetris_count, lines_sent,
+              duration_seconds, is_winner, game_mode, created_at
+       FROM multiplayer_scores
+       WHERE username = $1
+       ORDER BY created_at ASC, id ASC`,
+      [username]
+    ),
+    pool.query(
+      `SELECT id, player_one, player_two, score, lines, level, tetris_count,
+              duration_seconds, created_at
+       FROM coop_scores
+       WHERE player_one = $1 OR player_two = $1
+       ORDER BY created_at ASC, id ASC`,
+      [username]
+    ),
+    pool.query(
+      `SELECT id, name, game_mode, host, player_count, status, is_listed,
+              ready_again, players, created_at
+       FROM rooms
+       WHERE host = $1 OR $1 = ANY(players) OR $1 = ANY(ready_again)
+       ORDER BY created_at ASC, id ASC`,
+      [username]
+    ),
+  ]);
+
+  if (!accountResult.rowCount) return null;
+
+  const account = accountResult.rows[0];
+  return {
+    exportedAt: new Date().toISOString(),
+    account: {
+      id: account.id,
+      username: account.username,
+      email: account.email,
+      avatar: account.avatar,
+      createdAt: account.created_at,
+      passwordHashStored: Boolean(account.password_hash_stored),
+      resetPasswordTokenActive: Boolean(account.reset_password_token_active),
+      resetPasswordExpiresAt: account.reset_password_expires_at,
+    },
+    profileStats: {
+      soloGamesPlayed: account.solo_games_played ?? 0,
+      highestSoloScore: account.highest_solo_score ?? 0,
+      multiplayerGamesPlayed: account.multiplayer_games_played ?? 0,
+      multiplayerWins: account.multiplayer_wins ?? 0,
+      multiplayerLosses: account.multiplayer_losses ?? 0,
+    },
+    scores: {
+      solo: soloScoresResult.rows,
+      multiplayer: multiplayerScoresResult.rows,
+      cooperative: coopScoresResult.rows,
+    },
+    rooms: roomsResult.rows,
+  };
+}
+
+async function deleteAccountData(username) {
+  await pool.query("BEGIN");
+  try {
+    await pool.query(
+      `DELETE FROM rooms
+       WHERE host = $1 OR $1 = ANY(players) OR $1 = ANY(ready_again)`,
+      [username]
+    );
+    await pool.query("DELETE FROM solo_scores WHERE username = $1", [username]);
+    await pool.query("DELETE FROM multiplayer_scores WHERE username = $1", [username]);
+    await pool.query(
+      "DELETE FROM coop_scores WHERE player_one = $1 OR player_two = $1",
+      [username]
+    );
+    const deletedUser = await pool.query(
+      "DELETE FROM users WHERE username = $1 RETURNING username",
+      [username]
+    );
+    await pool.query("COMMIT");
+    return deletedUser.rowCount > 0;
+  } catch (err) {
+    await pool.query("ROLLBACK");
+    throw err;
+  }
+}
+
+router.get("/account/export", async (req, res) => {
+  try {
+    const auth = authenticateRequest(req);
+    if (!auth) return rejectUnauthenticated(res);
+
+    const accountExport = await fetchAccountExport(auth.username);
+    if (!accountExport) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.set("Content-Disposition", `attachment; filename="red-tetris-${auth.username}-data.json"`);
+    return res.status(200).json(accountExport);
+  } catch (err) {
+    console.error("Account export failed:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.delete("/account", async (req, res) => {
+  try {
+    const auth = authenticateRequest(req);
+    if (!auth) return rejectUnauthenticated(res);
+
+    const deleted = await deleteAccountData(auth.username);
+    if (!deleted) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    clearSessionCookie(res);
+    return res.status(200).json({ ok: true, message: "Account deleted" });
+  } catch (err) {
+    console.error("Account deletion failed:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
 
 router.get("/player/stats", async (req, res) => {
   try {

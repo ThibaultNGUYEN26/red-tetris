@@ -172,6 +172,22 @@ html, body, #root {
   outline: none;
 }
 
+.info-page-action:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.info-page-action.danger {
+  border-color: rgba(199, 57, 57, 0.35);
+  color: #9a2b2b;
+}
+
+.info-page-action.danger:hover,
+.info-page-action.danger:focus-visible {
+  border-color: rgba(199, 57, 57, 0.58);
+  background: #fff6f6;
+}
+
 .info-page-card h1 {
   margin-bottom: 10px;
   color: #1f466d;
@@ -210,6 +226,33 @@ html, body, #root {
   font-size: 1rem;
   font-weight: 650;
   line-height: 1.55;
+}
+
+.privacy-account-tools {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 18px;
+  border-radius: 8px;
+  background: rgba(232, 246, 255, 0.72);
+}
+
+.privacy-account-tools h2 {
+  color: #2e5c8a;
+  font-size: 1.2rem;
+}
+
+.privacy-account-tools p {
+  color: #365872;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.55;
+}
+
+.privacy-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .tutorial-controls-list {
@@ -527,6 +570,12 @@ html, body, #root {
   margin-top: 14px;
 }
 
+.info-page-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .contact-form {
   display: grid;
   gap: 10px;
@@ -796,6 +845,18 @@ html, body, #root {
   color: #ffffff;
 }
 
+.sky-background.dark ~ .content-wrapper .info-page-action.danger {
+  border-color: rgba(255, 130, 130, 0.42);
+  color: #ffb1b1;
+}
+
+.sky-background.dark ~ .content-wrapper .info-page-action.danger:hover,
+.sky-background.dark ~ .content-wrapper .info-page-action.danger:focus-visible {
+  border-color: rgba(255, 160, 160, 0.68);
+  background: rgba(120, 54, 70, 0.44);
+  color: #ffe3e3;
+}
+
 .sky-background.dark ~ .content-wrapper .info-page-card h1,
 .sky-background.dark ~ .content-wrapper .info-page-section h2 {
   color: #e8edff;
@@ -809,6 +870,18 @@ html, body, #root {
 
 .sky-background.dark ~ .content-wrapper .info-page-section {
   background: rgba(36, 44, 82, 0.68);
+}
+
+.sky-background.dark ~ .content-wrapper .privacy-account-tools {
+  background: rgba(36, 44, 82, 0.68);
+}
+
+.sky-background.dark ~ .content-wrapper .privacy-account-tools h2 {
+  color: #e8edff;
+}
+
+.sky-background.dark ~ .content-wrapper .privacy-account-tools p {
+  color: #c8d6ff;
 }
 
 .sky-background.dark ~ .content-wrapper .tutorial-demo {
