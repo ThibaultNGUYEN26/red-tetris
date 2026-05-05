@@ -24,7 +24,11 @@ const registerUsername = (username, socket) => {
   }
   const existing = activeUsers.get(username);
   if (existing && existing !== socket.id) {
-    return { ok: false, error: "Username already connected" };
+    const socketRegistry = socket.nsp?.sockets || socket.server?.sockets?.sockets;
+    if (!socketRegistry || socketRegistry.has(existing)) {
+      return { ok: false, error: "Username already connected" };
+    }
+    activeUsers.delete(username);
   }
   activeUsers.set(username, socket.id);
   socket.data.username = username;
@@ -908,6 +912,16 @@ export default function setupSockets(io) {
       if (!username || !action || socket.data.isSpectator) return;
 
       game.enqueueInput(username, action);
+      game.processQueuedInputsFor(username);
+
+      const result = game.checkGameOver();
+      if (result.over) {
+        const summary = game.endGame();
+        if (game.onGameOver) game.onGameOver(summary);
+        return;
+      }
+
+      game.emitState();
     });
 
     // Socket disconnection

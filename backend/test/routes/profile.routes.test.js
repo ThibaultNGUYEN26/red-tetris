@@ -15,6 +15,8 @@ vi.mock('../../src/socket/index.js', () => ({
 
 const buildRes = () => {
   const res = {
+    clearCookie: vi.fn(),
+    set: vi.fn(),
     status: vi.fn(),
     json: vi.fn(),
   }
@@ -31,6 +33,145 @@ describe('profile routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockIsUsernameConnected.mockReset()
+  })
+
+  it('exports the authenticated account data', async () => {
+    const createdAt = new Date('2026-01-01T10:00:00.000Z')
+    const resetExpiresAt = new Date('2026-01-01T10:30:00.000Z')
+
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          username: 'Titi',
+          email: 'titi@example.com',
+          avatar: { eyeType: 'happy' },
+          solo_games_played: 2,
+          highest_solo_score: 900,
+          multiplayer_games_played: 3,
+          multiplayer_wins: 2,
+          multiplayer_losses: 1,
+          created_at: createdAt,
+          password_hash_stored: true,
+          reset_password_token_active: true,
+          reset_password_expires_at: resetExpiresAt,
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 10, username: 'Titi', score: 900 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 20, username: 'Titi', score: 800, game_mode: 'classic' }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 30, player_one: 'Titi', player_two: 'Riri', score: 1200 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 40, name: 'Room-ABC', host: 'Titi', players: ['Titi'] }],
+      })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/account/export')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi' } }, res)
+
+    expect(res.set).toHaveBeenCalledWith(
+      'Content-Disposition',
+      'attachment; filename="red-tetris-Titi-data.json"'
+    )
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      exportedAt: expect.any(String),
+      account: {
+        id: 1,
+        username: 'Titi',
+        email: 'titi@example.com',
+        avatar: { eyeType: 'happy' },
+        createdAt,
+        passwordHashStored: true,
+        resetPasswordTokenActive: true,
+        resetPasswordExpiresAt: resetExpiresAt,
+      },
+      profileStats: {
+        soloGamesPlayed: 2,
+        highestSoloScore: 900,
+        multiplayerGamesPlayed: 3,
+        multiplayerWins: 2,
+        multiplayerLosses: 1,
+      },
+      scores: {
+        solo: [{ id: 10, username: 'Titi', score: 900 }],
+        multiplayer: [{ id: 20, username: 'Titi', score: 800, game_mode: 'classic' }],
+        cooperative: [{ id: 30, player_one: 'Titi', player_two: 'Riri', score: 1200 }],
+      },
+      rooms: [{ id: 40, name: 'Room-ABC', host: 'Titi', players: ['Titi'] }],
+    }))
+  })
+
+  it('returns 401 when exporting without authentication', async () => {
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/account/export')
+    const res = buildRes()
+
+    await handler({ body: {} }, res)
+
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' })
+  })
+
+  it('deletes authenticated account data and clears the session cookie', async () => {
+    mockQuery
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rowCount: 1 })
+      .mockResolvedValueOnce({ rowCount: 1 })
+      .mockResolvedValueOnce({ rowCount: 1 })
+      .mockResolvedValueOnce({ rowCount: 1 })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ username: 'Titi' }] })
+      .mockResolvedValueOnce({})
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'delete', '/account')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi' } }, res)
+
+    expect(mockQuery).toHaveBeenNthCalledWith(1, 'BEGIN')
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('DELETE FROM rooms'),
+      ['Titi']
+    )
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      6,
+      'DELETE FROM users WHERE username = $1 RETURNING username',
+      ['Titi']
+    )
+    expect(mockQuery).toHaveBeenNthCalledWith(7, 'COMMIT')
+    expect(res.clearCookie).toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith({ ok: true, message: 'Account deleted' })
+  })
+
+  it('rolls back when account deletion fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockQuery
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error('db down'))
+      .mockResolvedValueOnce({})
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'delete', '/account')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi' } }, res)
+
+    expect(mockQuery).toHaveBeenNthCalledWith(1, 'BEGIN')
+    expect(mockQuery).toHaveBeenLastCalledWith('ROLLBACK')
+    expect(consoleError).toHaveBeenCalledWith('Account deletion failed:', expect.any(Error))
+    expect(res.status).toHaveBeenCalledWith(500)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
   })
 
   it('returns 400 when username is missing for player stats', async () => {
@@ -62,6 +203,7 @@ describe('profile routes', () => {
         solo_total_tetris: 9,
         solo_average_score: 4500,
         solo_duration_seconds: 3661,
+        solo_longest_duration_seconds: 1800,
         multi_highest_score: 8000,
         multi_highest_level: 6,
         multi_highest_lines: 30,
@@ -72,6 +214,7 @@ describe('profile routes', () => {
         multi_total_tetris: 5,
         multi_average_score: 3200,
         multi_duration_seconds: 61,
+        multi_longest_duration_seconds: 45,
         coop_games: 2,
         coop_highest_score: 6000,
         coop_highest_level: 5,
@@ -80,6 +223,7 @@ describe('profile routes', () => {
         coop_highest_tetris: 1,
         coop_total_tetris: 2,
         coop_duration_seconds: 125,
+        coop_longest_duration_seconds: 90,
       }],
     })
 
@@ -114,6 +258,7 @@ describe('profile routes', () => {
           totalLines: 120,
           highestTetris: 3,
           totalTetris: 9,
+          longestGameSeconds: 1800,
         },
         multi: {
           games: 7,
@@ -129,6 +274,7 @@ describe('profile routes', () => {
           totalLinesSent: 32,
           highestTetris: 2,
           totalTetris: 5,
+          longestGameSeconds: 45,
         },
         coop: {
           games: 2,
@@ -138,6 +284,7 @@ describe('profile routes', () => {
           totalLines: 44,
           highestTetris: 1,
           totalTetris: 2,
+          longestGameSeconds: 90,
         },
       },
     })
@@ -246,6 +393,7 @@ describe('profile routes', () => {
           totalLines: 0,
           highestTetris: 0,
           totalTetris: 0,
+          longestGameSeconds: 0,
         },
         multi: {
           games: 0,
@@ -261,6 +409,7 @@ describe('profile routes', () => {
           totalLinesSent: 0,
           highestTetris: 0,
           totalTetris: 0,
+          longestGameSeconds: 0,
         },
         coop: {
           games: 0,
@@ -270,6 +419,7 @@ describe('profile routes', () => {
           totalLines: 0,
           highestTetris: 0,
           totalTetris: 0,
+          longestGameSeconds: 0,
         },
       },
     })

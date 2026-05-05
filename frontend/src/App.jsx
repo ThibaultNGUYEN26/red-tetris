@@ -26,7 +26,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <div className="screen-credit" aria-label="Titi and Riri">
-        Titi&amp;Riri
+        © Titi&amp;Riri
       </div>
     </BrowserRouter>
   );

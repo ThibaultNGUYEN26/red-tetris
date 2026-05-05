@@ -429,6 +429,27 @@ describe('socket setup', () => {
     expect(resume).toHaveBeenCalled()
   })
 
+  it('movePiece processes inputs immediately and asks the game to emit changed state', async () => {
+    const { socket } = await setupConnectedSocket()
+    const game = {
+      isRunning: true,
+      isOver: false,
+      enqueueInput: vi.fn(),
+      processQueuedInputsFor: vi.fn(),
+      checkGameOver: vi.fn(() => ({ over: false })),
+      emitState: vi.fn(),
+    }
+    mockGetGame.mockReturnValue(game)
+    socket.data.username = 'Titi'
+
+    const movePieceHandler = socket.handlers.get('movePiece')
+    movePieceHandler({ roomId: '1', action: 'left' })
+
+    expect(game.enqueueInput).toHaveBeenCalledWith('Titi', 'left')
+    expect(game.processQueuedInputsFor).toHaveBeenCalledWith('Titi')
+    expect(game.emitState).toHaveBeenCalled()
+  })
+
   it('joinSpectator emits gameState when a live game exists', async () => {
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
@@ -926,6 +947,9 @@ describe('socket setup', () => {
       isRunning: true,
       isOver: false,
       enqueueInput,
+      processQueuedInputsFor: vi.fn(),
+      checkGameOver: vi.fn(() => ({ over: false })),
+      emitState: vi.fn(),
     })
 
     const { socket } = await setupConnectedSocket()
@@ -1227,6 +1251,32 @@ describe('socket setup', () => {
     secondSocket.handlers.get('registerUser')({ username: 'Titi' }, ack2)
     expect(ack2).toHaveBeenCalledWith({ ok: false, error: 'Username already connected' })
     expect(secondSocket.emit).toHaveBeenCalledWith('usernameTaken', { username: 'Titi' })
+  })
+
+  it('registerUser reclaims a username from a stale socket registry entry', async () => {
+    const io = createIo()
+    const firstSocket = createSocket('socket-1')
+    const secondSocket = createSocket('socket-2')
+    secondSocket.nsp = {
+      sockets: new Map([['socket-2', secondSocket]]),
+    }
+    const { default: setupSockets, isUsernameConnected } = await import('../../src/socket/index.js')
+
+    setupSockets(io)
+    const connectionHandler = io.on.mock.calls.find(([event]) => event === 'connection')[1]
+    connectionHandler(firstSocket)
+    connectionHandler(secondSocket)
+
+    const ack1 = vi.fn()
+    firstSocket.handlers.get('registerUser')({ username: 'Titi' }, ack1)
+    expect(ack1).toHaveBeenCalledWith({ ok: true })
+
+    const ack2 = vi.fn()
+    secondSocket.handlers.get('registerUser')({ username: 'Titi' }, ack2)
+
+    expect(ack2).toHaveBeenCalledWith({ ok: true })
+    expect(isUsernameConnected('Titi', 'socket-2')).toBe(false)
+    expect(isUsernameConnected('Titi', 'socket-1')).toBe(true)
   })
 
   it('unregisterUser acknowledges and clears connectivity state', async () => {

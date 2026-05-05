@@ -221,6 +221,12 @@ function Game({
   }
 
   const handleLeaveGame = () => {
+    exitingRef.current = true
+    stopSoftDrop()
+    stopHorizontalAutoMove()
+    setShowMenu(false)
+    setIsPaused(false)
+
     if (!roomId) {
       stopMusic();
       onBack?.();
@@ -279,6 +285,7 @@ function Game({
     joinedRef.current = true
 
     const handleRoomState = (room) => {
+      if (exitingRef.current) return
       if (String(room?.id) !== String(roomId)) return
       const mode = room?.game_mode || null
       roomModeRef.current = mode
@@ -287,6 +294,7 @@ function Game({
     }
 
     const handleGameStarted = () => {
+      if (exitingRef.current) return
       const mode = roomModeRef.current
       const size = getBoardSize(mode)
       setGameMode(mode)
@@ -310,6 +318,7 @@ function Game({
     }
 
     const handleGameState = (gameState) => {
+      if (exitingRef.current) return
       const mode = gameState?.mode || null
       setGameMode(mode)
       setBoardSize(getBoardSize(mode))
@@ -348,7 +357,7 @@ function Game({
     }
 
     const handleGameOver = ({ winner }) => {
-      if (!isMultiplayer && exitingRef.current) return
+      if (exitingRef.current) return
       setWinner(winner || null)
       setIsEliminated(true)
       setIsGameOver(true)

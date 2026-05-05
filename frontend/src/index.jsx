@@ -597,11 +597,6 @@ function Index({ authMode = 'login' }) {
 
     const fetchSoloRoom = async () => {
       try {
-        if (await isUsernameAlreadyConnected(username)) {
-          returnToProfileWithNotice('User already connected')
-          return
-        }
-
         const res = await apiFetch(`/api/rooms/by-name/${encodeURIComponent(soloRoomName)}`, {
           cache: 'no-store',
         })
@@ -932,7 +927,7 @@ function Index({ authMode = 'login' }) {
           <footer className="site-footer">
             <nav className="site-info-links" aria-label="Site information">
             <Link to="/about">About</Link>
-            <Link to="/tutorial">Tutorial</Link>
+            <Link to="/tutorial">Guide</Link>
             <Link to="/contact">Contact</Link>
             <Link to="/terms">Terms</Link>
             <Link to="/privacy-policy">Privacy</Link>

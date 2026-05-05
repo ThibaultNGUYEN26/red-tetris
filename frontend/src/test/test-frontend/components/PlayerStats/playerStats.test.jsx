@@ -37,6 +37,7 @@ describe('PlayerStats Component', () => {
             totalLines: 120,
             highestTetris: 3,
             totalTetris: 8,
+            longestGameSeconds: 2400,
           },
           multi: {
             games: 4,
@@ -52,6 +53,7 @@ describe('PlayerStats Component', () => {
             totalLinesSent: 25,
             highestTetris: 2,
             totalTetris: 6,
+            longestGameSeconds: 55,
           },
           coop: {
             games: 2,
@@ -61,6 +63,7 @@ describe('PlayerStats Component', () => {
             totalLines: 30,
             highestTetris: 1,
             totalTetris: 2,
+            longestGameSeconds: 60,
           },
         },
         avatar: { skinColor: '#ffffff', eyeType: 'normal', mouthType: 'neutral' },
@@ -97,6 +100,7 @@ describe('PlayerStats Component', () => {
               highestScore: 900,
               highestLevel: 3,
               totalLines: 12,
+              longestGameSeconds: 45,
             },
           },
         }}
@@ -117,6 +121,7 @@ describe('PlayerStats Component', () => {
     expect(screen.getByRole('dialog', { name: /advanced stats/i })).toBeInTheDocument()
     expect(screen.getByText(/time played/i)).toBeInTheDocument()
     expect(screen.getByText('2m 5s')).toBeInTheDocument()
+    expect(screen.getByText('45s')).toBeInTheDocument()
     expect(screen.getAllByText(/total lines/i).length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole('button', { name: /close advanced stats/i }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -138,6 +143,7 @@ describe('PlayerStats Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /advanced stats/i }))
     expect(screen.getByRole('dialog', { name: /advanced stats/i })).toBeInTheDocument()
     expect(screen.getByText('1h 2m 5s')).toBeInTheDocument()
+    expect(screen.getByText('40m 0s')).toBeInTheDocument()
     expect(screen.getByText('25')).toBeInTheDocument()
   })
 
