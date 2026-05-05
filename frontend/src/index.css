@@ -273,70 +273,21 @@ html, body, #root {
   pointer-events: none;
 }
 
-.tutorial-piece.active.move-left {
-  animation: tutorial-piece-move-left 2.4s ease-in-out infinite;
-}
-
-.tutorial-piece.active.move-right {
-  animation: tutorial-piece-move-right 2.4s ease-in-out infinite;
-}
-
-.tutorial-piece.active.soft-drop {
-  animation: tutorial-piece-soft-drop 2.4s steps(4, end) infinite;
-}
-
-.tutorial-piece.active.hard-drop {
-  animation: tutorial-piece-hard-drop 1.8s ease-in-out infinite;
-}
-
-.tutorial-piece.active.rotation {
-  transform-origin:
-    calc((4 * (var(--tutorial-cell-width) + var(--tutorial-board-gap))) + (var(--tutorial-cell-width) / 2))
-    calc((1 * (var(--tutorial-cell-height) + var(--tutorial-board-gap))) + (var(--tutorial-cell-height) / 2));
-  animation: tutorial-piece-rotation 2.5s ease-in-out infinite;
+.tutorial-piece.active {
+  animation: tutorial-piece-before 2.4s steps(1, end) infinite;
 }
 
 .tutorial-piece.target {
-  opacity: 0.28;
-}
-
-.tutorial-piece.target.rotation {
-  opacity: 0.28;
-}
-
-.tutorial-piece.trail {
   opacity: 0;
-  animation: tutorial-soft-drop-trail 2.4s steps(1, end) infinite;
-}
-
-.tutorial-piece.trail:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.tutorial-piece.trail:nth-child(2) {
-  animation-delay: 0.12s;
-}
-
-.tutorial-piece.trail:nth-child(3) {
-  animation-delay: 0.24s;
+  animation: tutorial-piece-after 2.4s steps(1, end) infinite;
 }
 
 .tutorial-piece-block {
   border-radius: 5px;
-  background: #4dd7ff;
+  background: #b66bff;
   box-shadow:
     inset 0 0 7px rgba(255, 255, 255, 0.54),
-    0 0 12px rgba(77, 215, 255, 0.44);
-}
-
-.tutorial-piece.target .tutorial-piece-block {
-  background: #57d98c;
-  box-shadow: inset 0 0 7px rgba(255, 255, 255, 0.5);
-}
-
-.tutorial-piece.trail .tutorial-piece-block {
-  background: #2a7fd6;
-  box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.4);
+    0 0 12px rgba(182, 107, 255, 0.44);
 }
 
 .tutorial-action-cue {
@@ -438,94 +389,25 @@ html, body, #root {
   line-height: 1.5;
 }
 
-@keyframes tutorial-piece-move-left {
+@keyframes tutorial-piece-before {
   0%,
-  12% {
-    transform: translate(0, -6%);
-  }
-  46% {
-    transform: translateY(calc(6 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap))));
-  }
-  62% {
-    transform: translate(
-      calc(-1 * ((100% - (9 * var(--tutorial-board-gap))) / 10 + var(--tutorial-board-gap))),
-      calc(6 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap)))
-    );
-  }
-  86%,
-  100% {
-    transform: translate(
-      calc(-1 * ((100% - (9 * var(--tutorial-board-gap))) / 10 + var(--tutorial-board-gap))),
-      calc(8 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap)))
-    );
-  }
-}
-
-@keyframes tutorial-piece-move-right {
-  0%,
-  12% {
-    transform: translate(0, -6%);
-  }
-  46% {
-    transform: translateY(calc(6 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap))));
-  }
-  62% {
-    transform: translate(
-      calc((100% - (9 * var(--tutorial-board-gap))) / 10 + var(--tutorial-board-gap)),
-      calc(6 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap)))
-    );
-  }
-  86%,
-  100% {
-    transform: translate(
-      calc((100% - (9 * var(--tutorial-board-gap))) / 10 + var(--tutorial-board-gap)),
-      calc(8 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap)))
-    );
-  }
-}
-
-@keyframes tutorial-piece-soft-drop {
-  0%,
-  18% {
-    transform: translate(0, -6%);
-  }
-  34% {
-    transform: translateY(calc(2 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap))));
-  }
-  50% {
-    transform: translateY(calc(4 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap))));
-  }
-  66% {
-    transform: translateY(calc(6 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap))));
-  }
-  82%,
-  100% {
-    transform: translateY(calc(8 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap))));
-  }
-}
-
-@keyframes tutorial-piece-hard-drop {
-  0%,
-  38% {
-    transform: translate(0, -6%);
-  }
-  48%,
-  100% {
-    transform: translateY(calc(10 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap))));
-  }
-}
-
-@keyframes tutorial-piece-rotation {
-  0%,
-  16% {
-    transform: translate(0, -6%) rotate(0deg);
-  }
   42% {
-    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
   }
-  54%,
+  43%,
   100% {
-    transform: translateY(calc(6 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap)))) rotate(90deg);
+    opacity: 0;
+  }
+}
+
+@keyframes tutorial-piece-after {
+  0%,
+  42% {
+    opacity: 0;
+  }
+  43%,
+  100% {
+    opacity: 1;
   }
 }
 
@@ -583,18 +465,6 @@ html, body, #root {
   50% {
     opacity: 1;
     transform: translateY(-14px) scale(1);
-  }
-}
-
-@keyframes tutorial-soft-drop-trail {
-  0%,
-  16%,
-  100% {
-    opacity: 0;
-  }
-  28%,
-  76% {
-    opacity: 0.18;
   }
 }
 

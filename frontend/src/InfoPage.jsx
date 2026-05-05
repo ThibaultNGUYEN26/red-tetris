@@ -216,20 +216,16 @@ const tutorialPieceBlocks = [
   { row: 2, col: 6 },
 ]
 const rotatedPieceBlocks = [
-  { row: 7, col: 5 },
-  { row: 8, col: 5 },
-  { row: 9, col: 5 },
-  { row: 8, col: 6 },
+  { row: 1, col: 5 },
+  { row: 2, col: 5 },
+  { row: 2, col: 6 },
+  { row: 3, col: 5 },
 ]
 
 const translateBlocks = (blocks, rowOffset, colOffset) => blocks.map((block) => ({
   row: block.row + rowOffset,
   col: block.col + colOffset,
 }))
-
-const softDropTrailBlocks = [2, 4, 6].map((rowOffset) => (
-  translateBlocks(tutorialPieceBlocks, rowOffset, 0)
-))
 
 const tutorialControls = [
   {
@@ -239,7 +235,7 @@ const tutorialControls = [
     title: 'Move Left',
     description: 'Press the left arrow key to slide the falling piece one column to the left.',
     activeBlocks: tutorialPieceBlocks,
-    targetBlocks: translateBlocks(tutorialPieceBlocks, 6, -1),
+    targetBlocks: translateBlocks(tutorialPieceBlocks, 0, -1),
   },
   {
     action: 'move-right',
@@ -248,7 +244,7 @@ const tutorialControls = [
     title: 'Move Right',
     description: 'Press the right arrow key to slide the falling piece one column to the right.',
     activeBlocks: tutorialPieceBlocks,
-    targetBlocks: translateBlocks(tutorialPieceBlocks, 6, 1),
+    targetBlocks: translateBlocks(tutorialPieceBlocks, 0, 1),
   },
   {
     action: 'soft-drop',
@@ -257,7 +253,7 @@ const tutorialControls = [
     title: 'Soft Drop',
     description: 'Hold the down arrow key to drop the piece faster while keeping control.',
     activeBlocks: tutorialPieceBlocks,
-    targetBlocks: translateBlocks(tutorialPieceBlocks, 8, 0),
+    targetBlocks: translateBlocks(tutorialPieceBlocks, 1, 0),
   },
   {
     action: 'hard-drop',
@@ -308,25 +304,6 @@ function TutorialBoardDemo({ demo }) {
             />
           ))}
         </div>
-
-        {demo.action === 'soft-drop' && (
-          <div className="tutorial-soft-drop-trail">
-            {softDropTrailBlocks.map((blocks, trailIndex) => (
-              <div
-                key={`soft-drop-trail-${trailIndex}`}
-                className="tutorial-piece trail"
-              >
-                {blocks.map((block) => (
-                  <span
-                    key={`${block.row}-${block.col}`}
-                    className="tutorial-piece-block"
-                    style={{ gridColumn: block.col, gridRow: block.row }}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
 
         <div className={`tutorial-action-cue ${demo.action}`} aria-hidden="true">
           <span />
