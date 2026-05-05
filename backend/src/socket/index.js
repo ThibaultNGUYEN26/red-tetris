@@ -902,6 +902,16 @@ export default function setupSockets(io) {
       if (!username || !action || socket.data.isSpectator) return;
 
       game.enqueueInput(username, action);
+      game.processQueuedInputsFor(username);
+
+      const result = game.checkGameOver();
+      if (result.over) {
+        const summary = game.endGame();
+        if (game.onGameOver) game.onGameOver(summary);
+        return;
+      }
+
+      game.emitState();
     });
 
     // Socket disconnection

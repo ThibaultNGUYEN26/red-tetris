@@ -429,6 +429,27 @@ describe('socket setup', () => {
     expect(resume).toHaveBeenCalled()
   })
 
+  it('movePiece processes inputs immediately and asks the game to emit changed state', async () => {
+    const { socket } = await setupConnectedSocket()
+    const game = {
+      isRunning: true,
+      isOver: false,
+      enqueueInput: vi.fn(),
+      processQueuedInputsFor: vi.fn(),
+      checkGameOver: vi.fn(() => ({ over: false })),
+      emitState: vi.fn(),
+    }
+    mockGetGame.mockReturnValue(game)
+    socket.data.username = 'Titi'
+
+    const movePieceHandler = socket.handlers.get('movePiece')
+    movePieceHandler({ roomId: '1', action: 'left' })
+
+    expect(game.enqueueInput).toHaveBeenCalledWith('Titi', 'left')
+    expect(game.processQueuedInputsFor).toHaveBeenCalledWith('Titi')
+    expect(game.emitState).toHaveBeenCalled()
+  })
+
   it('joinSpectator emits gameState when a live game exists', async () => {
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
@@ -926,6 +947,9 @@ describe('socket setup', () => {
       isRunning: true,
       isOver: false,
       enqueueInput,
+      processQueuedInputsFor: vi.fn(),
+      checkGameOver: vi.fn(() => ({ over: false })),
+      emitState: vi.fn(),
     })
 
     const { socket } = await setupConnectedSocket()

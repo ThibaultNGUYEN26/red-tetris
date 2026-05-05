@@ -4,6 +4,8 @@ import Game from '../../src/game/Game.js'
 import Player from '../../src/game/Player.js'
 import { GIANT_BOARD_HEIGHT, GIANT_BOARD_WIDTH } from '../../src/config/constants.js'
 
+const TICK_MS = 33
+
 describe('Game', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -41,7 +43,7 @@ describe('Game', () => {
   it('chaotic mode swaps the current piece into the next queued piece before lock', () => {
     const player = new Player('Titi', '1')
     const game = new Game('room-chaotic', [player], 'chaotic', 'solo', 'Titi')
-    vi.spyOn(game, 'getChaoticSwapDelay').mockReturnValue(60)
+    vi.spyOn(game, 'getChaoticSwapDelay').mockReturnValue(TICK_MS)
 
     game.sequenceBuffer = ['I', 'O', 'T']
     expect(game.spawnForPlayer(player)).toBe(true)
@@ -63,12 +65,12 @@ describe('Game', () => {
   it('chaotic mode kills the player when the swapped piece cannot fit', () => {
     const player = new Player('Titi', '1')
     const game = new Game('room-chaotic', [player], 'chaotic', 'solo', 'Titi')
-    vi.spyOn(game, 'getChaoticSwapDelay').mockReturnValue(60)
+    vi.spyOn(game, 'getChaoticSwapDelay').mockReturnValue(TICK_MS)
     vi.spyOn(game, 'canPlace').mockReturnValue(false)
 
     player.currentPiece = { type: 'I', rotation: 0, x: 4, y: 0 }
     player.nextPiece = { type: 'O' }
-    player.chaoticSwapMs = 60
+    player.chaoticSwapMs = TICK_MS
 
     expect(game.applyChaoticSwap(player)).toBe(false)
     expect(player.isAlive).toBe(false)
@@ -202,12 +204,13 @@ describe('Game', () => {
     const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
 
     game.start()
-    for (let i = 0; i < 20; i += 1) {
+    const ticksForOneSecond = Math.ceil(1000 / TICK_MS)
+    for (let i = 0; i < ticksForOneSecond; i += 1) {
       game.tick()
     }
 
     game.pause()
-    for (let i = 0; i < 20; i += 1) {
+    for (let i = 0; i < ticksForOneSecond; i += 1) {
       game.tick()
     }
 
@@ -377,6 +380,21 @@ describe('Game', () => {
     )
   })
 
+  it('does not emit duplicate game states when a tick has no visible changes', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+    const onTick = vi.fn()
+
+    game.setCallbacks({ onTick })
+    game.start()
+
+    onTick.mockClear()
+    game.tick()
+    game.tick()
+
+    expect(onTick).toHaveBeenCalledTimes(1)
+  })
+
   it('advances alternating cooperative turns to the next alive player or clears the turn', () => {
     const players = [new Player('Titi', '1'), new Player('Riri', '2'), new Player('Lulu', '3')]
     const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
@@ -489,7 +507,7 @@ describe('Game', () => {
     player.dropAccumulator = 500
     game.applyGravity(player)
     expect(lockSpy).toHaveBeenCalledTimes(1)
-    expect(player.dropAccumulator).toBe(60)
+    expect(player.dropAccumulator).toBe(TICK_MS)
 
     moveSpy.mockRestore()
     rotateSpy.mockRestore()
@@ -1034,12 +1052,13 @@ describe('Game', () => {
     player.currentPiece = { type: 'O', rotation: 0, x: 4, y: game.boardHeight - 2 }
     const lockSpy = vi.spyOn(game, 'lockCurrentPiece').mockImplementation(() => {})
 
-    for (let i = 0; i < 8; i += 1) {
+    const ticksBeforeLock = Math.floor(500 / TICK_MS)
+    for (let i = 0; i < ticksBeforeLock; i += 1) {
       game.applyGravity(player)
     }
 
     expect(lockSpy).not.toHaveBeenCalled()
-    expect(player.lockDelayMs).toBe(20)
+    expect(player.lockDelayMs).toBe(500 - ticksBeforeLock * TICK_MS)
 
     game.applyGravity(player)
 

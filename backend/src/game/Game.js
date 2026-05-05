@@ -38,6 +38,7 @@ export default class Game {
     this.onTick = null;
     this.onGameOver = null;
     this.tickHandle = null;
+    this.lastEmittedStateJson = "";
     this.currentTurnIndex = 0;
     this.currentTurnUsername = null;
     this.cooperativeRoles = {};
@@ -188,6 +189,7 @@ export default class Game {
     this.statsUpdated = false;
     this.isPaused = false;
     this.activePlayTimeMs = 0;
+    this.lastEmittedStateJson = "";
 
     this.players.forEach(player => this.resetPlayer(player));
     this.assignCooperativeRoles();
@@ -256,6 +258,36 @@ export default class Game {
       return;
     }
     player.inputQueue.push(action);
+  }
+
+  processQueuedInputsFor(username) {
+    const player = this.getPlayer(username);
+    if (!player || !player.isAlive) return false;
+
+    if (this.isCooperativeMode()) {
+      const sharedPlayer = this.getCooperativePlayer();
+      if (!sharedPlayer?.isAlive) return false;
+      this.processInputs(sharedPlayer);
+      this.syncCooperativeStateFrom(sharedPlayer);
+      return true;
+    }
+
+    this.processInputs(player);
+    return true;
+  }
+
+  emitState({ force = false } = {}) {
+    if (!this.onTick) return false;
+
+    const state = this.serialize();
+    const serializedState = JSON.stringify(state);
+    if (!force && serializedState === this.lastEmittedStateJson) {
+      return false;
+    }
+
+    this.lastEmittedStateJson = serializedState;
+    this.onTick(state);
+    return true;
   }
 
   getDropInterval(level) {
@@ -717,7 +749,7 @@ export default class Game {
       return;
     }
 
-    if (this.onTick) this.onTick(this.serialize());
+    this.emitState();
   }
 
   serialize() {
