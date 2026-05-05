@@ -52,6 +52,26 @@ const pages = {
           'In multiplayer rooms, players compete on separate boards in real time. Clearing multiple lines sends penalty lines to opponents, and the last surviving player wins.',
       },
       {
+        title: 'Classic',
+        body:
+          'Classic is the standard competitive multiplayer mode. Everyone plays with normal controls, and line clears can send penalties to the other boards.',
+      },
+      {
+        title: 'Mirror',
+        body:
+          'Mirror reverses part of the control scheme: Left and Right move in opposite directions, Down performs a hard drop, and Space becomes soft drop.',
+      },
+      {
+        title: 'Chaotic',
+        body:
+          'Chaotic keeps the competitive rules but randomly swaps your current piece with the next piece while you play, forcing quick adaptation.',
+      },
+      {
+        title: 'Giant',
+        body:
+          'Giant uses a larger board, giving players more space but also more rows and columns to manage during multiplayer pressure.',
+      },
+      {
         title: 'Co-op Alternate',
         body:
           'Co-op Alternate is a two-player shared-board mode. Players take turns controlling pieces, so communication and timing matter.',

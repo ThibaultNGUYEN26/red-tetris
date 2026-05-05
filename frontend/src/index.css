@@ -302,8 +302,7 @@ html, body, #root {
 }
 
 .tutorial-piece.target.rotation {
-  opacity: 0;
-  animation: tutorial-rotated-piece-reveal 2.5s ease-in-out infinite;
+  opacity: 0.28;
 }
 
 .tutorial-piece.trail {
@@ -334,13 +333,6 @@ html, body, #root {
 .tutorial-piece.target .tutorial-piece-block {
   background: #57d98c;
   box-shadow: inset 0 0 7px rgba(255, 255, 255, 0.5);
-}
-
-.tutorial-piece.target.rotation .tutorial-piece-block {
-  background: #9966cc;
-  box-shadow:
-    inset 0 0 7px rgba(255, 255, 255, 0.54),
-    0 0 12px rgba(153, 102, 204, 0.44);
 }
 
 .tutorial-piece.trail .tutorial-piece-block {
@@ -612,17 +604,6 @@ html, body, #root {
   28%,
   76% {
     opacity: 0.18;
-  }
-}
-
-@keyframes tutorial-rotated-piece-reveal {
-  0%,
-  42% {
-    opacity: 0;
-  }
-  54%,
-  100% {
-    opacity: 1;
   }
 }
 
