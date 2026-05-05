@@ -24,7 +24,11 @@ const registerUsername = (username, socket) => {
   }
   const existing = activeUsers.get(username);
   if (existing && existing !== socket.id) {
-    return { ok: false, error: "Username already connected" };
+    const socketRegistry = socket.nsp?.sockets || socket.server?.sockets?.sockets;
+    if (!socketRegistry || socketRegistry.has(existing)) {
+      return { ok: false, error: "Username already connected" };
+    }
+    activeUsers.delete(username);
   }
   activeUsers.set(username, socket.id);
   socket.data.username = username;

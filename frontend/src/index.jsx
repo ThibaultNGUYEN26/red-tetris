@@ -556,11 +556,6 @@ function Index({ authMode = 'login' }) {
 
     const fetchSoloRoom = async () => {
       try {
-        if (await isUsernameAlreadyConnected(username)) {
-          returnToProfileWithNotice('User already connected')
-          return
-        }
-
         const res = await apiFetch(`/api/rooms/by-name/${encodeURIComponent(soloRoomName)}`, {
           cache: 'no-store',
         })

@@ -1229,6 +1229,32 @@ describe('socket setup', () => {
     expect(secondSocket.emit).toHaveBeenCalledWith('usernameTaken', { username: 'Titi' })
   })
 
+  it('registerUser reclaims a username from a stale socket registry entry', async () => {
+    const io = createIo()
+    const firstSocket = createSocket('socket-1')
+    const secondSocket = createSocket('socket-2')
+    secondSocket.nsp = {
+      sockets: new Map([['socket-2', secondSocket]]),
+    }
+    const { default: setupSockets, isUsernameConnected } = await import('../../src/socket/index.js')
+
+    setupSockets(io)
+    const connectionHandler = io.on.mock.calls.find(([event]) => event === 'connection')[1]
+    connectionHandler(firstSocket)
+    connectionHandler(secondSocket)
+
+    const ack1 = vi.fn()
+    firstSocket.handlers.get('registerUser')({ username: 'Titi' }, ack1)
+    expect(ack1).toHaveBeenCalledWith({ ok: true })
+
+    const ack2 = vi.fn()
+    secondSocket.handlers.get('registerUser')({ username: 'Titi' }, ack2)
+
+    expect(ack2).toHaveBeenCalledWith({ ok: true })
+    expect(isUsernameConnected('Titi', 'socket-2')).toBe(false)
+    expect(isUsernameConnected('Titi', 'socket-1')).toBe(true)
+  })
+
   it('unregisterUser acknowledges and clears connectivity state', async () => {
     const { socket } = await setupConnectedSocket()
     const registerAck = vi.fn()
