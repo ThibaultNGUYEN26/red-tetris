@@ -210,10 +210,10 @@ const pages = {
 
 const tutorialCells = Array.from({ length: 140 }, (_, index) => index)
 const tutorialPieceBlocks = [
+  { row: 1, col: 5 },
   { row: 2, col: 4 },
   { row: 2, col: 5 },
   { row: 2, col: 6 },
-  { row: 1, col: 5 },
 ]
 const rotatedPieceBlocks = [
   { row: 7, col: 5 },
