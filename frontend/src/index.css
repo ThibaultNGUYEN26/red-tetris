@@ -279,8 +279,7 @@ html, body, #root {
 }
 
 .tutorial-piece.phantom {
-  opacity: 0;
-  animation: tutorial-piece-phantom 2.4s steps(1, end) infinite;
+  opacity: 0.32;
 }
 
 .tutorial-piece.target {
@@ -420,30 +419,6 @@ html, body, #root {
   }
   42% {
     opacity: 1;
-    transform: translateY(calc(3 * var(--tutorial-piece-row-step)));
-  }
-  43%,
-  100% {
-    opacity: 0;
-    transform: translateY(calc(3 * var(--tutorial-piece-row-step)));
-  }
-}
-
-@keyframes tutorial-piece-phantom {
-  0% {
-    opacity: 0.32;
-    transform: translateY(0);
-  }
-  14% {
-    opacity: 0.32;
-    transform: translateY(var(--tutorial-piece-row-step));
-  }
-  28% {
-    opacity: 0.32;
-    transform: translateY(calc(2 * var(--tutorial-piece-row-step)));
-  }
-  42% {
-    opacity: 0.32;
     transform: translateY(calc(3 * var(--tutorial-piece-row-step)));
   }
   43%,
