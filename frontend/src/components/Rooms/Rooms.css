@@ -139,10 +139,12 @@
   letter-spacing: 0.4px;
 }
 
-.room-password-option input {
+.room-password-option input,
+.rooms-card .password-input {
   width: 100%;
   box-sizing: border-box;
   padding: 0.7rem 0.85rem;
+  padding-right: 3.1rem;
   border: 2px solid rgba(50, 100, 200, 0.28);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.72);
@@ -150,7 +152,8 @@
   font-size: 0.95rem;
 }
 
-.room-password-option input:focus {
+.room-password-option input:focus,
+.rooms-card .password-input:focus {
   outline: none;
   border-color: rgba(50, 100, 200, 0.55);
 }
@@ -453,7 +456,8 @@
   text-shadow: 0 0 8px rgba(100, 150, 255, 0.5);
 }
 
-.rooms-card.dark .room-password-option input {
+.rooms-card.dark .room-password-option input,
+.rooms-card.dark .password-input {
   background: linear-gradient(135deg, rgba(50, 50, 80, 0.4) 0%, rgba(30, 30, 60, 0.5) 100%);
   color: #d0d8ff;
   border-color: rgba(100, 100, 200, 0.4);
@@ -462,11 +466,13 @@
     inset 0 1px 2px rgba(100, 150, 255, 0.12);
 }
 
-.rooms-card.dark .room-password-option input::placeholder {
+.rooms-card.dark .room-password-option input::placeholder,
+.rooms-card.dark .password-input::placeholder {
   color: rgba(176, 196, 255, 0.58);
 }
 
-.rooms-card.dark .room-password-option input:focus {
+.rooms-card.dark .room-password-option input:focus,
+.rooms-card.dark .password-input:focus {
   border-color: rgba(150, 150, 255, 0.6);
   box-shadow:
     0 6px 16px rgba(100, 100, 200, 0.3),
