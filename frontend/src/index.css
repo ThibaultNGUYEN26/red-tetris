@@ -290,19 +290,10 @@ html, body, #root {
 }
 
 .tutorial-piece.active.rotation {
+  transform-origin:
+    calc((4 * (var(--tutorial-cell-width) + var(--tutorial-board-gap))) + (var(--tutorial-cell-width) / 2))
+    calc((1 * (var(--tutorial-cell-height) + var(--tutorial-board-gap))) + (var(--tutorial-cell-height) / 2));
   animation: tutorial-piece-rotation 2.5s ease-in-out infinite;
-}
-
-.tutorial-piece.active.rotation .tutorial-piece-block:nth-child(1) {
-  animation: tutorial-rotate-block-top-to-right 2.5s ease-in-out infinite;
-}
-
-.tutorial-piece.active.rotation .tutorial-piece-block:nth-child(2) {
-  animation: tutorial-rotate-block-left-to-top 2.5s ease-in-out infinite;
-}
-
-.tutorial-piece.active.rotation .tutorial-piece-block:nth-child(4) {
-  animation: tutorial-rotate-block-right-to-bottom 2.5s ease-in-out infinite;
 }
 
 .tutorial-piece.target {
@@ -527,53 +518,14 @@ html, body, #root {
 @keyframes tutorial-piece-rotation {
   0%,
   16% {
-    transform: translate(0, -6%);
+    transform: translate(0, -6%) rotate(0deg);
   }
-  54%,
-  100% {
-    transform: translateY(calc(6 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap))));
-  }
-}
-
-@keyframes tutorial-rotate-block-top-to-right {
-  0%,
   42% {
-    transform: translate(0, 0);
+    transform: translate(0, 0) rotate(0deg);
   }
   54%,
   100% {
-    transform: translate(
-      calc(var(--tutorial-cell-width) + var(--tutorial-board-gap)),
-      calc(var(--tutorial-cell-height) + var(--tutorial-board-gap))
-    );
-  }
-}
-
-@keyframes tutorial-rotate-block-left-to-top {
-  0%,
-  42% {
-    transform: translate(0, 0);
-  }
-  54%,
-  100% {
-    transform: translate(
-      calc(var(--tutorial-cell-width) + var(--tutorial-board-gap)),
-      calc(-1 * (var(--tutorial-cell-height) + var(--tutorial-board-gap)))
-    );
-  }
-}
-
-@keyframes tutorial-rotate-block-right-to-bottom {
-  0%,
-  42% {
-    transform: translate(0, 0);
-  }
-  54%,
-  100% {
-    transform: translate(
-      calc(-1 * (var(--tutorial-cell-width) + var(--tutorial-board-gap))),
-      calc(var(--tutorial-cell-height) + var(--tutorial-board-gap))
-    );
+    transform: translateY(calc(6 * ((100% - (13 * var(--tutorial-board-gap))) / 14 + var(--tutorial-board-gap)))) rotate(90deg);
   }
 }
 
