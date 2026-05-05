@@ -19,6 +19,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   const [createRoomPassword, setCreateRoomPassword] = useState('')
   const [showCreateRoomPassword, setShowCreateRoomPassword] = useState(false)
   const [joinRoomPasswords, setJoinRoomPasswords] = useState({})
+  const [activePasswordRoomId, setActivePasswordRoomId] = useState(null)
   const [showJoinRoomPasswords, setShowJoinRoomPasswords] = useState({})
 
   const hasJoinedRef = useRef(false)
@@ -80,6 +81,11 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
     try {
       const roomKey = String(roomId)
       const requiresPassword = roomInfo?.has_password && !roomInfo?.players?.includes(username)
+      if (requiresPassword && activePasswordRoomId !== roomKey) {
+        setActivePasswordRoomId(roomKey)
+        return
+      }
+
       const roomPassword = requiresPassword ? (joinRoomPasswords[roomKey] || '') : ''
       if (requiresPassword && !roomPassword.trim()) {
         onNotice?.('Room password required')
@@ -100,6 +106,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         // Sync room state (in case of late listeners)
         socket.emit('getRoomState', { roomId: roomKey })
         setCurrentRoomId(roomId)
+        setActivePasswordRoomId(null)
         setJoinRoomPasswords((current) => ({ ...current, [roomKey]: '' }))
         if (roomInfo?.name) {
           setCurrentRoomName(roomInfo.name)
@@ -398,6 +405,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
             const showJoinPassword = Boolean(showJoinRoomPasswords[roomKey])
             const isFull = room.player_count >= (room.maxPlayers || getRoomMaxPlayers(room))
             const canEnterPassword = room.has_password && !isInRoom && !isFull
+            const isEnteringPassword = activePasswordRoomId === roomKey
 
             return (
               <div key={`room-${room.id ?? index}`} className="room-entry">
@@ -405,7 +413,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
                   <span className="room-name">{room.name}</span>
                   {room.has_password && <span className="room-lock">Password</span>}
                   <span className="room-host">Host: {room.host}</span>
-                  {canEnterPassword && (
+                  {canEnterPassword && isEnteringPassword && (
                     <div className="room-join-password">
                       <div className="password-input-wrapper">
                         <input
@@ -455,7 +463,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
                     disabled={isFull || isInRoom}
                   onClick={() => joinRoom(room.id, room)}
                 >
-                    {isInRoom ? 'Joined' : isFull ? 'Full' : 'Join'}
+                    {isInRoom ? 'Joined' : isFull ? 'Full' : isEnteringPassword ? 'Enter' : 'Join'}
                 </button>
               </div>
             )
