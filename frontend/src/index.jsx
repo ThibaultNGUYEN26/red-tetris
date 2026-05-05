@@ -891,7 +891,7 @@ function Index({ authMode = 'login' }) {
           <footer className="site-footer">
             <nav className="site-info-links" aria-label="Site information">
             <Link to="/about">About</Link>
-            <Link to="/tutorial">Tutorial</Link>
+            <Link to="/tutorial">Guide</Link>
             <Link to="/contact">Contact</Link>
             <Link to="/terms">Terms</Link>
             <Link to="/privacy-policy">Privacy</Link>

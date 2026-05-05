@@ -32,7 +32,7 @@ const pages = {
     ],
   },
   tutorial: {
-    title: 'Tutorial',
+    title: 'Guide',
     intro:
       'Learn the controls and game modes before jumping into a room.',
     sections: [
@@ -453,7 +453,7 @@ function InfoPage({ type }) {
           <nav className="info-page-nav" aria-label="Information pages">
             <Link to="/">Back</Link>
             <Link to="/about">About</Link>
-            <Link to="/tutorial">Tutorial</Link>
+            <Link to="/tutorial">Guide</Link>
             <Link to="/contact">Contact</Link>
             <Link to="/terms">Terms</Link>
             <Link to="/privacy-policy">Privacy</Link>
