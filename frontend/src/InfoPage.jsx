@@ -227,6 +227,8 @@ const translateBlocks = (blocks, rowOffset, colOffset) => blocks.map((block) => 
   col: block.col + colOffset,
 }))
 
+const tutorialInputRowOffset = 3
+
 const tutorialControls = [
   {
     action: 'move-left',
@@ -236,6 +238,7 @@ const tutorialControls = [
     description: 'Press the left arrow key to slide the falling piece one column to the left.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: translateBlocks(tutorialPieceBlocks, 0, -1),
+    phantomBlocks: translateBlocks(tutorialPieceBlocks, tutorialInputRowOffset, -1),
   },
   {
     action: 'move-right',
@@ -245,6 +248,7 @@ const tutorialControls = [
     description: 'Press the right arrow key to slide the falling piece one column to the right.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: translateBlocks(tutorialPieceBlocks, 0, 1),
+    phantomBlocks: translateBlocks(tutorialPieceBlocks, tutorialInputRowOffset, 1),
   },
   {
     action: 'soft-drop',
@@ -254,6 +258,7 @@ const tutorialControls = [
     description: 'Hold the down arrow key to drop the piece faster while keeping control.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: translateBlocks(tutorialPieceBlocks, 1, 0),
+    phantomBlocks: translateBlocks(tutorialPieceBlocks, tutorialInputRowOffset + 1, 0),
   },
   {
     action: 'hard-drop',
@@ -263,6 +268,7 @@ const tutorialControls = [
     description: 'Press Space to send the piece straight to its landing position.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: translateBlocks(tutorialPieceBlocks, 12, 0),
+    phantomBlocks: translateBlocks(tutorialPieceBlocks, 12, 0),
   },
   {
     action: 'rotation',
@@ -272,6 +278,7 @@ const tutorialControls = [
     description: 'Press Up to rotate the falling piece into the shape you need.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: rotatedPieceBlocks,
+    phantomBlocks: translateBlocks(rotatedPieceBlocks, tutorialInputRowOffset, 0),
   },
 ]
 
@@ -296,7 +303,7 @@ function TutorialBoardDemo({ demo }) {
         </div>
 
         <div className={`tutorial-piece phantom ${demo.action}`}>
-          {demo.targetBlocks.map((block) => (
+          {demo.phantomBlocks.map((block) => (
             <span
               key={`${block.row}-${block.col}`}
               className="tutorial-piece-block"
