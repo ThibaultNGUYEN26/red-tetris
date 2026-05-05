@@ -2,7 +2,7 @@ import SequenceGenerator from "./sequenceGenerator.js";
 import Piece, { SHAPES } from "./Piece.js";
 import { BOARD_HEIGHT, BOARD_WIDTH, GIANT_BOARD_HEIGHT, GIANT_BOARD_WIDTH, LINES_PER_LEVEL } from "../config/constants.js";
 
-const TICK_MS = 60;
+const TICK_MS = 33;
 const BASE_DROP_MS = 500;
 const LOCK_DELAY_MS = 500;
 const LOCK_RESET_LIMIT = 15;
