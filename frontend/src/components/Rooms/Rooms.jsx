@@ -373,13 +373,13 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
             Optional password
             <div className="password-input-wrapper">
               <input
-                type={showCreateRoomPassword ? 'text' : 'password'}
+                type="text"
                 value={createRoomPassword}
                 onChange={(event) => setCreateRoomPassword(event.target.value)}
                 maxLength={64}
                 placeholder="Leave empty for public"
-                className="password-input"
-                autoComplete="off"
+                className={`password-input ${showCreateRoomPassword ? '' : 'masked-password-input'}`}
+                autoComplete="one-time-code"
                 data-lpignore="true"
                 data-1p-ignore="true"
               />
@@ -420,7 +420,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
                     <div className="room-join-password">
                       <div className="password-input-wrapper">
                         <input
-                          type={showJoinPassword ? 'text' : 'password'}
+                          type="text"
                           value={joinRoomPasswords[roomKey] || ''}
                           onChange={(event) => {
                             const nextValue = event.target.value
@@ -437,8 +437,8 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
                           }}
                           maxLength={64}
                           placeholder="Room password"
-                          className="password-input"
-                          autoComplete="off"
+                          className={`password-input ${showJoinPassword ? '' : 'masked-password-input'}`}
+                          autoComplete="one-time-code"
                           data-lpignore="true"
                           data-1p-ignore="true"
                         />

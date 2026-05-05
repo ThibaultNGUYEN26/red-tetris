@@ -248,6 +248,10 @@
   padding-right: 3.1rem;
 }
 
+.create-room-card .masked-password-input {
+  -webkit-text-security: disc;
+}
+
 .create-room-card .password-toggle {
   position: absolute;
   top: 50%;

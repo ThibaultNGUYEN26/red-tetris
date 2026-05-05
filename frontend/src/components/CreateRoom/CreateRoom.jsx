@@ -563,14 +563,14 @@ function CreateRoom({
             <div className="password-input-wrapper">
               <input
                 id="room-password"
-                type={showRoomPassword ? 'text' : 'password'}
+                type="text"
                 value={roomPassword}
                 onChange={(event) => {
                   setRoomPassword(event.target.value)
                   if (passwordError) setPasswordError('')
                 }}
-                className="room-password-input password-input"
-                autoComplete="off"
+                className={`room-password-input password-input ${showRoomPassword ? '' : 'masked-password-input'}`}
+                autoComplete="one-time-code"
                 data-lpignore="true"
                 data-1p-ignore="true"
                 autoFocus

@@ -271,6 +271,10 @@
   padding-right: 3.1rem;
 }
 
+.rooms-card .masked-password-input {
+  -webkit-text-security: disc;
+}
+
 .rooms-card .password-toggle {
   position: absolute;
   top: 50%;
