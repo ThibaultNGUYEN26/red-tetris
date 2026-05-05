@@ -204,7 +204,7 @@
 
 .room-entry {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 1rem;
   padding: 1rem;
@@ -225,6 +225,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+  min-width: 0;
 }
 
 .room-name {
@@ -249,6 +250,41 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.4px;
+}
+
+.room-join-password {
+  width: min(100%, 220px);
+  margin-top: 0.25rem;
+}
+
+.rooms-card .password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.rooms-card .password-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 3.1rem;
+}
+
+.rooms-card .password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.8rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #3756a0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.rooms-card .password-toggle:hover {
+  opacity: 0.8;
 }
 
 .room-players {
@@ -412,6 +448,42 @@
     inset 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 
+.rooms-card.dark .room-password-option {
+  color: #b0c4ff;
+  text-shadow: 0 0 8px rgba(100, 150, 255, 0.5);
+}
+
+.rooms-card.dark .room-password-option input {
+  background: linear-gradient(135deg, rgba(50, 50, 80, 0.4) 0%, rgba(30, 30, 60, 0.5) 100%);
+  color: #d0d8ff;
+  border-color: rgba(100, 100, 200, 0.4);
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.28),
+    inset 0 1px 2px rgba(100, 150, 255, 0.12);
+}
+
+.rooms-card.dark .room-password-option input::placeholder {
+  color: rgba(176, 196, 255, 0.58);
+}
+
+.rooms-card.dark .room-password-option input:focus {
+  border-color: rgba(150, 150, 255, 0.6);
+  box-shadow:
+    0 6px 16px rgba(100, 100, 200, 0.3),
+    0 0 25px rgba(100, 150, 255, 0.42);
+}
+
+.rooms-card.dark .password-toggle {
+  color: #d0d8ff;
+  text-shadow: 0 0 6px rgba(100, 150, 255, 0.28);
+}
+
+.rooms-card.dark .password-toggle:hover,
+.rooms-card.dark .password-toggle:focus-visible {
+  color: #ffffff;
+  outline: none;
+}
+
 .rooms-card.dark .join-button {
   background: linear-gradient(135deg, rgba(100, 150, 255, 0.6) 0%, rgba(50, 100, 200, 0.6) 100%);
   border-color: rgba(50, 100, 200, 0.7);
@@ -422,6 +494,12 @@
     0 6px 12px rgba(50, 100, 200, 0.5),
     0 0 20px rgba(50, 100, 200, 0.4),
     inset 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+.rooms-card.dark .room-lock {
+  background: rgba(100, 150, 255, 0.18);
+  color: #d0d8ff;
+  border: 1px solid rgba(100, 150, 255, 0.28);
 }
 
 .rooms-card.dark .back-button {

@@ -237,11 +237,78 @@
     0 0 15px rgba(100, 150, 255, 0.2);
 }
 
+.create-room-card .password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.create-room-card .password-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 3.1rem;
+}
+
+.create-room-card .password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.8rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #3756a0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.create-room-card .password-toggle:hover {
+  opacity: 0.8;
+}
+
 .room-password-error {
   margin: 0;
   color: #b33838;
   font-weight: 700;
   font-size: 0.9rem;
+}
+
+.create-room-card.dark .room-password-challenge label {
+  color: #b0c4ff;
+  text-shadow: 0 0 8px rgba(100, 150, 255, 0.5);
+}
+
+.create-room-card.dark .room-password-input {
+  background: linear-gradient(135deg, rgba(50, 50, 80, 0.4) 0%, rgba(30, 30, 60, 0.5) 100%);
+  color: #d0d8ff;
+  border-color: rgba(100, 100, 200, 0.4);
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.28),
+    inset 0 1px 2px rgba(100, 150, 255, 0.12);
+}
+
+.create-room-card.dark .room-password-input:focus {
+  border-color: rgba(150, 150, 255, 0.6);
+  box-shadow:
+    0 6px 16px rgba(100, 100, 200, 0.3),
+    0 0 25px rgba(100, 150, 255, 0.5);
+}
+
+.create-room-card.dark .room-password-error {
+  color: #ff9c9c;
+  text-shadow: 0 0 6px rgba(255, 120, 120, 0.4);
+}
+
+.create-room-card.dark .password-toggle {
+  color: #d0d8ff;
+  text-shadow: 0 0 6px rgba(100, 150, 255, 0.28);
+}
+
+.create-room-card.dark .password-toggle:hover,
+.create-room-card.dark .password-toggle:focus-visible {
+  color: #ffffff;
+  outline: none;
 }
 
 .players-section {

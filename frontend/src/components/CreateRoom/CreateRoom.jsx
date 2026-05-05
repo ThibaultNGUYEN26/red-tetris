@@ -53,6 +53,7 @@ function CreateRoom({
   const [committedMode, setCommittedMode] = useState('classic')
   const [, setJoinError] = useState('')
   const [roomPassword, setRoomPassword] = useState('')
+  const [showRoomPassword, setShowRoomPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
   const [needsRoomPassword, setNeedsRoomPassword] = useState(false)
 
@@ -559,17 +560,27 @@ function CreateRoom({
         {needsRoomPassword ? (
           <form className="room-password-challenge" onSubmit={handleJoinPasswordSubmit}>
             <label htmlFor="room-password">Room Password</label>
-            <input
-              id="room-password"
-              type="password"
-              value={roomPassword}
-              onChange={(event) => {
-                setRoomPassword(event.target.value)
-                if (passwordError) setPasswordError('')
-              }}
-              className="room-password-input"
-              autoFocus
-            />
+            <div className="password-input-wrapper">
+              <input
+                id="room-password"
+                type={showRoomPassword ? 'text' : 'password'}
+                value={roomPassword}
+                onChange={(event) => {
+                  setRoomPassword(event.target.value)
+                  if (passwordError) setPasswordError('')
+                }}
+                className="room-password-input password-input"
+                autoFocus
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowRoomPassword((current) => !current)}
+                aria-label={showRoomPassword ? 'Hide password' : 'Show password'}
+              >
+                {showRoomPassword ? '🙉' : '🙈'}
+              </button>
+            </div>
             {passwordError && <p className="room-password-error">{passwordError}</p>}
             <button className="start-button" type="submit">
               Join Room
