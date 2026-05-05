@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockQuery = vi.fn()
 const mockBroadcastAvailableRooms = vi.fn()
+const mockRemoveGame = vi.fn()
 
 vi.mock('../../src/config/db.js', () => ({
   pool: {
@@ -11,6 +12,10 @@ vi.mock('../../src/config/db.js', () => ({
 
 vi.mock('../../src/socket/index.js', () => ({
   broadcastAvailableRooms: mockBroadcastAvailableRooms,
+}))
+
+vi.mock('../../src/game/gameManager.js', () => ({
+  removeGame: mockRemoveGame,
 }))
 
 const buildRes = () => {
@@ -37,6 +42,7 @@ describe('rooms routes', () => {
   beforeEach(() => {
     mockQuery.mockReset()
     mockBroadcastAvailableRooms.mockReset()
+    mockRemoveGame.mockReset()
   })
 
   it('validates room creation input before querying', async () => {
@@ -102,6 +108,7 @@ describe('rooms routes', () => {
     mockQuery
       .mockResolvedValueOnce({ rowCount: 0, rows: [] })
       .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
       .mockResolvedValueOnce({
         rowCount: 1,
         rows: [{
@@ -130,6 +137,44 @@ describe('rooms routes', () => {
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ is_listed: false })
+    )
+  })
+
+  it('cleans up existing private solo rooms before creating a new solo room', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 12 }] })
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 13,
+          name: 'SoloRoom',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 1,
+          is_listed: false,
+          players: ['Titi'],
+        }],
+      })
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const res = buildRes()
+
+    await handler(buildReq({
+      body: { gameMode: 'classic', host: 'Titi', name: 'SoloRoom', isListed: false },
+    }), res)
+
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('DELETE FROM rooms'),
+      ['Titi']
+    )
+    expect(mockRemoveGame).toHaveBeenCalledWith('12')
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 13, is_listed: false })
     )
   })
 

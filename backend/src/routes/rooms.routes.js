@@ -1,5 +1,6 @@
 import express from "express";
 import { pool } from "../config/db.js";
+import { removeGame } from "../game/gameManager.js";
 import { broadcastAvailableRooms } from "../socket/index.js";
 import { authenticateRequest, rejectUnauthenticated } from "../auth/session.js";
 
@@ -59,6 +60,21 @@ function generateRoomName() {
   return `${adj}${noun}-${randomSuffix}`;
 }
 
+async function cleanupExistingSoloRooms(username) {
+  const result = await pool.query(
+    `DELETE FROM rooms
+     WHERE host = $1
+       AND players @> ARRAY[$1]::text[]
+       AND is_listed = FALSE
+     RETURNING id`,
+    [username]
+  );
+
+  for (const row of result.rows) {
+    removeGame(String(row.id));
+  }
+}
+
 // Create a new room
 router.post("/", async (req, res) => {
   try {
@@ -71,6 +87,10 @@ router.post("/", async (req, res) => {
     const auth = authenticateRequest(req);
     if (!auth) return rejectUnauthenticated(res);
     const host = auth.username;
+
+    if (isListed === false) {
+      await cleanupExistingSoloRooms(host);
+    }
 
     const checkUserQuery = `
       SELECT id
