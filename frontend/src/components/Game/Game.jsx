@@ -1,5 +1,6 @@
 import './Game.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { unstable_batchedUpdates } from 'react-dom'
 import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
 import ShadowBoards from '../ShadowBoards/ShadowBoards'
 import SpectatorView from '../SpectatorView/SpectatorView.jsx'
@@ -320,40 +321,44 @@ function Game({
     const handleGameState = (gameState) => {
       if (exitingRef.current) return
       const mode = gameState?.mode || null
-      setGameMode(mode)
-      setBoardSize(getBoardSize(mode))
-      setActivePlayerUsername(gameState?.currentTurnUsername || null)
-      setGamePlayers(gameState?.players || [])
       const me = gameState?.players?.find((p) => p.username === username)
       const isLeavingSolo = !isMultiplayer && exitingRef.current
-      if (me) {
-        setCooperativeRole(me.cooperativeRole || null)
-        setBoard(me.board || makeEmptyBoard(getBoardSize(mode)))
-        setStats({
-          score: me.score ?? 0,
-          lines: me.lines ?? 0,
-          level: me.level ?? 1,
-        })
-        setNextType(me.nextType || null)
 
-        if (me.isAlive === false && !isLeavingSolo) {
-          setIsEliminated(true)
-        }
-      }
+      unstable_batchedUpdates(() => {
+        setGameMode(mode)
+        setBoardSize(getBoardSize(mode))
+        setActivePlayerUsername(gameState?.currentTurnUsername || null)
+        setGamePlayers(gameState?.players || [])
 
-      if (isMultiplayer) {
-        if (SHARED_BOARD_MODES.includes(gameState?.mode)) {
-          setOpponentBoards([])
-        } else {
-          const others = (gameState?.players || [])
-            .filter((p) => p.username !== username)
-            .map((p) => ({
-              username: p.username,
-              board: p.boardLocked || makeEmptyBoard(getBoardSize(mode)),
-            }))
-          setOpponentBoards(others)
+        if (me) {
+          setCooperativeRole(me.cooperativeRole || null)
+          setBoard(me.board || makeEmptyBoard(getBoardSize(mode)))
+          setStats({
+            score: me.score ?? 0,
+            lines: me.lines ?? 0,
+            level: me.level ?? 1,
+          })
+          setNextType(me.nextType || null)
+
+          if (me.isAlive === false && !isLeavingSolo) {
+            setIsEliminated(true)
+          }
         }
-      }
+
+        if (isMultiplayer) {
+          if (SHARED_BOARD_MODES.includes(gameState?.mode)) {
+            setOpponentBoards([])
+          } else {
+            const others = (gameState?.players || [])
+              .filter((p) => p.username !== username)
+              .map((p) => ({
+                username: p.username,
+                board: p.boardLocked || makeEmptyBoard(getBoardSize(mode)),
+              }))
+            setOpponentBoards(others)
+          }
+        }
+      })
     }
 
     const handleGameOver = ({ winner }) => {

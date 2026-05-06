@@ -3,6 +3,7 @@ import Piece, { SHAPES } from "./Piece.js";
 import { BOARD_HEIGHT, BOARD_WIDTH, GIANT_BOARD_HEIGHT, GIANT_BOARD_WIDTH, LINES_PER_LEVEL } from "../config/constants.js";
 
 const TICK_MS = 33;
+const STATE_EMIT_MS = 66;
 const BASE_DROP_MS = 500;
 const LOCK_DELAY_MS = 500;
 const LOCK_RESET_LIMIT = 15;
@@ -39,6 +40,7 @@ export default class Game {
     this.onGameOver = null;
     this.tickHandle = null;
     this.lastEmittedStateJson = "";
+    this.lastStateEmitMs = -Infinity;
     this.currentTurnIndex = 0;
     this.currentTurnUsername = null;
     this.cooperativeRoles = {};
@@ -190,6 +192,7 @@ export default class Game {
     this.isPaused = false;
     this.activePlayTimeMs = 0;
     this.lastEmittedStateJson = "";
+    this.lastStateEmitMs = -Infinity;
 
     this.players.forEach(player => this.resetPlayer(player));
     this.assignCooperativeRoles();
@@ -276,8 +279,16 @@ export default class Game {
     return true;
   }
 
-  emitState({ force = false } = {}) {
+  emitState({ force = false, throttle = false } = {}) {
     if (!this.onTick) return false;
+
+    if (
+      throttle &&
+      !force &&
+      this.activePlayTimeMs - this.lastStateEmitMs < STATE_EMIT_MS
+    ) {
+      return false;
+    }
 
     const state = this.serialize();
     const serializedState = JSON.stringify(state);
@@ -286,6 +297,7 @@ export default class Game {
     }
 
     this.lastEmittedStateJson = serializedState;
+    this.lastStateEmitMs = this.activePlayTimeMs;
     this.onTick(state);
     return true;
   }
@@ -749,7 +761,7 @@ export default class Game {
       return;
     }
 
-    this.emitState();
+    this.emitState({ throttle: true });
   }
 
   serialize() {
