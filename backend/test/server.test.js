@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const {
   appUse,
   appGet,
+  appOptions,
   appSet,
   listenMock,
   createServerMock,
@@ -17,6 +18,7 @@ const {
 } = vi.hoisted(() => {
   const appUse = vi.fn()
   const appGet = vi.fn()
+  const appOptions = vi.fn()
   const appSet = vi.fn()
   const listenMock = vi.fn((port, host, callback) => {
     callback?.()
@@ -35,11 +37,13 @@ const {
   const appInstance = {
     use: appUse,
     get: appGet,
+    options: appOptions,
     set: appSet,
   }
   return {
     appUse,
     appGet,
+    appOptions,
     appSet,
     listenMock,
     createServerMock,
@@ -126,9 +130,12 @@ describe('server bootstrap', () => {
       expect.objectContaining({
         origin: frontendUrl,
         methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
         credentials: true,
+        optionsSuccessStatus: 204,
       })
     )
+    expect(appOptions).toHaveBeenCalledWith(/.*/, 'cors-middleware')
     expect(appUse).toHaveBeenCalledWith('cors-middleware')
     expect(appUse).toHaveBeenCalledWith('json-middleware')
     expect(appUse).toHaveBeenCalledWith('/api', 'profile-routes')
@@ -206,7 +213,6 @@ describe('server bootstrap', () => {
           origin: 'http://localhost:8080',
           credentials: true,
         },
-        transports: ['websocket'],
         perMessageDeflate: false,
         httpCompression: false,
       })

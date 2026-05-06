@@ -70,138 +70,6 @@ const makeEmptyBoard = (size = DEFAULT_BOARD) =>
     Array.from({ length: size.width }, () => 'empty')
   )
 
-const normalizePiece = (piece) => {
-  const type = typeof piece?.type === 'string' ? piece.type.toLowerCase() : null
-  if (!type || !SHAPES[type]) return null
-  return {
-    type,
-    rotation: piece.rotation ?? 0,
-    x: piece.x ?? 0,
-    y: piece.y ?? 0,
-  }
-}
-
-const cloneBoard = (source, size) => {
-  if (!Array.isArray(source) || source.length === 0) return makeEmptyBoard(size)
-  return source.map((row) => Array.isArray(row) ? row.slice() : [])
-}
-
-const canPlacePiece = (board, piece, size) => {
-  const shape = SHAPES[piece.type]?.[piece.rotation]
-  if (!shape) return false
-
-  return shape.every(([row, col]) => {
-    const boardX = piece.x + col
-    const boardY = piece.y + row
-    if (boardX < 0 || boardX >= size.width || boardY >= size.height) return false
-    if (boardY < 0) return true
-    return board[boardY]?.[boardX] === 'empty'
-  })
-}
-
-const renderPredictedBoard = ({ lockedBoard, currentPiece, size }) => {
-  const grid = cloneBoard(lockedBoard, size)
-  const piece = normalizePiece(currentPiece)
-  if (!piece) return grid
-
-  const shape = SHAPES[piece.type][piece.rotation]
-  let ghostY = piece.y
-  while (canPlacePiece(grid, { ...piece, y: ghostY + 1 }, size)) {
-    ghostY += 1
-  }
-
-  shape.forEach(([row, col]) => {
-    const boardY = ghostY + row
-    const boardX = piece.x + col
-    if (
-      boardY >= 0 &&
-      boardY < size.height &&
-      boardX >= 0 &&
-      boardX < size.width &&
-      grid[boardY][boardX] === 'empty'
-    ) {
-      grid[boardY][boardX] = 'ghost'
-    }
-  })
-
-  shape.forEach(([row, col]) => {
-    const boardY = piece.y + row
-    const boardX = piece.x + col
-    if (
-      boardY >= 0 &&
-      boardY < size.height &&
-      boardX >= 0 &&
-      boardX < size.width &&
-      (grid[boardY][boardX] === 'empty' || grid[boardY][boardX] === 'ghost')
-    ) {
-      grid[boardY][boardX] = piece.type
-    }
-  })
-
-  return grid
-}
-
-const tryMovePredictedPiece = (state, dx, dy) => {
-  const piece = normalizePiece(state.currentPiece)
-  if (!piece) return state
-  const nextPiece = { ...piece, x: piece.x + dx, y: piece.y + dy }
-  if (!canPlacePiece(state.lockedBoard, nextPiece, state.size)) return state
-  return { ...state, currentPiece: nextPiece }
-}
-
-const tryRotatePredictedPiece = (state) => {
-  const piece = normalizePiece(state.currentPiece)
-  if (!piece) return state
-
-  const rotations = SHAPES[piece.type]
-  const from = piece.rotation
-  const to = (piece.rotation + 1) % rotations.length
-  const kicksJLSTZ = {
-    '0>1': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
-    '1>2': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
-    '2>3': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
-    '3>0': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
-  }
-  const kicksI = {
-    '0>1': [[0, 0], [-2, 0], [1, 0], [-2, 1], [1, -2]],
-    '1>2': [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]],
-    '2>3': [[0, 0], [2, 0], [-1, 0], [2, -1], [-1, 2]],
-    '3>0': [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]],
-  }
-  const kicks = piece.type === 'i'
-    ? kicksI[`${from}>${to}`]
-    : piece.type === 'o'
-      ? [[0, 0]]
-      : kicksJLSTZ[`${from}>${to}`]
-
-  for (const [dx, dy] of kicks || []) {
-    const nextPiece = { ...piece, rotation: to, x: piece.x + dx, y: piece.y + dy }
-    if (canPlacePiece(state.lockedBoard, nextPiece, state.size)) {
-      return { ...state, currentPiece: nextPiece }
-    }
-  }
-
-  return state
-}
-
-const applyPredictedAction = (state, action) => {
-  if (!state?.currentPiece) return state
-  if (action === 'left') return tryMovePredictedPiece(state, -1, 0)
-  if (action === 'right') return tryMovePredictedPiece(state, 1, 0)
-  if (action === 'drop') return tryMovePredictedPiece(state, 0, 1)
-  if (action === 'rotate') return tryRotatePredictedPiece(state)
-  if (action === 'hardDrop') {
-    let nextState = state
-    let movedState = tryMovePredictedPiece(nextState, 0, 1)
-    while (movedState !== nextState) {
-      nextState = movedState
-      movedState = tryMovePredictedPiece(nextState, 0, 1)
-    }
-    return nextState
-  }
-  return state
-}
-
 function Game({
   theme,
   onBack,
@@ -248,7 +116,6 @@ function Game({
   const winnerRef = useRef(null)
   const loserRef = useRef(null)
   const roomModeRef = useRef(null)
-  const predictedStateRef = useRef(null)
 
   const startMusic = () => {
     if (!soundEnabled) return
@@ -304,15 +171,6 @@ function Game({
       }
       if (cooperativeRole === 'place' && action === 'rotate') {
         return
-      }
-    }
-
-    const predictedState = predictedStateRef.current
-    if (predictedState) {
-      const nextPredictedState = applyPredictedAction(predictedState, action)
-      if (nextPredictedState !== predictedState) {
-        predictedStateRef.current = nextPredictedState
-        setBoard(renderPredictedBoard(nextPredictedState))
       }
     }
 
@@ -455,7 +313,6 @@ function Game({
       setIsGameOver(false)
       setActivePlayerUsername(null)
       setCooperativeRole(null)
-      predictedStateRef.current = null
       lastLevelRef.current = 1
       lastLinesRef.current = 0
       wasBoardEmptyRef.current = true
@@ -467,31 +324,16 @@ function Game({
       const mode = gameState?.mode || null
       const me = gameState?.players?.find((p) => p.username === username)
       const isLeavingSolo = !isMultiplayer && exitingRef.current
-      const authoritativeSize = {
-        width: gameState?.boardWidth || getBoardSize(mode).width,
-        height: gameState?.boardHeight || getBoardSize(mode).height,
-      }
 
       unstable_batchedUpdates(() => {
         setGameMode(mode)
-        setBoardSize(authoritativeSize)
+        setBoardSize(getBoardSize(mode))
         setActivePlayerUsername(gameState?.currentTurnUsername || null)
         setGamePlayers(gameState?.players || [])
 
         if (me) {
-          const lockedBoard = cloneBoard(me.boardLocked || me.board, authoritativeSize)
-          const currentPiece = normalizePiece(me.currentPiece)
-          predictedStateRef.current =
-            me.isAlive === false || gameState?.isPaused || !currentPiece
-              ? null
-              : { lockedBoard, currentPiece, size: authoritativeSize }
-
           setCooperativeRole(me.cooperativeRole || null)
-          setBoard(me.board || renderPredictedBoard({
-            lockedBoard,
-            currentPiece,
-            size: authoritativeSize,
-          }))
+          setBoard(me.board || makeEmptyBoard(getBoardSize(mode)))
           setStats({
             score: me.score ?? 0,
             lines: me.lines ?? 0,
@@ -512,7 +354,7 @@ function Game({
               .filter((p) => p.username !== username)
               .map((p) => ({
                 username: p.username,
-                board: p.boardLocked || makeEmptyBoard(authoritativeSize),
+                board: p.boardLocked || makeEmptyBoard(getBoardSize(mode)),
               }))
             setOpponentBoards(others)
           }
@@ -527,29 +369,13 @@ function Game({
       const me = playerState?.player
       if (!me || me.username !== username) return
       const isLeavingSolo = !isMultiplayer && exitingRef.current
-      const authoritativeSize = {
-        width: playerState?.boardWidth || getBoardSize(mode).width,
-        height: playerState?.boardHeight || getBoardSize(mode).height,
-      }
 
       unstable_batchedUpdates(() => {
         setGameMode(mode)
-        setBoardSize(authoritativeSize)
+        setBoardSize(getBoardSize(mode))
         setActivePlayerUsername(playerState?.currentTurnUsername || null)
         setCooperativeRole(me.cooperativeRole || null)
-
-        const lockedBoard = cloneBoard(me.boardLocked || me.board, authoritativeSize)
-        const currentPiece = normalizePiece(me.currentPiece)
-        predictedStateRef.current =
-          me.isAlive === false || playerState?.isPaused || !currentPiece
-            ? null
-            : { lockedBoard, currentPiece, size: authoritativeSize }
-
-        setBoard(me.board || renderPredictedBoard({
-          lockedBoard,
-          currentPiece,
-          size: authoritativeSize,
-        }))
+        setBoard(me.board || makeEmptyBoard(getBoardSize(mode)))
         setStats({
           score: me.score ?? 0,
           lines: me.lines ?? 0,
@@ -687,7 +513,7 @@ function Game({
       stopSoftDrop()
       stopHorizontalAutoMove()
     }
-  }, [isPaused, isMultiplayer, roomId, username, gameMode, activePlayerUsername, cooperativeRole, isEliminated])
+  }, [isPaused, isMultiplayer, roomId, username, gameMode, activePlayerUsername, isEliminated])
 
   useEffect(() => {
     if (isPaused) {

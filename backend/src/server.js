@@ -29,9 +29,18 @@ app.use(
   cors({
     origin: FRONTEND_URL,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
+    optionsSuccessStatus: 204,
   })
 );
+app.options(/.*/, cors({
+  origin: FRONTEND_URL,
+  methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  optionsSuccessStatus: 204,
+}));
 
 app.use(express.json());
 
@@ -70,7 +79,6 @@ const io = new Server(httpServer, {
     origin: FRONTEND_URL,
     credentials: true,
   },
-  transports: ["websocket"],
   perMessageDeflate: false,
   httpCompression: false,
 });
