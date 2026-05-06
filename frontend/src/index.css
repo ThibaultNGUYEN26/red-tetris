@@ -430,17 +430,9 @@ html, body, #root {
   flex-direction: column;
 }
 
-.tutorial-action-cue.soft-drop {
-  animation-duration: 0.58s;
-}
-
 .tutorial-action-cue.soft-drop span,
 .tutorial-action-cue.hard-drop span {
   transform: rotate(135deg);
-}
-
-.tutorial-action-cue.hard-drop {
-  animation-duration: 0.72s;
 }
 
 .tutorial-action-cue.rotation {
