@@ -474,7 +474,7 @@ describe('socket setup', () => {
     expect(resume).toHaveBeenCalled()
   })
 
-  it('movePiece enqueues input for the next server tick without broadcasting immediately', async () => {
+  it('movePiece processes input immediately and emits changed state for responsive controls', async () => {
     const { socket } = await setupConnectedSocket()
     const game = {
       isRunning: true,
@@ -491,8 +491,8 @@ describe('socket setup', () => {
     movePieceHandler({ roomId: '1', action: 'left' })
 
     expect(game.enqueueInput).toHaveBeenCalledWith('Titi', 'left')
-    expect(game.processQueuedInputsFor).not.toHaveBeenCalled()
-    expect(game.emitState).not.toHaveBeenCalled()
+    expect(game.processQueuedInputsFor).toHaveBeenCalledWith('Titi')
+    expect(game.emitState).toHaveBeenCalled()
   })
 
   it('joinSpectator emits gameState when a live game exists', async () => {
