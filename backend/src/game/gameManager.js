@@ -26,6 +26,10 @@ export function getGame(roomId) {
   return games.get(roomId);
 }
 
+export function getActiveGameCount() {
+  return games.size;
+}
+
 export function removeGame(roomId) {
   games.delete(roomId);
 }

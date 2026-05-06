@@ -91,6 +91,10 @@ vi.mock('../src/routes/contact.routes.js', () => ({
   default: 'contact-routes',
 }))
 
+vi.mock('../src/routes/admin.routes.js', () => ({
+  default: 'admin-routes',
+}))
+
 vi.mock('../src/socket/index.js', () => ({
   default: setupSocketsMock,
 }))
@@ -130,7 +134,7 @@ describe('server bootstrap', () => {
       expect.objectContaining({
         origin: frontendUrl,
         methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Password'],
         credentials: true,
         optionsSuccessStatus: 204,
       })
@@ -141,6 +145,7 @@ describe('server bootstrap', () => {
     expect(appUse).toHaveBeenCalledWith('/api', 'profile-routes')
     expect(appUse).toHaveBeenCalledWith('/api/auth', 'auth-routes')
     expect(appUse).toHaveBeenCalledWith('/api/contact', 'contact-routes')
+    expect(appUse).toHaveBeenCalledWith('/api/admin', 'admin-routes')
     expect(appUse).toHaveBeenCalledWith('/api/rooms', 'rooms-routes')
 
     expect(createServerMock).toHaveBeenCalledWith(appInstance)

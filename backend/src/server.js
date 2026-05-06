@@ -9,6 +9,7 @@ import profileRoutes from "./routes/profile.routes.js";
 import roomRoutes from "./routes/rooms.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 
 import setupSockets from "./socket/index.js";
 import { ensureSchema, pool } from "./config/db.js";
@@ -29,7 +30,7 @@ app.use(
   cors({
     origin: FRONTEND_URL,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Admin-Password"],
     credentials: true,
     optionsSuccessStatus: 204,
   })
@@ -37,7 +38,7 @@ app.use(
 app.options(/.*/, cors({
   origin: FRONTEND_URL,
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Admin-Password"],
   credentials: true,
   optionsSuccessStatus: 204,
 }));
@@ -68,6 +69,7 @@ app.use("/api", (req, res, next) => {
 app.use("/api", profileRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/rooms", roomRoutes);
 
 app.get("/health", (req, res) => {

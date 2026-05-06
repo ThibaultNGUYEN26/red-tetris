@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Index from './index.jsx';
 import Spectate from './Spectate.jsx';
 import InfoPage from './InfoPage.jsx';
+import AdminPage from './AdminPage.jsx';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/contact" element={<InfoPage type="contact" />} />
         <Route path="/terms" element={<InfoPage type="terms" />} />
         <Route path="/privacy-policy" element={<InfoPage type="privacy" />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/:roomName/:roomType/:username" element={<Index />} />
         <Route path="/:roomName/:username" element={<Index />} />
         <Route path="/:roomName/:roomType/spectate/:username" element={<Spectate />} />

@@ -5,6 +5,7 @@ import { resolveSocketUser, USERNAME_PATTERN } from "../auth/session.js";
 import { perfLogDuration, perfStart } from "../perf.js";
 
 const activeUsers = new Map();
+let peakActiveUserCount = 0;
 const pendingDisconnects = new Map();
 const MOVE_INPUT_RATE_PER_SECOND = 45;
 const MOVE_INPUT_BURST = 30;
@@ -54,6 +55,9 @@ export const isUsernameConnected = (username, socketId = null) => {
   return true;
 };
 
+export const getActiveUserCount = () => activeUsers.size;
+export const getPeakActiveUserCount = () => peakActiveUserCount;
+
 const registerUsername = (username, socket) => {
   if (!username) {
     return { ok: false, error: "Missing username" };
@@ -73,6 +77,7 @@ const registerUsername = (username, socket) => {
     activeUsers.delete(username);
   }
   activeUsers.set(username, socket.id);
+  peakActiveUserCount = Math.max(peakActiveUserCount, activeUsers.size);
   socket.data.username = username;
   return { ok: true };
 };
