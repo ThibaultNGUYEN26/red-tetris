@@ -304,7 +304,7 @@ describe('Index main page', () => {
     expect(screen.getByText(/login to your account/i)).toBeInTheDocument()
   })
 
-  it('redirects to the profile page with a connected notice when the URL user is already in the same started room', async () => {
+  it('resumes the game when the URL user is already in the same started room', async () => {
     mockParams = { username: 'Riri', roomName: 'test', roomType: 'multi' }
     setSavedUser('Riri')
 
@@ -340,17 +340,31 @@ describe('Index main page', () => {
         }
       }
 
+      if (requestPath(url) === '/api/rooms/by-name/test') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: 12,
+            name: 'test',
+            game_mode: 'classic',
+            player_count: 2,
+            players: ['Riri', 'Titi'],
+            status: 'started',
+          }),
+        }
+      }
+
       throw new Error(`Unhandled fetch call: ${url}`)
     })
 
     render(<Index />)
 
-    expect(await screen.findByText('User already connected')).toBeInTheDocument()
-    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
-    expect(screen.getByText(/login to your account/i)).toBeInTheDocument()
+    expect(await screen.findByTestId('game')).toBeInTheDocument()
+    expect(screen.queryByText('User already connected')).not.toBeInTheDocument()
   })
 
-  it('prefers connected notice when the fetched room already contains the same user', async () => {
+  it('resumes a started fetched room that already contains the same user', async () => {
     mockParams = { username: 'Titi', roomName: 'test', roomType: 'multi' }
     setSavedUser('Titi')
 
@@ -399,9 +413,8 @@ describe('Index main page', () => {
 
     render(<Index />)
 
-    expect(await screen.findByText('User already connected')).toBeInTheDocument()
-    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true })
-    expect(screen.getByText(/login to your account/i)).toBeInTheDocument()
+    expect(await screen.findByTestId('game')).toBeInTheDocument()
+    expect(screen.queryByText('User already connected')).not.toBeInTheDocument()
   })
 
   it('checks live connection state first for direct room URLs', async () => {

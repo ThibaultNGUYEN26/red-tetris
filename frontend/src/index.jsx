@@ -445,45 +445,6 @@ function Index({ authMode = 'login' }) {
     setShowProfileCard(false)
   }
 
-  const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      'Delete your account? You can restore it for 30 days by logging in again.'
-    )
-    if (!confirmed) return
-
-    try {
-      const response = await apiFetch('/api/auth/account', {
-        method: 'DELETE',
-        ...authFetchOptions(),
-      })
-
-      if (!response.ok) {
-        setRouteNotice('Unable to delete account')
-        return
-      }
-
-      localStorage.removeItem(AUTH_STORAGE_KEY)
-      socket.emit('unregisterUser', { username })
-      setUsername(null)
-      setUserProfile(null)
-      setShowRooms(false)
-      setShowGame(false)
-      setShowSoloRoom(false)
-      setShowDirectRoom(false)
-      setSoloRoomName(null)
-      setDirectRoomName(null)
-      setDirectRoomType(null)
-      setSoloRoomId(null)
-      setDirectRoomId(null)
-      setActiveGameType(null)
-      setShowProfileCard(false)
-      setRouteNotice('Account scheduled for deletion. You can restore it for 30 days by logging in again.')
-      navigate('/login', { replace: true })
-    } catch {
-      setRouteNotice('Unable to delete account')
-    }
-  }
-
   const handleExitJoinedRoom = () => {
     setShowRooms(false)
     setShowDirectRoom(false)
@@ -1049,7 +1010,6 @@ function Index({ authMode = 'login' }) {
                         submitLabel="Save"
                         onSubmit={handleProfileUpdate}
                         onLogout={handleReturnToProfile}
-                        onDeleteAccount={handleDeleteAccount}
                       />
                     </div>
                   )}
