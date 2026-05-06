@@ -342,6 +342,54 @@ describe('Game Component', () => {
     })
   })
 
+  it('moves the visible piece optimistically on keydown', async () => {
+    const renderedBoard = makeBoard()
+    renderedBoard[0][4] = 't'
+    renderedBoard[1][3] = 't'
+    renderedBoard[1][4] = 't'
+    renderedBoard[1][5] = 't'
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: renderedBoard,
+          boardLocked: makeBoard(),
+          currentPiece: { type: 't', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+          nextType: 'i',
+        }],
+      })
+    })
+
+    await waitFor(() => {
+      expect(document.querySelectorAll('.game-board .cell-t')).toHaveLength(4)
+    })
+
+    socket.emit.mockClear()
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    const cells = document.querySelectorAll('.game-board .cell')
+    expect(cells[3]).toHaveClass('cell-t')
+    expect(cells[12]).toHaveClass('cell-t')
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
+  })
+
   it('applies mirror controls and opens the multiplayer menu', async () => {
     const onBack = vi.fn()
     const onSoundChange = vi.fn()
