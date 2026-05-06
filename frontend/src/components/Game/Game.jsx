@@ -1,6 +1,6 @@
 import './Game.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { unstable_batchedUpdates } from 'react-dom'
+import { flushSync, unstable_batchedUpdates } from 'react-dom'
 import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
 import ShadowBoards from '../ShadowBoards/ShadowBoards'
 import SpectatorView from '../SpectatorView/SpectatorView.jsx'
@@ -287,7 +287,9 @@ function Game({
     if (!nextPiece) return
 
     predictionRef.current = { ...prediction, currentPiece: nextPiece }
-    setBoard(renderPredictedBoard(predictionRef.current))
+    flushSync(() => {
+      setBoard(renderPredictedBoard(predictionRef.current))
+    })
   }
 
   const emitMove = (action) => {
