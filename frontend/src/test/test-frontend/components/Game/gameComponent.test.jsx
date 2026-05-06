@@ -385,6 +385,50 @@ describe('Game Component', () => {
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
   })
 
+  it('predicts I piece movement without changing its rotation', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: 'classic',
+        boardWidth: 10,
+        boardHeight: 20,
+        isPaused: false,
+        player: {
+          username: 'Titi',
+          isAlive: true,
+          boardLocked: makeBoard(),
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: -1 },
+          nextType: 'o',
+        },
+      })
+    })
+
+    expect(boardCell(0, 3)).toHaveClass('cell-i')
+    expect(boardCell(0, 4)).toHaveClass('cell-i')
+    expect(boardCell(0, 5)).toHaveClass('cell-i')
+    expect(boardCell(0, 6)).toHaveClass('cell-i')
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(boardCell(0, 2)).toHaveClass('cell-i')
+    expect(boardCell(0, 3)).toHaveClass('cell-i')
+    expect(boardCell(0, 4)).toHaveClass('cell-i')
+    expect(boardCell(0, 5)).toHaveClass('cell-i')
+    expect(boardCell(1, 4)).not.toHaveClass('cell-i')
+  })
+
   it('corrects a local prediction when authoritative playerState disagrees', async () => {
     const serverState = {
       roomId: '1',
