@@ -7,6 +7,8 @@ import { apiFetch } from './api'
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
 const CONTACT_TIMEOUT_MS = 15000
+const CONTACT_OBJECT_MAX_LENGTH = 120
+const CONTACT_MESSAGE_MAX_LENGTH = 4000
 const PRIVACY_LAST_UPDATED = 'May 5, 2026'
 const PRIVACY_CONTROLLER_NAME =
   import.meta.env.VITE_PRIVACY_CONTROLLER_NAME || 'the Red Tetris site operator'
@@ -371,6 +373,7 @@ function InfoPage({ type }) {
   const [isExportingData, setIsExportingData] = useState(false)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [savedAuthUser, setSavedAuthUser] = useState(() => getSavedAuthUser())
+  const [activeTutorialIndex, setActiveTutorialIndex] = useState(0)
   const starsRef = useRef(null)
 
   function getSavedAuthUser() {
@@ -421,6 +424,16 @@ function InfoPage({ type }) {
 
     if (!userEmail) {
       setContactStatus({ type: 'error', message: 'Email is required.' })
+      return
+    }
+
+    if (object.length > CONTACT_OBJECT_MAX_LENGTH) {
+      setContactStatus({ type: 'error', message: `Object must be ${CONTACT_OBJECT_MAX_LENGTH} characters or fewer.` })
+      return
+    }
+
+    if (message.length > CONTACT_MESSAGE_MAX_LENGTH) {
+      setContactStatus({ type: 'error', message: `Message must be ${CONTACT_MESSAGE_MAX_LENGTH} characters or fewer.` })
       return
     }
 
@@ -532,6 +545,18 @@ function InfoPage({ type }) {
     }
   }
 
+  const activeTutorial = tutorialControls[activeTutorialIndex]
+  const showPreviousTutorial = () => {
+    setActiveTutorialIndex((currentIndex) => (
+      currentIndex === 0 ? tutorialControls.length - 1 : currentIndex - 1
+    ))
+  }
+  const showNextTutorial = () => {
+    setActiveTutorialIndex((currentIndex) => (
+      currentIndex === tutorialControls.length - 1 ? 0 : currentIndex + 1
+    ))
+  }
+
   return (
     <>
       <div className={`sky-background ${theme === 'dark' ? 'dark' : ''}`}>
@@ -593,10 +618,39 @@ function InfoPage({ type }) {
           )}
 
           {type === 'tutorial' && (
-            <div className="tutorial-controls-list">
-              {tutorialControls.map((demo) => (
-                <TutorialBoardDemo key={demo.action} demo={demo} />
-              ))}
+            <div
+              className="tutorial-carousel"
+              aria-roledescription="carousel"
+              aria-label="Tetris controls tutorial"
+            >
+              <button
+                className="tutorial-carousel-arrow previous"
+                type="button"
+                onClick={showPreviousTutorial}
+                aria-label="Show previous control"
+              >
+                ‹
+              </button>
+
+              <div className="tutorial-carousel-slide" aria-live="polite">
+                <TutorialBoardDemo
+                  key={activeTutorial.action}
+                  demo={activeTutorial}
+                />
+              </div>
+
+              <button
+                className="tutorial-carousel-arrow next"
+                type="button"
+                onClick={showNextTutorial}
+                aria-label="Show next control"
+              >
+                ›
+              </button>
+
+              <div className="tutorial-carousel-status">
+                {activeTutorialIndex + 1} / {tutorialControls.length}
+              </div>
             </div>
           )}
 
@@ -608,7 +662,7 @@ function InfoPage({ type }) {
                 type="text"
                 value={contactObject}
                 onChange={(event) => setContactObject(event.target.value)}
-                maxLength={120}
+                maxLength={CONTACT_OBJECT_MAX_LENGTH}
                 placeholder="Bug report or suggestion"
                 disabled={isContactSending}
               />
@@ -618,11 +672,14 @@ function InfoPage({ type }) {
                 id="contact-message"
                 value={contactMessage}
                 onChange={(event) => setContactMessage(event.target.value)}
-                maxLength={4000}
+                maxLength={CONTACT_MESSAGE_MAX_LENGTH}
                 rows={7}
                 placeholder="Describe the issue or idea..."
                 disabled={isContactSending}
               />
+              <p className="contact-character-count">
+                {contactMessage.length.toLocaleString()} / {CONTACT_MESSAGE_MAX_LENGTH.toLocaleString()}
+              </p>
 
               {!savedUserEmail && (
                 <>

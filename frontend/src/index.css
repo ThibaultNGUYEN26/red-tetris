@@ -255,10 +255,55 @@ html, body, #root {
   gap: 10px;
 }
 
-.tutorial-controls-list {
+.tutorial-carousel {
   display: grid;
-  gap: 18px;
+  grid-template-columns: 48px minmax(0, 1fr) 48px;
+  grid-template-areas:
+    "previous slide next"
+    "status status status";
+  align-items: center;
+  gap: 14px;
   margin-bottom: 24px;
+}
+
+.tutorial-carousel-slide {
+  grid-area: slide;
+  min-width: 0;
+}
+
+.tutorial-carousel-arrow {
+  width: 48px;
+  height: 48px;
+  border: 2px solid rgba(74, 144, 226, 0.38);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  color: #1f466d;
+  cursor: pointer;
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 8px 16px rgba(35, 70, 130, 0.14);
+}
+
+.tutorial-carousel-arrow:hover {
+  background: #ffffff;
+  border-color: rgba(74, 144, 226, 0.62);
+}
+
+.tutorial-carousel-arrow.previous {
+  grid-area: previous;
+}
+
+.tutorial-carousel-arrow.next {
+  grid-area: next;
+}
+
+.tutorial-carousel-status {
+  grid-area: status;
+  color: #4c7193;
+  font-size: 0.9rem;
+  font-weight: 850;
+  text-align: center;
 }
 
 .tutorial-demo {
@@ -609,6 +654,14 @@ html, body, #root {
   resize: vertical;
 }
 
+.contact-character-count {
+  margin: -4px 0 2px;
+  color: #4c7193;
+  font-size: 0.82rem;
+  font-weight: 750;
+  text-align: right;
+}
+
 .contact-honeypot {
   position: absolute;
   left: -9999px;
@@ -888,6 +941,22 @@ html, body, #root {
   background: rgba(36, 44, 82, 0.68);
 }
 
+.sky-background.dark ~ .content-wrapper .tutorial-carousel-arrow {
+  border-color: rgba(120, 150, 255, 0.44);
+  background: rgba(24, 32, 66, 0.92);
+  color: #e8edff;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.26);
+}
+
+.sky-background.dark ~ .content-wrapper .tutorial-carousel-arrow:hover {
+  background: rgba(36, 48, 96, 0.94);
+  border-color: rgba(170, 190, 255, 0.64);
+}
+
+.sky-background.dark ~ .content-wrapper .tutorial-carousel-status {
+  color: #b0c4ff;
+}
+
 .sky-background.dark ~ .content-wrapper .tutorial-board {
   border-color: rgba(120, 150, 255, 0.38);
   background: rgba(7, 12, 32, 0.94);
@@ -936,6 +1005,10 @@ html, body, #root {
 .sky-background.dark ~ .content-wrapper .contact-form input::placeholder,
 .sky-background.dark ~ .content-wrapper .contact-form textarea::placeholder {
   color: #92a2d7;
+}
+
+.sky-background.dark ~ .content-wrapper .contact-character-count {
+  color: #b0c4ff;
 }
 
 .sky-background.dark ~ .content-wrapper .contact-form input:focus,
@@ -1016,6 +1089,22 @@ html, body, #root {
   .tutorial-demo {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+
+  .tutorial-carousel {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "slide slide"
+      "previous next"
+      "status status";
+  }
+
+  .tutorial-carousel-arrow.previous {
+    justify-self: end;
+  }
+
+  .tutorial-carousel-arrow.next {
+    justify-self: start;
   }
 
   .tutorial-board {
