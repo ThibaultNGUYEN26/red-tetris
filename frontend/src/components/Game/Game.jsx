@@ -1,6 +1,6 @@
 import './Game.css'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { flushSync, unstable_batchedUpdates } from 'react-dom'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { unstable_batchedUpdates } from 'react-dom'
 import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
 import ShadowBoards from '../ShadowBoards/ShadowBoards'
 import SpectatorView from '../SpectatorView/SpectatorView.jsx'
@@ -208,6 +208,8 @@ function Game({
   const loserRef = useRef(null)
   const roomModeRef = useRef(null)
   const predictionRef = useRef(null)
+  const cellRefsRef = useRef([])
+  const paintedBoardRef = useRef(null)
 
   const startMusic = () => {
     if (!soundEnabled) return
@@ -244,6 +246,22 @@ function Game({
       ref.current.pause()
       ref.current.currentTime = 0
     })
+  }
+
+  const paintBoardToDom = (nextBoard) => {
+    const previousBoard = paintedBoardRef.current
+
+    nextBoard.forEach((row, rowIndex) => {
+      row.forEach((cell, colIndex) => {
+        if (previousBoard?.[rowIndex]?.[colIndex] === cell) return
+        const element = cellRefsRef.current[rowIndex]?.[colIndex]
+        if (element) {
+          element.className = `cell cell-${cell}`
+        }
+      })
+    })
+
+    paintedBoardRef.current = cloneBoard(nextBoard, boardSize)
   }
 
   const setAuthoritativePlayerView = (player, mode) => {
@@ -287,9 +305,9 @@ function Game({
     if (!nextPiece) return
 
     predictionRef.current = { ...prediction, currentPiece: nextPiece }
-    flushSync(() => {
-      setBoard(renderPredictedBoard(predictionRef.current))
-    })
+    const predictedBoard = renderPredictedBoard(predictionRef.current)
+    paintBoardToDom(predictedBoard)
+    setBoard(predictedBoard)
   }
 
   const emitMove = (action) => {
@@ -596,6 +614,10 @@ function Game({
     wasBoardEmptyRef.current = isEmpty
   }, [board])
 
+  useLayoutEffect(() => {
+    paintedBoardRef.current = cloneBoard(board, boardSize)
+  }, [board, boardSize])
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.repeat) return
@@ -819,6 +841,12 @@ function Game({
               row.map((cell, colIndex) => (
                 <div
                   key={`${rowIndex}-${colIndex}`}
+                  ref={(element) => {
+                    if (!cellRefsRef.current[rowIndex]) {
+                      cellRefsRef.current[rowIndex] = []
+                    }
+                    cellRefsRef.current[rowIndex][colIndex] = element
+                  }}
                   className={`cell cell-${cell}`}
                 />
               ))
