@@ -253,6 +253,7 @@ router.get("/player/stats", async (req, res) => {
                 SUM(duration_seconds) AS total_duration_seconds,
                 MAX(duration_seconds) AS longest_duration_seconds
          FROM solo_scores
+         WHERE username = $1
          GROUP BY username
        ) ss ON ss.username = u.username
        LEFT JOIN (
@@ -269,6 +270,7 @@ router.get("/player/stats", async (req, res) => {
                 SUM(duration_seconds) AS total_duration_seconds,
                 MAX(duration_seconds) AS longest_duration_seconds
          FROM multiplayer_scores
+         WHERE username = $1
          GROUP BY username
        ) ms ON ms.username = u.username
        LEFT JOIN (
@@ -283,9 +285,13 @@ router.get("/player/stats", async (req, res) => {
                 SUM(duration_seconds) AS total_duration_seconds,
                 MAX(duration_seconds) AS longest_duration_seconds
          FROM (
-           SELECT player_one AS player_name, score, lines, level, tetris_count, duration_seconds FROM coop_scores
+           SELECT player_one AS player_name, score, lines, level, tetris_count, duration_seconds
+           FROM coop_scores
+           WHERE player_one = $1
            UNION ALL
-           SELECT player_two AS player_name, score, lines, level, tetris_count, duration_seconds FROM coop_scores
+           SELECT player_two AS player_name, score, lines, level, tetris_count, duration_seconds
+           FROM coop_scores
+           WHERE player_two = $1
          ) coop_player_scores
          GROUP BY player_name
        ) cs ON cs.player_name = u.username

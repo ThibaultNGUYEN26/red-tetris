@@ -80,6 +80,7 @@ describe('Leaderboard Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
   })
 
   describe('Component Rendering', () => {

@@ -279,8 +279,8 @@ export default class Game {
     return true;
   }
 
-  emitState({ force = false, throttle = false } = {}) {
-    if (!this.onTick) return false;
+  emitState({ force = false, throttle = false, emit = this.onTick } = {}) {
+    if (!emit) return false;
 
     if (
       throttle &&
@@ -298,7 +298,7 @@ export default class Game {
 
     this.lastEmittedStateJson = serializedState;
     this.lastStateEmitMs = this.activePlayTimeMs;
-    this.onTick(state);
+    emit(state);
     return true;
   }
 

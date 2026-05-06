@@ -26,14 +26,17 @@ vi.mock('../../src/game/gameManager.js', () => ({
 
 const createSocket = (id = 'socket-1') => {
   const handlers = new Map()
+  const roomEmit = vi.fn()
   return {
     id,
     data: {},
     handlers,
+    roomEmit,
     on: vi.fn((event, handler) => {
       handlers.set(event, handler)
     }),
     emit: vi.fn(),
+    to: vi.fn(() => ({ emit: roomEmit })),
     join: vi.fn(),
     leave: vi.fn(),
   }
@@ -476,13 +479,14 @@ describe('socket setup', () => {
 
   it('movePiece processes input immediately and emits changed state for responsive controls', async () => {
     const { socket } = await setupConnectedSocket()
+    const authoritativeState = { roomId: '1', players: [{ username: 'Titi' }] }
     const game = {
       isRunning: true,
       isOver: false,
       enqueueInput: vi.fn(),
       processQueuedInputsFor: vi.fn(),
       checkGameOver: vi.fn(() => ({ over: false })),
-      emitState: vi.fn(),
+      emitState: vi.fn(({ emit }) => emit(authoritativeState)),
     }
     mockGetGame.mockReturnValue(game)
     socket.data.username = 'Titi'
@@ -492,7 +496,10 @@ describe('socket setup', () => {
 
     expect(game.enqueueInput).toHaveBeenCalledWith('Titi', 'left')
     expect(game.processQueuedInputsFor).toHaveBeenCalledWith('Titi')
-    expect(game.emitState).toHaveBeenCalled()
+    expect(game.emitState).toHaveBeenCalledWith({ emit: expect.any(Function) })
+    expect(socket.emit).toHaveBeenCalledWith('gameState', authoritativeState)
+    expect(socket.to).toHaveBeenCalledWith('1')
+    expect(socket.roomEmit).toHaveBeenCalledWith('gameState', authoritativeState)
   })
 
   it('joinSpectator emits gameState when a live game exists', async () => {

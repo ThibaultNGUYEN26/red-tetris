@@ -14,6 +14,7 @@ import setupSockets from "./socket/index.js";
 import { ensureSchema, pool } from "./config/db.js";
 import { assertSessionSecret } from "./auth/session.js";
 import { purgeExpiredDeletedAccounts } from "./services/accountDeletion.service.js";
+import { isPerfLogEnabled, perfLogDuration, perfStart } from "./perf.js";
 
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:8080";
@@ -33,6 +34,20 @@ app.use(
 );
 
 app.use(express.json());
+
+if (isPerfLogEnabled()) {
+  app.use((req, res, next) => {
+    const start = perfStart();
+    res.on("finish", () => {
+      perfLogDuration("http", start, {
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+      });
+    });
+    next();
+  });
+}
 
 app.use("/api", (req, res, next) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -55,6 +70,9 @@ const io = new Server(httpServer, {
     origin: FRONTEND_URL,
     credentials: true,
   },
+  transports: ["websocket"],
+  perMessageDeflate: false,
+  httpCompression: false,
 });
 
 app.set("io", io);

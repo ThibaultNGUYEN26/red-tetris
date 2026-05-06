@@ -65,6 +65,8 @@ const DEFAULT_STATS = {
   advanced: DEFAULT_ADVANCED,
 }
 
+const STATS_CACHE_MS = 30 * 1000
+
 const mergeAdvancedStats = (advanced = {}) => ({
   timePlayed: { ...DEFAULT_ADVANCED.timePlayed, ...(advanced.timePlayed || {}) },
   solo: { ...DEFAULT_ADVANCED.solo, ...(advanced.solo || {}) },
@@ -78,10 +80,19 @@ function PlayerStats({ theme, userProfile, username }) {
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     const profileName = userProfile?.username || username
     const profileAvatar = userProfile?.avatar
+    const hasProfileStats =
+      userProfile && (userProfile.soloGames != null || userProfile.solo_games_played != null)
+    const profileStatsAreFresh =
+      hasProfileStats &&
+      (
+        typeof userProfile?.statsFetchedAt !== 'number' ||
+        Date.now() - userProfile.statsFetchedAt < STATS_CACHE_MS
+      )
 
-    if (userProfile && (userProfile.soloGames != null || userProfile.solo_games_played != null)) {
+    if (hasProfileStats) {
       const soloGames =
         userProfile.soloGames ?? userProfile.solo_games_played
       const soloTopScore =
@@ -99,7 +110,12 @@ function PlayerStats({ theme, userProfile, username }) {
         advanced: mergeAdvancedStats(userProfile.advanced),
       })
       setLoading(false)
-      return
+
+      if (profileStatsAreFresh) {
+        return () => {
+          cancelled = true
+        }
+      }
     }
 
     const fetchStats = async () => {
@@ -114,6 +130,7 @@ function PlayerStats({ theme, userProfile, username }) {
           { credentials: 'include' }
         )
         const data = await res.json()
+        if (cancelled) return
         setStats({
           ...DEFAULT_STATS,
           ...data,
@@ -124,11 +141,17 @@ function PlayerStats({ theme, userProfile, username }) {
       } catch (err) {
         console.error('Failed to fetch player stats', err)
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+        }
       }
     }
 
     fetchStats()
+
+    return () => {
+      cancelled = true
+    }
   }, [userProfile, username])
 
   if (loading) {

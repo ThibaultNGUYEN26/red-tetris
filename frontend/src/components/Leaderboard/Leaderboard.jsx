@@ -12,14 +12,37 @@ const DEFAULT_AVATAR = {
 const hasScoreEntries = (data) =>
   Array.isArray(data) && data.some((entry) => Number(entry?.score || 0) > 0)
 
+const LEADERBOARD_CACHE_KEY = 'red-tetris-leaderboards'
+
+const readCachedLeaderboards = () => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(LEADERBOARD_CACHE_KEY) || '{}')
+    return {
+      solo: Array.isArray(cached.solo) ? cached.solo : [],
+      coop: Array.isArray(cached.coop) ? cached.coop : [],
+    }
+  } catch {
+    return { solo: [], coop: [] }
+  }
+}
+
+const writeCachedLeaderboards = (nextCache) => {
+  try {
+    localStorage.setItem(LEADERBOARD_CACHE_KEY, JSON.stringify(nextCache))
+  } catch {
+    // Cache is a display optimization; ignore storage failures.
+  }
+}
+
 function Leaderboard({ theme }) {
-  const [soloData, setSoloData] = useState([])
-  const [coopData, setCoopData] = useState([])
-  const [soloLoaded, setSoloLoaded] = useState(false)
-  const [coopLoaded, setCoopLoaded] = useState(false)
+  const [leaderboards, setLeaderboards] = useState(() => readCachedLeaderboards())
+  const [soloLoaded, setSoloLoaded] = useState(() => leaderboards.solo.length > 0)
+  const [coopLoaded, setCoopLoaded] = useState(() => leaderboards.coop.length > 0)
   const [mode, setMode] = useState('solo')
 
   const [currentPage, setCurrentPage] = useState(0)
+  const soloData = leaderboards.solo
+  const coopData = leaderboards.coop
   const leaderboardData = mode === 'coop' ? coopData : soloData
   const loading = mode === 'coop' ? !coopLoaded : !soloLoaded
   const hasSoloScores = hasScoreEntries(soloData)
@@ -40,12 +63,22 @@ function Leaderboard({ theme }) {
 
   useEffect(() => {
     const handleSoloLeaderboard = (data) => {
-      setSoloData(Array.isArray(data) ? data : [])
+      const solo = Array.isArray(data) ? data : []
+      setLeaderboards((current) => {
+        const next = { ...current, solo }
+        writeCachedLeaderboards(next)
+        return next
+      })
       setSoloLoaded(true)
     }
 
     const handleCoopLeaderboard = (data) => {
-      setCoopData(Array.isArray(data) ? data : [])
+      const coop = Array.isArray(data) ? data : []
+      setLeaderboards((current) => {
+        const next = { ...current, coop }
+        writeCachedLeaderboards(next)
+        return next
+      })
       setCoopLoaded(true)
     }
 

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { socket } from '../../socket'
 import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 import Game from '../Game/Game.jsx'
+import { logDuration, markStart, perfLog } from '../../perf'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -23,6 +24,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   const [showJoinRoomPasswords, setShowJoinRoomPasswords] = useState({})
 
   const hasJoinedRef = useRef(false)
+  const roomsRequestStartRef = useRef(null)
 
   const buildRoomPath = (roomName, gameMode) => {
     if (!roomName) return '/'
@@ -48,9 +50,17 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   /* ---------------- SOCKET: AVAILABLE ROOMS ---------------- */
 
   useEffect(() => {
+    roomsRequestStartRef.current = markStart()
+    perfLog('rooms:getAvailableRooms:emit')
     socket.emit('getAvailableRooms')
 
     const handleAvailableRooms = (data) => {
+      if (roomsRequestStartRef.current != null) {
+        logDuration('rooms:availableRooms', roomsRequestStartRef.current, {
+          count: Array.isArray(data) ? data.length : 0,
+        })
+        roomsRequestStartRef.current = null
+      }
       setRooms(data)
     }
 
@@ -93,7 +103,12 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
       }
 
       // Join room via socket (DB + socket room)
+      const joinStart = markStart()
       socket.emit('joinRoom', { roomId: roomKey, username, roomPassword }, (res) => {
+        logDuration('rooms:joinRoomAck', joinStart, {
+          ok: Boolean(res?.ok),
+          roomId: roomKey,
+        })
         if (!res?.ok) {
           console.error('Join failed:', res?.error || 'Failed to join room')
           if (res?.error === 'Invalid room password') {
@@ -475,4 +490,3 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
 }
 
 export default Rooms
-

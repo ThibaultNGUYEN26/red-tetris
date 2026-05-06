@@ -206,6 +206,9 @@ describe('server bootstrap', () => {
           origin: 'http://localhost:8080',
           credentials: true,
         },
+        transports: ['websocket'],
+        perMessageDeflate: false,
+        httpCompression: false,
       })
     )
     expect(listenMock).toHaveBeenCalledWith(3000, '0.0.0.0')

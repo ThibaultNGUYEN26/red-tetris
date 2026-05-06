@@ -2,6 +2,7 @@ import { pool } from "../config/db.js";
 import bcrypt from "bcryptjs";
 import { createGame, getGame, removeGame } from "../game/gameManager.js";
 import { resolveSocketUser, USERNAME_PATTERN } from "../auth/session.js";
+import { perfLogDuration, perfStart } from "../perf.js";
 
 const activeUsers = new Map();
 
@@ -105,6 +106,7 @@ function getCoopStartError(gameMode) {
 }
 
 export async function broadcastAvailableRooms(io) {
+  const start = perfStart();
   const result = await pool.query(
     `SELECT id, name, game_mode, host, player_count, players, room_password_hash
       FROM rooms
@@ -122,6 +124,9 @@ export async function broadcastAvailableRooms(io) {
     .filter((room) => room.player_count < room.maxPlayers);
 
   io.emit("availableRooms", rows);
+  perfLogDuration("socket:broadcastAvailableRooms", start, {
+    count: rows.length,
+  });
 }
 
 export default function setupSockets(io) {
@@ -445,6 +450,7 @@ export default function setupSockets(io) {
 
     // Joining room Socket
     socket.on("joinRoom", async (payload = {}, callback) => {
+      const start = perfStart();
       const ack = typeof callback === "function" ? callback : null;
       const resolved = resolveSocketUser(socket, payload);
       const { roomId } = payload;
@@ -553,6 +559,8 @@ export default function setupSockets(io) {
         console.error("joinRoom failed:", err);
         socket.emit("error", { message: "Server error" });
         if (ack) ack({ ok: false, error: "Server error" });
+      } finally {
+        perfLogDuration("socket:joinRoom", start, { roomId });
       }
     });
 
@@ -619,11 +627,14 @@ export default function setupSockets(io) {
 
     // getAvailableRooms Socket
     socket.on("getAvailableRooms", async () => {
+      const start = perfStart();
       await broadcastAvailableRooms(io);
+      perfLogDuration("socket:getAvailableRooms", start);
     });
 
     // getRoomState Socket
     socket.on("getRoomState", async ({ roomId }) => {
+      const start = perfStart();
       try {
         const result = await pool.query(
           `SELECT id, name, game_mode, host, player_count, players, status, ready_again, room_password_hash
@@ -656,6 +667,8 @@ export default function setupSockets(io) {
       } catch (err) {
         console.error("getRoomState failed:", err);
         socket.emit("error", { message: "Server error" });
+      } finally {
+        perfLogDuration("socket:getRoomState", start, { roomId });
       }
     });
 
@@ -872,7 +885,8 @@ export default function setupSockets(io) {
 
         game.setCallbacks({
           onTick: (state) => {
-            io.to(String(roomId)).emit("gameState", state);
+            const roomEmitter = io.to(String(roomId));
+            (roomEmitter.volatile ?? roomEmitter).emit("gameState", state);
           },
           onGameOver: async (summary) => {
             try {
@@ -946,7 +960,12 @@ export default function setupSockets(io) {
         return;
       }
 
-      game.emitState();
+      game.emitState({
+        emit: (state) => {
+          socket.emit("gameState", state);
+          socket.to(String(roomId)).emit("gameState", state);
+        },
+      });
     });
 
     // Socket disconnection

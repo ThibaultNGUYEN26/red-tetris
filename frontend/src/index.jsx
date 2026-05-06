@@ -181,6 +181,7 @@ function Index({ authMode = 'login' }) {
   useEffect(() => {
     if (username && userProfile?.avatar) {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+        ...userProfile,
         username,
         email: userProfile.email,
         avatar: userProfile.avatar,
@@ -211,8 +212,11 @@ function Index({ authMode = 'login' }) {
           const statsData = await statsResponse.json()
           if (cancelled) return
           setUserProfile({
+            ...statsData,
             username,
+            name: statsData.name || username,
             avatar: statsData.avatar || DEFAULT_URL_AVATAR,
+            statsFetchedAt: Date.now(),
           })
           return
         }
