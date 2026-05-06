@@ -342,7 +342,7 @@ describe('Game Component', () => {
     })
   })
 
-  it('moves the visible piece optimistically on keydown', async () => {
+  it('keeps the visible piece authoritative until the backend updates it', async () => {
     const renderedBoard = makeBoard()
     renderedBoard[0][4] = 't'
     renderedBoard[1][3] = 't'
@@ -385,8 +385,10 @@ describe('Game Component', () => {
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
 
     const cells = document.querySelectorAll('.game-board .cell')
-    expect(cells[3]).toHaveClass('cell-t')
-    expect(cells[12]).toHaveClass('cell-t')
+    expect(cells[3]).toHaveClass('cell-empty')
+    expect(cells[4]).toHaveClass('cell-t')
+    expect(cells[12]).toHaveClass('cell-empty')
+    expect(cells[13]).toHaveClass('cell-t')
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
   })
 

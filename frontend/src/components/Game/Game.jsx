@@ -1,5 +1,5 @@
 import './Game.css'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { unstable_batchedUpdates } from 'react-dom'
 import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
 import ShadowBoards from '../ShadowBoards/ShadowBoards'
@@ -70,97 +70,6 @@ const makeEmptyBoard = (size = DEFAULT_BOARD) =>
     Array.from({ length: size.width }, () => 'empty')
   )
 
-const cloneBoard = (source, size) => {
-  if (!source?.length) return makeEmptyBoard(size)
-  return source.map((row) => row.slice())
-}
-
-const canPlacePiece = (piece, x, y, lockedBoard, size) => {
-  if (!piece || !lockedBoard?.length) return false
-  const shape = SHAPES[piece.type]?.[piece.rotation]
-  if (!shape) return false
-
-  return shape.every(([row, col]) => {
-    const boardX = x + col
-    const boardY = y + row
-    if (boardX < 0 || boardX >= size.width || boardY >= size.height) return false
-    if (boardY < 0) return true
-    return lockedBoard[boardY]?.[boardX] === 'empty'
-  })
-}
-
-const getGhostY = (piece, lockedBoard, size) => {
-  let ghostY = piece.y
-  while (canPlacePiece(piece, piece.x, ghostY + 1, lockedBoard, size)) {
-    ghostY += 1
-  }
-  return ghostY
-}
-
-const renderPredictedBoard = ({ lockedBoard, currentPiece, size }) => {
-  const grid = cloneBoard(lockedBoard, size)
-  const shape = SHAPES[currentPiece?.type]?.[currentPiece?.rotation]
-  if (!currentPiece || !shape) return grid
-
-  const ghostY = getGhostY(currentPiece, lockedBoard, size)
-  shape.forEach(([row, col]) => {
-    const boardY = ghostY + row
-    const boardX = currentPiece.x + col
-    if (boardY >= 0 && boardY < size.height && boardX >= 0 && boardX < size.width) {
-      if (grid[boardY][boardX] === 'empty') {
-        grid[boardY][boardX] = 'ghost'
-      }
-    }
-  })
-
-  shape.forEach(([row, col]) => {
-    const boardY = currentPiece.y + row
-    const boardX = currentPiece.x + col
-    if (boardY >= 0 && boardY < size.height && boardX >= 0 && boardX < size.width) {
-      if (grid[boardY][boardX] === 'empty' || grid[boardY][boardX] === 'ghost') {
-        grid[boardY][boardX] = currentPiece.type
-      }
-    }
-  })
-
-  return grid
-}
-
-const getRotatedPiece = (piece, lockedBoard, size) => {
-  const rotations = SHAPES[piece.type]
-  if (!rotations?.length) return null
-  const from = piece.rotation
-  const to = (from + 1) % rotations.length
-  const key = `${from}>${to}`
-  const kicksJLSTZ = {
-    '0>1': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
-    '1>2': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
-    '2>3': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
-    '3>0': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
-  }
-  const kicksI = {
-    '0>1': [[0, 0], [-2, 0], [1, 0], [-2, 1], [1, -2]],
-    '1>2': [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]],
-    '2>3': [[0, 0], [2, 0], [-1, 0], [2, -1], [-1, 2]],
-    '3>0': [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]],
-  }
-  const kickTable = piece.type === 'i'
-    ? kicksI[key]
-    : piece.type === 'o'
-      ? [[0, 0]]
-      : kicksJLSTZ[key]
-
-  for (const [dx, dy] of kickTable || []) {
-    const x = piece.x + dx
-    const y = piece.y + dy
-    if (canPlacePiece({ ...piece, rotation: to }, x, y, lockedBoard, size)) {
-      return { ...piece, rotation: to, x, y }
-    }
-  }
-
-  return null
-}
-
 function Game({
   theme,
   onBack,
@@ -207,9 +116,6 @@ function Game({
   const winnerRef = useRef(null)
   const loserRef = useRef(null)
   const roomModeRef = useRef(null)
-  const predictionRef = useRef(null)
-  const cellRefsRef = useRef([])
-  const paintedBoardRef = useRef(null)
 
   const startMusic = () => {
     if (!soundEnabled) return
@@ -248,66 +154,9 @@ function Game({
     })
   }
 
-  const paintBoardToDom = (nextBoard) => {
-    const previousBoard = paintedBoardRef.current
-
-    nextBoard.forEach((row, rowIndex) => {
-      row.forEach((cell, colIndex) => {
-        if (previousBoard?.[rowIndex]?.[colIndex] === cell) return
-        const element = cellRefsRef.current[rowIndex]?.[colIndex]
-        if (element) {
-          element.className = `cell cell-${cell}`
-        }
-      })
-    })
-
-    paintedBoardRef.current = cloneBoard(nextBoard, boardSize)
-  }
-
   const setAuthoritativePlayerView = (player, mode) => {
     const size = getBoardSize(mode)
-    const lockedBoard = player?.boardLocked
-    const currentPiece = player?.currentPiece
-    predictionRef.current = lockedBoard && currentPiece
-      ? {
-          lockedBoard: cloneBoard(lockedBoard, size),
-          currentPiece: { ...currentPiece },
-          size,
-        }
-      : null
     setBoard(player?.board || makeEmptyBoard(size))
-  }
-
-  const applyOptimisticMove = (action) => {
-    const prediction = predictionRef.current
-    if (!prediction || !action) return
-
-    const { lockedBoard, size } = prediction
-    const piece = { ...prediction.currentPiece }
-    let nextPiece = null
-
-    if (action === 'left' || action === 'right') {
-      const x = piece.x + (action === 'left' ? -1 : 1)
-      if (canPlacePiece(piece, x, piece.y, lockedBoard, size)) {
-        nextPiece = { ...piece, x }
-      }
-    } else if (action === 'drop') {
-      const y = piece.y + 1
-      if (canPlacePiece(piece, piece.x, y, lockedBoard, size)) {
-        nextPiece = { ...piece, y }
-      }
-    } else if (action === 'rotate') {
-      nextPiece = getRotatedPiece(piece, lockedBoard, size)
-    } else if (action === 'hardDrop') {
-      nextPiece = { ...piece, y: getGhostY(piece, lockedBoard, size) }
-    }
-
-    if (!nextPiece) return
-
-    predictionRef.current = { ...prediction, currentPiece: nextPiece }
-    const predictedBoard = renderPredictedBoard(predictionRef.current)
-    paintBoardToDom(predictedBoard)
-    setBoard(predictedBoard)
   }
 
   const emitMove = (action) => {
@@ -330,7 +179,6 @@ function Game({
       }
     }
 
-    applyOptimisticMove(action)
     socket.emit('movePiece', { roomId: String(roomId), action })
     return true
   }
@@ -460,7 +308,6 @@ function Game({
       setGameMode(mode)
       setBoardSize(size)
       setBoard(makeEmptyBoard(size))
-      predictionRef.current = null
       setIsPaused(false)
       setShowMenu(false)
       setStats({ score: 0, lines: 0, level: 1 })
@@ -613,10 +460,6 @@ function Game({
     }
     wasBoardEmptyRef.current = isEmpty
   }, [board])
-
-  useLayoutEffect(() => {
-    paintedBoardRef.current = cloneBoard(board, boardSize)
-  }, [board, boardSize])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -841,12 +684,6 @@ function Game({
               row.map((cell, colIndex) => (
                 <div
                   key={`${rowIndex}-${colIndex}`}
-                  ref={(element) => {
-                    if (!cellRefsRef.current[rowIndex]) {
-                      cellRefsRef.current[rowIndex] = []
-                    }
-                    cellRefsRef.current[rowIndex][colIndex] = element
-                  }}
                   className={`cell cell-${cell}`}
                 />
               ))
