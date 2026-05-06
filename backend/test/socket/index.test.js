@@ -480,12 +480,14 @@ describe('socket setup', () => {
   it('movePiece processes input immediately and emits changed state for responsive controls', async () => {
     const { socket } = await setupConnectedSocket()
     const authoritativeState = { roomId: '1', players: [{ username: 'Titi' }] }
+    const playerState = { roomId: '1', player: { username: 'Titi', board: [['t']] } }
     const game = {
       isRunning: true,
       isOver: false,
       enqueueInput: vi.fn(),
       processQueuedInputsFor: vi.fn(),
       checkGameOver: vi.fn(() => ({ over: false })),
+      serializePlayerView: vi.fn(() => playerState),
       emitState: vi.fn(({ emit }) => emit(authoritativeState)),
     }
     mockGetGame.mockReturnValue(game)
@@ -496,8 +498,10 @@ describe('socket setup', () => {
 
     expect(game.enqueueInput).toHaveBeenCalledWith('Titi', 'left')
     expect(game.processQueuedInputsFor).toHaveBeenCalledWith('Titi')
+    expect(game.serializePlayerView).toHaveBeenCalledWith('Titi')
     expect(game.emitState).toHaveBeenCalledWith({ emit: expect.any(Function) })
-    expect(socket.emit).toHaveBeenCalledWith('gameState', authoritativeState)
+    expect(socket.emit).toHaveBeenCalledWith('playerState', playerState)
+    expect(socket.emit).not.toHaveBeenCalledWith('gameState', authoritativeState)
     expect(socket.to).toHaveBeenCalledWith('1')
     expect(socket.roomEmit).toHaveBeenCalledWith('gameState', authoritativeState)
   })
@@ -1040,6 +1044,29 @@ describe('socket setup', () => {
     socket.data.isSpectator = true
     movePieceHandler({ roomId: '1', action: 'right' })
     expect(enqueueInput).toHaveBeenCalledTimes(1)
+  })
+
+  it('movePiece drops excessive input bursts before enqueueing', async () => {
+    const enqueueInput = vi.fn()
+    mockGetGame.mockReturnValue({
+      isRunning: true,
+      isOver: false,
+      enqueueInput,
+      processQueuedInputsFor: vi.fn(),
+      checkGameOver: vi.fn(() => ({ over: false })),
+      serializePlayerView: vi.fn(() => null),
+      emitState: vi.fn(),
+    })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    const movePieceHandler = socket.handlers.get('movePiece')
+    for (let index = 0; index < 35; index += 1) {
+      movePieceHandler({ roomId: '1', action: 'left' })
+    }
+
+    expect(enqueueInput).toHaveBeenCalledTimes(30)
   })
 
   it('solo onGameOver updates solo stats, deletes the room, and removes the game', async () => {

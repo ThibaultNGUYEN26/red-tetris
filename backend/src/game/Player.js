@@ -60,6 +60,14 @@ export default class Player {
       tetrisCount: this.tetrisCount,
       linesSent: this.linesSent,
       maxLinesCleared: this.maxLinesCleared,
+      currentPiece: this.currentPiece
+        ? {
+            type: this.currentPiece.type.toLowerCase(),
+            rotation: this.currentPiece.rotation,
+            x: this.currentPiece.x,
+            y: this.currentPiece.y,
+          }
+        : null,
       nextType: this.nextPiece ? this.nextPiece.type.toLowerCase() : null,
     };
   }

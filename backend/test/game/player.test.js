@@ -54,6 +54,7 @@ describe('Player', () => {
       tetrisCount: 0,
       linesSent: 0,
       maxLinesCleared: 0,
+      currentPiece: null,
       nextType: 'l',
     })
   })
@@ -70,6 +71,7 @@ describe('Player', () => {
       tetrisCount: 0,
       linesSent: 0,
       maxLinesCleared: 0,
+      currentPiece: null,
       nextType: null,
     })
   })

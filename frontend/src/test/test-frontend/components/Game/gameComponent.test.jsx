@@ -46,6 +46,9 @@ const makeBoard = (height = 20, width = 10, fill = 'empty') =>
 const getSocketHandler = (event) =>
   socket.on.mock.calls.find(([registeredEvent]) => registeredEvent === event)?.[1]
 
+const boardCell = (row, col, width = 10) =>
+  document.querySelectorAll('.game-board .cell')[row * width + col]
+
 describe('Game Component', () => {
   let audioInstances
 
@@ -298,6 +301,131 @@ describe('Game Component', () => {
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'drop' })
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'rotate' })
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'hardDrop' })
+  })
+
+  it('renders authoritative playerState updates from the backend fast path', async () => {
+    const updatedBoard = makeBoard()
+    updatedBoard[0][4] = 't'
+    updatedBoard[1][3] = 't'
+    updatedBoard[1][4] = 't'
+    updatedBoard[1][5] = 't'
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: 'classic',
+        currentTurnUsername: null,
+        player: {
+          username: 'Titi',
+          board: updatedBoard,
+          score: 50,
+          lines: 1,
+          level: 1,
+          nextType: 'i',
+        },
+      })
+    })
+
+    await waitFor(() => {
+      expect(document.querySelectorAll('.game-board .cell-t')).toHaveLength(4)
+      expect(screen.getByText('50')).toBeInTheDocument()
+      expect(document.querySelectorAll('.next-grid .cell-i')).toHaveLength(4)
+    })
+  })
+
+  it('predicts local movement immediately from backend-authoritative state', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: 'classic',
+        boardWidth: 10,
+        boardHeight: 20,
+        isPaused: false,
+        player: {
+          username: 'Titi',
+          isAlive: true,
+          boardLocked: makeBoard(),
+          currentPiece: { type: 't', rotation: 0, x: 4, y: 0 },
+          nextType: 'i',
+        },
+      })
+    })
+
+    expect(boardCell(0, 5)).toHaveClass('cell-t')
+    expect(boardCell(0, 4)).not.toHaveClass('cell-t')
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(boardCell(0, 4)).toHaveClass('cell-t')
+    expect(boardCell(1, 3)).toHaveClass('cell-t')
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
+  })
+
+  it('corrects a local prediction when authoritative playerState disagrees', async () => {
+    const serverState = {
+      roomId: '1',
+      mode: 'classic',
+      boardWidth: 10,
+      boardHeight: 20,
+      isPaused: false,
+      player: {
+        username: 'Titi',
+        isAlive: true,
+        boardLocked: makeBoard(),
+        currentPiece: { type: 't', rotation: 0, x: 4, y: 0 },
+        nextType: 'i',
+      },
+    }
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('playerState')?.(serverState)
+    })
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(boardCell(0, 4)).toHaveClass('cell-t')
+
+    await act(async () => {
+      getSocketHandler('playerState')?.(serverState)
+    })
+
+    expect(boardCell(0, 5)).toHaveClass('cell-t')
+    expect(boardCell(0, 4)).not.toHaveClass('cell-t')
   })
 
   it('applies mirror controls and opens the multiplayer menu', async () => {

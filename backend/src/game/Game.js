@@ -767,18 +767,30 @@ export default class Game {
   serialize() {
     if (this.isCooperativeMode()) {
       const sharedPlayer = this.getCooperativePlayer();
+      const sharedCurrentPiece = sharedPlayer?.currentPiece
+        ? {
+            type: sharedPlayer.currentPiece.type.toLowerCase(),
+            rotation: sharedPlayer.currentPiece.rotation,
+            x: sharedPlayer.currentPiece.x,
+            y: sharedPlayer.currentPiece.y,
+          }
+        : null;
       return {
         roomId: this.roomId,
         mode: this.mode,
         mode_player: this.mode_player,
+        boardWidth: this.boardWidth,
+        boardHeight: this.boardHeight,
         currentTurnUsername: this.currentTurnUsername,
         isRunning: this.isRunning,
+        isPaused: this.isPaused,
         players: this.players.map(player => ({
           username: player.username,
           isAlive: sharedPlayer?.isAlive ?? false,
           score: sharedPlayer?.score ?? 0,
           lines: sharedPlayer?.lines ?? 0,
           level: sharedPlayer?.level ?? 1,
+          currentPiece: sharedCurrentPiece,
           nextType: sharedPlayer?.nextPiece ? sharedPlayer.nextPiece.type.toLowerCase() : null,
           isCurrentTurn: player.username === this.currentTurnUsername,
           cooperativeRole: this.cooperativeRoles[player.username] ?? null,
@@ -796,8 +808,11 @@ export default class Game {
       roomId: this.roomId,
       mode: this.mode,
       mode_player: this.mode_player,
+      boardWidth: this.boardWidth,
+      boardHeight: this.boardHeight,
       currentTurnUsername: this.currentTurnUsername,
       isRunning: this.isRunning,
+      isPaused: this.isPaused,
       players: this.players.map(player => ({
         ...player.serialize(),
         isCurrentTurn:
@@ -805,6 +820,68 @@ export default class Game {
         board: this.getRenderBoard(player, { includeActive: true, includeGhost: true }),
         boardLocked: this.getRenderBoard(player, { includeActive: false, includeGhost: false }),
       }))
+    };
+  }
+
+  serializePlayerView(username) {
+    const player = this.getPlayer(username);
+    if (!player) return null;
+
+    if (this.isCooperativeMode()) {
+      const sharedPlayer = this.getCooperativePlayer();
+      const sharedCurrentPiece = sharedPlayer?.currentPiece
+        ? {
+            type: sharedPlayer.currentPiece.type.toLowerCase(),
+            rotation: sharedPlayer.currentPiece.rotation,
+            x: sharedPlayer.currentPiece.x,
+            y: sharedPlayer.currentPiece.y,
+          }
+        : null;
+      return {
+        roomId: this.roomId,
+        mode: this.mode,
+        mode_player: this.mode_player,
+        boardWidth: this.boardWidth,
+        boardHeight: this.boardHeight,
+        currentTurnUsername: this.currentTurnUsername,
+        isRunning: this.isRunning,
+        isPaused: this.isPaused,
+        player: {
+          username: player.username,
+          isAlive: sharedPlayer?.isAlive ?? false,
+          score: sharedPlayer?.score ?? 0,
+          lines: sharedPlayer?.lines ?? 0,
+          level: sharedPlayer?.level ?? 1,
+          currentPiece: sharedCurrentPiece,
+          nextType: sharedPlayer?.nextPiece ? sharedPlayer.nextPiece.type.toLowerCase() : null,
+          isCurrentTurn: player.username === this.currentTurnUsername,
+          cooperativeRole: this.cooperativeRoles[player.username] ?? null,
+          board: sharedPlayer
+            ? this.getRenderBoard(sharedPlayer, { includeActive: true, includeGhost: true })
+            : [],
+          boardLocked: sharedPlayer
+            ? this.getRenderBoard(sharedPlayer, { includeActive: false, includeGhost: false })
+            : [],
+        },
+      };
+    }
+
+    return {
+      roomId: this.roomId,
+      mode: this.mode,
+      mode_player: this.mode_player,
+      boardWidth: this.boardWidth,
+      boardHeight: this.boardHeight,
+      currentTurnUsername: this.currentTurnUsername,
+      isRunning: this.isRunning,
+      isPaused: this.isPaused,
+      player: {
+        ...player.serialize(),
+        isCurrentTurn:
+          !this.isCooperativeMode() || player.username === this.currentTurnUsername,
+        board: this.getRenderBoard(player, { includeActive: true, includeGhost: true }),
+        boardLocked: this.getRenderBoard(player, { includeActive: false, includeGhost: false }),
+      },
     };
   }
 

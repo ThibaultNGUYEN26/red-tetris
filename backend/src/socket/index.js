@@ -5,6 +5,29 @@ import { resolveSocketUser, USERNAME_PATTERN } from "../auth/session.js";
 import { perfLogDuration, perfStart } from "../perf.js";
 
 const activeUsers = new Map();
+const MOVE_INPUT_RATE_PER_SECOND = 45;
+const MOVE_INPUT_BURST = 30;
+
+const consumeMoveInputBudget = (socket) => {
+  const now = Date.now();
+  const budget = socket.data.moveInputBudget ?? {
+    tokens: MOVE_INPUT_BURST,
+    updatedAt: now,
+  };
+  const elapsedSeconds = Math.max(0, (now - budget.updatedAt) / 1000);
+  const tokens = Math.min(
+    MOVE_INPUT_BURST,
+    budget.tokens + elapsedSeconds * MOVE_INPUT_RATE_PER_SECOND
+  );
+
+  if (tokens < 1) {
+    socket.data.moveInputBudget = { tokens, updatedAt: now };
+    return false;
+  }
+
+  socket.data.moveInputBudget = { tokens: tokens - 1, updatedAt: now };
+  return true;
+};
 
 export const isUsernameConnected = (username, socketId = null) => {
   if (!username) return false;
@@ -949,6 +972,7 @@ export default function setupSockets(io) {
 
       const username = socket.data.username;
       if (!username || !action || socket.data.isSpectator) return;
+      if (!consumeMoveInputBudget(socket)) return;
 
       game.enqueueInput(username, action);
       game.processQueuedInputsFor(username);
@@ -960,9 +984,13 @@ export default function setupSockets(io) {
         return;
       }
 
+      const playerState = game.serializePlayerView?.(username);
+      if (playerState) {
+        socket.emit("playerState", playerState);
+      }
+
       game.emitState({
         emit: (state) => {
-          socket.emit("gameState", state);
           socket.to(String(roomId)).emit("gameState", state);
         },
       });

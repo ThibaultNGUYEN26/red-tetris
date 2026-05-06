@@ -686,6 +686,63 @@ describe('Game', () => {
     ])
   })
 
+  it('serializes an authoritative single-player view for low-latency input replies', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    game.sequenceBuffer = ['T', 'I']
+    game.spawnForPlayer(player)
+
+    const state = game.serializePlayerView('Titi')
+
+    expect(state).toEqual(expect.objectContaining({
+      roomId: 'room-1',
+      mode: 'classic',
+      boardWidth: game.boardWidth,
+      boardHeight: game.boardHeight,
+      isRunning: false,
+      isPaused: false,
+      player: expect.objectContaining({
+        username: 'Titi',
+        currentPiece: expect.objectContaining({
+          type: 't',
+        }),
+        board: expect.any(Array),
+        boardLocked: expect.any(Array),
+        nextType: 'i',
+      }),
+    }))
+    expect(state.player.board.flat()).toContain('t')
+    expect(state.player.boardLocked.flat()).not.toContain('t')
+  })
+
+  it('serializes cooperative player views with turn and role metadata', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative_roles', 'multi', 'Titi')
+
+    game.cooperativeRoles = { Titi: 'rotate', Riri: 'place' }
+    players[0].board = Array.from({ length: game.boardHeight }, () =>
+      Array(game.boardWidth).fill('empty')
+    )
+    players[0].currentPiece = { type: 'O', rotation: 0, x: 4, y: 0 }
+    players[0].nextPiece = { type: 'L' }
+
+    const state = game.serializePlayerView('Titi')
+
+    expect(state.player).toEqual(expect.objectContaining({
+      username: 'Titi',
+      cooperativeRole: 'rotate',
+      currentPiece: {
+        type: 'o',
+        rotation: 0,
+        x: 4,
+        y: 0,
+      },
+      nextType: 'l',
+    }))
+    expect(state.player.board.flat()).toContain('o')
+  })
+
   it('evaluates non-cooperative isCurrentTurn from username comparison branch', () => {
     const players = [new Player('Titi', '1'), new Player('Riri', '2')]
     const game = new Game('room-1', players, 'classic', 'multi', 'Titi')
