@@ -534,24 +534,6 @@ function CreateRoom({
     onBack()
   }
 
-  /* ---------------- LEAVE ROOM ON TAB CLOSE/REFRESH ---------------- */
-
-  useEffect(() => {
-    if (!roomId) return;
-
-    const handleBeforeUnload = () => {
-      if (socket.connected) {
-        socket.emit("playerLeave", { roomId: String(roomId) });
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, [roomId]);
-
   /* ---------------- RENDER ---------------- */
 
   return (

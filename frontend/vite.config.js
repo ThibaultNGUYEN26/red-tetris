@@ -8,7 +8,6 @@ export default defineConfig({
     cssCodeSplit: false,
     rollupOptions: {
       output: {
-        entryFileNames: 'bundle.js',
         inlineDynamicImports: true,
       },
     },

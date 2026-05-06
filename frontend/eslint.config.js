@@ -39,4 +39,10 @@ export default defineConfig([
       },
     },
   },
+  {
+    files: ['*.config.js', 'vitest.reporter.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

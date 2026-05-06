@@ -556,6 +556,18 @@ function InfoPage({ type }) {
       currentIndex === tutorialControls.length - 1 ? 0 : currentIndex + 1
     ))
   }
+  const handleTutorialCarouselKeyDown = (event) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      showPreviousTutorial()
+      return
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      showNextTutorial()
+    }
+  }
 
   return (
     <>
@@ -622,6 +634,8 @@ function InfoPage({ type }) {
               className="tutorial-carousel"
               aria-roledescription="carousel"
               aria-label="Tetris controls tutorial"
+              tabIndex={0}
+              onKeyDown={handleTutorialCarouselKeyDown}
             >
               <button
                 className="tutorial-carousel-arrow previous"
@@ -648,8 +662,20 @@ function InfoPage({ type }) {
                 ›
               </button>
 
-              <div className="tutorial-carousel-status">
-                {activeTutorialIndex + 1} / {tutorialControls.length}
+              <div
+                className="tutorial-carousel-dots"
+                aria-label="Tutorial slides"
+              >
+                {tutorialControls.map((demo, index) => (
+                  <button
+                    key={demo.action}
+                    className={`tutorial-carousel-dot${index === activeTutorialIndex ? ' active' : ''}`}
+                    type="button"
+                    onClick={() => setActiveTutorialIndex(index)}
+                    aria-label={`Show ${demo.title}`}
+                    aria-current={index === activeTutorialIndex ? 'true' : undefined}
+                  />
+                ))}
               </div>
             </div>
           )}

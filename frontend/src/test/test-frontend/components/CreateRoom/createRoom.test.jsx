@@ -864,7 +864,7 @@ describe('CreateRoom Component', () => {
       expect(mockOnBack).toHaveBeenCalled()
     })
 
-    it('should notify the socket when the tab unloads from a room', async () => {
+    it('should keep the room session when the tab unloads so refresh can reconnect', async () => {
       socket.connected = true
 
       render(<CreateRoom {...defaultProps} mode="join" roomId={7} />)
@@ -879,7 +879,7 @@ describe('CreateRoom Component', () => {
 
       window.dispatchEvent(new Event('beforeunload'))
 
-      expect(socket.emit).toHaveBeenCalledWith('playerLeave', { roomId: '7' })
+      expect(socket.emit).not.toHaveBeenCalledWith('playerLeave', { roomId: '7' })
       socket.connected = false
     })
   })

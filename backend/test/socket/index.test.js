@@ -68,6 +68,8 @@ describe('socket setup', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.resetModules()
+    vi.useRealTimers()
+    delete process.env.RECONNECT_GRACE_MS
   })
 
   it('broadcastAvailableRooms emits only joinable waiting rooms', async () => {
@@ -1193,6 +1195,8 @@ describe('socket setup', () => {
   })
 
   it('disconnect removes the disconnected host from the room, promotes the next host, and ends the game when needed', async () => {
+    vi.useFakeTimers()
+    process.env.RECONNECT_GRACE_MS = '1000'
     const die = vi.fn()
     const onGameOver = vi.fn()
     mockGetGame.mockReturnValue({
@@ -1242,6 +1246,9 @@ describe('socket setup', () => {
     const disconnectHandler = socket.handlers.get('disconnect')
 
     await disconnectHandler()
+    expect(die).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(1000)
 
     expect(die).toHaveBeenCalled()
     expect(onGameOver).toHaveBeenCalledWith({ roomId: '1', winner: 'Riri' })
@@ -1429,6 +1436,40 @@ describe('socket setup', () => {
     ack = vi.fn()
     await joinRoomHandler({ roomId: '1', username: 'Titi' }, ack)
     expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Server error' })
+  })
+
+  it('joinRoom reconnects an existing player to a started game', async () => {
+    const gameState = { roomId: '1', players: [{ username: 'Titi' }] }
+    const player = { username: 'Titi', socketId: null }
+    mockGetGame.mockReturnValueOnce({
+      getPlayer: vi.fn(() => player),
+      serialize: vi.fn(() => gameState),
+    })
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 1,
+        game_mode: 'classic',
+        players: ['Titi', 'Riri'],
+        status: 'started',
+        ready_again: [],
+      }],
+    })
+
+    const { socket } = await setupConnectedSocket()
+    const joinRoomHandler = socket.handlers.get('joinRoom')
+    const ack = vi.fn()
+
+    await joinRoomHandler({ roomId: '1', username: 'Titi' }, ack)
+
+    expect(socket.join).toHaveBeenCalledWith('1')
+    expect(socket.emit).toHaveBeenCalledWith('gameStarted', {
+      roomId: '1',
+      reconnected: true,
+    })
+    expect(socket.emit).toHaveBeenCalledWith('gameState', gameState)
+    expect(player.socketId).toBe(socket.id)
+    expect(ack).toHaveBeenCalledWith({ ok: true, reconnected: true })
   })
 
   it('joinSpectator handles validation, registration failure, and room-state fallback', async () => {

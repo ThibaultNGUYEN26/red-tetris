@@ -712,7 +712,7 @@ describe('Rooms Component', () => {
   })
 
   describe('Leave Flows', () => {
-    it('should emit playerLeave on browser unload while inside a room', async () => {
+    it('should keep the room session on browser unload so refresh can reconnect', async () => {
       socket.connected = true
       render(<Rooms {...defaultProps} />)
 
@@ -733,7 +733,7 @@ describe('Rooms Component', () => {
 
       window.dispatchEvent(new Event('beforeunload'))
 
-      expect(socket.emit).toHaveBeenCalledWith('playerLeave', { roomId: '1' })
+      expect(socket.emit).not.toHaveBeenCalledWith('playerLeave', { roomId: '1' })
     })
 
     it('should log leave errors and still clear local room state', async () => {

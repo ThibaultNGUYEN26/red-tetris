@@ -5,8 +5,25 @@ import { resolveSocketUser, USERNAME_PATTERN } from "../auth/session.js";
 import { perfLogDuration, perfStart } from "../perf.js";
 
 const activeUsers = new Map();
+const pendingDisconnects = new Map();
 const MOVE_INPUT_RATE_PER_SECOND = 45;
 const MOVE_INPUT_BURST = 30;
+const DEFAULT_RECONNECT_GRACE_MS = 15000;
+
+const getReconnectGraceMs = () => {
+  const value = Number(process.env.RECONNECT_GRACE_MS);
+  return Number.isFinite(value) && value >= 0 ? value : DEFAULT_RECONNECT_GRACE_MS;
+};
+
+const getDisconnectKey = (roomId, username) => `${String(roomId)}:${username}`;
+
+const clearPendingDisconnect = (roomId, username) => {
+  const key = getDisconnectKey(roomId, username);
+  const timeout = pendingDisconnects.get(key);
+  if (!timeout) return;
+  clearTimeout(timeout);
+  pendingDisconnects.delete(key);
+};
 
 const consumeMoveInputBudget = (socket) => {
   const now = Date.now();
@@ -510,15 +527,31 @@ export default function setupSockets(io) {
         }
         const room = result.rows[0];
 
-        if (room.status === "started") {
-          if (ack) ack({ ok: false, error: "Game already started" });
-          return socket.emit("error", { message: "Game already started" });
-        }
-
         const currentPlayers = Array.isArray(room.players) ? room.players : [];
         const normalizedPlayerCount = currentPlayers.length;
         const maxPlayers = getMaxPlayers(room.game_mode);
         const isAlreadyInRoom = currentPlayers.includes(username);
+
+        if (room.status === "started") {
+          const game = getGame(String(roomId));
+          const player = game?.getPlayer?.(username);
+          if (!isAlreadyInRoom || !game || !player) {
+            if (ack) ack({ ok: false, error: "Game already started" });
+            return socket.emit("error", { message: "Game already started" });
+          }
+
+          clearPendingDisconnect(roomId, username);
+          socket.join(String(roomId));
+          socket.data.roomId = String(roomId);
+          socket.data.isSpectator = false;
+          player.socketId = socket.id;
+          socket.emit("gameStarted", { roomId: String(roomId), reconnected: true });
+          socket.emit("gameState", game.serialize());
+          if (ack) ack({ ok: true, reconnected: true });
+          return;
+        }
+
+        clearPendingDisconnect(roomId, username);
 
         if (!isAlreadyInRoom && room.room_password_hash) {
           if (!roomPassword) {
@@ -771,6 +804,8 @@ export default function setupSockets(io) {
         return;
       }
 
+      clearPendingDisconnect(roomId, effectiveUsername);
+
       // Remove player from Game instance
       const game = getGame(roomId);
       if (game) {
@@ -1004,32 +1039,35 @@ export default function setupSockets(io) {
       unregisterUsername(username, socket);
 
       if (!socket.data.isSpectator) {
-        let roomUpdated = false;
-
         if (roomId && username) {
-          const game = getGame(String(roomId));
+          clearPendingDisconnect(roomId, username);
+          const key = getDisconnectKey(roomId, username);
+          const timeout = setTimeout(async () => {
+            pendingDisconnects.delete(key);
+            const game = getGame(String(roomId));
 
-          if (game) {
-            const player = game.players.find(p => p.username === username);
+            if (game) {
+              const player = game.players.find(p => p.username === username);
 
-            if (player && player.isAlive) {
-              player.die();
+              if (player && player.isAlive) {
+                player.die();
 
-              const result = game.checkGameOver();
-              if (result.over) {
-                const summary = game.endGame();
-                if (game.onGameOver) game.onGameOver(summary);
+                const result = game.checkGameOver();
+                if (result.over) {
+                  const summary = game.endGame();
+                  if (game.onGameOver) game.onGameOver(summary);
+                }
               }
             }
-          }
 
-          await removePlayerFromRoom(roomId, username);
-          roomUpdated = true;
+            await removePlayerFromRoom(roomId, username);
+          }, getReconnectGraceMs());
+
+          pendingDisconnects.set(key, timeout);
+          return;
         }
 
-        if (!roomUpdated) {
-          await broadcastAvailableRooms(io);
-        }
+        await broadcastAvailableRooms(io);
       }
 
     });

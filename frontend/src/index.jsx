@@ -117,10 +117,12 @@ function Index({ authMode = 'login' }) {
   const [activeGameType, setActiveGameType] = useState(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [routeNotice, setRouteNotice] = useState('')
+  const [socketNotice, setSocketNotice] = useState(null)
   const [showProfileCard, setShowProfileCard] = useState(false)
   const bopAudioRef = useRef(null)
   const profileMenuRef = useRef(null)
   const soundEnabledRef = useRef(soundEnabled)
+  const hadSocketIssueRef = useRef(false)
 
   const isUsernameAlreadyConnected = async (name) => {
     if (!name) return false
@@ -310,6 +312,67 @@ function Index({ authMode = 'login' }) {
     }, 3500)
     return () => clearTimeout(timeoutId)
   }, [routeNotice])
+
+  useEffect(() => {
+    const showSocketIssue = (message) => {
+      hadSocketIssueRef.current = true
+      setSocketNotice({ type: 'warning', message })
+    }
+
+    const handleDisconnect = (reason) => {
+      if (reason === 'io client disconnect') return
+      showSocketIssue('Connection lost. Reconnecting...')
+    }
+
+    const handleConnectError = () => {
+      showSocketIssue('Server unavailable. Retrying...')
+    }
+
+    const handleBackendError = (error) => {
+      const message = typeof error?.message === 'string' ? error.message : 'Server error'
+      setSocketNotice({ type: 'error', message })
+      setTimeout(() => {
+        setSocketNotice((current) => (
+          current?.message === message ? null : current
+        ))
+      }, 4500)
+    }
+
+    const handleConnect = () => {
+      if (!hadSocketIssueRef.current) return
+      hadSocketIssueRef.current = false
+      setSocketNotice({ type: 'success', message: 'Reconnected.' })
+      setTimeout(() => {
+        setSocketNotice((current) => (
+          current?.message === 'Reconnected.' ? null : current
+        ))
+      }, 2500)
+    }
+
+    const handleReconnectAttempt = () => {
+      showSocketIssue('Reconnecting...')
+    }
+
+    const handleReconnectFailed = () => {
+      showSocketIssue('Unable to reconnect. Please refresh.')
+    }
+
+    socket.on('disconnect', handleDisconnect)
+    socket.on('connect_error', handleConnectError)
+    socket.on('error', handleBackendError)
+    socket.on('connect', handleConnect)
+    socket.io?.on('reconnect_attempt', handleReconnectAttempt)
+    socket.io?.on('reconnect_failed', handleReconnectFailed)
+
+    return () => {
+      socket.off('disconnect', handleDisconnect)
+      socket.off('connect_error', handleConnectError)
+      socket.off('error', handleBackendError)
+      socket.off('connect', handleConnect)
+      socket.io?.off('reconnect_attempt', handleReconnectAttempt)
+      socket.io?.off('reconnect_failed', handleReconnectFailed)
+    }
+  }, [])
 
   /* ---------------- PROFILE ---------------- */
 
@@ -619,6 +682,13 @@ function Index({ authMode = 'login' }) {
           returnHomeWithNotice('Room already used')
           return
         }
+        if (room.status === 'started' && room.players?.includes(username)) {
+          setSoloRoomId(room.id)
+          setActiveGameType('solo')
+          setShowSoloRoom(false)
+          setShowGame(true)
+          return
+        }
         if (getMaxPlayers(room.game_mode) <= room.player_count) {
           console.error('Solo room is full.')
           returnHomeWithNotice('Room already used')
@@ -668,10 +738,6 @@ function Index({ authMode = 'login' }) {
         }
 
         const userRoom = await userRoomRes.json()
-        if (userRoom.status === 'started') {
-          return true
-        }
-
         return !isSameDirectRoom(userRoom)
       }
 
@@ -778,7 +844,7 @@ function Index({ authMode = 'login' }) {
           return
         }
 
-        if (isUserAlreadyInFetchedRoom(room)) {
+        if (isUserAlreadyInFetchedRoom(room) && room.status !== 'started') {
           returnToProfileWithNotice('User already connected')
           return
         }
@@ -795,6 +861,13 @@ function Index({ authMode = 'login' }) {
           return
         }
         if (room.status === 'started') {
+          if (isUserAlreadyInFetchedRoom(room)) {
+            setDirectRoomId(room.id)
+            setActiveGameType(directRoomType || 'multi')
+            setShowDirectRoom(false)
+            setShowGame(true)
+            return
+          }
           console.error('Room already started.')
           returnHomeWithNotice('Room already used')
           return
@@ -922,9 +995,12 @@ function Index({ authMode = 'login' }) {
 
       {/* Content wrapper always rendered */}
       <div className={`content-wrapper ${showSiteFooter ? 'has-site-footer' : ''}`}>
-        {routeNotice && (
-          <div className="route-notice" role="alert">
-            {routeNotice}
+        {(socketNotice || routeNotice) && (
+          <div
+            className={`route-notice ${socketNotice?.type || 'error'}`}
+            role="alert"
+          >
+            {socketNotice?.message || routeNotice}
           </div>
         )}
         {showSiteFooter && (

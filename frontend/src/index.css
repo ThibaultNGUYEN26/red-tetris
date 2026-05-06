@@ -76,6 +76,20 @@ html, body, #root {
   backdrop-filter: blur(10px);
 }
 
+.route-notice.warning {
+  border-color: rgba(189, 126, 24, 0.38);
+  background: linear-gradient(135deg, rgba(255, 246, 218, 0.96), rgba(255, 229, 176, 0.92));
+  box-shadow: 0 10px 24px rgba(120, 76, 12, 0.18);
+  color: #805000;
+}
+
+.route-notice.success {
+  border-color: rgba(45, 135, 76, 0.36);
+  background: linear-gradient(135deg, rgba(228, 255, 239, 0.96), rgba(193, 242, 213, 0.92));
+  box-shadow: 0 10px 24px rgba(24, 92, 48, 0.16);
+  color: #1f6b45;
+}
+
 .site-footer {
   position: absolute;
   left: 0;
@@ -260,10 +274,16 @@ html, body, #root {
   grid-template-columns: 48px minmax(0, 1fr) 48px;
   grid-template-areas:
     "previous slide next"
-    "status status status";
+    "dots dots dots";
   align-items: center;
   gap: 14px;
   margin-bottom: 24px;
+  border-radius: 10px;
+  outline: none;
+}
+
+.tutorial-carousel:focus-visible {
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.28);
 }
 
 .tutorial-carousel-slide {
@@ -298,12 +318,27 @@ html, body, #root {
   grid-area: next;
 }
 
-.tutorial-carousel-status {
-  grid-area: status;
-  color: #4c7193;
-  font-size: 0.9rem;
-  font-weight: 850;
-  text-align: center;
+.tutorial-carousel-dots {
+  grid-area: dots;
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+}
+
+.tutorial-carousel-dot {
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(74, 144, 226, 0.45);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  padding: 0;
+}
+
+.tutorial-carousel-dot.active {
+  background: #2a7fd6;
+  border-color: #2a7fd6;
+  box-shadow: 0 0 0 4px rgba(42, 127, 214, 0.16);
 }
 
 .tutorial-demo {
@@ -845,6 +880,18 @@ html, body, #root {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
 }
 
+.sky-background.dark ~ .content-wrapper .route-notice.warning {
+  border-color: rgba(255, 197, 92, 0.42);
+  background: rgba(72, 49, 18, 0.92);
+  color: #ffe3a8;
+}
+
+.sky-background.dark ~ .content-wrapper .route-notice.success {
+  border-color: rgba(105, 225, 150, 0.42);
+  background: rgba(18, 64, 42, 0.92);
+  color: #c8ffd9;
+}
+
 .sky-background.dark ~ .content-wrapper .site-info-links {
   border-color: rgba(120, 150, 255, 0.44);
   background: rgba(20, 20, 40, 0.58);
@@ -945,8 +992,19 @@ html, body, #root {
   border-color: rgba(170, 190, 255, 0.64);
 }
 
-.sky-background.dark ~ .content-wrapper .tutorial-carousel-status {
-  color: #b0c4ff;
+.sky-background.dark ~ .content-wrapper .tutorial-carousel:focus-visible {
+  box-shadow: 0 0 0 3px rgba(120, 150, 255, 0.32);
+}
+
+.sky-background.dark ~ .content-wrapper .tutorial-carousel-dot {
+  border-color: rgba(140, 170, 255, 0.56);
+  background: rgba(24, 32, 66, 0.92);
+}
+
+.sky-background.dark ~ .content-wrapper .tutorial-carousel-dot.active {
+  background: #4dd7ff;
+  border-color: #4dd7ff;
+  box-shadow: 0 0 0 4px rgba(77, 215, 255, 0.18);
 }
 
 .sky-background.dark ~ .content-wrapper .tutorial-board {
@@ -1088,7 +1146,7 @@ html, body, #root {
     grid-template-areas:
       "slide slide"
       "previous next"
-      "status status";
+      "dots dots";
   }
 
   .tutorial-carousel-arrow.previous {

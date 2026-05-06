@@ -247,17 +247,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
 
   /* ---------------- LEAVE (LOBBY / IN-GAME) ---------------- */
 
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (socket.connected && currentRoomId) {
-        socket.emit("playerLeave", { roomId: String(currentRoomId) });
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [currentRoomId]);
-
   const handleLeave = async () => {
     if (!currentRoomId) {
       setCurrentRoomId(null);
