@@ -1,5 +1,5 @@
 import os from 'node:os'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
   appUse,
@@ -13,6 +13,7 @@ const {
   setupSocketsMock,
   poolQueryMock,
   ensureSchemaMock,
+  purgeExpiredDeletedAccountsMock,
   expressJsonMock,
   appInstance,
 } = vi.hoisted(() => {
@@ -33,6 +34,7 @@ const {
   const setupSocketsMock = vi.fn()
   const poolQueryMock = vi.fn().mockResolvedValue({ rows: [] })
   const ensureSchemaMock = vi.fn().mockResolvedValue(undefined)
+  const purgeExpiredDeletedAccountsMock = vi.fn().mockResolvedValue(undefined)
   const expressJsonMock = vi.fn(() => 'json-middleware')
   const appInstance = {
     use: appUse,
@@ -52,6 +54,7 @@ const {
     setupSocketsMock,
     poolQueryMock,
     ensureSchemaMock,
+    purgeExpiredDeletedAccountsMock,
     expressJsonMock,
     appInstance,
   }
@@ -106,6 +109,10 @@ vi.mock('../src/config/db.js', () => ({
   ensureSchema: ensureSchemaMock,
 }))
 
+vi.mock('../src/services/accountDeletion.service.js', () => ({
+  purgeExpiredDeletedAccounts: purgeExpiredDeletedAccountsMock,
+}))
+
 vi.mock('../src/config/env.js', () => ({}))
 
 describe('server bootstrap', () => {
@@ -123,8 +130,15 @@ describe('server bootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()
+    vi.useRealTimers()
     vi.stubEnv('FRONTEND_URL', frontendUrl)
     vi.stubEnv('PORT', port)
+    vi.stubEnv('PERF_LOG', '')
+    purgeExpiredDeletedAccountsMock.mockResolvedValue(undefined)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('wires middleware, routes, sockets, and starts listening', async () => {
@@ -157,6 +171,40 @@ describe('server bootstrap', () => {
     expect(listenMock).toHaveBeenCalledWith(port, '0.0.0.0')
     expect(poolQueryMock).toHaveBeenCalledWith('SELECT 1')
     expect(ensureSchemaMock).toHaveBeenCalled()
+    expect(purgeExpiredDeletedAccountsMock).toHaveBeenCalled()
+  })
+
+  it('logs HTTP request durations when perf logging is enabled', async () => {
+    vi.stubEnv('PERF_LOG', '1')
+    const consoleInfo = vi.spyOn(console, 'info').mockImplementation(() => {})
+
+    await import('../src/server.js')
+
+    const perfMiddleware = appUse.mock.calls.find(
+      ([middleware]) => typeof middleware === 'function'
+    )?.[0]
+    const req = { method: 'POST', originalUrl: '/api/rooms' }
+    const res = {
+      statusCode: 201,
+      on: vi.fn((event, callback) => {
+        if (event === 'finish') callback()
+      }),
+    }
+    const next = vi.fn()
+
+    perfMiddleware(req, res, next)
+
+    expect(res.on).toHaveBeenCalledWith('finish', expect.any(Function))
+    expect(consoleInfo).toHaveBeenCalledWith(
+      '[perf] http',
+      expect.objectContaining({
+        method: 'POST',
+        path: '/api/rooms',
+        status: 201,
+        durationMs: expect.any(Number),
+      })
+    )
+    expect(next).toHaveBeenCalled()
   })
 
   it('sets no-cache headers for /api requests', async () => {
@@ -197,7 +245,26 @@ describe('server bootstrap', () => {
 
     expect(consoleError).toHaveBeenCalledWith('DB connection failed:', dbError)
     expect(ensureSchemaMock).not.toHaveBeenCalled()
+    expect(purgeExpiredDeletedAccountsMock).not.toHaveBeenCalled()
     expect(listenMock).not.toHaveBeenCalled()
+  })
+
+  it('logs scheduled purge failures after startup', async () => {
+    vi.useFakeTimers()
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const purgeError = new Error('purge failed')
+    purgeExpiredDeletedAccountsMock
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(purgeError)
+
+    await import('../src/server.js')
+    await vi.advanceTimersByTimeAsync(1000 * 60 * 60 * 24)
+
+    expect(purgeExpiredDeletedAccountsMock).toHaveBeenCalledTimes(2)
+    expect(consoleError).toHaveBeenCalledWith(
+      'Expired account purge failed:',
+      purgeError
+    )
   })
 
   it('falls back to default port and frontend URL when env vars are missing', async () => {

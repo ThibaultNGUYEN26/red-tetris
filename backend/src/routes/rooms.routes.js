@@ -9,24 +9,15 @@ const router = express.Router();
 const ROOM_PASSWORD_MAX_LENGTH = 64;
 const getMaxPlayers = (gameMode) =>
   ["cooperative", "cooperative_roles"].includes(gameMode) ? 2 : 6;
-const formatModeLabel = (mode) => {
-  switch (mode) {
-    case "cooperative":
-      return "Co-op Alternate";
-    case "cooperative_roles":
-      return "Co-op Roles";
-    case "classic":
-      return "Classic";
-    case "mirror":
-      return "Mirror";
-    case "giant":
-      return "Giant";
-    case "chaotic":
-      return "Chaotic";
-    default:
-      return mode;
-  }
+const MODE_LABELS = {
+  cooperative: "Co-op Alternate",
+  cooperative_roles: "Co-op Roles",
+  classic: "Classic",
+  mirror: "Mirror",
+  giant: "Giant",
+  chaotic: "Chaotic",
 };
+const formatModeLabel = (mode) => MODE_LABELS[mode];
 
 async function attachPlayerAvatars(room) {
   const players = Array.isArray(room.players) ? room.players : [];

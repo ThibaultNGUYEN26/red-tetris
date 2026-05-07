@@ -110,6 +110,49 @@ describe('profile routes', () => {
     }))
   })
 
+  it('defaults missing account export stats to zero', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          username: 'Titi',
+          email: 'titi@example.com',
+          avatar: {},
+          created_at: new Date('2026-01-01T10:00:00.000Z'),
+          password_hash_stored: false,
+          reset_password_token_active: false,
+          reset_password_expires_at: null,
+          solo_games_played: null,
+          highest_solo_score: null,
+          multiplayer_games_played: null,
+          multiplayer_wins: null,
+          multiplayer_losses: null,
+        }],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/account/export')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi' } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      profileStats: {
+        soloGamesPlayed: 0,
+        highestSoloScore: 0,
+        multiplayerGamesPlayed: 0,
+        multiplayerWins: 0,
+        multiplayerLosses: 0,
+      },
+    }))
+  })
+
   it('returns 401 when exporting without authentication', async () => {
     const { default: router } = await import('../../src/routes/profile.routes.js')
     const handler = getHandler(router, 'get', '/account/export')
@@ -119,6 +162,39 @@ describe('profile routes', () => {
 
     expect(res.status).toHaveBeenCalledWith(401)
     expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' })
+  })
+
+  it('returns 404 when exporting an authenticated account that no longer exists', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/account/export')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi' } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(404)
+    expect(res.json).toHaveBeenCalledWith({ error: 'User not found' })
+  })
+
+  it('returns 500 when account export fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockQuery.mockRejectedValueOnce(new Error('db down'))
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/account/export')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi' } }, res)
+
+    expect(consoleError).toHaveBeenCalledWith('Account export failed:', expect.any(Error))
+    expect(res.status).toHaveBeenCalledWith(500)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
   })
 
   it('deletes authenticated account data and clears the session cookie', async () => {
@@ -154,6 +230,17 @@ describe('profile routes', () => {
     expect(res.json).toHaveBeenCalledWith({ ok: true, message: 'Account deleted' })
   })
 
+  it('returns 401 when deleting account data without authentication', async () => {
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'delete', '/account')
+    const res = buildRes()
+
+    await handler({ body: {} }, res)
+
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' })
+  })
+
   it('rolls back when account deletion fails', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockQuery
@@ -172,6 +259,26 @@ describe('profile routes', () => {
     expect(consoleError).toHaveBeenCalledWith('Account deletion failed:', expect.any(Error))
     expect(res.status).toHaveBeenCalledWith(500)
     expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
+  })
+
+  it('returns 404 when account deletion finds no user', async () => {
+    mockQuery
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ rowCount: 1 })
+      .mockResolvedValueOnce({ rowCount: 1 })
+      .mockResolvedValueOnce({ rowCount: 1 })
+      .mockResolvedValueOnce({ rowCount: 1 })
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({})
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'delete', '/account')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi' } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(404)
+    expect(res.json).toHaveBeenCalledWith({ error: 'User not found' })
   })
 
   it('returns 400 when username is missing for player stats', async () => {
@@ -425,6 +532,27 @@ describe('profile routes', () => {
     })
   })
 
+  it('uses zero wins in win/loss ratio when wins are null and losses are positive', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        username: 'Titi',
+        avatar: {},
+        multiplayer_wins: null,
+        multiplayer_losses: 2,
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/player/stats')
+    const res = buildRes()
+
+    await handler({ query: { username: 'Titi' } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json.mock.calls[0][0].advanced.multi.winLossRatio).toBe(0)
+  })
+
   it('returns 500 when fetching player stats fails', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockQuery.mockRejectedValueOnce(new Error('db down'))
@@ -581,6 +709,11 @@ describe('profile routes', () => {
     await handler({ body: { username: 'bad name', avatar: {} } }, res)
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({ error: 'Invalid username' })
+
+    res = buildRes()
+    await handler({ body: { avatar: {} } }, res)
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' })
   })
 
   it('upserts a profile and returns the saved row', async () => {
@@ -613,6 +746,60 @@ describe('profile routes', () => {
       username: 'Titi',
       avatar: { eyeType: 'happy' },
     })
+  })
+
+  it('returns forbidden when profile upsert targets a soft-deleted account', async () => {
+    mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'post', '/profile')
+    const res = buildRes()
+
+    await handler({
+      body: {
+        username: 'Titi',
+        avatar: { eyeType: 'happy' },
+      },
+    }, res)
+
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Account scheduled for deletion' })
+  })
+
+  it('uses row length fallback when profile upsert omits rowCount', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'post', '/profile')
+    const res = buildRes()
+
+    await handler({
+      body: {
+        username: 'Titi',
+        avatar: { eyeType: 'happy' },
+      },
+    }, res)
+
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Account scheduled for deletion' })
+  })
+
+  it('uses zero fallback when profile upsert omits both rowCount and rows', async () => {
+    mockQuery.mockResolvedValueOnce({})
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'post', '/profile')
+    const res = buildRes()
+
+    await handler({
+      body: {
+        username: 'Titi',
+        avatar: { eyeType: 'happy' },
+      },
+    }, res)
+
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Account scheduled for deletion' })
   })
 
   it('repairs the users id sequence and retries when the primary key sequence drifted', async () => {

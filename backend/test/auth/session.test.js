@@ -43,6 +43,8 @@ describe('session auth helpers', () => {
   const originalJwtSecret = process.env.JWT_SECRET
   const originalDbPassword = process.env.DB_PASSWORD
   const originalDisableAuthTestFallback = process.env.DISABLE_AUTH_TEST_FALLBACK
+  const originalVitest = process.env.VITEST
+  const originalVitestWorkerId = process.env.VITEST_WORKER_ID
 
   afterEach(() => {
     if (originalNodeEnv === undefined) delete process.env.NODE_ENV
@@ -55,6 +57,10 @@ describe('session auth helpers', () => {
     else process.env.DB_PASSWORD = originalDbPassword
     if (originalDisableAuthTestFallback === undefined) delete process.env.DISABLE_AUTH_TEST_FALLBACK
     else process.env.DISABLE_AUTH_TEST_FALLBACK = originalDisableAuthTestFallback
+    if (originalVitest === undefined) delete process.env.VITEST
+    else process.env.VITEST = originalVitest
+    if (originalVitestWorkerId === undefined) delete process.env.VITEST_WORKER_ID
+    else process.env.VITEST_WORKER_ID = originalVitestWorkerId
     vi.useRealTimers()
   })
 
@@ -76,8 +82,8 @@ describe('session auth helpers', () => {
     delete process.env.JWT_SECRET
     delete process.env.DB_PASSWORD
 
-    const defaultToken = createSessionToken({ id: 4, username: 'DefaultUser' })
-    expect(verifySessionToken(defaultToken)).toEqual({ id: '4', username: 'DefaultUser' })
+    const defaultToken = createSessionToken({ username: 'DefaultUser' })
+    expect(verifySessionToken(defaultToken)).toEqual({ id: 'DefaultUser', username: 'DefaultUser' })
 
     process.env.NODE_ENV = 'production'
     expect(() => assertSessionSecret()).toThrow('SESSION_SECRET is required in production')
@@ -85,6 +91,7 @@ describe('session auth helpers', () => {
 
   it('rejects invalid session users and malformed tokens', () => {
     expect(() => createSessionToken({ id: 1, username: 'bad name' })).toThrow('Invalid session user')
+    expect(() => createSessionToken({ id: 1 })).toThrow('Invalid session user')
     expect(verifySessionToken()).toBeNull()
     expect(verifySessionToken('missing-signature')).toBeNull()
     expect(verifySessionToken('.signature')).toBeNull()
@@ -107,6 +114,12 @@ describe('session auth helpers', () => {
     })).toString('base64url')
     const invalidUsernameSignature = signPayload(invalidUsernamePayload)
     expect(verifySessionToken(`${invalidUsernamePayload}.${invalidUsernameSignature}`)).toBeNull()
+
+    const missingUsernamePayload = Buffer.from(JSON.stringify({
+      sub: '1',
+      exp: Date.now() + 1000,
+    })).toString('base64url')
+    expect(verifySessionToken(`${missingUsernamePayload}.${signPayload(missingUsernamePayload)}`)).toBeNull()
 
     const invalidExpPayload = Buffer.from(JSON.stringify({
       sub: '1',
@@ -153,6 +166,9 @@ describe('session auth helpers', () => {
     expect(req.auth).toEqual({ id: '1', username: 'Titi' })
     expect(next).toHaveBeenCalled()
     expect(getCookieToken(req)).toBe(token)
+    expect(getCookieToken({
+      headers: { cookie: `${SESSION_COOKIE_NAME}=%E0%A4%A` },
+    })).toBe('')
 
     const cookieRes = buildRes()
     setSessionCookie(cookieRes, token)
@@ -176,6 +192,20 @@ describe('session auth helpers', () => {
     expect(authenticateRequest({ body: { host: 'HostUser' } })).toEqual({ username: 'HostUser' })
     expect(authenticateRequest({ params: { username: 'ParamUser' } })).toEqual({ username: 'ParamUser' })
     expect(authenticateRequest({ body: { username: 'bad name' } })).toBeNull()
+
+    process.env.DISABLE_AUTH_TEST_FALLBACK = 'true'
+    expect(authenticateRequest({ body: { username: 'FallbackUser' } })).toBeNull()
+  })
+
+  it('allows test identity fallback through the Vitest worker environment', () => {
+    process.env.NODE_ENV = 'development'
+    process.env.VITEST = 'false'
+    process.env.VITEST_WORKER_ID = '1'
+    delete process.env.DISABLE_AUTH_TEST_FALLBACK
+
+    expect(authenticateRequest({ body: { username: 'WorkerUser' } })).toEqual({
+      username: 'WorkerUser',
+    })
   })
 
   it('resolves socket users from tokens, test payloads, socket state, and failures', () => {
@@ -223,6 +253,12 @@ describe('session auth helpers', () => {
       ok: true,
       username: 'Existing',
     })
+    expect(resolveSocketUser({ data: {}, handshake: { auth: {} } }, { username: 'PayloadUser' })).toEqual({
+      ok: false,
+      error: 'Authentication required',
+    })
+
+    process.env.NODE_ENV = 'test'
     expect(resolveSocketUser({ data: {}, handshake: { auth: {} } }, { username: 'PayloadUser' })).toEqual({
       ok: false,
       error: 'Authentication required',

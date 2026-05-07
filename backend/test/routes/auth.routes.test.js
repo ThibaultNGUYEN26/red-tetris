@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { resetRateLimiters } from '../../src/middleware/rateLimiter.js'
 
 const mockQuery = vi.fn()
 const VALID_PASSWORD = 'Secret123!'
@@ -47,6 +48,8 @@ describe('auth routes', () => {
     sendResetPasswordEmail.mockReset()
     mockBcryptHash.mockClear()
     mockBcryptCompare.mockClear()
+    resetRateLimiters()
+    delete process.env.ENABLE_RATE_LIMIT_TESTS
   })
 
   it('validates register payload', async () => {
@@ -55,6 +58,10 @@ describe('auth routes', () => {
 
     let res = buildRes()
     await handler({ body: { username: '', email: '', password: '', confirmPassword: '', avatar: null } }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
+    await handler({}, res)
     expect(res.status).toHaveBeenCalledWith(400)
 
     res = buildRes()
@@ -288,6 +295,10 @@ describe('auth routes', () => {
     expect(res.status).toHaveBeenCalledWith(400)
 
     res = buildRes()
+    await handler({}, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
     await handler({ body: { username: 'bad name', password: VALID_PASSWORD } }, res)
     expect(res.status).toHaveBeenCalledWith(400)
   })
@@ -452,6 +463,10 @@ describe('auth routes', () => {
     expect(res.status).toHaveBeenCalledWith(400)
 
     res = buildRes()
+    await handler({}, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
     await handler({ body: { username: 'bad name', password: VALID_PASSWORD } }, res)
     expect(res.status).toHaveBeenCalledWith(400)
 
@@ -542,6 +557,10 @@ describe('auth routes', () => {
 
     let res = buildRes()
     await handler({ body: { username: '', email: '' } }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
+    await handler({}, res)
     expect(res.status).toHaveBeenCalledWith(400)
 
     res = buildRes()
@@ -653,6 +672,10 @@ describe('auth routes', () => {
     expect(res.status).toHaveBeenCalledWith(400)
 
     res = buildRes()
+    await handler({}, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
     await handler({ body: { token: 'abc', password: '123', confirmPassword: '123' } }, res)
     expect(res.status).toHaveBeenCalledWith(400)
 
@@ -704,6 +727,40 @@ describe('auth routes', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
 
     consoleError.mockRestore()
+  })
+
+  it('short-circuits auth endpoints when rate limited', async () => {
+    process.env.ENABLE_RATE_LIMIT_TESTS = 'true'
+    vi.setSystemTime(new Date('2026-05-01T00:00:00Z'))
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const endpoints = [
+      ['post', '/register'],
+      ['post', '/login'],
+      ['post', '/restore'],
+      ['post', '/forgot-password'],
+      ['post', '/reset-password'],
+    ]
+
+    for (const [method, path] of endpoints) {
+      resetRateLimiters()
+      const handler = getHandler(router, method, path)
+      const req = {
+        body: {},
+        headers: {},
+        ip: '198.51.100.50',
+        originalUrl: path,
+      }
+
+      for (let i = 0; i < 20; i += 1) {
+        await handler(req, buildRes())
+      }
+
+      const res = buildRes()
+      await handler(req, res)
+
+      expect(res.status).toHaveBeenCalledWith(429)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Too many requests' })
+    }
   })
 
   it('allows login with the new password after reset', async () => {

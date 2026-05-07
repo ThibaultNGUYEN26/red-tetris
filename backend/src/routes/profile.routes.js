@@ -456,10 +456,6 @@ router.post("/profile", async (req, res) => {
     if (!auth) return rejectUnauthenticated(res);
     const username = auth.username;
 
-    if (!/^[a-zA-Z0-9]{1,15}$/.test(username)) {
-      return res.status(400).json({ error: "Invalid username" });
-    }
-
     let result;
     try {
       result = await updateProfile(username, avatar);

@@ -57,6 +57,24 @@ describe('rooms routes', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Missing data' })
   })
 
+  it('rejects room creation when the room password is too long', async () => {
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const res = buildRes()
+
+    await handler(buildReq({
+      body: {
+        gameMode: 'classic',
+        host: 'Titi',
+        roomPassword: 'x'.repeat(65),
+      },
+    }), res)
+
+    expect(mockQuery).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Room password is too long' })
+  })
+
   it('rejects room creation when the user is already in another room', async () => {
     mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 9 }] })
 
@@ -72,6 +90,7 @@ describe('rooms routes', () => {
 
   it('creates a room and broadcasts available rooms', async () => {
     mockQuery
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
       .mockResolvedValueOnce({ rowCount: 0, rows: [] })
       .mockResolvedValueOnce({
         rowCount: 1,
@@ -102,6 +121,54 @@ describe('rooms routes', () => {
       })
     )
     expect(mockBroadcastAvailableRooms).toHaveBeenCalledWith(io)
+  })
+
+  it('rejects unauthenticated room creation before querying user room state', async () => {
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const res = buildRes()
+
+    await handler(buildReq({ body: { gameMode: 'classic' } }), res)
+
+    expect(mockQuery).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' })
+  })
+
+  it('hashes listed room passwords when creating rooms', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Protected',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 1,
+          is_listed: true,
+          players: ['Titi'],
+          room_password_hash: 'hash',
+        }],
+      })
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const res = buildRes()
+
+    await handler(buildReq({
+      body: {
+        gameMode: 'classic',
+        host: 'Titi',
+        name: 'Protected',
+        roomPassword: 'secret',
+      },
+    }), res)
+
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      has_password: true,
+    }))
   })
 
   it('creates a solo room as unlisted', async () => {
@@ -201,6 +268,21 @@ describe('rooms routes', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'FastTetris-ABCD' })
     )
+  })
+
+  it('passes through undefined rooms defensively when exposing room data', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [],
+    })
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'get', '/by-name/:name')
+    const res = buildRes()
+
+    await handler(buildReq({ params: { name: 'GhostRoom' } }), res)
+
+    expect(res.json).toHaveBeenCalledWith(undefined)
   })
 
   it('returns a room by player username', async () => {
@@ -558,6 +640,10 @@ describe('rooms routes', () => {
     expect(res.status).toHaveBeenCalledWith(400)
 
     res = buildRes()
+    await handler(buildReq({ params: { roomId: '1' }, body: { name: 'NewRoom' } }), res)
+    expect(res.status).toHaveBeenCalledWith(401)
+
+    res = buildRes()
     await handler(buildReq({ params: { roomId: '1' }, body: { name: 'bad name!', username: 'Titi' } }), res)
     expect(res.status).toHaveBeenCalledWith(400)
 
@@ -595,6 +681,10 @@ describe('rooms routes', () => {
     res = buildRes()
     await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'invalid', username: 'Titi' } }), res)
     expect(res.status).toHaveBeenCalledWith(400)
+
+    res = buildRes()
+    await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'classic' } }), res)
+    expect(res.status).toHaveBeenCalledWith(401)
 
     mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Host', player_count: 1 }] })
     res = buildRes()
@@ -662,5 +752,35 @@ describe('rooms routes', () => {
         player_avatars: {},
       })
     )
+  })
+
+  it('updates room mode without emitting when no io instance exists', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 1 }] })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          host: 'Titi',
+          players: null,
+          game_mode: 'mirror',
+        }],
+      })
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'patch', '/:roomId/mode')
+    const res = buildRes()
+
+    await handler(buildReq({
+      params: { roomId: '1' },
+      body: { mode: 'mirror', username: 'Titi' },
+    }), res)
+
+    expect(mockBroadcastAvailableRooms).not.toHaveBeenCalled()
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      game_mode: 'mirror',
+      player_avatars: {},
+    }))
   })
 })
