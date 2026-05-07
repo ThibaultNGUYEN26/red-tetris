@@ -606,14 +606,13 @@ function CreateRoom({
               )}
             </div>
           )}
+          {visibleRoomPassword && (
+            <div className="room-password-display" aria-label="Room password">
+              <span className="room-password-display-label">Password</span>
+              <span className="room-password-display-value">{visibleRoomPassword}</span>
+            </div>
+          )}
         </div>
-
-        {visibleRoomPassword && (
-          <div className="room-password-display" aria-label="Room password">
-            <span className="room-password-display-label">Password</span>
-            <span className="room-password-display-value">{visibleRoomPassword}</span>
-          </div>
-        )}
 
         {/* Game Mode */}
         <div className="form-group">
