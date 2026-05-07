@@ -5,11 +5,13 @@ const {
   mockCreateGame,
   mockGetGame,
   mockRemoveGame,
+  mockBcryptCompare,
 } = vi.hoisted(() => ({
   mockQuery: vi.fn(),
   mockCreateGame: vi.fn(),
   mockGetGame: vi.fn(),
   mockRemoveGame: vi.fn(),
+  mockBcryptCompare: vi.fn(async (password, hash) => password === hash),
 }))
 
 vi.mock('../../src/config/db.js', () => ({
@@ -22,6 +24,13 @@ vi.mock('../../src/game/gameManager.js', () => ({
   createGame: mockCreateGame,
   getGame: mockGetGame,
   removeGame: mockRemoveGame,
+}))
+
+vi.mock('bcryptjs', () => ({
+  default: {
+    compare: mockBcryptCompare,
+  },
+  compare: mockBcryptCompare,
 }))
 
 const createSocket = (id = 'socket-1') => {
@@ -70,6 +79,7 @@ describe('socket setup', () => {
     vi.resetModules()
     vi.useRealTimers()
     delete process.env.RECONNECT_GRACE_MS
+    delete process.env.DISABLE_AUTH_TEST_FALLBACK
   })
 
   it('broadcastAvailableRooms emits only joinable waiting rooms', async () => {
@@ -170,6 +180,124 @@ describe('socket setup', () => {
     ])
   })
 
+  it('updateProfile retries after syncing the users id sequence on primary-key conflicts', async () => {
+    mockQuery
+      .mockRejectedValueOnce({ code: '23505', constraint: 'users_pkey' })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ id: 1, username: 'Titi', avatar: { eyeType: 'happy' } }],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const { socket } = await setupConnectedSocket()
+    const updateProfileHandler = socket.handlers.get('updateProfile')
+    const ack = vi.fn()
+
+    await updateProfileHandler({
+      username: 'Titi',
+      avatar: { eyeType: 'happy' },
+    }, ack)
+
+    expect(mockQuery).toHaveBeenNthCalledWith(2, expect.stringContaining('SELECT setval'))
+    expect(ack).toHaveBeenCalledWith({
+      ok: true,
+      profile: { id: 1, username: 'Titi', avatar: { eyeType: 'happy' } },
+    })
+  })
+
+  it('updateProfile reports soft-deleted accounts and unexpected failures', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { socket } = await setupConnectedSocket()
+    const updateProfileHandler = socket.handlers.get('updateProfile')
+
+    mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
+    let ack = vi.fn()
+    await updateProfileHandler({
+      username: 'Titi',
+      avatar: { eyeType: 'happy' },
+    }, ack)
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Account scheduled for deletion' })
+
+    mockQuery.mockRejectedValueOnce(new Error('db down'))
+    ack = vi.fn()
+    await updateProfileHandler({
+      username: 'Riri',
+      avatar: { eyeType: 'sad' },
+    }, ack)
+    expect(consoleError).toHaveBeenCalledWith('updateProfile failed:', expect.any(Error))
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Server error' })
+  })
+
+  it('updateProfile validates usernames before saving', async () => {
+    const io = createIo()
+    const firstSocket = createSocket('socket-1')
+    const secondSocket = createSocket('socket-2')
+    const { default: setupSockets } = await import('../../src/socket/index.js')
+
+    setupSockets(io)
+    const connectionHandler = io.on.mock.calls.find(([event]) => event === 'connection')[1]
+    connectionHandler(firstSocket)
+    connectionHandler(secondSocket)
+
+    let ack = vi.fn()
+    await secondSocket.handlers.get('updateProfile')({
+      username: 'Bad Name',
+      avatar: { eyeType: 'happy' },
+    }, ack)
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Invalid username' })
+
+    firstSocket.handlers.get('registerUser')({ username: 'Titi' }, vi.fn())
+
+    ack = vi.fn()
+    await secondSocket.handlers.get('updateProfile')({
+      username: 'Titi',
+      avatar: { eyeType: 'happy' },
+    }, ack)
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Username already connected' })
+    expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('updateProfile rejects missing profile data before saving', async () => {
+    const { socket } = await setupConnectedSocket()
+    const updateProfileHandler = socket.handlers.get('updateProfile')
+    const ack = vi.fn()
+
+    await updateProfileHandler({ username: 'Titi' }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Missing data' })
+    expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('updateProfile reports duplicate registration if the username is claimed during save', async () => {
+    const io = createIo()
+    const firstSocket = createSocket('socket-1')
+    const secondSocket = createSocket('socket-2')
+    const { default: setupSockets } = await import('../../src/socket/index.js')
+
+    setupSockets(io)
+    const connectionHandler = io.on.mock.calls.find(([event]) => event === 'connection')[1]
+    connectionHandler(firstSocket)
+    connectionHandler(secondSocket)
+
+    mockQuery.mockImplementationOnce(async () => {
+      firstSocket.handlers.get('registerUser')({ username: 'Titi' }, vi.fn())
+      return {
+        rowCount: 1,
+        rows: [{ id: 1, username: 'Titi', avatar: { eyeType: 'happy' } }],
+      }
+    })
+
+    const ack = vi.fn()
+    await secondSocket.handlers.get('updateProfile')({
+      username: 'Titi',
+      avatar: { eyeType: 'happy' },
+    }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Username already connected' })
+  })
+
   it('joinRoom validates required fields', async () => {
     const { socket } = await setupConnectedSocket()
 
@@ -226,6 +354,7 @@ describe('socket setup', () => {
       .mockResolvedValueOnce({
         rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }],
       })
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({
         rows: [{ id: 1, name: 'Room', game_mode: 'classic', host: 'Host', player_count: 2, players: ['Host', 'Titi'] }],
       })
@@ -1117,6 +1246,192 @@ describe('socket setup', () => {
     expect(mockRemoveGame).toHaveBeenCalledWith('1')
   })
 
+  it('solo onGameOver retries score insert after syncing the solo score id sequence', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+          is_listed: false,
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({ rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockRejectedValueOnce({ code: '23505', constraint: 'solo_scores_pkey' })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Titi', avatar: { eyeType: 'happy' }, score: 42 }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'solo',
+      activePlayTimeMs: 3000,
+      players: [{ username: 'Titi', score: 42, lines: 4, level: 2, tetrisCount: 1 }],
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+    await callbacks.onGameOver({ winner: null })
+
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('solo_scores_id_seq'))
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO solo_scores'),
+      ['Titi', 42, 4, 2, 1, 3]
+    )
+  })
+
+  it('solo onGameOver skips score insertion when the user stats row is missing', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+          is_listed: false,
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({ rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'solo',
+      players: [{ username: 'Titi', score: 42 }],
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+    await callbacks.onGameOver({ winner: null })
+
+    expect(mockQuery).not.toHaveBeenCalledWith(expect.stringContaining('INSERT INTO solo_scores'), expect.any(Array))
+    expect(mockRemoveGame).toHaveBeenCalledWith('1')
+  })
+
+  it('solo onGameOver logs non-retryable solo score insert errors', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+          is_listed: false,
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({ rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockRejectedValueOnce(new Error('insert failed'))
+
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'solo',
+      players: [{ username: 'Titi', score: 42 }],
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+    await callbacks.onGameOver({ winner: null })
+
+    expect(consoleError).toHaveBeenCalledWith('Game over handling failed:', expect.any(Error))
+  })
+
+  it('classic multiplayer onGameOver stores per-player match stats', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValue({ rowCount: 1, rows: [] })
+
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'multi',
+      mode: 'classic',
+      statsUpdated: false,
+      players: [{ username: 'Titi' }, { username: 'Riri' }],
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+    await callbacks.onGameOver({
+      mode: 'classic',
+      winner: 'Titi',
+      durationSeconds: 90,
+      results: [
+        { username: 'Titi', score: 100, lines: 10, level: 3, tetrisCount: 2, linesSent: 4 },
+        { username: 'Riri', score: 50, lines: 5, level: 2, tetrisCount: 1, linesSent: 0 },
+      ],
+    })
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO multiplayer_scores'),
+      ['Titi', 100, 10, 3, 2, 4, 90, true, 'classic']
+    )
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO multiplayer_scores'),
+      ['Riri', 50, 5, 2, 1, 0, 90, false, 'classic']
+    )
+    expect(game.statsUpdated).toBe(true)
+  })
+
   it('cooperative onGameOver updates coop leaderboard and finishes the room', async () => {
     mockQuery
       .mockResolvedValueOnce({
@@ -1260,6 +1575,44 @@ describe('socket setup', () => {
         player_avatars: { Riri: { eyeType: 'sad' } },
       })
     )
+  })
+
+  it('joinRoom clears a pending disconnect when the player reconnects during the grace period', async () => {
+    vi.useFakeTimers()
+    process.env.RECONNECT_GRACE_MS = '1000'
+    mockGetGame.mockReturnValue(null)
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 1,
+          players: ['Titi'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 1, name: 'Room', game_mode: 'classic', host: 'Titi', player_count: 1, players: ['Titi'] }],
+      })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+    socket.data.roomId = '1'
+
+    await socket.handlers.get('disconnect')()
+    await socket.handlers.get('joinRoom')({ roomId: '1', username: 'Titi' }, vi.fn())
+
+    expect(socket.join).toHaveBeenCalledWith('1')
+
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(mockQuery).toHaveBeenCalledTimes(3)
   })
 
   it('disconnect skips room refresh for spectators', async () => {
@@ -1438,6 +1791,106 @@ describe('socket setup', () => {
     expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Server error' })
   })
 
+  it('joinRoom rejects duplicate active usernames before loading the room', async () => {
+    const io = createIo()
+    const firstSocket = createSocket('socket-1')
+    const secondSocket = createSocket('socket-2')
+    const { default: setupSockets } = await import('../../src/socket/index.js')
+
+    setupSockets(io)
+    const connectionHandler = io.on.mock.calls.find(([event]) => event === 'connection')[1]
+    connectionHandler(firstSocket)
+    connectionHandler(secondSocket)
+
+    firstSocket.handlers.get('registerUser')({ username: 'Titi' }, vi.fn())
+
+    const ack = vi.fn()
+    await secondSocket.handlers.get('joinRoom')({ roomId: '1', username: 'Titi' }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Username already connected' })
+    expect(secondSocket.emit).toHaveBeenCalledWith('error', { message: 'Username already connected' })
+    expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('joinRoom enforces password-protected rooms', async () => {
+    const { socket } = await setupConnectedSocket()
+    const joinRoomHandler = socket.handlers.get('joinRoom')
+
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 1,
+        game_mode: 'classic',
+        players: ['Host'],
+        player_count: 1,
+        status: 'waiting',
+        ready_again: [],
+        room_password_hash: 'secret',
+      }],
+    })
+    let ack = vi.fn()
+    await joinRoomHandler({ roomId: '1', username: 'Titi' }, ack)
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Room password required' })
+
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 1,
+        game_mode: 'classic',
+        players: ['Host'],
+        player_count: 1,
+        status: 'waiting',
+        ready_again: [],
+        room_password_hash: 'secret',
+      }],
+    })
+    ack = vi.fn()
+    await joinRoomHandler({ roomId: '1', username: 'Titi', roomPassword: 'wrong' }, ack)
+    expect(mockBcryptCompare).toHaveBeenCalledWith('wrong', 'secret')
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Invalid room password' })
+  })
+
+  it('joinRoom handles no-callback full, success, and error paths', async () => {
+    const { socket } = await setupConnectedSocket()
+    const joinRoomHandler = socket.handlers.get('joinRoom')
+
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{ id: 1, game_mode: 'cooperative', players: ['A', 'B'], player_count: 2, status: 'waiting', ready_again: [] }],
+    })
+    await joinRoomHandler({ roomId: '1', username: 'Titi' })
+    expect(socket.emit).toHaveBeenCalledWith('error', { message: 'Room is full' })
+
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Host',
+          player_count: 1,
+          players: ['Host'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Host', avatar: { eyeType: 'sad' } },
+          { username: 'Riri', avatar: { eyeType: 'happy' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+    await joinRoomHandler({ roomId: '1', username: 'Riri' })
+    expect(socket.join).toHaveBeenCalledWith('1')
+
+    mockQuery.mockRejectedValueOnce(new Error('db down'))
+    await joinRoomHandler({ roomId: '2', username: 'Riri' })
+    expect(socket.emit).toHaveBeenCalledWith('error', { message: 'Server error' })
+  })
+
   it('joinRoom reconnects an existing player to a started game', async () => {
     const gameState = { roomId: '1', players: [{ username: 'Titi' }] }
     const player = { username: 'Titi', socketId: null }
@@ -1497,6 +1950,62 @@ describe('socket setup', () => {
     expect(ack).toHaveBeenCalledWith({ ok: true })
   })
 
+  it('joinSpectator rejects duplicate active usernames before loading the room', async () => {
+    const io = createIo()
+    const firstSocket = createSocket('socket-1')
+    const secondSocket = createSocket('socket-2')
+    const { default: setupSockets } = await import('../../src/socket/index.js')
+
+    setupSockets(io)
+    const connectionHandler = io.on.mock.calls.find(([event]) => event === 'connection')[1]
+    connectionHandler(firstSocket)
+    connectionHandler(secondSocket)
+
+    firstSocket.handlers.get('registerUser')({ username: 'Titi' }, vi.fn())
+
+    const ack = vi.fn()
+    await secondSocket.handlers.get('joinSpectator')({ roomId: '1', username: 'Titi' }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Username already connected' })
+    expect(secondSocket.emit).toHaveBeenCalledWith('error', { message: 'Username already connected' })
+    expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('joinSpectator handles no-callback validation and success paths', async () => {
+    const io = createIo()
+    const firstSocket = createSocket('socket-1')
+    const secondSocket = createSocket('socket-2')
+    const thirdSocket = createSocket('socket-3')
+    const { default: setupSockets } = await import('../../src/socket/index.js')
+
+    setupSockets(io)
+    const connectionHandler = io.on.mock.calls.find(([event]) => event === 'connection')[1]
+    connectionHandler(firstSocket)
+    connectionHandler(secondSocket)
+    connectionHandler(thirdSocket)
+
+    await firstSocket.handlers.get('joinSpectator')({ roomId: '', username: '' })
+
+    await firstSocket.handlers.get('joinSpectator')({ roomId: '1', username: 'Bad Name' })
+    expect(firstSocket.emit).toHaveBeenCalledWith('error', { message: 'Invalid username' })
+
+    firstSocket.handlers.get('registerUser')({ username: 'Titi' }, vi.fn())
+    await secondSocket.handlers.get('joinSpectator')({ roomId: '1', username: 'Titi' })
+    expect(secondSocket.emit).toHaveBeenCalledWith('error', { message: 'Username already connected' })
+
+    mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
+    await thirdSocket.handlers.get('joinSpectator')({ roomId: '1', username: 'Riri' })
+    expect(thirdSocket.join).not.toHaveBeenCalled()
+
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{ id: 1, name: 'Room', players: ['Host'], status: 'waiting' }],
+    })
+    mockGetGame.mockReturnValueOnce(null)
+    await thirdSocket.handlers.get('joinSpectator')({ roomId: '1', username: 'Riri' })
+    expect(thirdSocket.emit).toHaveBeenCalledWith('roomState', expect.objectContaining({ id: 1 }))
+  })
+
   it('pauseGame returns early for invalid payload and non-solo/non-running games', async () => {
     const pause = vi.fn()
     const resume = vi.fn()
@@ -1523,6 +2032,56 @@ describe('socket setup', () => {
     await getAvailableRoomsHandler()
 
     expect(io.emit).toHaveBeenCalledWith('availableRooms', [])
+  })
+
+  it('leaderboard handlers emit solo and coop leaderboard payloads', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Titi', avatar: { eyeType: 'happy' }, score: 42 }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{
+          player_one: 'Titi',
+          avatar_one: { eyeType: 'happy' },
+          player_two: 'Riri',
+          avatar_two: { eyeType: 'sad' },
+          score: 500,
+        }],
+      })
+
+    const { socket } = await setupConnectedSocket()
+
+    await socket.handlers.get('getLeaderboardSolo')()
+    await socket.handlers.get('getLeaderboardCoop')()
+
+    expect(socket.emit).toHaveBeenCalledWith('leaderboardSolo', [
+      { rank: 1, name: 'Titi', avatar: { eyeType: 'happy' }, score: 42 },
+    ])
+    expect(socket.emit).toHaveBeenCalledWith('leaderboardCoop', [
+      {
+        rank: 1,
+        players: [
+          { name: 'Titi', avatar: { eyeType: 'happy' } },
+          { name: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+        score: 500,
+      },
+    ])
+  })
+
+  it('leaderboard handlers log query failures', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockQuery
+      .mockRejectedValueOnce(new Error('solo down'))
+      .mockRejectedValueOnce(new Error('coop down'))
+
+    const { socket } = await setupConnectedSocket()
+
+    await socket.handlers.get('getLeaderboardSolo')()
+    await socket.handlers.get('getLeaderboardCoop')()
+
+    expect(consoleError).toHaveBeenCalledWith('getLeaderboardSolo failed:', expect.any(Error))
+    expect(consoleError).toHaveBeenCalledWith('getLeaderboardCoop failed:', expect.any(Error))
   })
 
   it('getRoomState handles room-not-found and started-room-without-game paths', async () => {
@@ -1565,6 +2124,60 @@ describe('socket setup', () => {
     expect(mockCreateGame).not.toHaveBeenCalled()
   })
 
+  it('startGame defaults missing game mode to classic', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri'], host: 'Titi', status: 'started' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const game = { setCallbacks: vi.fn(), start: vi.fn(), mode_player: 'multi' }
+    mockCreateGame.mockReturnValue(game)
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+
+    expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
+  })
+
+  it('startGame refuses a finished room when no ready_again players are available', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        host: 'Titi',
+        players: ['Titi', 'Riri'],
+        status: 'finished',
+        game_mode: 'classic',
+      }],
+    })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+
+    expect(mockCreateGame).not.toHaveBeenCalled()
+    expect(socket.emit).toHaveBeenCalledWith('error', {
+      message: 'This room requires between 2 and 6 players to start.',
+    })
+  })
+
   it('playAgain returns early for invalid payload and missing room rows', async () => {
     const { socket } = await setupConnectedSocket()
     const playAgainHandler = socket.handlers.get('playAgain')
@@ -1576,6 +2189,52 @@ describe('socket setup', () => {
     await playAgainHandler({ roomId: '1', username: 'Titi' })
 
     expect(mockQuery).toHaveBeenCalledTimes(1)
+  })
+
+  it('playAgain returns early when socket authentication fails', async () => {
+    process.env.DISABLE_AUTH_TEST_FALLBACK = 'true'
+    const { socket } = await setupConnectedSocket()
+
+    await socket.handlers.get('playAgain')({ roomId: '1', username: 'Titi' })
+
+    expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('playAgain handles null ready_again lists', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ id: 1, ready_again: null }],
+      })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          host: 'Titi',
+          players: ['Titi'],
+          ready_again: ['Titi'],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 1, name: 'Room', game_mode: 'classic', host: 'Titi', player_count: 1, players: ['Titi'] }],
+      })
+
+    const { io, socket } = await setupConnectedSocket()
+
+    await socket.handlers.get('playAgain')({ roomId: '1', username: 'Titi' })
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('SET ready_again = $1'),
+      [['Titi'], 'waiting', 1]
+    )
+    expect(io.roomEmit).toHaveBeenCalledWith(
+      'roomState',
+      expect.objectContaining({ ready_again: ['Titi'] })
+    )
   })
 
   it('movePiece returns early when no running game exists', async () => {
@@ -1590,5 +2249,318 @@ describe('socket setup', () => {
     mockGetGame.mockReturnValueOnce({ isRunning: false, isOver: false, enqueueInput })
     movePieceHandler({ roomId: '1', action: 'left' })
     expect(enqueueInput).not.toHaveBeenCalled()
+  })
+
+  it('playerLeave succeeds without an acknowledgement callback', async () => {
+    mockGetGame.mockReturnValue(null)
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 1,
+          players: ['Titi'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await expect(socket.handlers.get('playerLeave')({ roomId: '1', username: 'Titi' })).resolves.toBeUndefined()
+    expect(socket.leave).toHaveBeenCalledWith('1')
+  })
+
+  it('playerLeave reports authentication failures before mutating room state', async () => {
+    process.env.DISABLE_AUTH_TEST_FALLBACK = 'true'
+    const { socket } = await setupConnectedSocket()
+    const playerLeaveHandler = socket.handlers.get('playerLeave')
+    const ack = vi.fn()
+
+    await playerLeaveHandler({ roomId: '1', username: 'Titi' }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Authentication required' })
+    expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('playerLeave returns on authentication failure without an acknowledgement callback', async () => {
+    process.env.DISABLE_AUTH_TEST_FALLBACK = 'true'
+    const { socket } = await setupConnectedSocket()
+
+    await expect(socket.handlers.get('playerLeave')({ roomId: '1', username: 'Titi' })).resolves.toBeUndefined()
+    expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('playerLeave lets spectators leave without an acknowledgement callback', async () => {
+    const { socket } = await setupConnectedSocket()
+    socket.data.isSpectator = true
+
+    await expect(socket.handlers.get('playerLeave')({ roomId: '1', username: 'Spec' })).resolves.toBeUndefined()
+    expect(socket.leave).toHaveBeenCalledWith('1')
+  })
+
+  it('playerLeave tolerates missing in-game players and non-final leaves', async () => {
+    mockGetGame
+      .mockReturnValueOnce({
+        getPlayer: vi.fn(() => null),
+      })
+      .mockReturnValueOnce({
+        getPlayer: vi.fn(() => ({ isAlive: true })),
+        checkGameOver: vi.fn(() => ({ over: false })),
+        endGame: vi.fn(),
+      })
+    mockQuery.mockResolvedValue({
+      rowCount: 1,
+      rows: [{ id: 1, host: 'Titi', players: ['Titi'], ready_again: [] }],
+    })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('playerLeave')({ roomId: '1', username: 'Titi' }, vi.fn())
+
+    socket.data.username = 'Titi'
+    await socket.handlers.get('playerLeave')({ roomId: '1', username: 'Titi' }, vi.fn())
+
+    expect(mockGetGame).toHaveBeenCalledWith('1')
+  })
+
+  it('playerLeave tolerates missing room ids', async () => {
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('playerLeave')({ username: 'Titi' }, vi.fn())
+
+    expect(mockQuery).not.toHaveBeenCalled()
+    expect(socket.leave).toHaveBeenCalledWith('undefined')
+  })
+
+  it('playerLeave handles missing room rows and players absent from the room', async () => {
+    mockGetGame.mockReturnValue(null)
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 1,
+          players: ['Titi'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Riri'
+
+    await socket.handlers.get('playerLeave')({ roomId: '1', username: 'Riri' }, vi.fn())
+    await socket.handlers.get('playerLeave')({ roomId: '1', username: 'Riri' }, vi.fn())
+
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('WHERE id = $1'), [1])
+  })
+
+  it('playerLeave removes non-host players when ready_again is null', async () => {
+    mockGetGame.mockReturnValue(null)
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 2,
+          players: ['Titi', 'Riri'],
+          status: 'waiting',
+          ready_again: null,
+        }],
+      })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 1,
+          players: ['Titi'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Riri'
+
+    await socket.handlers.get('playerLeave')({ roomId: '1', username: 'Riri' }, vi.fn())
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE rooms'),
+      [1, ['Titi'], 1, 'Titi', []]
+    )
+  })
+
+  it('movePiece ends the game when immediate input causes game over', async () => {
+    const summary = { roomId: '1', winner: 'Titi' }
+    const onGameOver = vi.fn()
+    const game = {
+      isRunning: true,
+      isOver: false,
+      enqueueInput: vi.fn(),
+      processQueuedInputsFor: vi.fn(),
+      checkGameOver: vi.fn(() => ({ over: true })),
+      endGame: vi.fn(() => summary),
+      onGameOver,
+    }
+    mockGetGame.mockReturnValueOnce(game)
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+    const movePieceHandler = socket.handlers.get('movePiece')
+
+    movePieceHandler({ roomId: '1', action: 'hardDrop' })
+
+    expect(game.endGame).toHaveBeenCalled()
+    expect(onGameOver).toHaveBeenCalledWith(summary)
+    expect(socket.emit).not.toHaveBeenCalledWith('playerState', expect.anything())
+  })
+
+  it('movePiece handles game over when no onGameOver callback is installed', async () => {
+    const game = {
+      isRunning: true,
+      isOver: false,
+      enqueueInput: vi.fn(),
+      processQueuedInputsFor: vi.fn(),
+      checkGameOver: vi.fn(() => ({ over: true })),
+      endGame: vi.fn(() => ({ roomId: '1', winner: 'Titi' })),
+    }
+    mockGetGame.mockReturnValueOnce(game)
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    expect(() => socket.handlers.get('movePiece')({ roomId: '1', action: 'hardDrop' })).not.toThrow()
+    expect(game.endGame).toHaveBeenCalled()
+  })
+
+  it('disconnect can finish a game without an onGameOver callback installed', async () => {
+    vi.useFakeTimers()
+    process.env.RECONNECT_GRACE_MS = '1000'
+    const die = vi.fn()
+    mockGetGame.mockReturnValue({
+      players: [{ username: 'Titi', isAlive: true, die }],
+      checkGameOver: vi.fn(() => ({ over: true, winner: 'Riri' })),
+      endGame: vi.fn(() => ({ roomId: '1', winner: 'Riri' })),
+    })
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 1,
+          players: ['Titi'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+    socket.data.roomId = '1'
+
+    await socket.handlers.get('disconnect')()
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect(die).toHaveBeenCalled()
+  })
+
+  it('disconnect leaves game state alone when the tracked player is already dead or missing', async () => {
+    vi.useFakeTimers()
+    process.env.RECONNECT_GRACE_MS = '1000'
+    const die = vi.fn()
+    mockQuery.mockResolvedValue({
+      rowCount: 1,
+      rows: [{ id: 1, host: 'Titi', players: ['Titi'], ready_again: [] }],
+    })
+    mockGetGame
+      .mockReturnValueOnce({
+        players: [{ username: 'Titi', isAlive: false, die }],
+        checkGameOver: vi.fn(),
+        endGame: vi.fn(),
+      })
+      .mockReturnValueOnce({
+        players: [{ username: 'Riri', isAlive: true, die }],
+        checkGameOver: vi.fn(),
+        endGame: vi.fn(),
+      })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+    socket.data.roomId = '1'
+
+    await socket.handlers.get('disconnect')()
+    await vi.advanceTimersByTimeAsync(1000)
+
+    socket.data.username = 'Titi'
+    socket.data.roomId = '2'
+    await socket.handlers.get('disconnect')()
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect(die).not.toHaveBeenCalled()
+  })
+
+  it('disconnect timeout tolerates missing games and non-final player deaths', async () => {
+    vi.useFakeTimers()
+    process.env.RECONNECT_GRACE_MS = '1000'
+    const die = vi.fn()
+    const endGame = vi.fn()
+    mockQuery.mockResolvedValue({
+      rowCount: 1,
+      rows: [{ id: 1, host: 'Titi', players: ['Titi'], ready_again: [] }],
+    })
+    mockGetGame
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce({
+        players: [{ username: 'Titi', isAlive: true, die }],
+        checkGameOver: vi.fn(() => ({ over: false })),
+        endGame,
+      })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+    socket.data.roomId = '1'
+
+    await socket.handlers.get('disconnect')()
+    await vi.advanceTimersByTimeAsync(1000)
+
+    socket.data.username = 'Titi'
+    socket.data.roomId = '2'
+    await socket.handlers.get('disconnect')()
+    await vi.advanceTimersByTimeAsync(1000)
+
+    expect(die).toHaveBeenCalled()
+    expect(endGame).not.toHaveBeenCalled()
   })
 })

@@ -622,6 +622,32 @@ describe('auth routes', () => {
     }
   })
 
+  it('uses the local frontend URL for reset links when none is configured', async () => {
+    const previousFrontendUrl = process.env.FRONTEND_URL
+    delete process.env.FRONTEND_URL
+
+    mockQuery
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 8 }] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+    sendResetPasswordEmail.mockResolvedValueOnce()
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'post', '/forgot-password')
+    const res = buildRes()
+
+    await handler({ body: { username: 'Titi', email: 'titi@example.com' } }, res)
+
+    expect(sendResetPasswordEmail).toHaveBeenCalledWith(expect.objectContaining({
+      resetUrl: expect.stringContaining('http://localhost:8080/reset-password?token='),
+    }))
+
+    if (previousFrontendUrl === undefined) {
+      delete process.env.FRONTEND_URL
+    } else {
+      process.env.FRONTEND_URL = previousFrontendUrl
+    }
+  })
+
   it('succeeds silently when forgot password email does not exist', async () => {
     mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
 
