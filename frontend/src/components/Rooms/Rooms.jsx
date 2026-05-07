@@ -19,12 +19,14 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   const [currentRoomId, setCurrentRoomId] = useState(null)
   const [pendingPlayAgain, setPendingPlayAgain] = useState(false)
   const [createRoomPassword, setCreateRoomPassword] = useState('')
+  const [currentRoomPassword, setCurrentRoomPassword] = useState('')
   const [joinRoomPasswords, setJoinRoomPasswords] = useState({})
   const [activePasswordRoomId, setActivePasswordRoomId] = useState(null)
   const [showJoinRoomPasswords, setShowJoinRoomPasswords] = useState({})
 
   const hasJoinedRef = useRef(false)
   const roomsRequestStartRef = useRef(null)
+  const joinPasswordInputRefs = useRef({})
 
   const buildRoomPath = (roomName, gameMode) => {
     if (!roomName) return '/'
@@ -85,6 +87,11 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
     joinRoom(foundRoom.id, foundRoom)
   }, [joinRoomName, rooms, username])
 
+  useEffect(() => {
+    if (!activePasswordRoomId) return
+    joinPasswordInputRefs.current[activePasswordRoomId]?.focus()
+  }, [activePasswordRoomId])
+
   /* ---------------- JOIN ROOM (SHARED) ---------------- */
 
   const joinRoom = async (roomId, roomInfo) => {
@@ -122,6 +129,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         socket.emit('getRoomState', { roomId: roomKey })
         setCurrentRoomId(roomId)
         setActivePasswordRoomId(null)
+        setCurrentRoomPassword(roomPassword)
         setJoinRoomPasswords((current) => ({ ...current, [roomKey]: '' }))
         if (roomInfo?.name) {
           setCurrentRoomName(roomInfo.name)
@@ -225,6 +233,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   const handleRoomCreated = (roomId, roomName, roomType) => {
     setCurrentRoomId(roomId)
     setCurrentRoomName(roomName)
+    setCurrentRoomPassword(createRoomPassword.trim())
     navigate(
       buildRoomPath(
         roomName,
@@ -250,6 +259,8 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   const handleLeave = async () => {
     if (!currentRoomId) {
       setCurrentRoomId(null);
+      setCurrentRoomPassword('');
+      setCreateRoomPassword('');
       setShowCreateRoom(false);
       setShowCreateRoomPicker(false);
       setShowGame(false);
@@ -271,6 +282,8 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
     }
     finally {
       setCurrentRoomId(null);
+      setCurrentRoomPassword('');
+      setCreateRoomPassword('');
       setShowCreateRoom(false);
       setShowCreateRoomPicker(false);
       setShowGame(false);
@@ -340,7 +353,8 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         roomId={currentRoomId}
         mode={showCreateRoom ? 'create' : 'join'}
         roomType={createRoomType}
-        initialRoomPassword={createRoomPassword}
+        initialRoomPassword={showCreateRoom ? createRoomPassword : currentRoomPassword}
+        knownRoomPassword={currentRoomPassword}
         onBack={handleExitLobby}
         onRoomCreated={handleRoomCreated}
         onRoomRenamed={handleRoomRenamed}
@@ -414,6 +428,13 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
                     <div className="room-join-password">
                       <div className="password-input-wrapper">
                         <input
+                          ref={(element) => {
+                            if (element) {
+                              joinPasswordInputRefs.current[roomKey] = element
+                            } else {
+                              delete joinPasswordInputRefs.current[roomKey]
+                            }
+                          }}
                           type="text"
                           value={joinRoomPasswords[roomKey] || ''}
                           onChange={(event) => {
