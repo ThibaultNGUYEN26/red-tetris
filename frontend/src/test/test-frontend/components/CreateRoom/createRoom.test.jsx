@@ -864,6 +864,30 @@ describe('CreateRoom Component', () => {
       expect(mockOnBack).toHaveBeenCalled()
     })
 
+    it('should not request deleted room state after leaving with the back button', async () => {
+      render(<CreateRoom {...defaultProps} isSolo />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const availableRoomsHandler = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      socket.emit.mockClear()
+      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+
+      await act(async () => {
+        availableRoomsHandler?.([])
+      })
+
+      expect(socket.emit).not.toHaveBeenCalledWith(
+        'getRoomState',
+        expect.objectContaining({ roomId: '1' })
+      )
+    })
+
     it('should keep the room session when the tab unloads so refresh can reconnect', async () => {
       socket.connected = true
 

@@ -107,13 +107,22 @@
 }
 
 .room-name-display {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) 2.4rem;
   align-items: center;
   gap: 0.5rem;          /* 🔥 spacing between text and pen */
   background: transparent;
   border: none;
   padding: 0;
-  justify-content: center;
+  width: 100%;
+  max-width: 420px;
+}
+
+.room-name-display::before {
+  content: "";
+  display: block;
+  width: 2.4rem;
+  height: 2.4rem;
 }
 
 .room-name-text {
@@ -121,25 +130,50 @@
   color: #2a5298;
   font-weight: 700;
   text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .edit-button {
-  background: transparent;
-  border: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  background: rgba(255, 255, 255, 0.42);
+  border: 1px solid rgba(42, 82, 152, 0.22);
   cursor: pointer;
-  font-size: 1.2rem;
-  padding: 0.25rem;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  font-size: 0;
+  padding: 0;
+  border-radius: 10px;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.7;
+  color: #2a5298;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.45);
+  justify-self: end;
+  flex: 0 0 auto;
+}
+
+.edit-button::before {
+  content: "\270E";
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 700;
 }
 
 .edit-button:hover {
-  background: rgba(100, 150, 255, 0.2);
-  opacity: 1;
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(42, 82, 152, 0.38);
+  box-shadow:
+    0 3px 10px rgba(42, 82, 152, 0.16),
+    inset 0 1px 2px rgba(255, 255, 255, 0.55);
+}
+
+.edit-button:focus-visible {
+  outline: 2px solid rgba(42, 82, 152, 0.55);
+  outline-offset: 2px;
 }
 
 .edit-button:active {
@@ -591,6 +625,18 @@
   text-shadow: 0 0 10px rgba(100, 150, 255, 0.6);
 }
 
+.create-room-card.dark .edit-button {
+  background: rgba(50, 50, 80, 0.58);
+  border-color: rgba(150, 170, 255, 0.24);
+  color: #d0e0ff;
+}
+
+.create-room-card.dark .edit-button:hover,
+.create-room-card.dark .edit-button:focus-visible {
+  background: rgba(70, 75, 115, 0.78);
+  border-color: rgba(180, 195, 255, 0.44);
+}
+
 .create-room-card.dark .wave-text {
   color: #c4d6ff;
   text-shadow: 0 0 8px rgba(100, 150, 255, 0.4);
@@ -642,7 +688,13 @@
   }
 
   .edit-button {
-    font-size: 1rem;
+    width: 2.1rem;
+    height: 2.1rem;
+    font-size: 0;
+  }
+
+  .edit-button::before {
+    font-size: 0.95rem;
   }
 
   .room-name-input {

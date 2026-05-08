@@ -61,6 +61,7 @@ function CreateRoom({
   const hasEditedName = useRef(false)
   const hasStartedGame = useRef(false)
   const hasJoinedRoom = useRef(false)
+  const isLeavingRoom = useRef(false)
 
   const resolvedRoomName = (nameFromServer) => {
     if (preferredRoomName) return preferredRoomName
@@ -237,6 +238,7 @@ function CreateRoom({
 
     socket.emit("joinRoom", { roomId: String(roomId), username, roomPassword }, (response) => {
       if (cancelled) return
+      if (isLeavingRoom.current) return
 
       if (!response?.ok) {
         if (response?.error === 'Room password required' || response?.error === 'Invalid room password') {
@@ -268,6 +270,8 @@ function CreateRoom({
     if (!roomId) return
 
     const handleAvailableRooms = (rooms = []) => {
+      if (isLeavingRoom.current) return
+
       const currentRoom = Array.isArray(rooms)
         ? rooms.find((room) => String(room.id) === String(roomId))
         : null
@@ -505,6 +509,7 @@ function CreateRoom({
 
   const handleJoinPasswordSubmit = (event) => {
     event.preventDefault()
+    if (isLeavingRoom.current) return
     if (!roomPassword.trim()) {
       setPasswordError('Room password required')
       return
@@ -512,6 +517,8 @@ function CreateRoom({
 
     setPasswordError('')
     socket.emit("joinRoom", { roomId: String(roomId), username, roomPassword }, (response) => {
+      if (isLeavingRoom.current) return
+
       if (!response?.ok) {
         setNeedsRoomPassword(true)
         setPasswordError(
@@ -531,6 +538,8 @@ function CreateRoom({
   }
 
   const handleBack = async () => {
+    isLeavingRoom.current = true
+    setRoomId(null)
     onBack()
   }
 
@@ -597,7 +606,13 @@ function CreateRoom({
             <div className="room-name-display">
               <span className="room-name-text">{roomName}</span>
               {hostName === username && (
-                <button className="edit-button" onClick={handleEditClick}>
+                <button
+                  className="edit-button"
+                  onClick={handleEditClick}
+                  aria-label="Edit room name"
+                  title="Edit room name"
+                  type="button"
+                >
                   ✏️
                 </button>
               )}
