@@ -178,7 +178,7 @@ export function resolveSocketUser(socket, payload = {}) {
     return { ok: true, username: tokenUser.username };
   }
 
-  if (allowsTestIdentityFallback() && USERNAME_PATTERN.test(payload?.username || "")) {
+  if (allowsTestIdentityFallback()) {
     return { ok: true, username: payload.username };
   }
 

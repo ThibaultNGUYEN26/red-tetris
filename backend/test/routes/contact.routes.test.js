@@ -69,6 +69,36 @@ describe('contact routes', () => {
     })
   })
 
+  it('normalizes forwarded contact sender data and non-string fields', async () => {
+    sendContactEmail.mockResolvedValueOnce()
+
+    const { default: router } = await import('../../src/routes/contact.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const res = buildRes()
+
+    await handler({
+      headers: { 'x-forwarded-for': '198.51.100.20, 10.0.0.1' },
+      body: {
+        object: '  Feedback  ',
+        message: '  Nice game  ',
+        userEmail: ' PLAYER@EXAMPLE.COM ',
+        website: 42,
+      },
+    }, res)
+
+    expect(sendContactEmail).toHaveBeenCalledWith({
+      object: 'Feedback',
+      message: 'Nice game',
+      userEmail: 'player@example.com',
+    })
+    expect(res.status).toHaveBeenCalledWith(200)
+
+    const missingRes = buildRes()
+    await handler({ body: { object: 123, message: null, userEmail: 'player@example.com' } }, missingRes)
+    expect(missingRes.status).toHaveBeenCalledWith(400)
+    expect(missingRes.json).toHaveBeenCalledWith({ error: 'Missing data' })
+  })
+
   it('rejects honeypot submissions', async () => {
     const { default: router } = await import('../../src/routes/contact.routes.js')
     const handler = getHandler(router, 'post', '/')
@@ -103,6 +133,33 @@ describe('contact routes', () => {
     expect(res.status).toHaveBeenCalledWith(400)
     expect(res.json).toHaveBeenCalledWith({ error: 'Email is required' })
     expect(sendContactEmail).not.toHaveBeenCalled()
+  })
+
+  it('rejects oversized contact fields', async () => {
+    const { default: router } = await import('../../src/routes/contact.routes.js')
+    const handler = getHandler(router, 'post', '/')
+
+    let res = buildRes()
+    await handler({
+      body: {
+        object: 'x'.repeat(121),
+        message: 'Short enough',
+        userEmail: 'player@example.com',
+      },
+    }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Object is too long' })
+
+    res = buildRes()
+    await handler({
+      body: {
+        object: 'Bug report',
+        message: 'x'.repeat(4001),
+        userEmail: 'player@example.com',
+      },
+    }, res)
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Message is too long' })
   })
 
   it('rate limits repeated contact messages from one client', async () => {
@@ -154,5 +211,37 @@ describe('contact routes', () => {
 
     expect(res.status).toHaveBeenCalledWith(500)
     expect(res.json).toHaveBeenCalledWith({ error: 'Mail service not configured' })
+  })
+
+  it('resets contact rate limits and reports generic send failures', async () => {
+    process.env.CONTACT_RATE_LIMIT_MAX = '1'
+    process.env.CONTACT_RATE_LIMIT_WINDOW_MS = '60000'
+    sendContactEmail
+      .mockResolvedValueOnce()
+      .mockResolvedValueOnce()
+      .mockRejectedValueOnce(new Error('smtp down'))
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const { default: router, resetContactRateLimit } = await import('../../src/routes/contact.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const req = {
+      headers: { 'x-real-ip': '203.0.113.10' },
+      body: {
+        object: 'Bug report',
+        message: 'The game got stuck after a solo round.',
+        userEmail: 'player@example.com',
+      },
+    }
+
+    await handler(req, buildRes())
+    resetContactRateLimit()
+    await handler(req, buildRes())
+
+    const res = buildRes()
+    await handler({ ...req, headers: { 'x-real-ip': '203.0.113.11' } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(500)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
+    consoleError.mockRestore()
   })
 })

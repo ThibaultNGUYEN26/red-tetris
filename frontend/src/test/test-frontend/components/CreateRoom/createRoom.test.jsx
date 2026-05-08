@@ -100,6 +100,14 @@ describe('CreateRoom Component', () => {
       })
     })
 
+    it('should display the known room password in the lobby', async () => {
+      render(<CreateRoom {...defaultProps} initialRoomPassword="secret-code" />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Room password')).toHaveTextContent('secret-code')
+      })
+    })
+
     it('should handle room creation failure gracefully', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
       global.fetch.mockRejectedValueOnce(new Error('Network error'))

@@ -1,6 +1,11 @@
 import { afterEach, describe, it, expect } from 'vitest'
 
-import { createGame, getGame, removeGame } from '../../src/game/gameManager.js'
+import {
+  createGame,
+  getActiveGameCount,
+  getGame,
+  removeGame,
+} from '../../src/game/gameManager.js'
 
 describe('gameManager', () => {
   afterEach(() => {
@@ -36,5 +41,14 @@ describe('gameManager', () => {
     removeGame('room-1')
 
     expect(getGame('room-1')).toBeUndefined()
+  })
+
+  it('reports the active game count', () => {
+    expect(getActiveGameCount()).toBe(0)
+
+    createGame('room-1', ['Titi', 'Riri'], 'classic', 'Titi')
+    createGame('solo-room', ['Solo'], 'classic', 'Solo')
+
+    expect(getActiveGameCount()).toBe(2)
   })
 })

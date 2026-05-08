@@ -22,8 +22,9 @@ vi.mock('../../../../socket', () => ({
 
 // Mock CreateRoom component
 vi.mock('../../../../components/CreateRoom/CreateRoom.jsx', () => ({
-  default: ({ onBack, onRoomCreated, onRoomRenamed }) => (
+  default: ({ onBack, onRoomCreated, onRoomRenamed, knownRoomPassword }) => (
     <div data-testid="create-room-mock">
+      {knownRoomPassword && <span data-testid="known-room-password">{knownRoomPassword}</span>}
       <button onClick={onBack}>Back to Rooms</button>
       <button onClick={() => onRoomCreated(1, 'Test Room', 'cooperative')}>Create Room</button>
       <button onClick={() => onRoomRenamed('Renamed Room', 'mirror')}>Rename Room</button>
@@ -361,6 +362,73 @@ describe('Rooms Component', () => {
           'getRoomState',
           expect.objectContaining({ roomId: '1' })
         )
+      })
+    })
+
+    it('should focus the password input when joining a password-protected room', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      if (availableRoomsCallback) {
+        availableRoomsCallback([
+          {
+            id: 4,
+            name: 'Locked Room',
+            game_mode: 'classic',
+            host: 'Player4',
+            player_count: 1,
+            players: ['Player4'],
+            status: 'waiting',
+            has_password: true,
+          },
+        ])
+      }
+
+      await waitFor(() => {
+        expect(screen.getByText('Locked Room')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      const passwordInput = await screen.findByPlaceholderText('Room password')
+      expect(passwordInput).toHaveFocus()
+    })
+
+    it('should pass the entered room password into the joined lobby', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([
+        {
+          id: 4,
+          name: 'Locked Room',
+          game_mode: 'classic',
+          host: 'Player4',
+          player_count: 1,
+          players: ['Player4'],
+          status: 'waiting',
+          has_password: true,
+        },
+      ])
+
+      await waitFor(() => {
+        expect(screen.getByText('Locked Room')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+      fireEvent.change(await screen.findByPlaceholderText('Room password'), {
+        target: { value: 'secret-code' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: /enter/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('known-room-password')).toHaveTextContent('secret-code')
       })
     })
 

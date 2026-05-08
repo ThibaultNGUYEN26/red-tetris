@@ -184,6 +184,55 @@
   width: 60%;
 }
 
+.room-password-display {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 34%;
+  box-sizing: border-box;
+  padding: 0.3rem 0.5rem;
+  border: 2px solid rgba(50, 100, 200, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.36);
+}
+
+.room-password-display-label {
+  color: #2a5298;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.room-password-display-value {
+  min-width: 0;
+  color: #333;
+  font-size: 0.82rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.create-room-card.dark .room-password-display {
+  background: rgba(30, 30, 60, 0.42);
+  border-color: rgba(100, 100, 200, 0.36);
+}
+
+.create-room-card.dark .room-password-display-label {
+  color: #b0c4ff;
+  text-shadow: 0 0 8px rgba(100, 150, 255, 0.5);
+}
+
+.create-room-card.dark .room-password-display-value {
+  color: #ffffff;
+}
+
 .mode-select {
   background: rgba(255, 255, 255, 0.7);
   border: 2px solid rgba(255, 255, 255, 0.5);

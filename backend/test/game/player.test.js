@@ -122,4 +122,17 @@ describe('Player', () => {
     expect(player.tetrisCount).toBe(0)
     expect(player.maxLinesCleared).toBe(5)
   })
+
+  it('applyLineClear increments tetrisCount for four-line clears', () => {
+    const player = new Player('Titi', 'socket-1')
+
+    const result = player.applyLineClear(4)
+
+    expect(result).toEqual({
+      scoreDelta: 1200,
+      lines: 4,
+      level: 1,
+    })
+    expect(player.tetrisCount).toBe(1)
+  })
 })

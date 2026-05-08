@@ -1149,4 +1149,203 @@ describe('Game', () => {
 
     expect(lockSpy).not.toHaveBeenCalled()
   })
+
+  it('computes chaotic swap delay inside the configured inclusive range', () => {
+    const game = new Game('room-1', [new Player('Titi', '1')], 'chaotic', 'solo', 'Titi')
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9999)
+
+    expect(game.getChaoticSwapDelay()).toBe(5500)
+
+    randomSpy.mockRestore()
+  })
+
+  it('processQueuedInputsFor handles missing, dead, solo, and cooperative players', () => {
+    const soloPlayer = new Player('Titi', '1')
+    const soloGame = new Game('room-1', [soloPlayer], 'classic', 'solo', 'Titi')
+    const soloProcessSpy = vi.spyOn(soloGame, 'processInputs').mockImplementation(() => {})
+
+    expect(soloGame.processQueuedInputsFor('Missing')).toBe(false)
+    soloPlayer.die()
+    expect(soloGame.processQueuedInputsFor('Titi')).toBe(false)
+
+    soloPlayer.isAlive = true
+    expect(soloGame.processQueuedInputsFor('Titi')).toBe(true)
+    expect(soloProcessSpy).toHaveBeenCalledWith(soloPlayer)
+
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const coopGame = new Game('room-2', players, 'cooperative', 'multi', 'Titi')
+    const coopProcessSpy = vi.spyOn(coopGame, 'processInputs').mockImplementation(() => {})
+    const syncSpy = vi.spyOn(coopGame, 'syncCooperativeStateFrom').mockImplementation(() => {})
+
+    expect(coopGame.processQueuedInputsFor('Riri')).toBe(true)
+    expect(coopProcessSpy).toHaveBeenCalledWith(players[0])
+    expect(syncSpy).toHaveBeenCalledWith(players[0])
+
+    players[0].die()
+    expect(coopGame.processQueuedInputsFor('Riri')).toBe(false)
+  })
+
+  it('emitState suppresses unchanged state unless forced', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+    const emit = vi.fn()
+
+    expect(game.emitState({ emit })).toBe(true)
+    expect(game.emitState({ emit })).toBe(false)
+    expect(game.emitState({ emit, force: true })).toBe(true)
+    expect(emit).toHaveBeenCalledTimes(2)
+  })
+
+  it('covers lock delay edge paths for grounded and airborne pieces', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.currentPiece = { type: 'O', rotation: 0, x: 4, y: game.boardHeight - 2 }
+    player.lockDelayMs = 0
+    player.lockResetCount = 20
+
+    game.resetLockDelayAfterGroundedAction(player)
+    expect(player.lockDelayMs).toBe(500)
+
+    player.lockDelayMs = 0
+    game.updateLockDelayAfterMove(player, 0, 1)
+    expect(player.lockDelayMs).toBe(500)
+
+    player.currentPiece.y = 0
+    player.lockDelayMs = 200
+    player.lockResetCount = 3
+    expect(game.advanceLockDelay(player)).toBe(false)
+    expect(player.lockDelayMs).toBe(0)
+    expect(player.lockResetCount).toBe(0)
+  })
+
+  it('counts tetrises when four rows are cleared by a lock', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+
+    player.board = Array.from({ length: game.boardHeight }, () =>
+      Array(game.boardWidth).fill('empty')
+    )
+    for (let row = game.boardHeight - 4; row < game.boardHeight; row += 1) {
+      player.board[row] = Array(game.boardWidth).fill('x')
+    }
+    player.currentPiece = { type: 'O', rotation: 0, x: 20, y: 20 }
+    vi.spyOn(game, 'spawnForPlayer').mockReturnValue(true)
+
+    game.lockCurrentPiece(player)
+
+    expect(player.lines).toBe(4)
+    expect(player.score).toBe(1200)
+    expect(player.tetrisCount).toBe(1)
+  })
+
+  it('skips input and gravity in multiplayer tick when chaotic swap fails', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'chaotic', 'multi', 'Titi')
+
+    game.isRunning = true
+    player.isAlive = true
+    player.currentPiece = { type: 'I', rotation: 0, x: 4, y: 0 }
+
+    vi.spyOn(game, 'applyChaoticSwap').mockReturnValue(false)
+    const processSpy = vi.spyOn(game, 'processInputs').mockImplementation(() => {})
+    const gravitySpy = vi.spyOn(game, 'applyGravity').mockImplementation(() => {})
+
+    game.tick()
+
+    expect(processSpy).not.toHaveBeenCalled()
+    expect(gravitySpy).not.toHaveBeenCalled()
+  })
+
+  it('initializes chaotic reset delay and drives ticks through the interval callback', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'chaotic', 'solo', 'Titi')
+    vi.spyOn(game, 'getChaoticSwapDelay').mockReturnValue(1234)
+
+    game.start()
+    expect(player.chaoticSwapMs).toBe(1234)
+
+    const tickSpy = vi.spyOn(game, 'tick').mockImplementation(() => {})
+    vi.advanceTimersByTime(TICK_MS)
+
+    expect(tickSpy).toHaveBeenCalled()
+    game.stop()
+  })
+
+  it('handles no-piece grounded checks and pending chaotic swaps', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'chaotic', 'solo', 'Titi')
+
+    player.currentPiece = null
+    expect(game.isPieceGrounded(player)).toBe(false)
+
+    player.currentPiece = { type: 'I', rotation: 0, x: 4, y: 0 }
+    player.nextPiece = { type: 'O' }
+    player.chaoticSwapMs = TICK_MS * 2
+
+    expect(game.applyChaoticSwap(player)).toBe(true)
+    expect(player.currentPiece.type).toBe('I')
+    expect(player.chaoticSwapMs).toBe(TICK_MS)
+  })
+
+  it('skips cooperative input and gravity when chaotic swap fails', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+    const sharedPlayer = players[0]
+
+    game.isRunning = true
+    sharedPlayer.isAlive = true
+    sharedPlayer.currentPiece = { type: 'I', rotation: 0, x: 4, y: 0 }
+
+    vi.spyOn(game, 'applyChaoticSwap').mockReturnValue(false)
+    const processSpy = vi.spyOn(game, 'processInputs').mockImplementation(() => {})
+    const gravitySpy = vi.spyOn(game, 'applyGravity').mockImplementation(() => {})
+
+    game.tick()
+
+    expect(processSpy).not.toHaveBeenCalled()
+    expect(gravitySpy).not.toHaveBeenCalled()
+  })
+
+  it('returns null when serializing an unknown player view', () => {
+    const game = new Game('room-1', [new Player('Titi', '1')], 'classic', 'solo', 'Titi')
+
+    expect(game.serializePlayerView('Missing')).toBeNull()
+  })
+
+  it('serializes cooperative player view fallbacks when no shared player exists', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+
+    vi.spyOn(game, 'getCooperativePlayer').mockReturnValue(null)
+
+    const state = game.serializePlayerView('Titi')
+
+    expect(state.player).toEqual(expect.objectContaining({
+      username: 'Titi',
+      isAlive: false,
+      score: 0,
+      lines: 0,
+      level: 1,
+      currentPiece: null,
+      nextType: null,
+      cooperativeRole: null,
+      board: [],
+      boardLocked: [],
+    }))
+  })
+
+  it('evaluates non-cooperative player-view turn comparison branch', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'classic', 'multi', 'Titi')
+
+    game.currentTurnUsername = 'Riri'
+    vi.spyOn(game, 'isCooperativeMode')
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(true)
+
+    const state = game.serializePlayerView('Titi')
+
+    expect(state.player.isCurrentTurn).toBe(false)
+  })
 })

@@ -148,6 +148,39 @@ describe('admin routes', () => {
     consoleError.mockRestore()
   })
 
+  it('defaults missing aggregate rows to zero values', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const { default: router } = await import('../../src/routes/admin.routes.js')
+    const handler = getHandler(router, 'get', '/summary')
+    const res = buildRes()
+
+    await handler({ get: (header) => header === 'x-admin-password' ? 'secret-admin' : undefined }, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      overview: expect.objectContaining({
+        registeredUsers: 0,
+        totalRooms: 0,
+        totalLines: 0,
+      }),
+      currentMonth: expect.objectContaining({
+        newUsers: 0,
+        linesCleared: 0,
+      }),
+      monthlyActivity: [],
+      roomModes: [],
+      recentRooms: [],
+      topSoloScores: [],
+    }))
+  })
+
   it('rejects requests without the admin password', async () => {
     const { default: router } = await import('../../src/routes/admin.routes.js')
     const handler = getHandler(router, 'get', '/summary')
@@ -158,5 +191,32 @@ describe('admin routes', () => {
     expect(res.status).toHaveBeenCalledWith(401)
     expect(res.json).toHaveBeenCalledWith({ error: 'Invalid admin password' })
     expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('returns unavailable when the admin password is not configured', async () => {
+    vi.stubEnv('ADMIN_PASSWORD', '   ')
+
+    const { default: router } = await import('../../src/routes/admin.routes.js')
+    const handler = getHandler(router, 'get', '/summary')
+    const res = buildRes()
+
+    await handler({ get: () => 'anything' }, res)
+
+    expect(res.status).toHaveBeenCalledWith(503)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Admin password is not configured' })
+    expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('treats a missing admin password env var as unconfigured', async () => {
+    vi.stubEnv('ADMIN_PASSWORD', undefined)
+
+    const { default: router } = await import('../../src/routes/admin.routes.js')
+    const handler = getHandler(router, 'get', '/summary')
+    const res = buildRes()
+
+    await handler({ get: () => 'anything' }, res)
+
+    expect(res.status).toHaveBeenCalledWith(503)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Admin password is not configured' })
   })
 })

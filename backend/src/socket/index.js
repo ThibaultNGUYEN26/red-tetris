@@ -59,12 +59,6 @@ export const getActiveUserCount = () => activeUsers.size;
 export const getPeakActiveUserCount = () => peakActiveUserCount;
 
 const registerUsername = (username, socket) => {
-  if (!username) {
-    return { ok: false, error: "Missing username" };
-  }
-  if (!USERNAME_PATTERN.test(username)) {
-    return { ok: false, error: "Invalid username" };
-  }
   if (socket.data.username && socket.data.username !== username) {
     unregisterUsername(socket.data.username, socket);
   }
@@ -446,11 +440,6 @@ export default function setupSockets(io) {
 
       if (!username || !avatar) {
         if (ack) ack({ ok: false, error: "Missing data" });
-        return;
-      }
-
-      if (!USERNAME_PATTERN.test(username)) {
-        if (ack) ack({ ok: false, error: "Invalid username" });
         return;
       }
 
@@ -860,7 +849,7 @@ export default function setupSockets(io) {
         let readyAgain = result.rows[0].ready_again || [];
         if (!readyAgain.includes(username)) readyAgain.push(username);
 
-        const status = readyAgain.length >= 1 ? 'waiting' : 'finished';
+        const status = 'waiting';
 
         const updated = await pool.query(
           `UPDATE rooms

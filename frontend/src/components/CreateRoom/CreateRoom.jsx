@@ -19,6 +19,7 @@ function CreateRoom({
   roomType: initialRoomType = 'multiplayer',
   desiredRoomName,
   initialRoomPassword = '',
+  knownRoomPassword = '',
   onRoomCreated,
   onRoomRenamed,
   onStartGame
@@ -52,7 +53,7 @@ function CreateRoom({
   const [hostName, setHostName] = useState('')
   const [committedMode, setCommittedMode] = useState('classic')
   const [, setJoinError] = useState('')
-  const [roomPassword, setRoomPassword] = useState('')
+  const [roomPassword, setRoomPassword] = useState(initialRoomPassword)
   const [showRoomPassword, setShowRoomPassword] = useState(false)
   const [passwordError, setPasswordError] = useState('')
   const [needsRoomPassword, setNeedsRoomPassword] = useState(false)
@@ -543,6 +544,8 @@ function CreateRoom({
     onBack()
   }
 
+  const visibleRoomPassword = (knownRoomPassword || roomPassword || initialRoomPassword).trim()
+
   /* ---------------- RENDER ---------------- */
 
   return (
@@ -616,6 +619,12 @@ function CreateRoom({
                   ✏️
                 </button>
               )}
+            </div>
+          )}
+          {visibleRoomPassword && (
+            <div className="room-password-display" aria-label="Room password">
+              <span className="room-password-display-label">Password</span>
+              <span className="room-password-display-value">{visibleRoomPassword}</span>
             </div>
           )}
         </div>

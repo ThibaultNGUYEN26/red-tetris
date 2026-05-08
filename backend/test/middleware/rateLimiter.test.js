@@ -14,10 +14,16 @@ const buildRes = () => {
 
 describe('rate limiter middleware', () => {
   const originalNodeEnv = process.env.NODE_ENV
+  const originalVitest = process.env.VITEST
+  const originalVitestWorkerId = process.env.VITEST_WORKER_ID
   const originalEnableRateLimitTests = process.env.ENABLE_RATE_LIMIT_TESTS
 
   afterEach(() => {
     process.env.NODE_ENV = originalNodeEnv
+    if (originalVitest === undefined) delete process.env.VITEST
+    else process.env.VITEST = originalVitest
+    if (originalVitestWorkerId === undefined) delete process.env.VITEST_WORKER_ID
+    else process.env.VITEST_WORKER_ID = originalVitestWorkerId
     process.env.ENABLE_RATE_LIMIT_TESTS = originalEnableRateLimitTests
     vi.useRealTimers()
     resetRateLimiters()
@@ -58,5 +64,54 @@ describe('rate limiter middleware', () => {
 
     vi.setSystemTime(new Date('2026-05-01T00:00:02Z'))
     expect(limiter(req, buildRes())).toBe(false)
+  })
+
+  it('uses alternate client and path fallbacks with default options', () => {
+    process.env.NODE_ENV = 'production'
+    delete process.env.VITEST
+    delete process.env.VITEST_WORKER_ID
+    process.env.ENABLE_RATE_LIMIT_TESTS = 'true'
+    vi.setSystemTime(new Date('2026-05-01T00:00:00Z'))
+    const limiter = createRateLimiter()
+
+    const socketReq = {
+      headers: { 'X-Forwarded-For': '' },
+      socket: { remoteAddress: '192.0.2.10' },
+      url: '/socket-path',
+    }
+    expect(limiter(socketReq, buildRes())).toBe(false)
+
+    const unknownReq = { headers: {} }
+    expect(limiter(unknownReq, buildRes())).toBe(false)
+  })
+
+  it('rate limits without Retry-After when the response has no set helper', () => {
+    process.env.NODE_ENV = 'production'
+    process.env.ENABLE_RATE_LIMIT_TESTS = 'true'
+    vi.setSystemTime(new Date('2026-05-01T00:00:00Z'))
+    const limiter = createRateLimiter({ windowMs: 1000, maxRequests: 0, keyPrefix: 'no-set' })
+    const res = {
+      status: vi.fn(function status() {
+        return this
+      }),
+      json: vi.fn(),
+    }
+
+    const req = { headers: {}, ip: '127.0.0.2', path: '/limited' }
+
+    expect(limiter(req, res)).toBe(false)
+    expect(limiter(req, res)).toBe(true)
+    expect(res.status).toHaveBeenCalledWith(429)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Too many requests' })
+  })
+
+  it('stays disabled through Vitest environment variables unless explicitly enabled', () => {
+    process.env.NODE_ENV = 'development'
+    process.env.VITEST = 'true'
+    process.env.VITEST_WORKER_ID = '1'
+    delete process.env.ENABLE_RATE_LIMIT_TESTS
+    const limiter = createRateLimiter({ windowMs: 1000, maxRequests: 0, keyPrefix: 'vitest-disabled' })
+
+    expect(limiter({ headers: {}, path: '/dev' }, buildRes())).toBe(false)
   })
 })
