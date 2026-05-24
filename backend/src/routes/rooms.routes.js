@@ -16,6 +16,7 @@ const MODE_LABELS = {
   mirror: "Mirror",
   giant: "Giant",
   chaotic: "Chaotic",
+  invisible: "Invisible",
 };
 const formatModeLabel = (mode) => MODE_LABELS[mode];
 
@@ -129,7 +130,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const allowedModes = ["classic", "mirror", "chaotic", "cooperative", "cooperative_roles", "giant"];
+    const allowedModes = ["classic", "mirror", "chaotic", "invisible", "cooperative", "cooperative_roles", "giant"];
     if (!allowedModes.includes(gameMode)) {
       return res.status(400).json({ error: "Invalid game mode" });
     }
@@ -340,7 +341,7 @@ router.patch("/:roomId/name", async (req, res) => {
 router.patch("/:roomId/mode", async (req, res) => {
   const { roomId } = req.params;
   const { mode } = req.body;
-  const allowedModes = ["classic", "mirror", "chaotic", "cooperative", "cooperative_roles", "giant"];
+  const allowedModes = ["classic", "mirror", "chaotic", "invisible", "cooperative", "cooperative_roles", "giant"];
 
   if (!mode) {
     return res.status(400).json({ error: "Missing new room mode" });
@@ -350,7 +351,7 @@ router.patch("/:roomId/mode", async (req, res) => {
 
   if (!allowedModes.includes(normalizedMode)) {
     return res.status(400).json({
-      error: "Invalid game mode. Allowed: Classic, Mirror, Chaotic, Co-op Alternate, Co-op Roles, Giant",
+      error: "Invalid game mode. Allowed: Classic, Mirror, Chaotic, Invisible, Co-op Alternate, Co-op Roles, Giant",
     });
   }
 

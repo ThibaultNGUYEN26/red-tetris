@@ -276,6 +276,39 @@ describe('Game', () => {
     expect(lockedOnly.flat()).not.toContain('ghost')
   })
 
+  it('serializes invisible mode with ghost cells but without the active falling piece', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'invisible', 'solo', 'Titi')
+
+    game.sequenceBuffer = ['T', 'O']
+    game.spawnForPlayer(player)
+
+    const state = game.serializePlayerView('Titi')
+    const cells = state.player.board.flat()
+
+    expect(cells).toContain('ghost')
+    expect(cells).not.toContain('t')
+    expect(state.player.currentPiece).toEqual(expect.objectContaining({ type: 't' }))
+  })
+
+  it('shows locked pieces after they fix in invisible mode', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'invisible', 'solo', 'Titi')
+
+    player.currentPiece = {
+      type: 'O',
+      rotation: 0,
+      x: 4,
+      y: game.boardHeight - 2,
+    }
+    vi.spyOn(game, 'spawnForPlayer').mockReturnValue(true)
+
+    game.lockCurrentPiece(player)
+
+    expect(player.board.flat()).toContain('o')
+    expect(game.serializePlayerView('Titi').player.board.flat()).toContain('o')
+  })
+
   it('clears the active piece when top-out happens after a lock', () => {
     const player = new Player('Titi', '1')
     const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')

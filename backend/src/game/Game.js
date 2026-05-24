@@ -75,6 +75,13 @@ export default class Game {
     return this.mode === "chaotic";
   }
 
+  getPlayerRenderOptions() {
+    return {
+      includeActive: this.mode !== "invisible",
+      includeGhost: true,
+    };
+  }
+
   getChaoticSwapDelay() {
     return CHAOTIC_MIN_SWAP_MS + Math.floor(
       Math.random() * (CHAOTIC_MAX_SWAP_MS - CHAOTIC_MIN_SWAP_MS + 1)
@@ -795,7 +802,7 @@ export default class Game {
           isCurrentTurn: player.username === this.currentTurnUsername,
           cooperativeRole: this.cooperativeRoles[player.username] ?? null,
           board: sharedPlayer
-            ? this.getRenderBoard(sharedPlayer, { includeActive: true, includeGhost: true })
+            ? this.getRenderBoard(sharedPlayer, this.getPlayerRenderOptions())
             : [],
           boardLocked: sharedPlayer
             ? this.getRenderBoard(sharedPlayer, { includeActive: false, includeGhost: false })
@@ -817,7 +824,7 @@ export default class Game {
         ...player.serialize(),
         isCurrentTurn:
           !this.isCooperativeMode() || player.username === this.currentTurnUsername,
-        board: this.getRenderBoard(player, { includeActive: true, includeGhost: true }),
+        board: this.getRenderBoard(player, this.getPlayerRenderOptions()),
         boardLocked: this.getRenderBoard(player, { includeActive: false, includeGhost: false }),
       }))
     };
@@ -857,7 +864,7 @@ export default class Game {
           isCurrentTurn: player.username === this.currentTurnUsername,
           cooperativeRole: this.cooperativeRoles[player.username] ?? null,
           board: sharedPlayer
-            ? this.getRenderBoard(sharedPlayer, { includeActive: true, includeGhost: true })
+            ? this.getRenderBoard(sharedPlayer, this.getPlayerRenderOptions())
             : [],
           boardLocked: sharedPlayer
             ? this.getRenderBoard(sharedPlayer, { includeActive: false, includeGhost: false })
@@ -879,7 +886,7 @@ export default class Game {
         ...player.serialize(),
         isCurrentTurn:
           !this.isCooperativeMode() || player.username === this.currentTurnUsername,
-        board: this.getRenderBoard(player, { includeActive: true, includeGhost: true }),
+        board: this.getRenderBoard(player, this.getPlayerRenderOptions()),
         boardLocked: this.getRenderBoard(player, { includeActive: false, includeGhost: false }),
       },
     };

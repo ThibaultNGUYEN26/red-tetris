@@ -124,6 +124,7 @@ function getMaxPlayers(gameMode = "classic") {
     case "classic":
     case "mirror":
     case "chaotic":
+    case "invisible":
     default:
       return 6;
   }

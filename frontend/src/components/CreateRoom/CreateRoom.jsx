@@ -103,6 +103,7 @@ function CreateRoom({
     { value: 'classic', label: 'Classic', maxPlayers: 6 },
     { value: 'mirror', label: 'Mirror', maxPlayers: 6 },
     { value: 'chaotic', label: 'Chaotic', maxPlayers: 6 },
+    { value: 'invisible', label: 'Invisible', maxPlayers: 6 },
     { value: 'giant', label: 'Giant', maxPlayers: 6 }
   ]
   const cooperativeModes = [

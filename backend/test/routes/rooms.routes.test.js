@@ -786,6 +786,11 @@ describe('rooms routes', () => {
 
     mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 7 }] })
     res = buildRes()
+    await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'invisible', username: 'Titi' } }), res)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Invisible with 7 players' })
+
+    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 7 }] })
+    res = buildRes()
     await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'giant', username: 'Titi' } }), res)
     expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Giant with 7 players' })
   })

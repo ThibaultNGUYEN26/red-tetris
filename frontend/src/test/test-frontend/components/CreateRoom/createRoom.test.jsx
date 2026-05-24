@@ -194,6 +194,16 @@ describe('CreateRoom Component', () => {
       expect(screen.getByRole('option', { name: /co-op roles/i })).toBeInTheDocument()
     })
 
+    it('shows the invisible mode in the multiplayer selector', async () => {
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toBeInTheDocument()
+      })
+
+      expect(screen.getByRole('option', { name: /invisible/i })).toBeInTheDocument()
+    })
+
     it('should PATCH mode change when host selects a new mode', async () => {
       render(<CreateRoom {...defaultProps} />)
 
