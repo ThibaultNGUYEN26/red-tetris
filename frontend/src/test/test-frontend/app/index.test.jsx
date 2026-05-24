@@ -106,6 +106,17 @@ describe('Index main page', () => {
     vi.clearAllMocks()
     localStorage.clear()
     global.fetch.mockImplementation(async (url) => {
+      if (requestPath(url) === '/api/auth/me') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+          }),
+        }
+      }
+
       if (requestPath(url).startsWith('/api/player/connection')) {
         return {
           ok: true,
@@ -138,14 +149,35 @@ describe('Index main page', () => {
     mockParams = { username: 'Titi', roomName: 'Room-ABC', roomType: undefined }
     setSavedUser('Titi')
 
-    global.fetch.mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-      json: async () => ({}),
-    })
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ id: 1, name: 'Room-ABC', game_mode: 'classic' }),
+    global.fetch.mockImplementation(async (url) => {
+      if (requestPath(url) === '/api/auth/me') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+          }),
+        }
+      }
+
+      if (requestPath(url).startsWith('/api/player/stats')) {
+        return {
+          ok: false,
+          status: 404,
+          json: async () => ({}),
+        }
+      }
+
+      if (requestPath(url) === '/api/rooms/by-name/Room-ABC') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ id: 1, name: 'Room-ABC', game_mode: 'classic' }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
     })
 
     render(<Index />)
@@ -177,6 +209,36 @@ describe('Index main page', () => {
       screen.getByRole('button', { name: /multiplayer/i })
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
+  })
+
+  it('clears a saved local user when the session cookie is missing', async () => {
+    mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
+    setSavedUser('Titi')
+
+    global.fetch.mockImplementation(async (url) => {
+      if (requestPath(url) === '/api/auth/me') {
+        return {
+          ok: false,
+          status: 401,
+          json: async () => ({ error: 'Authentication required' }),
+        }
+      }
+
+      if (requestPath(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    render(<Index />)
+
+    expect(await screen.findByText(/login to your account/i)).toBeInTheDocument()
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
   })
 
   it('rejects an invalid username from the room join URL', () => {

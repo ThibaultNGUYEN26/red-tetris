@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { resetRateLimiters } from '../../src/middleware/rateLimiter.js'
+import { createSessionToken } from '../../src/auth/session.js'
 
 const mockQuery = vi.fn()
 const VALID_PASSWORD = 'Secret123!'
@@ -50,6 +51,8 @@ describe('auth routes', () => {
     mockBcryptCompare.mockClear()
     resetRateLimiters()
     delete process.env.ENABLE_RATE_LIMIT_TESTS
+    delete process.env.SESSION_SECRET
+    delete process.env.DISABLE_AUTH_TEST_FALLBACK
   })
 
   it('validates register payload', async () => {
@@ -841,6 +844,91 @@ describe('auth routes', () => {
     }))
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({ ok: true })
+  })
+
+  it('returns the current authenticated session user', async () => {
+    process.env.SESSION_SECRET = 'test-secret'
+    const token = createSessionToken({ id: 3, username: 'Titi' })
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 3,
+        username: 'Titi',
+        email: 'titi@example.com',
+        avatar: { eyeType: 'happy' },
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'get', '/me')
+    const res = buildRes()
+
+    await handler({
+      headers: { cookie: `red_tetris_session=${encodeURIComponent(token)}` },
+    }, res)
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('WHERE username = $1'),
+      ['Titi']
+    )
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      username: 'Titi',
+      email: 'titi@example.com',
+    }))
+  })
+
+  it('rejects fetching the current session without authentication', async () => {
+    process.env.DISABLE_AUTH_TEST_FALLBACK = 'true'
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'get', '/me')
+    const res = buildRes()
+
+    await handler({ headers: {}, body: {} }, res)
+
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' })
+  })
+
+  it('clears stale session cookies when the current user no longer exists', async () => {
+    process.env.SESSION_SECRET = 'test-secret'
+    const token = createSessionToken({ id: 3, username: 'Titi' })
+    mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'get', '/me')
+    const res = buildRes()
+
+    await handler({
+      headers: { cookie: `red_tetris_session=${encodeURIComponent(token)}` },
+    }, res)
+
+    expect(res.clearCookie).toHaveBeenCalledWith('red_tetris_session', expect.objectContaining({
+      httpOnly: true,
+      sameSite: 'lax',
+    }))
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' })
+  })
+
+  it('returns server error when fetching the current session user fails', async () => {
+    process.env.SESSION_SECRET = 'test-secret'
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const token = createSessionToken({ id: 3, username: 'Titi' })
+    mockQuery.mockRejectedValueOnce(new Error('db down'))
+
+    const { default: router } = await import('../../src/routes/auth.routes.js')
+    const handler = getHandler(router, 'get', '/me')
+    const res = buildRes()
+
+    await handler({
+      headers: { cookie: `red_tetris_session=${encodeURIComponent(token)}` },
+    }, res)
+
+    expect(res.status).toHaveBeenCalledWith(500)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
+
+    consoleError.mockRestore()
   })
 
   it('soft deletes the authenticated account and clears the session cookie', async () => {

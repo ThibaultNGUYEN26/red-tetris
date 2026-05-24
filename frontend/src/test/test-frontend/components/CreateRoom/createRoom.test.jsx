@@ -819,25 +819,23 @@ describe('CreateRoom Component', () => {
 
     it('should report start game errors and allow retry state', async () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+            id: 1,
+            name: 'Room 1',
+            game_mode: 'classic',
+            host: 'TestUser',
+            player_count: 2,
+            players: ['TestUser', 'Player2'],
+        }),
+      })
+
       render(<CreateRoom {...defaultProps} />)
 
       await waitFor(() => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
-      })
-
-      const handleRoomState = socket.on.mock.calls.find(
-        call => call[0] === 'roomState'
-      )?.[1]
-
-      await act(async () => {
-        handleRoomState?.({
-          id: 1,
-          name: 'Room 1',
-          game_mode: 'classic',
-          host: 'TestUser',
-          players: ['TestUser', 'Player2'],
-          player_avatars: {}
-        })
+        expect(screen.getByText('Player2')).toBeInTheDocument()
       })
 
       socket.emit.mockImplementation((event) => {

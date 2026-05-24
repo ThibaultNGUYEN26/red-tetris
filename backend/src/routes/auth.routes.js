@@ -186,6 +186,31 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.get("/me", async (req, res) => {
+  try {
+    const auth = authenticateRequest(req);
+    if (!auth) return rejectUnauthenticated(res);
+
+    const result = await pool.query(
+      `SELECT id, username, email, avatar
+       FROM users
+       WHERE username = $1
+         AND deleted_at IS NULL`,
+      [auth.username]
+    );
+
+    if (!result.rowCount) {
+      clearSessionCookie(res);
+      return rejectUnauthenticated(res);
+    }
+
+    return res.status(200).json(result.rows[0]);
+  } catch (err) {
+    console.error("Fetch current session failed:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.post("/restore", async (req, res) => {
   try {
     if (authRateLimiter(req, res)) return;

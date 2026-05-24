@@ -4,6 +4,7 @@ const TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/;
 const SESSION_COOKIE_NAME = "red_tetris_session";
 const DEV_SESSION_SECRET = "red-tetris-dev-session-secret";
+const ALLOWED_COOKIE_SAME_SITE = new Set(["lax", "strict", "none"]);
 
 const isTestRuntime = () =>
   process.env.NODE_ENV === "test" ||
@@ -110,22 +111,31 @@ export function getCookieToken(req) {
   return token ? decodeCookieValue(token) : "";
 }
 
+function getSessionCookieOptions() {
+  const defaultSameSite = process.env.NODE_ENV === "production" ? "none" : "lax";
+  const configuredSameSite = String(process.env.COOKIE_SAME_SITE || defaultSameSite).toLowerCase();
+  const sameSite = ALLOWED_COOKIE_SAME_SITE.has(configuredSameSite)
+    ? configuredSameSite
+    : "lax";
+
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production" || sameSite === "none",
+    sameSite,
+    path: "/",
+  };
+}
+
 export function setSessionCookie(res, token) {
   res.cookie(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    ...getSessionCookieOptions(),
     maxAge: TOKEN_TTL_MS,
-    path: "/",
   });
 }
 
 export function clearSessionCookie(res) {
   res.clearCookie(SESSION_COOKIE_NAME, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
+    ...getSessionCookieOptions(),
   });
 }
 

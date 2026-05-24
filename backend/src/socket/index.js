@@ -130,7 +130,6 @@ function getMaxPlayers(gameMode = "classic") {
 }
 
 function exposeRoom(room) {
-  if (!room) return room;
   const { room_password_hash, ...safeRoom } = room;
   return {
     ...safeRoom,
@@ -231,8 +230,6 @@ export default function setupSockets(io) {
     };
 
     const updateSoloStats = async (game) => {
-      if (!game || game.mode_player !== "solo") return;
-
       const player = game.players[0];
       if (!player) return;
 
@@ -273,7 +270,6 @@ export default function setupSockets(io) {
     };
 
     const updateCoopStats = async (game, summary) => {
-      if (!game || !["cooperative", "cooperative_roles"].includes(game.mode)) return;
       if (game.statsUpdated) return;
 
       const players = Array.isArray(game.players) ? game.players : [];
@@ -379,9 +375,7 @@ export default function setupSockets(io) {
         );
       }
 
-      if (game) {
-        game.statsUpdated = true;
-      }
+      game.statsUpdated = true;
     };
 
     // getLeaderboardSolo Socket

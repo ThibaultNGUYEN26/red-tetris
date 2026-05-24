@@ -7,8 +7,8 @@
 
 .option-button {
   flex: 1;
-  min-width: 200px;
-  padding: 1.5rem 1rem;
+  min-width: min(200px, 100%);
+  padding: clamp(0.95rem, 0.62rem + 0.7vw, 1.5rem) clamp(0.8rem, 0.65rem + 0.35vw, 1rem);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.15) 100%);
   border: 3px solid rgba(255, 255, 255, 0.3);
   border-radius: 15px;
@@ -34,19 +34,19 @@
 }
 
 .option-icon {
-  font-size: 2.5rem;
+  font-size: clamp(1.9rem, 1.45rem + 1.05vw, 2.5rem);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .option-title {
-  font-size: 1.3rem;
+  font-size: clamp(1.1rem, 0.95rem + 0.35vw, 1.3rem);
   font-weight: 700;
   color: #1a3d7a;
   text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
 }
 
 .option-description {
-  font-size: 0.875rem;
+  font-size: clamp(0.8rem, 0.75rem + 0.15vw, 0.875rem);
   color: #2a5298;
   text-align: center;
   font-weight: 500;
@@ -54,8 +54,8 @@
 
 .back-button {
   width: 100%;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
+  padding: clamp(0.65rem, 0.58rem + 0.18vw, 0.75rem) 1.5rem;
+  font-size: clamp(0.95rem, 0.9rem + 0.12vw, 1rem);
   font-weight: 700;
   color: white;
   background: linear-gradient(135deg, rgba(100, 150, 255, 0.8) 0%, rgba(50, 100, 200, 0.8) 100%);
@@ -131,35 +131,12 @@
   }
 
   .option-button {
-    min-width: 170px;
-    padding: 1.1rem 0.9rem;
-  }
-
-  .option-icon {
-    font-size: 2.1rem;
-  }
-
-  .option-title {
-    font-size: 1.1rem;
-  }
-
-  .option-description {
-    font-size: 0.8rem;
-  }
-
-  .back-button {
-    padding: 0.65rem 1.2rem;
-    font-size: 0.95rem;
+    min-width: min(170px, 100%);
   }
 }
 
 @media (max-height: 740px) {
   .option-button {
-    min-width: 150px;
-    padding: 0.95rem 0.8rem;
-  }
-
-  .option-icon {
-    font-size: 1.9rem;
+    min-width: min(150px, 100%);
   }
 }

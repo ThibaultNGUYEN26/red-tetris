@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import AdminPage from '../../../AdminPage.jsx'
+import { apiUrl } from '../../../api.js'
 
 vi.mock('react-router-dom', () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
@@ -80,7 +81,7 @@ describe('AdminPage', () => {
     })
 
     expect(fetch).toHaveBeenCalledWith(
-      '/api/admin/summary',
+      apiUrl('/api/admin/summary'),
       expect.objectContaining({
         cache: 'no-store',
         credentials: 'include',

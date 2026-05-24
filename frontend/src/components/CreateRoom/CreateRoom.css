@@ -1,25 +1,42 @@
+.create-room-shell {
+  width: min(90vw, clamp(400px, 34vw, 500px));
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.8rem;
+}
+
+.room-lobby-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
 .create-room-card {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
   border: 3px solid rgba(255, 255, 255, 0.4);
   border-radius: 20px;
-  padding: 2rem;
+  padding: clamp(1.1rem, 0.55rem + 1.05vw, 2rem);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.15),
     inset 0 2px 4px rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(12px);
-  max-width: 500px;
+  max-width: none;
   max-height: 90vh;
-  width: 90%;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: clamp(0.85rem, 0.5rem + 0.7vw, 1.5rem);
   align-items: center;
   overflow: hidden;
 }
 
 .create-room-card h2 {
   color: #2a5298;
-  font-size: 1.8rem;
+  font-size: clamp(1.5rem, 1.2rem + 0.7vw, 1.8rem);
   font-weight: 800;
   margin: 0;
   text-align: center;
@@ -34,7 +51,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: clamp(1rem, 0.7rem + 0.7vw, 1.5rem);
   flex: 1;
   min-height: 0;
 }
@@ -126,7 +143,7 @@
 }
 
 .room-name-text {
-  font-size: 1.8rem;
+  font-size: clamp(1.35rem, 1rem + 0.8vw, 1.8rem);
   color: #2a5298;
   font-weight: 700;
   text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
@@ -185,19 +202,19 @@
 }
 
 .room-password-display {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  max-width: 34%;
+  max-width: min(100%, 420px);
   box-sizing: border-box;
-  padding: 0.3rem 0.5rem;
+  padding: 0.38rem 0.65rem;
   border: 2px solid rgba(50, 100, 200, 0.2);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.36);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 4px 12px rgba(42, 82, 152, 0.12),
+    inset 0 1px 2px rgba(255, 255, 255, 0.45);
+  align-self: center;
 }
 
 .room-password-display-label {
@@ -219,17 +236,17 @@
   text-align: right;
 }
 
-.create-room-card.dark .room-password-display {
+.create-room-shell.dark .room-password-display {
   background: rgba(30, 30, 60, 0.42);
   border-color: rgba(100, 100, 200, 0.36);
 }
 
-.create-room-card.dark .room-password-display-label {
+.create-room-shell.dark .room-password-display-label {
   color: #b0c4ff;
   text-shadow: 0 0 8px rgba(100, 150, 255, 0.5);
 }
 
-.create-room-card.dark .room-password-display-value {
+.create-room-shell.dark .room-password-display-value {
   color: #ffffff;
 }
 
@@ -538,8 +555,8 @@
   background: linear-gradient(135deg, rgba(100, 200, 100, 0.7) 0%, rgba(50, 150, 50, 0.7) 100%);
   border: 3px solid rgba(50, 150, 50, 0.6);
   border-radius: 15px;
-  padding: 1rem 2rem;
-  font-size: 1.2rem;
+  padding: clamp(0.85rem, 0.7rem + 0.35vw, 1rem) 2rem;
+  font-size: clamp(1rem, 0.85rem + 0.35vw, 1.2rem);
   font-weight: 700;
   color: white;
   cursor: pointer;
@@ -623,6 +640,7 @@
   text-shadow: 0 0 10px rgba(100, 150, 255, 0.5);
 }
 
+.create-room-shell.dark .room-name-input,
 .create-room-card.dark .room-name-input,
 .create-room-card.dark .mode-select {
   background: rgba(50, 50, 80, 0.6);
@@ -656,10 +674,12 @@
   color: #666;
 }
 
+.create-room-shell.dark .room-name-input::placeholder,
 .create-room-card.dark .room-name-input::placeholder {
   color: #9999cc;
 }
 
+.create-room-shell.dark .char-count,
 .create-room-card.dark .char-count {
   color: #9999cc;
 }
@@ -669,17 +689,21 @@
   border-color: rgba(100, 100, 200, 0.4);
 }
 
+.create-room-shell.dark .room-name-text,
 .create-room-card.dark .room-name-text {
   color: #d0e0ff;
   text-shadow: 0 0 10px rgba(100, 150, 255, 0.6);
 }
 
+.create-room-shell.dark .edit-button,
 .create-room-card.dark .edit-button {
   background: rgba(50, 50, 80, 0.58);
   border-color: rgba(150, 170, 255, 0.24);
   color: #d0e0ff;
 }
 
+.create-room-shell.dark .edit-button:hover,
+.create-room-shell.dark .edit-button:focus-visible,
 .create-room-card.dark .edit-button:hover,
 .create-room-card.dark .edit-button:focus-visible {
   background: rgba(70, 75, 115, 0.78);
@@ -710,18 +734,7 @@
 
 @media (max-width: 1280px), (max-height: 820px) {
   .create-room-card {
-    max-width: 440px;
-    padding: 1.4rem;
-    gap: 1rem;
     max-height: 88vh;
-  }
-
-  .create-room-card h2 {
-    font-size: 1.5rem;
-  }
-
-  .create-room-form {
-    gap: 1rem;
   }
 
   .players-section {
@@ -730,10 +743,6 @@
 
   .form-group label {
     font-size: 0.9rem;
-  }
-
-  .room-name-text {
-    font-size: 1.5rem;
   }
 
   .edit-button {
@@ -788,11 +797,6 @@
     font-size: 0.85rem;
   }
 
-  .start-button {
-    padding: 0.85rem 1.6rem;
-    font-size: 1rem;
-  }
-
   .back-button {
     padding: 0.7rem 1.6rem;
     font-size: 0.95rem;
@@ -800,15 +804,12 @@
 }
 
 @media (max-height: 740px) {
-  .create-room-card {
-    max-width: 400px;
-    padding: 1.1rem;
-    gap: 0.85rem;
-    max-height: 84vh;
+  .create-room-shell {
+    width: min(90vw, clamp(380px, 34vw, 500px));
   }
 
-  .room-name-text {
-    font-size: 1.35rem;
+  .create-room-card {
+    max-height: 84vh;
   }
 
   .player-item {

@@ -3,7 +3,7 @@
   left: 10vw;
   top: 50%;
   transform: translateY(-50%);
-  width: 300px;
+  width: clamp(260px, 18vw, 300px);
   z-index: 10;
 }
 
@@ -384,7 +384,6 @@
 
 @media (max-width: 1024px) {
   .player-stats-panel {
-    width: 260px;
     left: 10px;
   }
 }
@@ -396,10 +395,6 @@
 }
 
 @media (max-width: 1280px), (max-height: 820px) {
-  .player-stats-panel {
-    width: 260px;
-  }
-
   .player-stats,
   .advanced-stats-modal {
     padding: 12px;
@@ -441,10 +436,6 @@
 }
 
 @media (max-height: 740px) {
-  .player-stats-panel {
-    width: 240px;
-  }
-
   .player-stats {
     padding: 10px;
   }

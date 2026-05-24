@@ -3,7 +3,7 @@
   right: 10vw;
   top: 50%;
   transform: translateY(-50%);
-  width: 300px;
+  width: clamp(260px, 18vw, 300px);
   max-height: 95vh;
   overflow-y: auto;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
@@ -481,7 +481,6 @@
 
 @media (max-width: 1024px) {
   .leaderboard {
-    width: 260px;
     right: 10px;
     padding: 20px 16px;
   }
@@ -495,7 +494,6 @@
 
 @media (max-width: 1280px), (max-height: 820px) {
   .leaderboard {
-    width: 260px;
     padding: 12px;
     max-height: 92vh;
   }
@@ -550,7 +548,6 @@
 
 @media (max-height: 740px) {
   .leaderboard {
-    width: 240px;
     padding: 10px;
     max-height: 88vh;
   }

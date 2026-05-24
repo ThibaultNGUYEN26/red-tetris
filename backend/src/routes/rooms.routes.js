@@ -102,9 +102,10 @@ router.post("/", async (req, res) => {
     }
 
     const checkUserQuery = `
-      SELECT id
+      SELECT id, name, game_mode, host, player_count, players, status, is_listed, room_password_hash
       FROM rooms
       WHERE players @> ARRAY[$1]::text[]
+      ORDER BY created_at ASC
       LIMIT 1;
     `;
 
@@ -114,6 +115,15 @@ router.post("/", async (req, res) => {
     );
 
     if (checkResult.rowCount > 0) {
+      const existingRoom = checkResult.rows[0];
+      if (existingRoom.host === host && existingRoom.status === "waiting") {
+        const io = req.app.get("io");
+        if (io) {
+          await broadcastAvailableRooms(io);
+        }
+        return res.status(200).json(exposeRoom(existingRoom));
+      }
+
       return res.status(400).json({
         error: "User is already in a room"
       });

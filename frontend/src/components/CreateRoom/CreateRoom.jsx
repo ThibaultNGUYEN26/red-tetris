@@ -548,9 +548,53 @@ function CreateRoom({
 
   /* ---------------- RENDER ---------------- */
 
+  const roomHeader = (
+    <div className="room-lobby-header">
+      <div className="form-group room-name-section">
+        {isEditingName && hostName === username ? (
+          <div className="room-name-container">
+            <input
+              type="text"
+              value={roomNameDraft}
+              onChange={handleRoomNameChange}
+              onBlur={handleNameBlur}
+              onKeyDown={handleNameKeyDown}
+              maxLength={15}
+              className="room-name-input editing"
+              autoFocus
+            />
+            <span className="char-count">{roomName.length}/15</span>
+          </div>
+        ) : (
+          <div className="room-name-display">
+            <span className="room-name-text">{roomName}</span>
+            {hostName === username && (
+              <button
+                className="edit-button"
+                onClick={handleEditClick}
+                aria-label="Edit room name"
+                title="Edit room name"
+                type="button"
+              >
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      {visibleRoomPassword && (
+        <div className="room-password-display" aria-label="Room password">
+          <span className="room-password-display-label">Password</span>
+          <span className="room-password-display-value">{visibleRoomPassword}</span>
+        </div>
+      )}
+    </div>
+  )
+
   return (
-    <div className={`create-room-card ${theme === 'dark' ? 'dark' : ''}`}>
-      <div className="create-room-form">
+    <div className={`create-room-shell ${theme === 'dark' ? 'dark' : ''}`}>
+      {!needsRoomPassword && roomHeader}
+      <div className={`create-room-card ${theme === 'dark' ? 'dark' : ''}`}>
+        <div className="create-room-form">
         {needsRoomPassword ? (
           <form className="room-password-challenge" onSubmit={handleJoinPasswordSubmit}>
             <label htmlFor="room-password">Room Password</label>
@@ -588,46 +632,6 @@ function CreateRoom({
           </form>
         ) : (
         <>
-
-        {/* Room Name */}
-        <div className="form-group room-name-section">
-          {isEditingName && hostName === username ? (
-            <div className="room-name-container">
-              <input
-                type="text"
-                value={roomNameDraft}
-                onChange={handleRoomNameChange}
-                onBlur={handleNameBlur}
-                onKeyDown={handleNameKeyDown}
-                maxLength={15}
-                className="room-name-input editing"
-                autoFocus
-              />
-              <span className="char-count">{roomName.length}/15</span>
-            </div>
-          ) : (
-            <div className="room-name-display">
-              <span className="room-name-text">{roomName}</span>
-              {hostName === username && (
-                <button
-                  className="edit-button"
-                  onClick={handleEditClick}
-                  aria-label="Edit room name"
-                  title="Edit room name"
-                  type="button"
-                >
-                  ✏️
-                </button>
-              )}
-            </div>
-          )}
-          {visibleRoomPassword && (
-            <div className="room-password-display" aria-label="Room password">
-              <span className="room-password-display-label">Password</span>
-              <span className="room-password-display-value">{visibleRoomPassword}</span>
-            </div>
-          )}
-        </div>
 
         {/* Game Mode */}
         <div className="form-group">
@@ -698,6 +702,7 @@ function CreateRoom({
         </>
         )}
       </div>
+    </div>
     </div>
   )
 }

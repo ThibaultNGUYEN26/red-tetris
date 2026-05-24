@@ -43,6 +43,7 @@ describe('session auth helpers', () => {
   const originalJwtSecret = process.env.JWT_SECRET
   const originalDbPassword = process.env.DB_PASSWORD
   const originalDisableAuthTestFallback = process.env.DISABLE_AUTH_TEST_FALLBACK
+  const originalCookieSameSite = process.env.COOKIE_SAME_SITE
   const originalVitest = process.env.VITEST
   const originalVitestWorkerId = process.env.VITEST_WORKER_ID
 
@@ -57,6 +58,8 @@ describe('session auth helpers', () => {
     else process.env.DB_PASSWORD = originalDbPassword
     if (originalDisableAuthTestFallback === undefined) delete process.env.DISABLE_AUTH_TEST_FALLBACK
     else process.env.DISABLE_AUTH_TEST_FALLBACK = originalDisableAuthTestFallback
+    if (originalCookieSameSite === undefined) delete process.env.COOKIE_SAME_SITE
+    else process.env.COOKIE_SAME_SITE = originalCookieSameSite
     if (originalVitest === undefined) delete process.env.VITEST
     else process.env.VITEST = originalVitest
     if (originalVitestWorkerId === undefined) delete process.env.VITEST_WORKER_ID
@@ -175,10 +178,32 @@ describe('session auth helpers', () => {
     clearSessionCookie(cookieRes)
     expect(cookieRes.cookie).toHaveBeenCalledWith(SESSION_COOKIE_NAME, token, expect.objectContaining({
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: 'none',
+      secure: true,
     }))
     expect(cookieRes.clearCookie).toHaveBeenCalledWith(SESSION_COOKIE_NAME, expect.objectContaining({
       httpOnly: true,
+      sameSite: 'none',
+      secure: true,
+    }))
+
+    process.env.COOKIE_SAME_SITE = 'none'
+    const crossSiteCookieRes = buildRes()
+    setSessionCookie(crossSiteCookieRes, token)
+    clearSessionCookie(crossSiteCookieRes)
+    expect(crossSiteCookieRes.cookie).toHaveBeenCalledWith(SESSION_COOKIE_NAME, token, expect.objectContaining({
+      secure: true,
+      sameSite: 'none',
+    }))
+    expect(crossSiteCookieRes.clearCookie).toHaveBeenCalledWith(SESSION_COOKIE_NAME, expect.objectContaining({
+      secure: true,
+      sameSite: 'none',
+    }))
+
+    process.env.COOKIE_SAME_SITE = 'invalid'
+    const fallbackCookieRes = buildRes()
+    setSessionCookie(fallbackCookieRes, token)
+    expect(fallbackCookieRes.cookie).toHaveBeenCalledWith(SESSION_COOKIE_NAME, token, expect.objectContaining({
       sameSite: 'lax',
     }))
 

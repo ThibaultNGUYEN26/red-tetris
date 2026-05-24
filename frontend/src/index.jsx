@@ -123,6 +123,7 @@ function Index({ authMode = 'login' }) {
   const profileMenuRef = useRef(null)
   const soundEnabledRef = useRef(soundEnabled)
   const hadSocketIssueRef = useRef(false)
+  const hasValidatedSavedSessionRef = useRef(false)
 
   const isUsernameAlreadyConnected = async (name) => {
     if (!name) return false
@@ -195,6 +196,49 @@ function Index({ authMode = 'login' }) {
       localStorage.removeItem(AUTH_STORAGE_KEY)
     }
   }, [username, userProfile])
+
+  useEffect(() => {
+    if (!savedAuth?.username) return
+    if (hasValidatedSavedSessionRef.current) return
+    hasValidatedSavedSessionRef.current = true
+
+    let cancelled = false
+
+    const validateSavedSession = async () => {
+      try {
+        const response = await apiFetch('/api/auth/me', { cache: 'no-store' })
+        if (cancelled) return
+
+        if (!response.ok) {
+          localStorage.removeItem(AUTH_STORAGE_KEY)
+          setUsername((current) => (
+            current === savedAuth.username ? null : current
+          ))
+          setUserProfile((current) => (
+            current?.username === savedAuth.username ? null : current
+          ))
+          return
+        }
+
+        const profile = await response.json()
+        if (cancelled) return
+        setUserProfile({
+          ...profile,
+          name: profile.name || profile.username,
+          avatar: profile.avatar || DEFAULT_URL_AVATAR,
+        })
+        setUsername(profile.username)
+      } catch {
+        // Keep the optimistic local session during transient network failures.
+      }
+    }
+
+    validateSavedSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [savedAuth])
 
   useEffect(() => {
     if (!username) return

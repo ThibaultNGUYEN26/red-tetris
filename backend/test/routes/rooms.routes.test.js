@@ -88,6 +88,69 @@ describe('rooms routes', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'User is already in a room' })
   })
 
+  it('returns the existing waiting room when the host retries creation', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 9,
+        name: 'ExistingRoom',
+        game_mode: 'classic',
+        host: 'Titi',
+        player_count: 1,
+        players: ['Titi'],
+        status: 'waiting',
+        is_listed: true,
+      }],
+    })
+
+    const io = { emit: vi.fn() }
+    const app = { get: vi.fn(() => io) }
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const res = buildRes()
+
+    await handler(buildReq({ body: { gameMode: 'classic', host: 'Titi' }, app }), res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 9,
+      name: 'ExistingRoom',
+      host: 'Titi',
+    }))
+    expect(mockBroadcastAvailableRooms).toHaveBeenCalledWith(io)
+  })
+
+  it('returns an existing waiting room without broadcasting when io is unavailable', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 9,
+        name: 'ExistingRoom',
+        game_mode: 'classic',
+        host: 'Titi',
+        player_count: 1,
+        players: ['Titi'],
+        status: 'waiting',
+        is_listed: true,
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/rooms.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const res = buildRes()
+
+    await handler(buildReq({ body: { gameMode: 'classic', host: 'Titi' } }), res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 9,
+      name: 'ExistingRoom',
+      host: 'Titi',
+    }))
+    expect(mockBroadcastAvailableRooms).not.toHaveBeenCalled()
+  })
+
   it('creates a room and broadcasts available rooms', async () => {
     mockQuery
       .mockResolvedValueOnce({ rowCount: 0, rows: [] })
