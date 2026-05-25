@@ -81,7 +81,8 @@
   color: #333;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  width: 60%;
+  width: 100%;
+  min-width: 0;
 }
 
 .room-name-input:focus {
@@ -101,7 +102,7 @@
   color: #666;
   font-weight: 600;
   text-align: right;
-  width: 55%;
+  width: 100%;
 }
 
 .room-name-section {
@@ -119,8 +120,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  width: 100%;
-  max-width: 400px;
+  width: min(100%, 420px);
 }
 
 .room-name-display {
@@ -198,7 +198,7 @@
 }
 
 .room-name-input.editing {
-  width: 60%;
+  width: 100%;
 }
 
 .room-password-display {
@@ -756,7 +756,6 @@
   }
 
   .room-name-input {
-    width: 70%;
     padding: 0.7rem 0.9rem;
     font-size: 0.95rem;
   }
@@ -772,7 +771,6 @@
   }
 
   .char-count {
-    width: 70%;
     font-size: 0.75rem;
   }
 
@@ -814,5 +812,15 @@
 
   .player-item {
     padding: 0.65rem 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .create-room-shell {
+    width: min(94vw, 500px);
+  }
+
+  .room-name-container {
+    width: 100%;
   }
 }
