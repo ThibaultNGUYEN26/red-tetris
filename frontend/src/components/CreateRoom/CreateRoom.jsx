@@ -124,13 +124,6 @@ function CreateRoom({
     })
   }
 
-  const isModeDisabled = (mode) => {
-    // If we're already in this mode, never disable it
-    if (mode.value === selectedMode) return false
-    // Disable if current player count exceeds the mode's max
-    return players.length > mode.maxPlayers
-  }
-
   /* ---------------- CREATE ROOM (HOST) ---------------- */
 
   useEffect(() => {
@@ -371,14 +364,6 @@ function CreateRoom({
 
   const handleModeChange = (e) => {
     const newMode = e.target.value
-    const modeConfig = availableGameModes.find(m => m.value === newMode)
-
-    // Check if the new mode supports current player count
-    if (modeConfig && players.length > modeConfig.maxPlayers) {
-      alert(`${modeConfig.label} mode supports a maximum of ${modeConfig.maxPlayers} players. Current players: ${players.length}`)
-      return
-    }
-
     setSelectedMode(newMode)
   }
 
@@ -647,9 +632,8 @@ function CreateRoom({
               <option
                 key={m.value}
                 value={m.value}
-                disabled={isModeDisabled(m)}
               >
-                {m.label} {isModeDisabled(m) ? `(Max ${m.maxPlayers} players)` : ''}
+                {m.label}
               </option>
             ))}
           </select>

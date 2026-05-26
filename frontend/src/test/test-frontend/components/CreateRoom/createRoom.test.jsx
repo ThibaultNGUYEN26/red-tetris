@@ -73,6 +73,15 @@ describe('CreateRoom Component', () => {
       })
     })
 
+    it('should apply dark theme classes', async () => {
+      const { container } = render(<CreateRoom {...defaultProps} theme="dark" />)
+
+      await waitFor(() => {
+        expect(container.querySelector('.create-room-shell')).toHaveClass('dark')
+        expect(container.querySelector('.create-room-card')).toHaveClass('dark')
+      })
+    })
+
     it('should create a room on mount in create mode', async () => {
       render(<CreateRoom {...defaultProps} />)
 
@@ -137,6 +146,104 @@ describe('CreateRoom Component', () => {
 
       await waitFor(() => {
         expect(mockOnNotice).toHaveBeenCalledWith('Invalid game mode')
+      })
+    })
+
+    it('should notify join errors when creation is rejected as already in a room', async () => {
+      const onJoinError = vi.fn()
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          error: 'User is already in a room'
+        })
+      })
+
+      render(<CreateRoom {...defaultProps} onJoinError={onJoinError} />)
+
+      await waitFor(() => {
+        expect(onJoinError).toHaveBeenCalledWith('User is already in a room')
+      })
+    })
+
+    it('should notify join errors for duplicate room creation conflicts', async () => {
+      const onJoinError = vi.fn()
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          error: 'Room name already exists'
+        })
+      })
+
+      render(<CreateRoom {...defaultProps} onJoinError={onJoinError} />)
+
+      await waitFor(() => {
+        expect(mockOnNotice).toHaveBeenCalledWith('Room already used.')
+        expect(onJoinError).toHaveBeenCalledWith('Room already used')
+      })
+    })
+
+    it('should log when room creation succeeds without a room id', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          error: 'No room available'
+        })
+      })
+
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith(
+          '[CreateRoom] Room creation failed:',
+          'No room available'
+        )
+      })
+    })
+
+    it('should log the default missing room id message', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({})
+      })
+
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith(
+          '[CreateRoom] Room creation failed:',
+          'No roomId returned'
+        )
+      })
+    })
+
+    it('should use desired room names and host fallbacks from room creation', async () => {
+      render(<CreateRoom {...defaultProps} desiredRoomName="CustomRoom" />)
+
+      await waitFor(() => {
+        expect(screen.getByText('CustomRoom')).toBeInTheDocument()
+        expect(mockOnRoomCreated).toHaveBeenCalledWith(1, 'CustomRoom', 'multiplayer')
+      })
+    })
+
+    it.each([
+      ['Room already used', 'Room already used.'],
+      ['Only the host can rename the room', 'Only the host can rename the room.'],
+      ['Unexpected room error', 'Unable to update the room right now.'],
+    ])('should map room creation error "%s"', async (error, expectedMessage) => {
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ error })
+      })
+
+      render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(mockOnNotice).toHaveBeenCalledWith(expectedMessage)
       })
     })
   })
@@ -443,6 +550,74 @@ describe('CreateRoom Component', () => {
       expect(screen.queryByRole('button', { name: /✏️/i })).not.toBeInTheDocument()
     })
 
+    it('should use existingRooms as a cooperative single-player fallback', async () => {
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom') {
+          callback?.({ ok: true })
+        }
+      })
+
+      render(
+        <CreateRoom
+          {...defaultProps}
+          mode="join"
+          roomId={11}
+          username="SoloHost"
+          existingRooms={[{
+            id: 11,
+            name: 'Coop Room',
+            game_mode: 'cooperative_roles',
+            host: '',
+            player_count: 1,
+            players: []
+          }]}
+        />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText('SoloHost')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
+      })
+    })
+
+    it('should ignore existingRooms fallback for non-cooperative or populated rooms', async () => {
+      const { rerender } = render(
+        <CreateRoom
+          {...defaultProps}
+          mode="join"
+          roomId={12}
+          existingRooms={[{
+            id: 12,
+            name: 'Classic Room',
+            game_mode: 'classic',
+            host: 'ClassicHost',
+            player_count: 1,
+            players: ['ClassicHost']
+          }]}
+        />
+      )
+
+      expect(screen.queryByText('ClassicHost')).not.toBeInTheDocument()
+
+      rerender(
+        <CreateRoom
+          {...defaultProps}
+          mode="join"
+          roomId={12}
+          existingRooms={[{
+            id: 12,
+            name: 'Coop Room',
+            game_mode: 'cooperative',
+            host: 'CoopHost',
+            player_count: 2,
+            players: ['CoopHost', 'Player2']
+          }]}
+        />
+      )
+
+      expect(screen.queryByText('CoopHost')).not.toBeInTheDocument()
+    })
+
     it('should display ready_again players when returning to the lobby after a game', async () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={1} />)
 
@@ -468,6 +643,28 @@ describe('CreateRoom Component', () => {
 
       expect(screen.queryByText('Player2')).not.toBeInTheDocument()
       expect(screen.getByRole('heading', { name: /players \(2\/6\)/i })).toBeInTheDocument()
+    })
+
+    it('should fall back to two players when the selected mode is unknown', async () => {
+      const { container } = render(<CreateRoom {...defaultProps} mode="join" roomId={1} />)
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      await act(async () => {
+        handleRoomState?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'unknown_mode',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      })
+
+      expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
+      expect(container.querySelector('.player-item.waiting')).toBeInTheDocument()
     })
   })
 
@@ -502,6 +699,218 @@ describe('CreateRoom Component', () => {
         )
       })
     })
+
+    it('should handle successful initial join callbacks', async () => {
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom') {
+          callback?.({ ok: true })
+        }
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith('getRoomState', { roomId: '42' })
+      })
+    })
+
+    it('should report non-password join failures', async () => {
+      const onJoinError = vi.fn()
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom') {
+          callback?.({ ok: false, error: 'Room is full' })
+        }
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} onJoinError={onJoinError} />)
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith('Failed to join room:', 'Room is full')
+        expect(onJoinError).toHaveBeenCalledWith('Room is full')
+      })
+    })
+
+    it.each([
+      ['Username already connected'],
+      ['User is already in a room'],
+      ['Unexpected join error'],
+    ])('should map join failure "%s"', async (error) => {
+      const onJoinError = vi.fn()
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom') {
+          callback?.({ ok: false, error })
+        }
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} onJoinError={onJoinError} />)
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith('Failed to join room:', error)
+        expect(onJoinError).toHaveBeenCalledWith(error)
+      })
+    })
+
+    it('should use Unknown error when a join failure has no error payload', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom') {
+          callback?.({ ok: false })
+        }
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
+
+      await waitFor(() => {
+        expect(consoleError).toHaveBeenCalledWith('Failed to join room:', 'Unknown error')
+      })
+    })
+
+    it('should prompt for a room password, validate empty submissions, and toggle visibility', async () => {
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom') {
+          callback?.({ ok: false, error: 'Room password required' })
+        }
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+      })
+
+      const passwordInput = screen.getByLabelText('Room Password')
+      expect(passwordInput).toHaveClass('masked-password-input')
+
+      fireEvent.click(screen.getByRole('button', { name: /join room/i }))
+      expect(screen.getByText('Room password required')).toBeInTheDocument()
+
+      fireEvent.change(passwordInput, { target: { value: 'secret' } })
+      expect(screen.queryByText('Room password required')).not.toBeInTheDocument()
+
+      fireEvent.click(screen.getByRole('button', { name: /show password/i }))
+      expect(screen.getByRole('button', { name: /hide password/i })).toBeInTheDocument()
+      expect(passwordInput).not.toHaveClass('masked-password-input')
+    })
+
+    it('should show invalid room password errors and join after a valid retry', async () => {
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event !== 'joinRoom') return
+
+        if (!payload.roomPassword) {
+          callback?.({ ok: false, error: 'Room password required' })
+          return
+        }
+
+        callback?.(
+          payload.roomPassword === 'wrong'
+            ? { ok: false, error: 'Invalid room password' }
+            : { ok: true }
+        )
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+      })
+
+      const passwordInput = screen.getByLabelText('Room Password')
+      fireEvent.change(passwordInput, { target: { value: 'wrong' } })
+      fireEvent.submit(passwordInput.closest('form'))
+
+      await waitFor(() => {
+        expect(screen.getByText('Invalid room password')).toBeInTheDocument()
+      })
+
+      fireEvent.change(passwordInput, { target: { value: 'correct' } })
+      fireEvent.submit(passwordInput.closest('form'))
+
+      await waitFor(() => {
+        expect(screen.queryByLabelText('Room Password')).not.toBeInTheDocument()
+        expect(socket.emit).toHaveBeenCalledWith('getRoomState', { roomId: '42' })
+      })
+    })
+
+    it.each([
+      [{ ok: false, error: 'Room closed' }, 'Room closed'],
+      [{ ok: false }, 'Unable to join room'],
+    ])('should show password retry failure messages', async (retryResponse, expectedMessage) => {
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event !== 'joinRoom') return
+
+        callback?.(
+          payload.roomPassword
+            ? retryResponse
+            : { ok: false, error: 'Room password required' }
+        )
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+      })
+
+      const passwordInput = screen.getByLabelText('Room Password')
+      fireEvent.change(passwordInput, { target: { value: 'secret' } })
+      fireEvent.submit(passwordInput.closest('form'))
+
+      await waitFor(() => {
+        expect(screen.getByText(expectedMessage)).toBeInTheDocument()
+      })
+    })
+
+    it('should ignore password retry callbacks after leaving', async () => {
+      let retryCallback
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event !== 'joinRoom') return
+
+        if (payload.roomPassword) {
+          retryCallback = callback
+          return
+        }
+
+        callback?.({ ok: false, error: 'Room password required' })
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+      })
+
+      const passwordInput = screen.getByLabelText('Room Password')
+      fireEvent.change(passwordInput, { target: { value: 'secret' } })
+      fireEvent.submit(passwordInput.closest('form'))
+      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+
+      await act(async () => {
+        retryCallback?.({ ok: true })
+      })
+
+      expect(mockOnBack).toHaveBeenCalled()
+      expect(socket.emit).not.toHaveBeenCalledWith('getRoomState', { roomId: '42' })
+    })
+
+    it('should return from the password prompt with the back button', async () => {
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom') {
+          callback?.({ ok: false, error: 'Room password required' })
+        }
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+
+      expect(mockOnBack).toHaveBeenCalled()
+    })
   })
 
   describe('Mode Player Limits', () => {
@@ -515,6 +924,7 @@ describe('CreateRoom Component', () => {
       const startButton = screen.getByRole('button', { name: /start game/i })
       expect(startButton).toBeDisabled()
     })
+
   })
 
   describe('Avatar Display', () => {
@@ -689,6 +1099,49 @@ describe('CreateRoom Component', () => {
         )
       })
       expect(mockOnNotice).not.toHaveBeenCalledWith('Invalid room name')
+    })
+
+    it('should use a fallback room name update error when the response is not JSON', async () => {
+      const { container } = render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      await act(async () => {
+        handleRoomState?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      })
+
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => {
+          throw new Error('invalid json')
+        }
+      })
+
+      fireEvent.click(container.querySelector('.edit-button'))
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'BadName' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/rooms/1/name'),
+          expect.objectContaining({ method: 'PATCH' })
+        )
+      })
     })
 
     it('should restore the previous room name on Escape and on failed update', async () => {

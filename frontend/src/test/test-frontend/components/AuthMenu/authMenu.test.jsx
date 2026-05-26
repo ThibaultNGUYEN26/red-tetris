@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import AuthMenu from '../../../../components/AuthMenu/AuthMenu'
@@ -36,10 +36,15 @@ describe('AuthMenu', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     locationSearch = ''
+    global.fetch.mockReset()
     global.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({}),
     })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('logs in and forwards the authenticated profile', async () => {
@@ -95,6 +100,41 @@ describe('AuthMenu', () => {
     })
     submit(container)
     expect(await screen.findByText('User does not exist')).toBeInTheDocument()
+  })
+
+  it('validates username and password complexity requirements', () => {
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
+
+    fillLogin('Bad!User', 'Secret123!')
+    expect(screen.getByPlaceholderText('Username')).toHaveValue('BadUser')
+
+    fireEvent.change(screen.getByPlaceholderText('Username'), {
+      target: { value: 'Titi' },
+    })
+
+    fireEvent.change(screen.getByPlaceholderText('Password'), {
+      target: { value: 'secret123!' },
+    })
+    submit(container)
+    expect(screen.getByText('Password must contain at least 1 uppercase letter')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Password'), {
+      target: { value: 'SECRET123!' },
+    })
+    submit(container)
+    expect(screen.getByText('Password must contain at least 1 lowercase letter')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Password'), {
+      target: { value: 'SecretPass!' },
+    })
+    submit(container)
+    expect(screen.getByText('Password must contain at least 1 number')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Password'), {
+      target: { value: 'Secret123' },
+    })
+    submit(container)
+    expect(screen.getByText('Password must contain at least 1 special character')).toBeInTheDocument()
   })
 
   it('shows server unavailable when login request throws', async () => {
@@ -157,6 +197,8 @@ describe('AuthMenu', () => {
     expect(screen.getByPlaceholderText('Password')).toHaveAttribute('type', 'text')
     fireEvent.click(screen.getAllByRole('button', { name: /hide password/i })[0])
     expect(screen.getByPlaceholderText('Password')).toHaveAttribute('type', 'password')
+    fireEvent.click(screen.getByRole('button', { name: /show confirm password/i }))
+    expect(screen.getByPlaceholderText('Confirm password')).toHaveAttribute('type', 'text')
 
     submit(container)
     expect(screen.getByText('Invalid email')).toBeInTheDocument()
@@ -164,6 +206,215 @@ describe('AuthMenu', () => {
     fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'user@example.com' } })
     submit(container)
     expect(screen.getByText("Password doesn't match")).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Confirm password'), { target: { value: 'Secret123!' } })
+    expect(screen.queryByText("Password doesn't match")).not.toBeInTheDocument()
+  })
+
+  it('navigates between auth modes and submits login with Enter', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ username: 'Titi' }),
+    })
+
+    render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" initialMode="unknown" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Register' }))
+    expect(navigateMock).toHaveBeenCalledWith('/register', { replace: true })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Login' }))
+    expect(navigateMock).toHaveBeenCalledWith('/login', { replace: true })
+
+    fillLogin()
+    fireEvent.keyDown(screen.getByPlaceholderText('Password'), { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/auth/login'), expect.any(Object))
+      expect(onAuthenticated).toHaveBeenCalledWith(expect.objectContaining({ username: 'Titi' }))
+    })
+  })
+
+  it('ignores non-Enter keys in auth inputs', () => {
+    render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
+
+    fillLogin()
+    fireEvent.keyDown(screen.getByPlaceholderText('Password'), { key: 'Tab' })
+
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(onAuthenticated).not.toHaveBeenCalled()
+  })
+
+  it('uses typed login details and avatar fallback when the login response omits them', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    })
+
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
+
+    fillLogin('FallbackUser')
+    submit(container)
+
+    await waitFor(() => {
+      expect(onAuthenticated).toHaveBeenCalledWith(expect.objectContaining({
+        username: 'FallbackUser',
+        email: '',
+        avatar: expect.objectContaining({
+          skinColor: expect.any(String),
+          eyeType: expect.any(String),
+          mouthType: expect.any(String),
+        }),
+      }))
+    })
+  })
+
+  it('cycles avatar feature selectors in register mode', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" initialMode="register" />)
+    const arrows = container.querySelectorAll('.feature-arrow')
+
+    expect(screen.getByText('normal')).toBeInTheDocument()
+    expect(screen.getByText('uwu')).toBeInTheDocument()
+
+    fireEvent.click(arrows[1])
+    fireEvent.click(arrows[2])
+    fireEvent.click(arrows[3])
+    fireEvent.click(arrows[4])
+    fireEvent.click(arrows[5])
+
+    expect(screen.getByText('normal')).toBeInTheDocument()
+    expect(screen.getByText('uwu')).toBeInTheDocument()
+  })
+
+  it('restores a soft-deleted account after login reports it can be restored', async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Account deleted', canRestore: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          username: 'Titi',
+          email: 'titi@example.com',
+          avatar: { skinColor: '#70d4d4', eyeType: 'happy', mouthType: 'smile' },
+        }),
+      })
+
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
+
+    fillLogin()
+    submit(container)
+
+    expect(await screen.findByText('Account deleted')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /restore account/i }))
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/api/auth/restore'), expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"username":"Titi"'),
+      }))
+      expect(onAuthenticated).toHaveBeenCalledWith(expect.objectContaining({
+        username: 'Titi',
+        email: 'titi@example.com',
+      }))
+    })
+  })
+
+  it('uses typed profile details and avatar fallback when restore response omits them', async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Account deleted', canRestore: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({}),
+      })
+
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
+
+    fillLogin('FallbackUser')
+    submit(container)
+    expect(await screen.findByText('Account deleted')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /restore account/i }))
+
+    await waitFor(() => {
+      expect(onAuthenticated).toHaveBeenCalledWith(expect.objectContaining({
+        username: 'FallbackUser',
+        email: '',
+        avatar: expect.objectContaining({
+          skinColor: expect.any(String),
+          eyeType: expect.any(String),
+          mouthType: expect.any(String),
+        }),
+      }))
+    })
+  })
+
+  it('handles restore backend errors and network failures', async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Account deleted', canRestore: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Unable to restore this account' }),
+      })
+      .mockRejectedValueOnce(new Error('offline'))
+
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
+
+    fillLogin()
+    submit(container)
+    expect(await screen.findByText('Account deleted')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /restore account/i }))
+    expect(await screen.findByText('Unable to restore this account')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /restore account/i }))
+    expect(await screen.findByText('Server unavailable')).toBeInTheDocument()
+  })
+
+  it('uses fallback messages when auth error responses are not JSON', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => {
+        throw new Error('invalid json')
+      },
+    })
+
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
+
+    fillLogin()
+    submit(container)
+
+    expect(await screen.findByText('Authentication failed')).toBeInTheDocument()
+  })
+
+  it('uses a fallback restore error when the response body is not JSON', async () => {
+    global.fetch
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Account deleted', canRestore: true }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => {
+          throw new Error('invalid json')
+        },
+      })
+
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
+
+    fillLogin()
+    submit(container)
+    expect(await screen.findByText('Account deleted')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /restore account/i }))
+    expect(await screen.findByText('Unable to restore account')).toBeInTheDocument()
   })
 
   it('handles forgot password success, reset URL navigation, and back to login', async () => {
@@ -192,6 +443,22 @@ describe('AuthMenu', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Back to login' }))
     expect(navigateMock).toHaveBeenCalledWith('/login', { replace: true })
+  })
+
+  it('shows the default forgot password success message without a reset URL', async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    })
+
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" initialMode="forgot" />)
+
+    fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'Titi' } })
+    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'titi@example.com' } })
+    submit(container)
+
+    expect(await screen.findByText('Password reset link generated')).toBeInTheDocument()
+    expect(navigateMock).not.toHaveBeenCalledWith(expect.stringContaining('/reset-password'), expect.any(Object))
   })
 
   it('validates forgot password input', () => {
@@ -226,6 +493,37 @@ describe('AuthMenu', () => {
       expect(screen.getByText('Password updated')).toBeInTheDocument()
       expect(navigateMock).toHaveBeenCalledWith('/login', { replace: true })
     })
+  })
+
+  it('shows the default reset success message when the response omits one', async () => {
+    locationSearch = '?token=abc'
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({}),
+    })
+
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" initialMode="reset" />)
+
+    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'Secret123!' } })
+    fireEvent.change(screen.getByPlaceholderText('Confirm password'), { target: { value: 'Secret123!' } })
+    submit(container)
+
+    expect(await screen.findByText('Password updated')).toBeInTheDocument()
+  })
+
+  it('validates reset password complexity and confirmation matching', () => {
+    locationSearch = '?token=abc'
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" initialMode="reset" />)
+
+    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'simple' } })
+    fireEvent.change(screen.getByPlaceholderText('Confirm password'), { target: { value: 'simple' } })
+    submit(container)
+    expect(screen.getByText('Password must be at least 8 characters')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'Secret123!' } })
+    fireEvent.change(screen.getByPlaceholderText('Confirm password'), { target: { value: 'Different123!' } })
+    submit(container)
+    expect(screen.getByText("Password doesn't match")).toBeInTheDocument()
   })
 
   it('shows reset validation errors without a token', () => {

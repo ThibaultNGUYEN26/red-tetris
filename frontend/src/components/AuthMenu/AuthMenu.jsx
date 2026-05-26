@@ -9,6 +9,12 @@ const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const PASSWORD_MIN_LENGTH = 8
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const AUTH_MODES = new Set(['login', 'register', 'forgot', 'reset'])
+const AUTH_ROUTES = {
+  login: '/login',
+  register: '/register',
+  forgot: '/forgot-password',
+  reset: '/reset-password',
+}
 
 const skinColors = [
   '#70d4d4',
@@ -113,22 +119,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
     resetPasswordToggles()
     clearMessages()
 
-    if (safeMode === 'login') {
-      navigate('/login', { replace: true })
-      return
-    }
-
-    if (safeMode === 'register') {
-      navigate('/register', { replace: true })
-      return
-    }
-
-    if (safeMode === 'forgot') {
-      navigate('/forgot-password', { replace: true })
-      return
-    }
-
-    navigate('/reset-password', { replace: true })
+    navigate(AUTH_ROUTES[safeMode], { replace: true })
   }
 
   const handleUsernameChange = (event) => {
@@ -164,7 +155,6 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
 
     if (mode === 'forgot') {
       if (!trimmedUsername || !normalizedEmail) return 'Missing data'
-      if (!USERNAME_PATTERN.test(trimmedUsername)) return 'Invalid username'
       if (!EMAIL_PATTERN.test(normalizedEmail)) return 'Invalid email'
       return null
     }
@@ -179,10 +169,6 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
 
     if (!trimmedUsername || !password || (mode === 'register' && (!normalizedEmail || !confirmPassword))) {
       return 'Missing data'
-    }
-
-    if (!USERNAME_PATTERN.test(trimmedUsername)) {
-      return 'Invalid username'
     }
 
     if (mode === 'register' && !EMAIL_PATTERN.test(normalizedEmail)) {
@@ -314,13 +300,6 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
   }
 
   const handleRestoreAccount = async () => {
-    const validationError = validate()
-    if (validationError) {
-      setErrorMessage(validationError)
-      setSuccessMessage('')
-      return
-    }
-
     setIsSubmitting(true)
     setErrorMessage('')
     setSuccessMessage('')
