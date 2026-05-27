@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import AdminPage from '../../../AdminPage.jsx'
-import { apiUrl } from '../../../api.js'
+import { API_BASE_URL, apiUrl } from '../../../api.js'
 
 vi.mock('react-router-dom', () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
@@ -232,6 +232,21 @@ describe('AdminPage', () => {
 
   it('returns absolute API URLs unchanged and prefixes relative paths', () => {
     expect(apiUrl('https://example.test/api')).toBe('https://example.test/api')
-    expect(apiUrl('api/admin/summary')).toBe('/api/admin/summary')
+    expect(apiUrl('api/admin/summary')).toBe(`${API_BASE_URL}/api/admin/summary`)
+  })
+
+  it('prefixes relative API paths without a configured backend URL', async () => {
+    vi.stubEnv('VITE_BACKEND_URL', '')
+    vi.resetModules()
+
+    try {
+      const { API_BASE_URL: emptyBaseUrl, apiUrl: apiUrlWithoutBase } = await import('../../../api.js')
+
+      expect(emptyBaseUrl).toBe('')
+      expect(apiUrlWithoutBase('api/admin/summary')).toBe('/api/admin/summary')
+    } finally {
+      vi.unstubAllEnvs()
+      vi.resetModules()
+    }
   })
 })
