@@ -73,6 +73,14 @@ describe('CreateRoom Component', () => {
       })
     })
 
+    it('should use a default avatar when no profile avatar is provided', async () => {
+      render(<CreateRoom {...defaultProps} userProfile={{}} />)
+
+      await waitFor(() => {
+        expect(screen.getByText(/TestUser/i)).toBeInTheDocument()
+      })
+    })
+
     it('should apply dark theme classes', async () => {
       const { container } = render(<CreateRoom {...defaultProps} theme="dark" />)
 
@@ -221,6 +229,16 @@ describe('CreateRoom Component', () => {
     })
 
     it('should use desired room names and host fallbacks from room creation', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'classic',
+          players: ['TestUser']
+        })
+      })
+
       render(<CreateRoom {...defaultProps} desiredRoomName="CustomRoom" />)
 
       await waitFor(() => {
@@ -580,6 +598,53 @@ describe('CreateRoom Component', () => {
       })
     })
 
+    it('should prefer listed cooperative fallback players when present', async () => {
+      render(
+        <CreateRoom
+          {...defaultProps}
+          mode="join"
+          roomId={13}
+          username="Viewer"
+          existingRooms={[{
+            id: 13,
+            name: 'Coop Room',
+            game_mode: 'cooperative',
+            host: '',
+            player_count: 1,
+            players: ['ListedHost']
+          }]}
+        />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText('ListedHost')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
+      })
+    })
+
+    it('should fall back to an empty username when cooperative fallback data has no host or players', async () => {
+      render(
+        <CreateRoom
+          {...defaultProps}
+          mode="join"
+          roomId={14}
+          username=""
+          existingRooms={[{
+            id: 14,
+            name: 'Coop Room',
+            game_mode: 'cooperative',
+            host: '',
+            player_count: 1,
+            players: []
+          }]}
+        />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
+      })
+    })
+
     it('should ignore existingRooms fallback for non-cooperative or populated rooms', async () => {
       const { rerender } = render(
         <CreateRoom
@@ -666,6 +731,144 @@ describe('CreateRoom Component', () => {
       expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
       expect(container.querySelector('.player-item.waiting')).toBeInTheDocument()
     })
+
+    it('should ignore room name input past the maximum length', async () => {
+      const { container } = render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      await waitFor(() => {
+        expect(container.querySelector('.edit-button')).toBeTruthy()
+      })
+
+      fireEvent.click(container.querySelector('.edit-button'))
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'NameThatIsTooLong' } })
+
+      expect(input).toHaveValue('Room 1')
+    })
+
+    it('should skip mode updates when the selected mode is empty', async () => {
+      render(<CreateRoom {...defaultProps} mode="join" roomId={1} />)
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      socket.emit.mockClear()
+      global.fetch.mockClear()
+
+      await act(async () => {
+        handleRoomState?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: '',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      })
+
+      expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    it('should ignore empty and mismatched room state payloads', async () => {
+      render(<CreateRoom {...defaultProps} mode="join" roomId={1} />)
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      await act(async () => {
+        handleRoomState?.(null)
+        handleRoomState?.({
+          id: 99,
+          name: 'Wrong Room',
+          game_mode: 'classic',
+          host: 'OtherHost',
+          players: ['OtherHost'],
+          player_avatars: {}
+        })
+      })
+
+      expect(screen.queryByText('Wrong Room')).not.toBeInTheDocument()
+      expect(screen.queryByText('OtherHost')).not.toBeInTheDocument()
+    })
+
+    it('should request room state when availableRooms payload is not an array', async () => {
+      render(<CreateRoom {...defaultProps} mode="join" roomId={1} />)
+
+      const availableRoomsHandler = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      socket.emit.mockClear()
+
+      await act(async () => {
+        availableRoomsHandler?.(null)
+      })
+
+      expect(socket.emit).toHaveBeenCalledWith('getRoomState', { roomId: '1' })
+    })
+
+    it('should keep the draft room name while editing during room state updates', async () => {
+      const { container } = render(<CreateRoom {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      await waitFor(() => {
+        expect(container.querySelector('.edit-button')).toBeTruthy()
+      })
+
+      fireEvent.click(container.querySelector('.edit-button'))
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'DraftName' } })
+
+      await waitFor(() => {
+        expect(socket.on.mock.calls.filter(call => call[0] === 'roomState')).toHaveLength(2)
+      })
+
+      const handleRoomState = socket.on.mock.calls
+        .filter(call => call[0] === 'roomState')
+        .at(-1)?.[1]
+
+      await act(async () => {
+        handleRoomState?.({
+          id: 1,
+          name: 'ServerName',
+          game_mode: 'classic',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      })
+
+      expect(screen.getByRole('textbox')).toHaveValue('DraftName')
+    })
+
+    it('should handle empty room state players', async () => {
+      render(<CreateRoom {...defaultProps} mode="join" roomId={1} />)
+
+      const handleRoomState = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+
+      await act(async () => {
+        handleRoomState?.({
+          id: 1,
+          name: 'ServerName',
+          game_mode: 'classic',
+          host: 'MissingHost',
+          player_avatars: {}
+        })
+      })
+
+      expect(screen.getByRole('heading', { name: /players \(0\/6\)/i })).toBeInTheDocument()
+    })
   })
 
   describe('Socket Communication', () => {
@@ -712,6 +915,33 @@ describe('CreateRoom Component', () => {
       await waitFor(() => {
         expect(socket.emit).toHaveBeenCalledWith('getRoomState', { roomId: '42' })
       })
+    })
+
+    it('should ignore initial join callbacks after cleanup or leaving', async () => {
+      const callbacks = []
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom') {
+          callbacks.push(callback)
+        }
+      })
+
+      const { unmount } = render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
+      unmount()
+
+      await act(async () => {
+        callbacks[0]?.({ ok: true })
+      })
+
+      expect(socket.emit).not.toHaveBeenCalledWith('getRoomState', { roomId: '42' })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={43} />)
+      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+
+      await act(async () => {
+        callbacks[1]?.({ ok: true })
+      })
+
+      expect(socket.emit).not.toHaveBeenCalledWith('getRoomState', { roomId: '43' })
     })
 
     it('should report non-password join failures', async () => {
@@ -764,6 +994,21 @@ describe('CreateRoom Component', () => {
 
       await waitFor(() => {
         expect(consoleError).toHaveBeenCalledWith('Failed to join room:', 'Unknown error')
+      })
+    })
+
+    it('should show invalid password on the initial join attempt', async () => {
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom') {
+          callback?.({ ok: false, error: 'Invalid room password' })
+        }
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+        expect(screen.getByText('Invalid room password')).toBeInTheDocument()
       })
     })
 
@@ -892,6 +1137,27 @@ describe('CreateRoom Component', () => {
 
       expect(mockOnBack).toHaveBeenCalled()
       expect(socket.emit).not.toHaveBeenCalledWith('getRoomState', { roomId: '42' })
+    })
+
+    it('should ignore password submissions after leaving', async () => {
+      let form
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom') {
+          callback?.({ ok: false, error: 'Room password required' })
+        }
+      })
+
+      render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
+
+      await waitFor(() => {
+        form = screen.getByLabelText('Room Password').closest('form')
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+      socket.emit.mockClear()
+      fireEvent.submit(form)
+
+      expect(socket.emit).not.toHaveBeenCalled()
     })
 
     it('should return from the password prompt with the back button', async () => {
@@ -1270,6 +1536,7 @@ describe('CreateRoom Component', () => {
       })
 
       const startButton = screen.getByRole('button', { name: /start game/i })
+      fireEvent.click(startButton)
       fireEvent.click(startButton)
 
       await waitFor(() => {

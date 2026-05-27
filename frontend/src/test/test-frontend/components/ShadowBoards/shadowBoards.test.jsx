@@ -74,4 +74,19 @@ describe('ShadowBoards Component', () => {
     const grid = screen.getByRole('grid', { name: 'Giant board' })
     expect(grid).toHaveStyle('--shadow-cell-size: 4px')
   })
+
+  it('handles missing and empty board data defensively', () => {
+    render(<ShadowBoards boards={[
+      { username: 'Missing', board: null },
+      { username: 'Empty', board: [] },
+    ]} />)
+
+    const missingGrid = screen.getByRole('grid', { name: 'Missing board' })
+    const emptyGrid = screen.getByRole('grid', { name: 'Empty board' })
+
+    expect(missingGrid).toHaveStyle('grid-template-columns: repeat(0, var(--cell-size))')
+    expect(missingGrid).toHaveStyle('grid-template-rows: repeat(0, var(--cell-size))')
+    expect(emptyGrid).toHaveStyle('grid-template-columns: repeat(0, var(--cell-size))')
+    expect(emptyGrid).toHaveStyle('grid-template-rows: repeat(0, var(--cell-size))')
+  })
 })

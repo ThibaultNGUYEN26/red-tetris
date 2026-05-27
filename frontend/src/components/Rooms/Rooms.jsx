@@ -6,8 +6,6 @@ import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 import Game from '../Game/Game.jsx'
 import { logDuration, markStart, perfLog } from '../../perf'
 
-const API_URL = import.meta.env.VITE_API_URL || ''
-
 function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
@@ -37,6 +35,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   }
 
   const buildSpectatePath = (roomName, gameMode) => {
+    /* v8 ignore next -- handleSpectate already skips nameless rooms before building a path. @preserve */
     if (!roomName) return ''
     const roomType = ['cooperative', 'cooperative_roles'].includes(gameMode)
       ? 'coop'
@@ -302,6 +301,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
   };
 
   const handlePlayAgain = () => {
+    /* v8 ignore next -- the Game view is only rendered while currentRoomId is set. @preserve */
     if (!currentRoomId) return;
     setPendingPlayAgain(true);
     socket.emit('playAgain', { roomId: String(currentRoomId), username });

@@ -116,6 +116,29 @@ describe('Leaderboard Component', () => {
       })
     })
 
+    it('should ignore invalid cached leaderboard data', async () => {
+      localStorage.setItem('red-tetris-leaderboards', '{invalid-json')
+
+      render(<Leaderboard {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+        expect(screen.getByText('Loading…')).toBeInTheDocument()
+      })
+    })
+
+    it('should render valid cached leaderboard data before socket updates arrive', () => {
+      localStorage.setItem('red-tetris-leaderboards', JSON.stringify({
+        solo: soloLeaderboard,
+        coop: coopLeaderboard,
+      }))
+
+      render(<Leaderboard {...defaultProps} />)
+
+      expect(screen.getByText('Player1')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Co-op Duo' })).toBeInTheDocument()
+    })
+
     it('should display leaderboard title with trophy emoji', async () => {
       render(<Leaderboard {...defaultProps} />)
 
@@ -219,6 +242,24 @@ describe('Leaderboard Component', () => {
         expect(avatars.length).toBe(10)
       })
     })
+
+    it('should use a default avatar when a solo entry has no avatar', async () => {
+      render(<Leaderboard {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+      })
+      triggerSocketEvent('leaderboardSolo', [{
+        rank: 1,
+        name: 'NoAvatar',
+        score: 1000,
+      }])
+
+      await waitFor(() => {
+        expect(screen.getByText('NoAvatar')).toBeInTheDocument()
+        expect(document.querySelectorAll('.face-avatar')).toHaveLength(1)
+      })
+    })
   })
 
   describe('Co-op Entries', () => {
@@ -278,6 +319,31 @@ describe('Leaderboard Component', () => {
       })
     })
 
+    it('should fall back for invalid co-op payloads and missing duo player data', async () => {
+      render(<Leaderboard {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+        expect(socket.on).toHaveBeenCalledWith('leaderboardCoop', expect.any(Function))
+      })
+
+      triggerSocketEvent('leaderboardSolo', [])
+      triggerSocketEvent('leaderboardCoop', null)
+
+      await waitFor(() => {
+        expect(screen.queryByText('Player 1 + Player 2')).not.toBeInTheDocument()
+      })
+
+      triggerSocketEvent('leaderboardCoop', [{
+        rank: 1,
+        score: 1000,
+      }])
+
+      await waitFor(() => {
+        expect(screen.getByText('Player 1 + Player 2')).toBeInTheDocument()
+      })
+    })
+
     it('should switch back to solo when coop leaderboard has no scores', async () => {
       render(<Leaderboard {...defaultProps} />)
 
@@ -301,6 +367,23 @@ describe('Leaderboard Component', () => {
       await waitFor(() => {
         expect(screen.queryByRole('button', { name: 'Co-op Duo' })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Solo' })).toHaveClass('active')
+      })
+    })
+
+    it('should switch to co-op when solo has no scores and co-op does', async () => {
+      render(<Leaderboard {...defaultProps} />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+        expect(socket.on).toHaveBeenCalledWith('leaderboardCoop', expect.any(Function))
+      })
+
+      triggerSocketEvent('leaderboardSolo', [])
+      triggerSocketEvent('leaderboardCoop', coopLeaderboard)
+
+      await waitFor(() => {
+        expect(screen.getByText('Duo1A + Duo1B')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Co-op Duo' })).toHaveClass('active')
       })
     })
 

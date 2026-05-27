@@ -47,17 +47,20 @@ describe('Options Component', () => {
   })
 
   it('renders dark theme labels when theme is dark', () => {
+    const onThemeChange = vi.fn()
+
     render(
       <Options
         onBack={vi.fn()}
         theme="dark"
-        onThemeChange={vi.fn()}
+        onThemeChange={onThemeChange}
         soundEnabled={false}
         onSoundChange={vi.fn()}
       />
     )
 
-    expect(screen.getByRole('button', { name: /dark theme/i })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /dark theme/i }))
+    expect(onThemeChange).toHaveBeenCalledWith('light')
     expect(screen.getByRole('button', { name: /sound/i })).toHaveTextContent(/disabled/i)
   })
 })

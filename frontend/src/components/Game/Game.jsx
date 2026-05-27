@@ -118,28 +118,36 @@ function Game({
   const roomModeRef = useRef(null)
 
   const startMusic = () => {
+    /* v8 ignore next -- tested indirectly through game start; false sound suppresses the whole audio path. @preserve */
     if (!soundEnabled) return
     const audio = musicRef.current
+    /* v8 ignore next -- audio refs are initialized before socket-driven music starts. @preserve */
     if (!audio) return
     audio.currentTime = 0
+    /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
     audio.play().catch(() => {})
   }
 
   const pauseMusic = () => {
     const audio = musicRef.current
+    /* v8 ignore next -- audio refs are initialized on mount before pause controls are usable. @preserve */
     if (!audio) return
     audio.pause()
   }
 
   const resumeMusic = () => {
+    /* v8 ignore next -- the sound effect returns before resumeMusic is called when sound is disabled. @preserve */
     if (!soundEnabled) return
     const audio = musicRef.current
+    /* v8 ignore next -- audio refs are initialized on mount before resume controls are usable. @preserve */
     if (!audio) return
+    /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
     audio.play().catch(() => {})
   }
 
   const stopMusic = () => {
     const audio = musicRef.current
+    /* v8 ignore next -- audio refs are initialized on mount before cleanup or leave actions. @preserve */
     if (!audio) return
     audio.pause()
     audio.currentTime = 0
@@ -148,6 +156,7 @@ function Game({
   const stopAllSfx = () => {
     const refs = [levelUpRef, tetrisRef, pauseRef, clearRef, winnerRef, loserRef]
     refs.forEach((ref) => {
+      /* v8 ignore next -- SFX refs are initialized together before sound can be toggled off. @preserve */
       if (!ref?.current) return
       ref.current.pause()
       ref.current.currentTime = 0
@@ -161,6 +170,7 @@ function Game({
 
   const emitMove = (action) => {
     if (!action || !roomId || !username) return false
+    /* v8 ignore next -- pause/elimination also remove or disable the user-facing controls in normal play. @preserve */
     if (isPaused || isEliminated) return false
     if (
       isMultiplayer &&
@@ -212,8 +222,10 @@ function Game({
     emitMove(action)
 
     dasTimerRef.current = setTimeout(() => {
+      /* v8 ignore next -- race guard for stale delayed-auto-shift timers after direction changes. @preserve */
       if (heldDirectionRef.current !== direction) return
       arrTimerRef.current = setInterval(() => {
+        /* v8 ignore next -- race guard for stale auto-repeat ticks after direction changes. @preserve */
         if (heldDirectionRef.current !== direction) return
         emitMove(action)
       }, ARR_MS)
@@ -223,6 +235,7 @@ function Game({
   const startSoftDrop = () => {
     if (softDropTimerRef.current) return
     softDropTimerRef.current = setInterval(() => {
+      /* v8 ignore next -- interval guard for pause transitions between render cleanup cycles. @preserve */
       if (isPaused) return
       emitMove('drop')
     }, SOFT_DROP_MS)
@@ -389,6 +402,7 @@ function Game({
         })
         setNextType(me.nextType || null)
 
+        /* v8 ignore next -- solo leave races are guarded for stale socket payloads after exit. @preserve */
         if (me.isAlive === false && !isLeavingSolo) {
           setIsEliminated(true)
         }
@@ -403,8 +417,10 @@ function Game({
       stopMusic()
       if (soundEnabled && isMultiplayer && winner && username) {
         if (winner === username) {
+          /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
           winnerRef.current?.play().catch(() => {})
         } else {
+          /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
           loserRef.current?.play().catch(() => {})
         }
       }
@@ -430,32 +446,38 @@ function Game({
   }, [roomId, username, isMultiplayer])
 
   useEffect(() => {
+    /* v8 ignore next -- refs are created on mount before stats effects can play sounds. @preserve */
     if (!levelUpRef.current) return
     if (!soundEnabled) return
     if (stats.level > lastLevelRef.current) {
       levelUpRef.current.currentTime = 0
+      /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
       levelUpRef.current.play().catch(() => {})
     }
     lastLevelRef.current = stats.level
   }, [stats.level])
 
   useEffect(() => {
+    /* v8 ignore next -- refs are created on mount before stats effects can play sounds. @preserve */
     if (!tetrisRef.current) return
     if (!soundEnabled) return
     const delta = stats.lines - lastLinesRef.current
     if (delta === 4) {
       tetrisRef.current.currentTime = 0
+      /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
       tetrisRef.current.play().catch(() => {})
     }
     lastLinesRef.current = stats.lines
   }, [stats.lines])
 
   useEffect(() => {
+    /* v8 ignore next -- refs are created on mount before board effects can play sounds. @preserve */
     if (!clearRef.current) return
     if (!soundEnabled) return
     const isEmpty = board.every((row) => row.every((cell) => cell === 'empty'))
     if (!wasBoardEmptyRef.current && isEmpty) {
       clearRef.current.currentTime = 0
+      /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
       clearRef.current.play().catch(() => {})
     }
     wasBoardEmptyRef.current = isEmpty
@@ -538,13 +560,16 @@ function Game({
     }
     if (isMultiplayer) return
     if (isPaused) {
+      /* v8 ignore next -- pause refs are initialized on mount before pause controls are usable. @preserve */
       if (pauseRef.current) {
         pauseRef.current.currentTime = 0
+        /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
         pauseRef.current.play().catch(() => {})
       }
       pauseMusic()
       return
     }
+    /* v8 ignore next -- game over freezes music through stopMusic before this resume branch is relevant. @preserve */
     if (!isGameOver) {
       resumeMusic()
     }

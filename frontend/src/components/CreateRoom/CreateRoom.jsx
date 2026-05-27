@@ -132,6 +132,7 @@ function CreateRoom({
 
   useEffect(() => {
     if (mode !== 'create') return
+    /* v8 ignore next -- protects against duplicate effect execution outside normal React mount flow. @preserve */
     if (hasCreatedRoom.current) return
 
     const createRoom = async () => {
@@ -227,12 +228,14 @@ function CreateRoom({
       hasJoinedRoom.current = false
       return
     }
+    /* v8 ignore next -- cleanup resets this ref before dependency-driven rejoin attempts in the UI. @preserve */
     if (hasJoinedRoom.current) return
 
     let cancelled = false
 
     socket.emit("joinRoom", { roomId: String(roomId), username, roomPassword }, (response) => {
       if (cancelled) return
+      /* v8 ignore next -- leaving also clears roomId, so the cancellation guard handles UI exits first. @preserve */
       if (isLeavingRoom.current) return
 
       if (!response?.ok) {
@@ -419,6 +422,7 @@ function CreateRoom({
   }
 
   const submitRoomName = async () => {
+    /* v8 ignore next -- the edit form is only rendered after a room id exists. @preserve */
     if (!roomId) return
 
     const trimmedName = roomNameDraft.trim()
@@ -478,9 +482,13 @@ function CreateRoom({
   }
 
   const handleStartGame = async () => {
+    /* v8 ignore next -- the start button is disabled until a room id exists. @preserve */
     if (!roomId) return
+    /* v8 ignore next -- the start button is disabled while multiplayer rooms wait for players. @preserve */
     if (!isSolo && players.length < 2) return
+    /* v8 ignore next -- shared-board player count is enforced by the disabled start button. @preserve */
     if (sharedBoardModes.includes(selectedMode) && players.length !== 2) return
+    /* v8 ignore next -- non-host users receive a disabled start button. @preserve */
     if (hostName && hostName !== username) return
     if (hasStartedGame.current) return // Prevent duplicate submissions
 

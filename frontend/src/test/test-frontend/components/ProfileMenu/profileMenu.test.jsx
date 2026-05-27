@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import ProfileMenu from '../../../../components/ProfileMenu/ProfileMenu'
+import { socket } from '../../../../socket'
 
 const mockSocketEmit = vi.fn((event, payload, callback) => {
   if (event === 'updateProfile' && typeof callback === 'function') {
@@ -27,6 +28,9 @@ describe('ProfileMenu Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    socket.timeout = vi.fn(() => ({
+      emit: mockSocketEmit,
+    }))
     mockSocketEmit.mockImplementation((event, payload, callback) => {
       if (event === 'updateProfile' && typeof callback === 'function') {
         callback(null, { ok: true, profile: payload })
@@ -153,6 +157,29 @@ describe('ProfileMenu Component', () => {
       
       expect(mockOnSubmit).not.toHaveBeenCalled()
       expect(screen.getByText('Missing data')).toBeInTheDocument()
+    })
+
+    it('should clear validation errors when the username changes', () => {
+      render(<ProfileMenu {...defaultProps} />)
+
+      const input = screen.getByRole('textbox')
+      fireEvent.keyPress(input, { key: 'Enter', code: 'Enter', charCode: 13 })
+      expect(screen.getByText('Missing data')).toBeInTheDocument()
+
+      fireEvent.change(input, { target: { value: 'FixedUser' } })
+
+      expect(screen.queryByText('Missing data')).not.toBeInTheDocument()
+    })
+
+    it('should ignore non-Enter key presses', () => {
+      render(<ProfileMenu {...defaultProps} />)
+
+      const input = screen.getByRole('textbox')
+      fireEvent.change(input, { target: { value: 'TestUser' } })
+      fireEvent.keyPress(input, { key: 'a', code: 'KeyA', charCode: 97 })
+
+      expect(mockSocketEmit).not.toHaveBeenCalled()
+      expect(mockOnSubmit).not.toHaveBeenCalled()
     })
   })
 
@@ -376,6 +403,35 @@ describe('ProfileMenu Component', () => {
       })
     })
 
+    it('should keep a valid initial avatar selection when submitting', async () => {
+      const initialAvatar = {
+        skinColor: '#70d4d4',
+        eyeType: 'happy',
+        mouthType: 'smile',
+      }
+
+      render(
+        <ProfileMenu
+          {...defaultProps}
+          initialProfile={{
+            username: 'InitialUser',
+            avatar: initialAvatar,
+          }}
+        />
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: /submit|start|play/i }))
+
+      await waitFor(() => {
+        expect(mockOnSubmit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            username: 'InitialUser',
+            avatar: initialAvatar,
+          })
+        )
+      })
+    })
+
     it('should show an error when updateProfile fails', async () => {
       mockSocketEmit.mockImplementation((event, payload, callback) => {
         if (event === 'updateProfile' && typeof callback === 'function') {
@@ -412,6 +468,23 @@ describe('ProfileMenu Component', () => {
       })
     })
 
+    it('should show a fallback error when updateProfile fails without an error message', async () => {
+      mockSocketEmit.mockImplementation((event, payload, callback) => {
+        if (event === 'updateProfile' && typeof callback === 'function') {
+          callback(null, { ok: false })
+        }
+      })
+
+      render(<ProfileMenu {...defaultProps} />)
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'TestUser' } })
+      fireEvent.click(screen.getByRole('button', { name: /submit|start|play/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText('Profile update failed')).toBeInTheDocument()
+      })
+    })
+
     it('should show a socket timeout error when updateProfile times out', async () => {
       mockSocketEmit.mockImplementation((event, payload, callback) => {
         if (event === 'updateProfile' && typeof callback === 'function') {
@@ -428,6 +501,35 @@ describe('ProfileMenu Component', () => {
         expect(screen.getByText('Server not responding')).toBeInTheDocument()
       })
 
+      expect(mockOnSubmit).not.toHaveBeenCalled()
+    })
+
+    it('should reject an invalid initial username before socket submission', async () => {
+      render(
+        <ProfileMenu
+          {...defaultProps}
+          initialProfile={{
+            username: 'Invalid_Name',
+          }}
+        />
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: /submit|start|play/i }))
+
+      expect(await screen.findByText('Invalid username')).toBeInTheDocument()
+      expect(mockSocketEmit).not.toHaveBeenCalled()
+      expect(mockOnSubmit).not.toHaveBeenCalled()
+    })
+
+    it('should show server unavailable when socket timeout is missing', async () => {
+      socket.timeout = undefined
+
+      render(<ProfileMenu {...defaultProps} />)
+
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'TestUser' } })
+      fireEvent.click(screen.getByRole('button', { name: /submit|start|play/i }))
+
+      expect(await screen.findByText('Server unavailable')).toBeInTheDocument()
       expect(mockOnSubmit).not.toHaveBeenCalled()
     })
 
@@ -463,6 +565,15 @@ describe('ProfileMenu Component', () => {
       // Component should render with input and buttons
       expect(screen.getByRole('textbox')).toBeInTheDocument()
       expect(container.querySelector('input')).toBeTruthy()
+    })
+
+    it('should render and call logout when provided', () => {
+      const onLogout = vi.fn()
+      render(<ProfileMenu {...defaultProps} onLogout={onLogout} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /disconnect/i }))
+
+      expect(onLogout).toHaveBeenCalled()
     })
   })
 

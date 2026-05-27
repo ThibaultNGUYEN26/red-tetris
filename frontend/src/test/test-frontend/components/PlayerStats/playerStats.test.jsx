@@ -191,6 +191,82 @@ describe('PlayerStats Component', () => {
     expect(screen.getByText('0%')).toBeInTheDocument()
   })
 
+  it('fetches newer stats when profile stats are stale', async () => {
+    render(
+      <PlayerStats
+        theme="light"
+        username="Titi"
+        userProfile={{
+          username: 'CachedName',
+          soloGames: 1,
+          soloTopScore: 100,
+          statsFetchedAt: Date.now() - 31_000,
+        }}
+      />
+    )
+
+    expect(screen.getByText('CachedName')).toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/player/stats?username=CachedName'),
+        expect.objectContaining({ credentials: 'include' })
+      )
+      expect(screen.getByText('Titi')).toBeInTheDocument()
+    })
+  })
+
+  it('uses fresh profile stats when the fetched-at timestamp is recent', async () => {
+    render(
+      <PlayerStats
+        theme="light"
+        username="Titi"
+        userProfile={{
+          username: 'FreshName',
+          soloGames: 1,
+          soloTopScore: 100,
+          statsFetchedAt: Date.now(),
+        }}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('FreshName')).toBeInTheDocument()
+    })
+
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it('ignores fetch results after unmount', async () => {
+    let resolveJson
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => new Promise((resolve) => {
+        resolveJson = resolve
+      }),
+    })
+
+    const { unmount } = render(<PlayerStats theme="light" username="LateUser" />)
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/player/stats?username=LateUser'),
+        expect.any(Object)
+      )
+    })
+
+    unmount()
+    resolveJson({
+      name: 'TooLate',
+      soloGames: 9,
+      soloTopScore: 999,
+    })
+
+    await Promise.resolve()
+
+    expect(screen.queryByText('TooLate')).not.toBeInTheDocument()
+  })
+
   it('uses fetch fallbacks when the response omits optional fields', async () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,

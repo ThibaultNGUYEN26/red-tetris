@@ -117,6 +117,99 @@ describe('Game Component', () => {
     expect(screen.getByRole('button', { name: /leave game/i })).toBeInTheDocument()
   })
 
+  it('resumes and leaves a local game from the pause overlay', async () => {
+    const onBack = vi.fn()
+
+    render(
+      <Game
+        theme="light"
+        onBack={onBack}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /options/i }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('Paused')
+
+    fireEvent.click(screen.getByRole('button', { name: /resume/i }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /options/i }))
+    fireEvent.click(screen.getByRole('button', { name: /leave game/i }))
+
+    expect(onBack).toHaveBeenCalled()
+  })
+
+  it('blocks keyboard moves without room context and while paused', async () => {
+    const { rerender } = render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    socket.emit.mockClear()
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(socket.emit).not.toHaveBeenCalledWith('movePiece', expect.any(Object))
+
+    rerender(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    socket.emit.mockClear()
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(socket.emit).not.toHaveBeenCalledWith('movePiece', expect.any(Object))
+  })
+
+  it('infers multiplayer from a room id and supports giant board sizing', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'giant',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(30, 15),
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    await waitFor(() => {
+      expect(document.querySelectorAll('.game-board .cell')).toHaveLength(450)
+    })
+  })
+
   it('tracks the DB-backed room mode before a new game starts', async () => {
     render(
       <Game
@@ -142,7 +235,6 @@ describe('Game Component', () => {
 
     roomStateHandler?.({
       id: 1,
-      game_mode: 'classic',
     })
 
     gameStartedHandler?.({ roomId: '1' })
@@ -289,15 +381,77 @@ describe('Game Component', () => {
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
     fireEvent.keyUp(window, { key: 'ArrowLeft' })
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.keyUp(window, { key: 'ArrowRight' })
     fireEvent.keyDown(window, { key: 'ArrowDown' })
     fireEvent.keyUp(window, { key: 'ArrowDown' })
     fireEvent.keyDown(window, { key: 'ArrowUp' })
     fireEvent.keyDown(window, { key: ' ' })
+    fireEvent.keyDown(window, { key: 'Enter' })
 
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'right' })
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'drop' })
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'rotate' })
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'hardDrop' })
+  })
+
+  it('auto repeats horizontal moves and soft drops until key release', async () => {
+    vi.useFakeTimers()
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    socket.emit.mockClear()
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300)
+    })
+
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'right' })
+
+    fireEvent.keyUp(window, { key: 'ArrowRight' })
+    socket.emit.mockClear()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(80)
+    })
+
+    expect(socket.emit).not.toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
+
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(70)
+    })
+
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'drop' })
+
+    fireEvent.keyUp(window, { key: 'ArrowDown' })
   })
 
   it('renders authoritative playerState updates from the backend fast path', async () => {
@@ -432,13 +586,24 @@ describe('Game Component', () => {
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
     fireEvent.keyUp(window, { key: 'ArrowLeft' })
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.keyUp(window, { key: 'ArrowRight' })
     fireEvent.keyDown(window, { key: 'ArrowDown' })
     fireEvent.keyDown(window, { key: ' ' })
     fireEvent.keyUp(window, { key: ' ' })
+    fireEvent.keyDown(window, { key: 'Enter', repeat: true })
 
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'right' })
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'hardDrop' })
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'drop' })
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.getByRole('dialog')).toHaveTextContent('Game Menu')
+    fireEvent.click(screen.getByRole('button', { name: /resume/i }))
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
 
     fireEvent.click(screen.getByRole('button', { name: /options/i }))
     expect(screen.getByRole('dialog')).toHaveTextContent('Game Menu')
@@ -500,6 +665,328 @@ describe('Game Component', () => {
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'rotate' })
   })
 
+  it('blocks place-role rotation and out-of-turn cooperative moves', async () => {
+    const { rerender } = render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'cooperative_roles',
+        players: [{
+          username: 'Titi',
+          cooperativeRole: 'place',
+          board: makeBoard(),
+        }],
+      })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('YOU PLACE')).toBeInTheDocument()
+    })
+
+    socket.emit.mockClear()
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(socket.emit).not.toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'rotate' })
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
+
+    rerender(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={2}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'cooperative',
+        currentTurnUsername: 'Riri',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+        }, {
+          username: 'Riri',
+          board: makeBoard(),
+        }],
+      })
+    })
+
+    socket.emit.mockClear()
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(socket.emit).not.toHaveBeenCalledWith('movePiece', { roomId: '2', action: 'left' })
+  })
+
+  it('renders solo state without opponent boards', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+        }, {
+          username: 'Riri',
+          board: makeBoard(),
+        }],
+      })
+    })
+
+    expect(screen.getByTestId('shadow-boards')).toBeInTheDocument()
+  })
+
+  it('shows cooperative status fallbacks', async () => {
+    const { rerender } = render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'cooperative',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+        }],
+      })
+    })
+
+    expect(screen.getByText('Playing: ...')).toBeInTheDocument()
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'cooperative',
+        currentTurnUsername: 'Titi',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+        }],
+      })
+    })
+
+    expect(screen.getByText('YOUR TURN')).toBeInTheDocument()
+
+    rerender(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={2}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'cooperative_roles',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+        }],
+      })
+    })
+
+    expect(screen.getByText('ASSIGNING ROLE...')).toBeInTheDocument()
+  })
+
+  it('marks the player eliminated from playerState updates', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: null,
+        player: {
+          username: 'Titi',
+          board: makeBoard(),
+          isAlive: false,
+        },
+      })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('game-over-state')).toHaveTextContent('"isEliminated":true')
+    })
+  })
+
+  it('uses fallback boards for playerState payloads without a board', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: 'classic',
+        player: {
+          username: 'Titi',
+          isAlive: false,
+        },
+      })
+    })
+
+    expect(document.querySelectorAll('.game-board .cell')).toHaveLength(200)
+  })
+
+  it('ignores stale socket events while leaving or for other rooms', async () => {
+    socket.emit.mockImplementation((event, _payload, callback) => {
+      if (event === 'playerLeave') callback?.()
+    })
+
+    const { rerender } = render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('roomState')?.({ id: 99, game_mode: 'giant' })
+      getSocketHandler('playerState')?.({
+        roomId: '99',
+        mode: 'classic',
+        player: { username: 'Titi', board: makeBoard() },
+      })
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: 'classic',
+        player: { username: 'Riri', board: makeBoard() },
+      })
+      getSocketHandler('gameState')?.(null)
+    })
+
+    expect(document.querySelectorAll('.game-board .cell')).toHaveLength(200)
+
+    fireEvent.click(screen.getByRole('button', { name: /options/i }))
+    fireEvent.click(screen.getByRole('button', { name: /leave game/i }))
+
+    await act(async () => {
+      getSocketHandler('roomState')?.({ id: 1, game_mode: 'giant' })
+      getSocketHandler('gameStarted')?.()
+      getSocketHandler('gameState')?.({
+        mode: 'giant',
+        players: [{ username: 'Titi', board: makeBoard(30, 15) }],
+      })
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: 'giant',
+        player: { username: 'Titi', board: makeBoard(30, 15) },
+      })
+      getSocketHandler('gameOver')?.({ winner: 'Riri' })
+    })
+
+    expect(document.querySelectorAll('.game-board .cell')).toHaveLength(200)
+
+    rerender(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={2}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+  })
+
+  it('plays clear sound when the board becomes empty after containing blocks', async () => {
+    const filledBoard = makeBoard()
+    filledBoard[19][0] = 'i'
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: filledBoard,
+        }],
+      })
+    })
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+        }],
+      })
+    })
+
+    expect(audioInstances[4].play).toHaveBeenCalled()
+  })
+
   it('plays winner and loser sounds on multiplayer game over', async () => {
     const { rerender } = render(
       <Game
@@ -544,6 +1031,26 @@ describe('Game Component', () => {
     expect(audioInstances.at(-1).play).toHaveBeenCalled()
   })
 
+  it('handles game over without a winner', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameOver')?.({})
+    })
+
+    expect(screen.getByTestId('game-over-state')).toHaveTextContent('"winner":null')
+  })
+
   it('switches eliminated multiplayer players into spectator view', async () => {
     const onSpectate = vi.fn()
 
@@ -581,6 +1088,36 @@ describe('Game Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
 
     expect(onSpectate).toHaveBeenCalled()
+    expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+  })
+
+  it('renders eliminated spectator view with dark theme', async () => {
+    const { container } = render(
+      <Game
+        theme="dark"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+          isAlive: false,
+        }],
+      })
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+
+    expect(container.querySelector('.game-screen.dark')).toBeTruthy()
     expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
   })
 })

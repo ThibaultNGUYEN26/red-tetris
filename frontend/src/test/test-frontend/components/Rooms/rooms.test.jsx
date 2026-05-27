@@ -22,12 +22,16 @@ vi.mock('../../../../socket', () => ({
 
 // Mock CreateRoom component
 vi.mock('../../../../components/CreateRoom/CreateRoom.jsx', () => ({
-  default: ({ onBack, onRoomCreated, onRoomRenamed, knownRoomPassword }) => (
+  default: ({ onBack, onRoomCreated, onRoomRenamed, knownRoomPassword, initialRoomPassword }) => (
     <div data-testid="create-room-mock">
       {knownRoomPassword && <span data-testid="known-room-password">{knownRoomPassword}</span>}
+      {initialRoomPassword && <span data-testid="initial-room-password">{initialRoomPassword}</span>}
       <button onClick={onBack}>Back to Rooms</button>
       <button onClick={() => onRoomCreated(1, 'Test Room', 'cooperative')}>Create Room</button>
+      <button onClick={() => onRoomCreated(2, 'Multi Room', 'multiplayer')}>Create Multiplayer Room</button>
+      <button onClick={() => onRoomCreated(3, '', 'multiplayer')}>Create Nameless Room</button>
       <button onClick={() => onRoomRenamed('Renamed Room', 'mirror')}>Rename Room</button>
+      <button onClick={() => onRoomRenamed('Fallback Mode Room')}>Rename Without Mode</button>
     </div>
   )
 }))
@@ -197,6 +201,78 @@ describe('Rooms Component', () => {
         availableRoomsCallback([])
       }
     })
+
+    it('should render dark theme and fallback/cooperative room metadata', async () => {
+      render(<Rooms {...defaultProps} theme="dark" />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([
+        {
+          id: null,
+          name: 'Fallback Mode Room',
+          host: 'FallbackHost',
+          player_count: 1,
+          players: [],
+          status: 'waiting',
+        },
+        {
+          id: 8,
+          name: 'Coop Room',
+          game_mode: 'cooperative',
+          host: 'CoopHost',
+          player_count: 1,
+          players: [],
+          status: 'waiting',
+        },
+        {
+          id: 9,
+          name: 'Already Joined',
+          game_mode: 'classic',
+          host: 'TestUser',
+          player_count: 1,
+          players: ['TestUser'],
+          status: 'waiting',
+        },
+      ])
+
+      await waitFor(() => {
+        expect(screen.getByText('Fallback Mode Room')).toBeInTheDocument()
+      })
+
+      expect(screen.getByText('Multiplayer Rooms').closest('.rooms-card')).toHaveClass('dark')
+      expect(screen.getAllByText('1/6')).toHaveLength(2)
+      expect(screen.getByText('1/2')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /joined/i })).toBeDisabled()
+    })
+
+    it('should log availableRooms payloads without an active request timer on later updates', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([])
+      availableRoomsCallback?.([mockRooms[0]])
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+    })
+
+    it('should tolerate a non-array availableRooms payload after unmount', () => {
+      const { unmount } = render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      unmount()
+      availableRoomsCallback?.(null)
+    })
   })
 
   describe('Room Creation', () => {
@@ -247,17 +323,58 @@ describe('Rooms Component', () => {
       render(<Rooms {...defaultProps} onRoomCreated={mockOnRoomCreated} />)
 
       fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.change(screen.getByPlaceholderText('Leave empty for public'), {
+        target: { value: 'new-room-password' },
+      })
       fireEvent.click(screen.getByRole('button', { name: /multiplayer/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
       })
 
+      expect(screen.getByTestId('initial-room-password')).toHaveTextContent('new-room-password')
+
       fireEvent.click(screen.getByText('Create Room'))
 
       expect(mockOnRoomCreated).toHaveBeenCalledWith(1, 'Test Room', 'cooperative')
       expect(navigateMock).toHaveBeenCalledWith(
         '/Test Room/coop/TestUser',
+        { replace: true }
+      )
+    })
+
+    it('should route created multiplayer rooms through the multi path', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^multiplayer$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Create Multiplayer Room'))
+
+      expect(navigateMock).toHaveBeenCalledWith(
+        '/Multi Room/multi/TestUser',
+        { replace: true }
+      )
+    })
+
+    it('should use the root path when a room is created without a name', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^multiplayer$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Create Nameless Room'))
+
+      expect(navigateMock).toHaveBeenCalledWith(
+        '/',
         { replace: true }
       )
     })
@@ -285,6 +402,33 @@ describe('Rooms Component', () => {
 
       expect(navigateMock).toHaveBeenCalledWith(
         '/Renamed Room/multi/TestUser',
+        { replace: true }
+      )
+    })
+
+    it('should preserve the current game mode when a room is renamed without a mode', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([mockRooms[0], mockRooms[1]])
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getAllByRole('button', { name: /join/i })[0])
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Rename Without Mode'))
+
+      expect(navigateMock).toHaveBeenCalledWith(
+        '/Fallback Mode Room/multi/TestUser',
         { replace: true }
       )
     })
@@ -432,6 +576,247 @@ describe('Rooms Component', () => {
       })
     })
 
+    it('should require a password before submitting a protected room join', async () => {
+      const onNotice = vi.fn()
+      render(<Rooms {...defaultProps} onNotice={onNotice} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([
+        {
+          id: 4,
+          name: 'Locked Room',
+          game_mode: 'classic',
+          host: 'Player4',
+          player_count: 1,
+          players: ['Player4'],
+          status: 'waiting',
+          has_password: true,
+        },
+      ])
+
+      await waitFor(() => {
+        expect(screen.getByText('Locked Room')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+      fireEvent.click(await screen.findByRole('button', { name: /enter/i }))
+
+      expect(onNotice).toHaveBeenCalledWith('Room password required')
+      expect(socket.emit).not.toHaveBeenCalledWith(
+        'joinRoom',
+        expect.anything(),
+        expect.any(Function)
+      )
+    })
+
+    it('should report invalid protected room passwords', async () => {
+      const onNotice = vi.fn()
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom' && typeof callback === 'function') {
+          callback({ ok: false, error: 'Invalid room password' })
+        }
+      })
+
+      render(<Rooms {...defaultProps} onNotice={onNotice} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([
+        {
+          id: 4,
+          name: 'Locked Room',
+          game_mode: 'classic',
+          host: 'Player4',
+          player_count: 1,
+          players: ['Player4'],
+          status: 'waiting',
+          has_password: true,
+        },
+      ])
+
+      await waitFor(() => {
+        expect(screen.getByText('Locked Room')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+      fireEvent.change(await screen.findByPlaceholderText('Room password'), {
+        target: { value: 'bad-password' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: /enter/i }))
+
+      expect(onNotice).toHaveBeenCalledWith('Invalid room password')
+      consoleError.mockRestore()
+    })
+
+    it('should recover when the join emit throws', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      socket.emit.mockImplementation((event) => {
+        if (event === 'joinRoom') {
+          throw new Error('join socket down')
+        }
+      })
+
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      availableRoomsCallback?.([mockRooms[0]])
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      expect(consoleError).toHaveBeenCalledWith('Join failed:', expect.any(Error))
+      consoleError.mockRestore()
+    })
+
+    it('should use the default join failure message when the ack has no error', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      socket.emit.mockImplementation((event, payload, callback) => {
+        if (event === 'joinRoom' && typeof callback === 'function') {
+          callback({ ok: false })
+        }
+      })
+
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      availableRoomsCallback?.([mockRooms[0]])
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      expect(consoleError).toHaveBeenCalledWith('Join failed:', 'Failed to join room')
+      consoleError.mockRestore()
+    })
+
+    it('should join unnamed room records without navigating', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      availableRoomsCallback?.([
+        {
+          id: 10,
+          game_mode: 'classic',
+          host: 'NamelessHost',
+          player_count: 1,
+          players: ['NamelessHost'],
+          status: 'waiting',
+        },
+      ])
+
+      await waitFor(() => {
+        expect(screen.getByText('Host: NamelessHost')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      expect(navigateMock).not.toHaveBeenCalled()
+    })
+
+    it('should toggle protected room password visibility and submit on Enter', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([
+        {
+          id: 4,
+          name: 'Locked Room',
+          game_mode: 'classic',
+          host: 'Player4',
+          player_count: 1,
+          players: ['Player4'],
+          status: 'waiting',
+          has_password: true,
+        },
+      ])
+
+      await waitFor(() => {
+        expect(screen.getByText('Locked Room')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      const passwordInput = await screen.findByPlaceholderText('Room password')
+      expect(passwordInput).toHaveClass('masked-password-input')
+
+      fireEvent.click(screen.getByRole('button', { name: /show password/i }))
+      expect(passwordInput).not.toHaveClass('masked-password-input')
+
+      fireEvent.change(passwordInput, { target: { value: 'secret-code' } })
+      fireEvent.keyDown(passwordInput, { key: 'Enter' })
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'joinRoom',
+          expect.objectContaining({ roomId: '4', roomPassword: 'secret-code' }),
+          expect.any(Function)
+        )
+      })
+    })
+
+    it('should ignore non-Enter keys in protected room password inputs', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([
+        {
+          id: 4,
+          name: 'Locked Room',
+          game_mode: 'classic',
+          host: 'Player4',
+          player_count: 1,
+          players: ['Player4'],
+          status: 'waiting',
+          has_password: true,
+        },
+      ])
+
+      await waitFor(() => {
+        expect(screen.getByText('Locked Room')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+      fireEvent.change(await screen.findByPlaceholderText('Room password'), {
+        target: { value: 'secret-code' },
+      })
+
+      socket.emit.mockClear()
+      fireEvent.keyDown(screen.getByPlaceholderText('Room password'), { key: 'Tab' })
+
+      expect(socket.emit).not.toHaveBeenCalledWith(
+        'joinRoom',
+        expect.anything(),
+        expect.any(Function)
+      )
+    })
+
     it('should enter the room view when joining a room', async () => {
       render(<Rooms {...defaultProps} />)
 
@@ -550,6 +935,28 @@ describe('Rooms Component', () => {
 
       // Re-render should not trigger another join
       rerender(<Rooms {...defaultProps} joinRoomName="Room 1" />)
+
+      await waitFor(() => {
+        const joinCalls = socket.emit.mock.calls.filter(call => call[0] === 'joinRoom')
+        expect(joinCalls.length).toBe(1)
+      })
+    })
+
+    it('should not auto-join again when rooms update after the first URL join', async () => {
+      render(<Rooms {...defaultProps} joinRoomName="Room 1" />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([mockRooms[0]])
+
+      await waitFor(() => {
+        const joinCalls = socket.emit.mock.calls.filter(call => call[0] === 'joinRoom')
+        expect(joinCalls.length).toBe(1)
+      })
+
+      availableRoomsCallback?.([mockRooms[0], mockRooms[1]])
 
       await waitFor(() => {
         const joinCalls = socket.emit.mock.calls.filter(call => call[0] === 'joinRoom')
@@ -688,6 +1095,85 @@ describe('Rooms Component', () => {
       })
 
       expect(screen.queryByTestId('create-room-mock')).not.toBeInTheDocument()
+    })
+
+    it('should keep the current room when matching room state arrives before the stale timeout', async () => {
+      vi.useFakeTimers()
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      await act(async () => {
+        availableRoomsCallback?.([mockRooms[0]])
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      await act(async () => {
+        await Promise.resolve()
+      })
+
+      expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+
+      const staleGuardRoomStateCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'roomState')
+        .at(-1)?.[1]
+
+      await act(async () => {
+        staleGuardRoomStateCallback?.(mockRooms[0])
+        vi.advanceTimersByTime(1600)
+      })
+
+      expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+    })
+
+    it('should ignore stale guard roomState and socket errors for other rooms', async () => {
+      vi.useFakeTimers()
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      await act(async () => {
+        availableRoomsCallback?.([mockRooms[0]])
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      await act(async () => {
+        await Promise.resolve()
+      })
+
+      expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+
+      const staleGuardRoomStateCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'roomState')
+        .at(-1)?.[1]
+      const errorHandler = socket.on.mock.calls
+        .filter(call => call[0] === 'error')
+        .at(-1)?.[1]
+
+      await act(async () => {
+        staleGuardRoomStateCallback?.({ ...mockRooms[1], id: 999 })
+        errorHandler?.({ message: 'Transient socket warning' })
+        vi.advanceTimersByTime(1600)
+      })
+
+      expect(screen.queryByTestId('create-room-mock')).not.toBeInTheDocument()
+    })
+
+    it('should ignore gameStarted events without a current room match', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const gameStartedCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'gameStarted')
+        .at(-1)?.[1]
+
+      gameStartedCallback?.({})
+      gameStartedCallback?.({ roomId: 'other-room' })
+
+      expect(screen.queryByTestId('game-mock')).not.toBeInTheDocument()
     })
 
     it('should clear current room when socket reports room not found', async () => {
@@ -906,6 +1392,110 @@ describe('Rooms Component', () => {
       expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
     })
 
+    it('should navigate to cooperative spectator mode from game view', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      availableRoomsCallback?.([{
+        id: 5,
+        name: 'Coop Room',
+        game_mode: 'cooperative',
+        host: 'Player5',
+        player_count: 1,
+        players: ['Player5'],
+        status: 'waiting',
+      }])
+
+      await waitFor(() => {
+        expect(screen.getByText('Coop Room')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      const gameStartedCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'gameStarted')
+        .at(-1)?.[1]
+
+      gameStartedCallback?.({ roomId: '5' })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+
+      expect(navigateMock).toHaveBeenCalledWith('/Coop Room/coop/spectate/TestUser')
+    })
+
+    it('should use the current room name when spectating after the room list drops the room', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      availableRoomsCallback?.([mockRooms[1]])
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 2')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      availableRoomsCallback?.([])
+
+      const gameStartedCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'gameStarted')
+        .at(-1)?.[1]
+
+      gameStartedCallback?.({ roomId: '2' })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+
+      expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
+    })
+
+    it('should not navigate to spectator mode for a nameless current room', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^multiplayer$/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Create Nameless Room'))
+
+      const gameStartedCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'gameStarted')
+        .at(-1)?.[1]
+
+      gameStartedCallback?.({ roomId: '3' })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
+      })
+
+      navigateMock.mockClear()
+      fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+
+      expect(navigateMock).not.toHaveBeenCalled()
+    })
+
     it('should return to the room card when play again is clicked after multiplayer game over', async () => {
       render(<Rooms {...defaultProps} />)
 
@@ -960,6 +1550,48 @@ describe('Rooms Component', () => {
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
       })
+    })
+
+    it('should stay in the game view when play-again room state does not include the user', async () => {
+      render(<Rooms {...defaultProps} />)
+
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cooperative/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByText('Create Room'))
+
+      const gameStartedCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'gameStarted')
+        .at(-1)?.[1]
+
+      gameStartedCallback?.({ roomId: '1' })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+
+      const roomStateCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'roomState')
+        .at(-1)?.[1]
+
+      roomStateCallback?.({
+        id: 1,
+        name: 'Room 1',
+        game_mode: 'cooperative',
+        host: 'TestUser',
+        player_count: 2,
+        players: ['TestUser', 'Other'],
+        ready_again: [],
+        status: 'waiting',
+      })
+
+      expect(screen.getByTestId('game-mock')).toBeInTheDocument()
     })
 
     it('should propagate back-to-menu when leaving from the multiplayer game view', async () => {
