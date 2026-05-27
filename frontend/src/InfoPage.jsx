@@ -76,6 +76,11 @@ const pages = {
           'Chaotic keeps the competitive rules but randomly swaps your current piece with the next piece while you play, forcing quick adaptation.',
       },
       {
+        title: 'Invisible',
+        body:
+          'Invisible keeps the competitive rules but hides the active falling piece, so players must track its position from memory while locked pieces remain visible.',
+      },
+      {
         title: 'Giant',
         body:
           'Giant uses a larger board, giving players more space but also more rows and columns to manage during multiplayer pressure.',
