@@ -5,7 +5,7 @@ import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx
 import { apiFetch } from './api'
 
 const ADMIN_PASSWORD_STORAGE_KEY = 'red-tetris-admin-password'
-const ADMIN_USERNAME = 'Titi08'
+const ADMIN_USERNAME_STORAGE_KEY = 'red-tetris-admin-username'
 const numberFormat = new Intl.NumberFormat()
 
 const formatNumber = (value) => numberFormat.format(Number(value || 0))
@@ -52,16 +52,30 @@ const emptySummary = {
 }
 
 function AdminPage() {
+  const [adminUsername, setAdminUsername] = useState(() => (
+    sessionStorage.getItem(ADMIN_USERNAME_STORAGE_KEY) || ''
+  ))
   const [adminPassword, setAdminPassword] = useState(() => (
     sessionStorage.getItem(ADMIN_PASSWORD_STORAGE_KEY) || ''
   ))
+  const [usernameInput, setUsernameInput] = useState(adminUsername)
   const [passwordInput, setPasswordInput] = useState('')
   const [summary, setSummary] = useState(emptySummary)
-  const [status, setStatus] = useState(adminPassword ? 'loading' : 'locked')
+  const [status, setStatus] = useState(adminUsername && adminPassword ? 'loading' : 'locked')
   const [error, setError] = useState('')
 
-  const loadSummary = async (password = adminPassword) => {
-    if (!password) {
+  const lockAdmin = () => {
+    sessionStorage.removeItem(ADMIN_USERNAME_STORAGE_KEY)
+    sessionStorage.removeItem(ADMIN_PASSWORD_STORAGE_KEY)
+    setAdminUsername('')
+    setAdminPassword('')
+    setUsernameInput('')
+    setPasswordInput('')
+    setStatus('locked')
+  }
+
+  const loadSummary = async (username = adminUsername, password = adminPassword) => {
+    if (!username || !password) {
       setStatus('locked')
       return
     }
@@ -73,27 +87,26 @@ function AdminPage() {
       const response = await apiFetch('/api/admin/summary', {
         cache: 'no-store',
         headers: {
+          'X-Admin-Username': username,
           'X-Admin-Password': password,
         },
       })
       if (!response.ok) {
         if (response.status === 401) {
-          sessionStorage.removeItem(ADMIN_PASSWORD_STORAGE_KEY)
-          setAdminPassword('')
-          setPasswordInput('')
-          setStatus('locked')
-          setError('Wrong admin password')
+          lockAdmin()
+          setError('Wrong admin username or password')
           return
         }
         if (response.status === 503) {
           setStatus('error')
-          setError('Admin password is not configured on the server')
+          setError('Admin credentials are not configured on the server')
           return
         }
         throw new Error('Admin stats unavailable')
       }
       const payload = await response.json()
       setSummary({ ...emptySummary, ...payload })
+      sessionStorage.setItem(ADMIN_USERNAME_STORAGE_KEY, username)
       sessionStorage.setItem(ADMIN_PASSWORD_STORAGE_KEY, password)
       setStatus('ready')
     } catch (err) {
@@ -105,20 +118,26 @@ function AdminPage() {
   }
 
   useEffect(() => {
-    if (adminPassword) {
-      loadSummary(adminPassword)
+    if (adminUsername && adminPassword) {
+      loadSummary(adminUsername, adminPassword)
     }
   }, [])
 
   const handlePasswordSubmit = (event) => {
     event.preventDefault()
+    const nextUsername = usernameInput.trim()
     const nextPassword = passwordInput.trim()
+    if (!nextUsername) {
+      setError('Enter the admin username')
+      return
+    }
     if (!nextPassword) {
       setError('Enter the admin password')
       return
     }
+    setAdminUsername(nextUsername)
     setAdminPassword(nextPassword)
-    loadSummary(nextPassword)
+    loadSummary(nextUsername, nextPassword)
   }
 
   const maxMonthlyTotal = useMemo(() => {
@@ -161,7 +180,7 @@ function AdminPage() {
           <div>
             <p className="admin-kicker">Site Operations</p>
             <h1>Admin</h1>
-            <p className="admin-username">Signed in as {ADMIN_USERNAME}</p>
+            {adminUsername && <p className="admin-username">Signed in as {adminUsername}</p>}
           </div>
           <div className="admin-actions">
             <span className={`admin-status admin-status-${status}`}>
@@ -174,10 +193,19 @@ function AdminPage() {
 
         {error && <div className="admin-alert">{error}</div>}
 
-        {!adminPassword && (
+        {(!adminUsername || !adminPassword) && (
           <section className="admin-login-panel" aria-labelledby="admin-login-title">
             <h2 id="admin-login-title">Admin Access</h2>
             <form onSubmit={handlePasswordSubmit}>
+              <label htmlFor="admin-username">Username</label>
+              <input
+                id="admin-username"
+                type="text"
+                value={usernameInput}
+                onChange={(event) => setUsernameInput(event.target.value)}
+                autoComplete="username"
+                autoFocus
+              />
               <label htmlFor="admin-password">Password</label>
               <input
                 id="admin-password"
@@ -185,14 +213,13 @@ function AdminPage() {
                 value={passwordInput}
                 onChange={(event) => setPasswordInput(event.target.value)}
                 autoComplete="current-password"
-                autoFocus
               />
               <button type="submit">Unlock</button>
             </form>
           </section>
         )}
 
-        {adminPassword && (
+        {adminUsername && adminPassword && (
           <>
 
         <section className="admin-metrics" aria-label="Site metrics">

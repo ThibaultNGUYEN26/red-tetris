@@ -7,24 +7,30 @@ import { getActiveUserCount, getPeakActiveUserCount } from "../socket/index.js";
 const router = express.Router();
 
 const toNumber = (value) => Number(value ?? 0);
+const DEFAULT_ADMIN_USERNAME = "Titi08";
+const getAdminUsername = () => (process.env.ADMIN_USERNAME || DEFAULT_ADMIN_USERNAME).trim();
 const getAdminPassword = () => (process.env.ADMIN_PASSWORD || "").trim();
 
-const passwordsMatch = (providedPassword, expectedPassword) => {
-  const provided = Buffer.from(String(providedPassword || ""));
-  const expected = Buffer.from(expectedPassword);
+const safeEqual = (providedValue, expectedValue) => {
+  const provided = Buffer.from(String(providedValue || ""));
+  const expected = Buffer.from(expectedValue);
   return provided.length === expected.length && crypto.timingSafeEqual(provided, expected);
 };
 
 router.get("/summary", async (req, res) => {
   try {
+    const adminUsername = getAdminUsername();
     const adminPassword = getAdminPassword();
-    if (!adminPassword) {
-      return res.status(503).json({ error: "Admin password is not configured" });
+    if (!adminUsername || !adminPassword) {
+      return res.status(503).json({ error: "Admin credentials are not configured" });
     }
 
+    const providedUsername = req.get("x-admin-username");
     const providedPassword = req.get("x-admin-password");
-    if (!passwordsMatch(providedPassword, adminPassword)) {
-      return res.status(401).json({ error: "Invalid admin password" });
+    const usernameMatches = safeEqual(providedUsername, adminUsername);
+    const passwordMatches = safeEqual(providedPassword, adminPassword);
+    if (!usernameMatches || !passwordMatches) {
+      return res.status(401).json({ error: "Invalid admin credentials" });
     }
 
     const [

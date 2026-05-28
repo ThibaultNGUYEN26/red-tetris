@@ -78,7 +78,10 @@ describe('AdminPage', () => {
     })
   }
 
-  const unlock = async (password = 'secret-admin') => {
+  const unlock = async (username = 'Titi08', password = 'secret-admin') => {
+    fireEvent.change(screen.getByLabelText('Username'), {
+      target: { value: username },
+    })
     fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: password },
     })
@@ -121,15 +124,22 @@ describe('AdminPage', () => {
         cache: 'no-store',
         credentials: 'include',
         headers: {
+          'X-Admin-Username': 'Titi08',
           'X-Admin-Password': 'secret-admin',
         },
       })
     )
   })
 
-  it('validates empty passwords and does not request summary without a password', () => {
+  it('validates empty credentials and does not request summary without credentials', () => {
     render(<AdminPage />)
 
+    fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+    expect(screen.getByText('Enter the admin username')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Username'), {
+      target: { value: 'Titi08' },
+    })
     fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
     expect(screen.getByText('Enter the admin password')).toBeInTheDocument()
 
@@ -137,7 +147,8 @@ describe('AdminPage', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('auto-loads with a stored password and refreshes summary data', async () => {
+  it('auto-loads with stored credentials and refreshes summary data', async () => {
+    sessionStorage.setItem('red-tetris-admin-username', 'Titi08')
     sessionStorage.setItem('red-tetris-admin-password', 'stored-secret')
     mockSummary()
 
@@ -155,7 +166,10 @@ describe('AdminPage', () => {
     expect(fetch).toHaveBeenLastCalledWith(
       apiUrl('/api/admin/summary'),
       expect.objectContaining({
-        headers: { 'X-Admin-Password': 'stored-secret' },
+        headers: {
+          'X-Admin-Username': 'Titi08',
+          'X-Admin-Password': 'stored-secret',
+        },
       })
     )
   })
@@ -168,15 +182,15 @@ describe('AdminPage', () => {
 
     render(<AdminPage />)
 
-    await unlock('wrong-password').catch(() => {})
+    await unlock('wrong-user', 'wrong-password').catch(() => {})
     await waitFor(() => {
-      expect(screen.getByText('Wrong admin password')).toBeInTheDocument()
+      expect(screen.getByText('Wrong admin username or password')).toBeInTheDocument()
     })
     expect(screen.getByRole('heading', { name: 'Admin Access' })).toBeInTheDocument()
 
-    await unlock('unconfigured-password').catch(() => {})
+    await unlock('Titi08', 'unconfigured-password').catch(() => {})
     await waitFor(() => {
-      expect(screen.getByText('Admin password is not configured on the server')).toBeInTheDocument()
+      expect(screen.getByText('Admin credentials are not configured on the server')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
@@ -191,6 +205,9 @@ describe('AdminPage', () => {
 
     render(<AdminPage />)
 
+    fireEvent.change(screen.getByLabelText('Username'), {
+      target: { value: 'Titi08' },
+    })
     fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'broken-password' },
     })
