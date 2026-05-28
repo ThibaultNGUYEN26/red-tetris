@@ -5,6 +5,7 @@ import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx
 import { apiFetch } from './api'
 
 const ADMIN_PASSWORD_STORAGE_KEY = 'red-tetris-admin-password'
+const ADMIN_USERNAME = 'Titi08'
 const numberFormat = new Intl.NumberFormat()
 
 const formatNumber = (value) => numberFormat.format(Number(value || 0))
@@ -160,6 +161,7 @@ function AdminPage() {
           <div>
             <p className="admin-kicker">Site Operations</p>
             <h1>Admin</h1>
+            <p className="admin-username">Signed in as {ADMIN_USERNAME}</p>
           </div>
           <div className="admin-actions">
             <span className={`admin-status admin-status-${status}`}>

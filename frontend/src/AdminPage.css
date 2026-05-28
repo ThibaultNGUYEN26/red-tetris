@@ -38,6 +38,13 @@
   line-height: 1;
 }
 
+.admin-username {
+  margin-top: 8px;
+  color: #405d77;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
 .admin-actions {
   display: flex;
   align-items: center;

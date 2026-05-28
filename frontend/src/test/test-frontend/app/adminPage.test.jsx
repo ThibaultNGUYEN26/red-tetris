@@ -98,6 +98,7 @@ describe('AdminPage', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
+      expect(screen.getByText('Signed in as Titi08')).toBeInTheDocument()
       expect(screen.getByText('Active Players')).toBeInTheDocument()
       expect(screen.getByText('Peak Players')).toBeInTheDocument()
       expect(screen.getAllByText('5').length).toBeGreaterThan(0)

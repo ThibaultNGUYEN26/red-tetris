@@ -193,6 +193,22 @@
   line-height: 1;
 }
 
+.advanced-stats-modal.dark .advanced-stats-close {
+  border-color: rgba(120, 150, 255, 0.55);
+  background: rgba(20, 20, 40, 0.82);
+  color: #d0d8ff;
+  box-shadow:
+    0 0 12px rgba(100, 150, 255, 0.26),
+    inset 0 1px 2px rgba(120, 150, 255, 0.2);
+}
+
+.advanced-stats-modal.dark .advanced-stats-close:hover,
+.advanced-stats-modal.dark .advanced-stats-close:focus-visible {
+  background: rgba(35, 35, 70, 0.95);
+  color: #ffffff;
+  outline: none;
+}
+
 .advanced-sections {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
