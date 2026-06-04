@@ -18,6 +18,7 @@ const DEFAULT_BOARD = { width: 10, height: 20 }
 const SOFT_DROP_MS = 60
 const DAS_MS = 220
 const ARR_MS = 60
+const PREDICTION_GRACE_MS = 500
 const SHARED_BOARD_MODES = ['cooperative', 'cooperative_roles']
 const ROTATE_KICKS = {
   default: {
@@ -251,6 +252,8 @@ function Game({
   const loserRef = useRef(null)
   const roomModeRef = useRef(null)
   const authoritativePlayerViewRef = useRef(null)
+  const pendingPredictionRef = useRef(false)
+  const predictionTimerRef = useRef(null)
 
   const startMusic = () => {
     /* v8 ignore next -- tested indirectly through game start; false sound suppresses the whole audio path. @preserve */
@@ -304,6 +307,14 @@ function Game({
     setBoard(player?.board || makeEmptyBoard(size))
   }
 
+  const clearPendingPrediction = () => {
+    pendingPredictionRef.current = false
+    if (predictionTimerRef.current) {
+      clearTimeout(predictionTimerRef.current)
+      predictionTimerRef.current = null
+    }
+  }
+
   const applyPredictedMove = (action) => {
     const playerView = authoritativePlayerViewRef.current
     const size = getBoardSize(gameMode)
@@ -319,6 +330,14 @@ function Game({
       currentPiece: predictedPiece,
       board: predictedBoard,
     }
+    pendingPredictionRef.current = true
+    if (predictionTimerRef.current) {
+      clearTimeout(predictionTimerRef.current)
+    }
+    predictionTimerRef.current = setTimeout(() => {
+      pendingPredictionRef.current = false
+      predictionTimerRef.current = null
+    }, PREDICTION_GRACE_MS)
     flushSync(() => {
       setBoard(predictedBoard)
     })
@@ -400,6 +419,7 @@ function Game({
 
   const handleLeaveGame = () => {
     exitingRef.current = true
+    clearPendingPrediction()
     stopSoftDrop()
     stopHorizontalAutoMove()
     setShowMenu(false)
@@ -490,6 +510,7 @@ function Game({
       setActivePlayerUsername(null)
       setCooperativeRole(null)
       authoritativePlayerViewRef.current = null
+      clearPendingPrediction()
       lastLevelRef.current = 1
       lastLinesRef.current = 0
       wasBoardEmptyRef.current = true
@@ -510,7 +531,15 @@ function Game({
 
         if (me) {
           setCooperativeRole(me.cooperativeRole || null)
-          setAuthoritativePlayerView(me, mode)
+          if (!pendingPredictionRef.current) {
+            setAuthoritativePlayerView(me, mode)
+          } else {
+            authoritativePlayerViewRef.current = {
+              ...me,
+              currentPiece: authoritativePlayerViewRef.current.currentPiece,
+              board: authoritativePlayerViewRef.current.board,
+            }
+          }
           setStats({
             score: me.score ?? 0,
             lines: me.lines ?? 0,
@@ -552,6 +581,7 @@ function Game({
         setBoardSize(getBoardSize(mode))
         setActivePlayerUsername(playerState?.currentTurnUsername || null)
         setCooperativeRole(me.cooperativeRole || null)
+        clearPendingPrediction()
         setAuthoritativePlayerView(me, mode)
         setStats({
           score: me.score ?? 0,
@@ -599,6 +629,7 @@ function Game({
       socket.off('gameState', handleGameState)
       socket.off('playerState', handlePlayerState)
       socket.off('gameOver', handleGameOver)
+      clearPendingPrediction()
       stopMusic()
     }
   }, [roomId, username, isMultiplayer])

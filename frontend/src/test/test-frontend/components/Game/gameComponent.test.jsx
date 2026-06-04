@@ -522,6 +522,157 @@ describe('Game Component', () => {
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
   })
 
+  it('does not let stale room gameState roll back an in-flight predicted move', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    const boardLocked = makeBoard()
+    const initialBoard = makeBoardWithCells([
+      [1, 3, 'i'],
+      [1, 4, 'i'],
+      [1, 5, 'i'],
+      [1, 6, 'i'],
+    ])
+    const predictedServerBoard = makeBoardWithCells([
+      [1, 2, 'i'],
+      [1, 3, 'i'],
+      [1, 4, 'i'],
+      [1, 5, 'i'],
+    ])
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: initialBoard,
+          boardLocked,
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(cells()[12]).toHaveClass('cell-i')
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: initialBoard,
+          boardLocked,
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    expect(cells()[12]).toHaveClass('cell-i')
+    expect(cells()[16]).toHaveClass('cell-empty')
+
+    await act(async () => {
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: 'classic',
+        player: {
+          username: 'Titi',
+          board: predictedServerBoard,
+          boardLocked,
+          currentPiece: { type: 'i', rotation: 0, x: 2, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        },
+      })
+    })
+
+    expect(cells()[12]).toHaveClass('cell-i')
+    expect(cells()[16]).toHaveClass('cell-empty')
+  })
+
+  it('lets room gameState update the board again after prediction grace expires', async () => {
+    vi.useFakeTimers()
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    const boardLocked = makeBoard()
+    const initialBoard = makeBoardWithCells([
+      [1, 3, 'i'],
+      [1, 4, 'i'],
+      [1, 5, 'i'],
+      [1, 6, 'i'],
+    ])
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: initialBoard,
+          boardLocked,
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(cells()[12]).toHaveClass('cell-i')
+    fireEvent.keyUp(window, { key: 'ArrowLeft' })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500)
+    })
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: initialBoard,
+          boardLocked,
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    expect(cells()[12]).toHaveClass('cell-empty')
+    expect(cells()[16]).toHaveClass('cell-i')
+  })
+
   it('predicts local rotation immediately from authoritative piece data', async () => {
     render(
       <Game
