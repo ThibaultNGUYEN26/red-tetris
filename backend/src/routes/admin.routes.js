@@ -40,6 +40,9 @@ router.get("/summary", async (req, res) => {
       roomModesResult,
       recentRoomsResult,
       topSoloResult,
+      performanceResult,
+      topPlayersResult,
+      multiplayerInsightsResult,
     ] = await Promise.all([
       pool.query(`
         SELECT
@@ -139,10 +142,51 @@ router.get("/summary", async (req, res) => {
         ORDER BY score DESC, id ASC
         LIMIT 5
       `),
+      pool.query(`
+        SELECT
+          ROUND(AVG(score)) AS avg_solo_score,
+          ROUND(AVG(lines)) AS avg_solo_lines,
+          ROUND(AVG(level)) AS avg_solo_level,
+          ROUND(AVG(duration_seconds)) AS avg_solo_duration,
+          ROUND(AVG(tetris_count)) AS avg_solo_tetrises,
+          MAX(score) AS max_solo_score,
+          (SELECT ROUND(AVG(score)) FROM multiplayer_scores) AS avg_mp_score,
+          (SELECT ROUND(AVG(lines_sent)) FROM multiplayer_scores) AS avg_lines_sent,
+          (SELECT ROUND(AVG(duration_seconds)) FROM coop_scores) AS avg_coop_duration,
+          (SELECT ROUND(AVG(score)) FROM coop_scores) AS avg_coop_score
+        FROM solo_scores
+      `),
+      pool.query(`
+        SELECT
+          u.username,
+          u.solo_games_played,
+          u.highest_solo_score,
+          u.multiplayer_wins,
+          u.multiplayer_games_played,
+          COALESCE(u.multiplayer_wins::float / NULLIF(u.multiplayer_games_played, 0), 0) AS win_rate
+        FROM users u
+        WHERE u.deleted_at IS NULL
+          AND (u.solo_games_played > 0 OR u.multiplayer_games_played > 0)
+        ORDER BY u.highest_solo_score DESC NULLS LAST
+        LIMIT 8
+      `),
+      pool.query(`
+        SELECT
+          game_mode,
+          COUNT(*) AS total_results,
+          SUM(CASE WHEN is_winner THEN 1 ELSE 0 END) AS total_winners,
+          ROUND(AVG(score)) AS avg_score,
+          ROUND(AVG(lines_sent)) AS avg_lines_sent,
+          ROUND(AVG(duration_seconds)) AS avg_duration
+        FROM multiplayer_scores
+        GROUP BY game_mode
+        ORDER BY total_results DESC
+      `),
     ]);
 
     const overview = overviewResult.rows[0] || {};
     const month = monthResult.rows[0] || {};
+    const perf = performanceResult.rows[0] || {};
 
     res.status(200).json({
       generatedAt: new Date().toISOString(),
@@ -197,6 +241,33 @@ router.get("/summary", async (req, res) => {
         lines: toNumber(row.lines),
         level: toNumber(row.level),
         createdAt: row.created_at,
+      })),
+      performance: {
+        avgSoloScore: toNumber(perf.avg_solo_score),
+        avgSoloLines: toNumber(perf.avg_solo_lines),
+        avgSoloLevel: toNumber(perf.avg_solo_level),
+        avgSoloDuration: toNumber(perf.avg_solo_duration),
+        avgSoloTetrises: toNumber(perf.avg_solo_tetrises),
+        maxSoloScore: toNumber(perf.max_solo_score),
+        avgMpScore: toNumber(perf.avg_mp_score),
+        avgLinesSent: toNumber(perf.avg_lines_sent),
+        avgCoopScore: toNumber(perf.avg_coop_score),
+        avgCoopDuration: toNumber(perf.avg_coop_duration),
+      },
+      topPlayers: topPlayersResult.rows.map((row) => ({
+        username: row.username,
+        soloGamesPlayed: toNumber(row.solo_games_played),
+        highestSoloScore: toNumber(row.highest_solo_score),
+        multiplayerWins: toNumber(row.multiplayer_wins),
+        multiplayerGamesPlayed: toNumber(row.multiplayer_games_played),
+        winRate: Math.round(Number(row.win_rate || 0) * 100),
+      })),
+      multiplayerInsights: multiplayerInsightsResult.rows.map((row) => ({
+        mode: row.game_mode,
+        totalResults: toNumber(row.total_results),
+        avgScore: toNumber(row.avg_score),
+        avgLinesSent: toNumber(row.avg_lines_sent),
+        avgDuration: toNumber(row.avg_duration),
       })),
     });
   } catch (err) {

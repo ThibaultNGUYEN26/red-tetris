@@ -107,6 +107,33 @@ describe('admin routes', () => {
           created_at: '2026-05-06T10:10:00.000Z',
         }],
       })
+      .mockResolvedValueOnce({
+        rows: [{
+          avg_solo_score: '950',
+          avg_solo_lines: '15',
+          avg_solo_level: '2',
+          avg_solo_duration: '120',
+          avg_solo_tetrises: '3',
+          max_solo_score: '1200',
+          avg_mp_score: '800',
+          avg_lines_sent: '5',
+          avg_coop_score: '700',
+          avg_coop_duration: '90',
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{
+          username: 'Titi',
+          solo_games_played: '5',
+          highest_solo_score: '1200',
+          multiplayer_wins: '3',
+          multiplayer_games_played: '5',
+          win_rate: '0.6',
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ game_mode: 'classic', total_results: '9', avg_score: '800', avg_lines_sent: '5', avg_duration: '100' }],
+      })
 
     const { default: router } = await import('../../src/routes/admin.routes.js')
     const handler = getHandler(router, 'get', '/summary')
@@ -162,6 +189,9 @@ describe('admin routes', () => {
 
   it('defaults missing aggregate rows to zero values', async () => {
     mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [] })
@@ -256,5 +286,46 @@ describe('admin routes', () => {
 
     expect(res.status).toHaveBeenCalledWith(503)
     expect(res.json).toHaveBeenCalledWith({ error: 'Admin credentials are not configured' })
+  })
+
+  it('falls back to the default admin username when ADMIN_USERNAME env is not set', async () => {
+    vi.stubEnv('ADMIN_USERNAME', undefined)
+
+    mockQuery
+      .mockResolvedValue({ rows: [] })
+
+    const { default: router } = await import('../../src/routes/admin.routes.js')
+    const handler = getHandler(router, 'get', '/summary')
+    const res = buildRes()
+
+    await handler(buildReq({ username: 'Titi08' }), res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+  })
+
+  it('defaults win rate to zero when win_rate is missing from a top-player row', async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Ghost', solo_games_played: '1', highest_solo_score: '100', multiplayer_wins: '0', multiplayer_games_played: '0', win_rate: null }],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const { default: router } = await import('../../src/routes/admin.routes.js')
+    const handler = getHandler(router, 'get', '/summary')
+    const res = buildRes()
+
+    await handler(buildReq(), res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      topPlayers: [expect.objectContaining({ username: 'Ghost', winRate: 0 })],
+    }))
   })
 })

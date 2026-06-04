@@ -22,6 +22,9 @@ describe('AdminPage', () => {
       waitingRooms: 2,
       startedRooms: 1,
       playersInRooms: 7,
+      soloGames: 20,
+      multiplayerResults: 9,
+      coopGames: 3,
       totalLines: 400,
       totalTetris: 18,
     },
@@ -44,6 +47,7 @@ describe('AdminPage', () => {
       { mode: 'mirror', rooms: 1, players: 2 },
       { mode: 'giant', rooms: 1, players: 2 },
       { mode: 'chaotic', rooms: 1, players: 2 },
+      { mode: 'invisible', rooms: 1, players: 1 },
       { mode: 'custom_mode', rooms: 1, players: 2 },
       { mode: null, rooms: 1, players: 2 },
     ],
@@ -63,6 +67,25 @@ describe('AdminPage', () => {
       level: 3,
       createdAt: '2026-05-06T09:10:00.000Z',
     }],
+    performance: {
+      avgSoloScore: 950,
+      maxSoloScore: 1200,
+      avgSoloLines: 15,
+      avgSoloLevel: 2,
+      avgSoloDuration: 90,
+      avgSoloTetrises: 3,
+      avgMpScore: 800,
+      avgLinesSent: 5,
+      avgCoopScore: 700,
+      avgCoopDuration: 120,
+    },
+    topPlayers: [
+      { username: 'Titi', soloGamesPlayed: 5, highestSoloScore: 1200, multiplayerWins: 3, multiplayerGamesPlayed: 5, winRate: 60 },
+      { username: 'Ghost', soloGamesPlayed: 2, highestSoloScore: 800, multiplayerWins: 0, multiplayerGamesPlayed: 0, winRate: 0 },
+    ],
+    multiplayerInsights: [
+      { mode: 'classic', totalResults: 9, avgScore: 800, avgLinesSent: 5, avgDuration: 100 },
+    ],
   }
 
   beforeEach(() => {
@@ -108,14 +131,22 @@ describe('AdminPage', () => {
       expect(screen.getByText('8')).toBeInTheDocument()
       expect(screen.getByText('This Month')).toBeInTheDocument()
       expect(screen.getByText('RedTetris')).toBeInTheDocument()
-      expect(screen.getByText('Titi')).toBeInTheDocument()
+      expect(screen.getAllByText('Titi').length).toBeGreaterThan(0)
       expect(screen.getByText('Co-op Alternate')).toBeInTheDocument()
       expect(screen.getByText('Co-op Roles')).toBeInTheDocument()
       expect(screen.getByText('Mirror')).toBeInTheDocument()
       expect(screen.getByText('Giant')).toBeInTheDocument()
       expect(screen.getByText('Chaotic')).toBeInTheDocument()
+      expect(screen.getByText('Invisible')).toBeInTheDocument()
       expect(screen.getByText('custom_mode')).toBeInTheDocument()
       expect(screen.getByText('Unknown')).toBeInTheDocument()
+      expect(screen.getByText('Top Players')).toBeInTheDocument()
+      expect(screen.getByText('Ghost')).toBeInTheDocument()
+      expect(screen.getByText('60%')).toBeInTheDocument()
+      expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+      expect(screen.getByText('Multiplayer by Mode')).toBeInTheDocument()
+      expect(screen.getByText('1m 30s')).toBeInTheDocument()
+      expect(screen.getByText('Avg duration 2m')).toBeInTheDocument()
     })
 
     expect(fetch).toHaveBeenCalledWith(
@@ -246,6 +277,7 @@ describe('AdminPage', () => {
     expect(screen.getByText('Never')).toBeInTheDocument()
     expect(screen.getByText('BrokenDateRoom')).toBeInTheDocument()
     expect(screen.getByText('Unknown')).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
 
   it('returns absolute API URLs unchanged and prefixes relative paths', () => {
