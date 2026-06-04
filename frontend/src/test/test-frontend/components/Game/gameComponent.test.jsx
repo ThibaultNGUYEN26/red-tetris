@@ -43,6 +43,14 @@ import Game from '../../../../components/Game/Game.jsx'
 const makeBoard = (height = 20, width = 10, fill = 'empty') =>
   Array.from({ length: height }, () => Array(width).fill(fill))
 
+const makeBoardWithCells = (cells, height = 20, width = 10) => {
+  const board = makeBoard(height, width)
+  cells.forEach(([row, col, cell]) => {
+    board[row][col] = cell
+  })
+  return board
+}
+
 const getSocketHandler = (event) =>
   socket.on.mock.calls.find(([registeredEvent]) => registeredEvent === event)?.[1]
 
@@ -396,6 +404,458 @@ describe('Game Component', () => {
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'hardDrop' })
   })
 
+  it('predicts local movement immediately and reconciles with server state', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    const boardLocked = makeBoard()
+    const authoritativeBoard = makeBoardWithCells([
+      [1, 3, 'i'],
+      [1, 4, 'i'],
+      [1, 5, 'i'],
+      [1, 6, 'i'],
+      [19, 3, 'ghost'],
+      [19, 4, 'ghost'],
+      [19, 5, 'ghost'],
+      [19, 6, 'ghost'],
+    ])
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: authoritativeBoard,
+          boardLocked,
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    expect(cells()[12]).toHaveClass('cell-empty')
+    expect(cells()[13]).toHaveClass('cell-i')
+    expect(cells()[16]).toHaveClass('cell-i')
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
+    expect(cells()[12]).toHaveClass('cell-i')
+    expect(cells()[16]).not.toHaveClass('cell-i')
+
+    await act(async () => {
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: 'classic',
+        player: {
+          username: 'Titi',
+          board: authoritativeBoard,
+          boardLocked,
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        },
+      })
+    })
+
+    expect(cells()[12]).toHaveClass('cell-empty')
+    expect(cells()[13]).toHaveClass('cell-i')
+    expect(cells()[16]).toHaveClass('cell-i')
+  })
+
+  it('predicts local rotation immediately from authoritative piece data', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    const boardLocked = makeBoard()
+    const authoritativeBoard = makeBoardWithCells([
+      [0, 4, 't'],
+      [1, 3, 't'],
+      [1, 4, 't'],
+      [1, 5, 't'],
+    ])
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: authoritativeBoard,
+          boardLocked,
+          currentPiece: { type: 't', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    expect(cells()[13]).toHaveClass('cell-t')
+    expect(cells()[24]).toHaveClass('cell-empty')
+
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'rotate' })
+    expect(cells()[13]).toHaveClass('cell-empty')
+    expect(cells()[24]).toHaveClass('cell-t')
+  })
+
+  it('predicts i-piece rotation with the i kick table', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoardWithCells([
+            [1, 3, 'i'],
+            [1, 4, 'i'],
+            [1, 5, 'i'],
+            [1, 6, 'i'],
+          ]),
+          boardLocked: makeBoard(),
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'rotate' })
+    expect(cells()[5]).toHaveClass('cell-i')
+    expect(cells()[35]).toHaveClass('cell-i')
+  })
+
+  it('tries later rotation kicks when the first predicted kick is blocked', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    const boardLocked = makeBoardWithCells([[2, 4, 'z']])
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoardWithCells([
+            [0, 4, 't'],
+            [1, 3, 't'],
+            [1, 4, 't'],
+            [1, 5, 't'],
+            [2, 4, 'z'],
+          ]),
+          boardLocked,
+          currentPiece: { type: 't', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'rotate' })
+    expect(cells()[24]).toHaveClass('cell-z')
+    expect(cells()[3]).toHaveClass('cell-t')
+    expect(cells()[23]).toHaveClass('cell-t')
+  })
+
+  it('predicts local hard drops without making the client authoritative', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    const boardLocked = makeBoard()
+    const authoritativeBoard = makeBoardWithCells([
+      [1, 3, 'i'],
+      [1, 4, 'i'],
+      [1, 5, 'i'],
+      [1, 6, 'i'],
+      [19, 3, 'ghost'],
+      [19, 4, 'ghost'],
+      [19, 5, 'ghost'],
+      [19, 6, 'ghost'],
+    ])
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: authoritativeBoard,
+          boardLocked,
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    expect(cells()[13]).toHaveClass('cell-i')
+    expect(cells()[193]).toHaveClass('cell-ghost')
+
+    fireEvent.keyDown(window, { key: ' ' })
+
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'hardDrop' })
+    expect(cells()[13]).toHaveClass('cell-empty')
+    expect(cells()[193]).toHaveClass('cell-i')
+
+    await act(async () => {
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: 'classic',
+        player: {
+          username: 'Titi',
+          board: authoritativeBoard,
+          boardLocked,
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        },
+      })
+    })
+
+    expect(cells()[13]).toHaveClass('cell-i')
+    expect(cells()[193]).toHaveClass('cell-ghost')
+  })
+
+  it('predicts right movement, soft drop, and o-piece rotation', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoardWithCells([
+            [0, 1, 'o'],
+            [0, 2, 'o'],
+            [1, 1, 'o'],
+            [1, 2, 'o'],
+          ]),
+          boardLocked: makeBoard(),
+          currentPiece: { type: 'o', rotation: 0, x: 0, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(cells()[1]).toHaveClass('cell-empty')
+    expect(cells()[3]).toHaveClass('cell-o')
+
+    fireEvent.keyUp(window, { key: 'ArrowRight' })
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    expect(cells()[3]).toHaveClass('cell-empty')
+    expect(cells()[13]).toHaveClass('cell-o')
+
+    fireEvent.keyUp(window, { key: 'ArrowDown' })
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'rotate' })
+    expect(cells()[13]).toHaveClass('cell-o')
+  })
+
+  it('keeps the predicted piece in place when a local move is blocked', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoardWithCells([
+            [1, 6, 'i'],
+            [1, 7, 'i'],
+            [1, 8, 'i'],
+            [1, 9, 'i'],
+          ]),
+          boardLocked: makeBoard(),
+          currentPiece: { type: 'i', rotation: 0, x: 6, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'right' })
+    expect(cells()[16]).toHaveClass('cell-i')
+    expect(cells()[19]).toHaveClass('cell-i')
+  })
+
+  it('predicts movement while part of the piece is above the visible board', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoardWithCells([
+            [0, 3, 't'],
+            [0, 4, 't'],
+            [0, 5, 't'],
+          ]),
+          boardLocked: makeBoard(),
+          currentPiece: { type: 't', rotation: 0, x: 3, y: -1 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
+    expect(cells()[2]).toHaveClass('cell-t')
+    expect(cells()[5]).toHaveClass('cell-empty')
+  })
+
+  it('does not reveal the active piece when predicting invisible mode input', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'invisible',
+        players: [{
+          username: 'Titi',
+          board: makeBoardWithCells([
+            [19, 3, 'ghost'],
+            [19, 4, 'ghost'],
+            [19, 5, 'ghost'],
+            [19, 6, 'ghost'],
+          ]),
+          boardLocked: makeBoard(),
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(document.querySelectorAll('.game-board .cell-i')).toHaveLength(0)
+    expect(document.querySelectorAll('.game-board .cell-ghost')).toHaveLength(4)
+  })
+
   it('auto repeats horizontal moves and soft drops until key release', async () => {
     vi.useFakeTimers()
     render(
@@ -496,7 +956,7 @@ describe('Game Component', () => {
     })
   })
 
-  it('keeps the visible piece authoritative until the backend updates it', async () => {
+  it('predicts visible piece movement from the latest authoritative backend view', async () => {
     const renderedBoard = makeBoard()
     renderedBoard[0][4] = 't'
     renderedBoard[1][3] = 't'
@@ -539,10 +999,10 @@ describe('Game Component', () => {
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
 
     const cells = document.querySelectorAll('.game-board .cell')
-    expect(cells[3]).toHaveClass('cell-empty')
-    expect(cells[4]).toHaveClass('cell-t')
-    expect(cells[12]).toHaveClass('cell-empty')
-    expect(cells[13]).toHaveClass('cell-t')
+    expect(cells[3]).toHaveClass('cell-t')
+    expect(cells[4]).toHaveClass('cell-empty')
+    expect(cells[12]).toHaveClass('cell-t')
+    expect(cells[15]).toHaveClass('cell-empty')
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
   })
 
