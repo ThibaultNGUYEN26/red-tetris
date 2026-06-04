@@ -1,6 +1,6 @@
 import './Game.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { unstable_batchedUpdates } from 'react-dom'
+import { flushSync, unstable_batchedUpdates } from 'react-dom'
 import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
 import ShadowBoards from '../ShadowBoards/ShadowBoards'
 import SpectatorView from '../SpectatorView/SpectatorView.jsx'
@@ -319,7 +319,9 @@ function Game({
       currentPiece: predictedPiece,
       board: predictedBoard,
     }
-    setBoard(predictedBoard)
+    flushSync(() => {
+      setBoard(predictedBoard)
+    })
   }
 
   const emitMove = (action) => {
@@ -343,8 +345,8 @@ function Game({
       }
     }
 
-    socket.emit('movePiece', { roomId: String(roomId), action })
     applyPredictedMove(action)
+    socket.emit('movePiece', { roomId: String(roomId), action })
     return true
   }
 

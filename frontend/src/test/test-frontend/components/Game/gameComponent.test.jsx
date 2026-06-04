@@ -477,6 +477,51 @@ describe('Game Component', () => {
     expect(cells()[16]).toHaveClass('cell-i')
   })
 
+  it('renders the predicted move before sending the socket input', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoardWithCells([
+            [1, 3, 'i'],
+            [1, 4, 'i'],
+            [1, 5, 'i'],
+            [1, 6, 'i'],
+          ]),
+          boardLocked: makeBoard(),
+          currentPiece: { type: 'i', rotation: 0, x: 3, y: 0 },
+          score: 0,
+          lines: 0,
+          level: 1,
+        }],
+      })
+    })
+
+    const boardCells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+
+    socket.emit.mockImplementationOnce(() => {
+      expect(boardCells()[12]).toHaveClass('cell-i')
+      expect(boardCells()[16]).toHaveClass('cell-empty')
+    })
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'left' })
+  })
+
   it('predicts local rotation immediately from authoritative piece data', async () => {
     render(
       <Game
