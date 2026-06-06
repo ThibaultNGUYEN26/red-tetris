@@ -10,12 +10,7 @@ const CONTACT_TIMEOUT_MS = 15000
 const CONTACT_OBJECT_MAX_LENGTH = 120
 const CONTACT_MESSAGE_MAX_LENGTH = 4000
 const PRIVACY_LAST_UPDATED = 'May 5, 2026'
-const PRIVACY_CONTROLLER_NAME =
-  import.meta.env.VITE_PRIVACY_CONTROLLER_NAME || 'the Red Tetris site operator'
-const PRIVACY_CONTROLLER_CONTACT =
-  import.meta.env.VITE_PRIVACY_CONTROLLER_CONTACT || 'the contact form at /contact'
-const PRIVACY_CONTROLLER_LOCATION =
-  import.meta.env.VITE_PRIVACY_CONTROLLER_LOCATION || 'France'
+const PRIVACY_CONTROLLER_NAME = 'Thibault and Riham'
 
 const pages = {
   about: {
@@ -58,7 +53,7 @@ const pages = {
       {
         title: 'Multiplayer',
         body:
-          'In multiplayer rooms, players compete on separate boards in real time. Clearing multiple lines sends penalty lines to opponents, and the last surviving player wins.',
+          'In multiplayer rooms, up to 8 players compete on separate boards in real time. Clearing multiple lines sends penalty lines to opponents, and the last surviving player wins.',
       },
       {
         title: 'Classic',
@@ -156,7 +151,7 @@ const pages = {
       {
         title: 'Controller',
         body:
-          `${PRIVACY_CONTROLLER_NAME} is the data controller for account, profile, contact, and gameplay data processed by this deployment of Red Tetris. Controller location: ${PRIVACY_CONTROLLER_LOCATION}. Privacy contact: ${PRIVACY_CONTROLLER_CONTACT}. No separate Data Protection Officer is appointed unless this section states otherwise.`,
+          `${PRIVACY_CONTROLLER_NAME} are responsible for deciding how account, profile, contact, and gameplay data is used for this deployment of Red Tetris. No separate Data Protection Officer is appointed unless this section states otherwise.`,
       },
       {
         title: 'Information We Collect',
@@ -587,7 +582,6 @@ function InfoPage({ type }) {
           <nav className="info-page-nav" aria-label="Information pages">
             <Link to="/">Back</Link>
             <Link to="/about">About</Link>
-            <Link to="/tutorial">Guide</Link>
             <Link to="/contact">Contact</Link>
             <Link to="/terms">Terms</Link>
             <Link to="/privacy-policy">Privacy</Link>

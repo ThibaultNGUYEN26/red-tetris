@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
 import Index from './index.jsx';
 import Spectate from './Spectate.jsx';
 import InfoPage from './InfoPage.jsx';
@@ -31,6 +31,12 @@ function App() {
       <div className="screen-credit" aria-label="Titi and Riri">
         © Titi&amp;Riri
       </div>
+      <nav className="screen-info-links" aria-label="Site information">
+        <Link to="/about">About</Link>
+        <Link to="/contact">Contact</Link>
+        <Link to="/terms">Terms</Link>
+        <Link to="/privacy-policy">Privacy</Link>
+      </nav>
       <CookieNotice />
     </BrowserRouter>
   );

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import './Options.css'
 
 function Options({ onBack, theme, onThemeChange, soundEnabled, onSoundChange }) {
@@ -33,6 +34,15 @@ function Options({ onBack, theme, onThemeChange, soundEnabled, onSoundChange }) 
           <span className="option-title">Sound</span>
           <span className="option-description">{soundEnabled ? 'Enabled' : 'Disabled'}</span>
         </button>
+
+        <Link
+          className="option-button"
+          to="/tutorial"
+        >
+          <span className="option-icon">?</span>
+          <span className="option-title">Guide</span>
+          <span className="option-description">Controls and modes</span>
+        </Link>
       </div>
 
       <button

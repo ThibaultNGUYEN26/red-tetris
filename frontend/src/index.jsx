@@ -1,6 +1,6 @@
 import './index.css'
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Link, useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
@@ -987,8 +987,6 @@ function Index({ authMode = 'login' }) {
 
   /* ---------------- RENDER ---------------- */
 
-  const showSiteFooter = !showGame && !showRooms && !showSoloRoom && !showDirectRoom
-
   return (
     <>
       {/* Background always rendered */}
@@ -999,7 +997,7 @@ function Index({ authMode = 'login' }) {
       </div>
 
       {/* Content wrapper always rendered */}
-      <div className={`content-wrapper ${showSiteFooter ? 'has-site-footer' : ''}`}>
+      <div className="content-wrapper">
         {(socketNotice || routeNotice) && (
           <div
             className={`route-notice ${socketNotice?.type || 'error'}`}
@@ -1007,17 +1005,6 @@ function Index({ authMode = 'login' }) {
           >
             {socketNotice?.message || routeNotice}
           </div>
-        )}
-        {showSiteFooter && (
-          <footer className="site-footer">
-            <nav className="site-info-links" aria-label="Site information">
-            <Link to="/about">About</Link>
-            <Link to="/tutorial">Guide</Link>
-            <Link to="/contact">Contact</Link>
-            <Link to="/terms">Terms</Link>
-            <Link to="/privacy-policy">Privacy</Link>
-          </nav>
-          </footer>
         )}
         {showRooms && username ? (
           <Rooms

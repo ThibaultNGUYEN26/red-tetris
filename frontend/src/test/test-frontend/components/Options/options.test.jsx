@@ -3,6 +3,10 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import Options from '../../../../components/ModeMenuSelector/Options.jsx/Options.jsx'
 
+vi.mock('react-router-dom', () => ({
+  Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
+}))
+
 describe('Options Component', () => {
   it('renders theme and sound controls', () => {
     render(
@@ -18,6 +22,7 @@ describe('Options Component', () => {
     expect(screen.getByRole('heading', { name: /options/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /light theme/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sound/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /guide/i })).toHaveAttribute('href', '/tutorial')
     expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument()
   })
 
