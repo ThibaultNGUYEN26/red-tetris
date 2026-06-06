@@ -17,7 +17,7 @@ describe('CookieNotice', () => {
     vi.useRealTimers()
   })
 
-  it('asks for cookie acceptance and renews the answer for 13 months', () => {
+  it('explains necessary cookies and renews the notice acknowledgement for 13 months', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'))
 
@@ -27,10 +27,11 @@ describe('CookieNotice', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByRole('region', { name: /cookie notice/i })).toHaveTextContent(/do you accept cookies/i)
+    expect(screen.getByRole('region', { name: /cookie notice/i })).toHaveTextContent(/only necessary cookies/i)
+    expect(screen.getByRole('region', { name: /cookie notice/i })).toHaveTextContent(/not used for advertising or analytics/i)
     expect(screen.getByRole('region', { name: /cookie notice/i })).toHaveTextContent(/13 months/i)
 
-    fireEvent.click(screen.getByRole('button', { name: /accept/i }))
+    fireEvent.click(screen.getByRole('button', { name: /got it/i }))
 
     expect(screen.queryByRole('region', { name: /cookie notice/i })).not.toBeInTheDocument()
 
@@ -38,23 +39,8 @@ describe('CookieNotice', () => {
     const expectedExpiry = new Date('2026-01-15T12:00:00.000Z')
     expectedExpiry.setMonth(expectedExpiry.getMonth() + 13)
 
-    expect(stored.accepted).toBe(true)
     expect(stored.answeredAt).toBe(Date.now())
     expect(stored.expiresAt).toBe(expectedExpiry.getTime())
-  })
-
-  it('stores a declined cookie answer for 13 months', () => {
-    render(
-      <MemoryRouter>
-        <CookieNotice />
-      </MemoryRouter>
-    )
-
-    fireEvent.click(screen.getByRole('button', { name: /decline/i }))
-
-    const stored = JSON.parse(localStorage.getItem(COOKIE_NOTICE_STORAGE_KEY))
-    expect(stored.accepted).toBe(false)
-    expect(screen.queryByRole('region', { name: /cookie notice/i })).not.toBeInTheDocument()
   })
 
   it('asks again after the 13-month renewal expires', () => {

@@ -336,9 +336,13 @@ describe('CreateRoom Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      const handleRoomState = socket.on.mock.calls.find(
-        call => call[0] === 'roomState'
-      )?.[1]
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('roomState', expect.any(Function))
+      })
+
+      const handleRoomState = socket.on.mock.calls
+        .filter(call => call[0] === 'roomState')
+        .at(-1)?.[1]
 
       if (handleRoomState) {
         handleRoomState({

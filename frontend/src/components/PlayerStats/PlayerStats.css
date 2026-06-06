@@ -287,7 +287,6 @@
   border-radius: 12px;
   padding: 8px;
   text-align: center;
-  transition: all 0.2s ease;
 }
 
 .player-stats.dark .stat-item,
@@ -298,11 +297,6 @@
     rgba(30, 30, 60, 0.5)
   );
   border-color: rgba(100, 100, 200, 0.4);
-}
-
-.stat-item:hover {
-  transform: scale(1.04);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 /* LABEL + VALUE */
@@ -335,11 +329,6 @@
   background: linear-gradient(135deg, #4caf50, #81c784);
   border-color: rgba(76, 175, 80, 0.8);
   color: #0a1a12; /* dark readable text */
-}
-
-.stat-item.highlight:hover {
-  transform: scale(1.04);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
 }
 
 .stat-item.highlight .stat-label,

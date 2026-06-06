@@ -26,9 +26,8 @@ function CookieNotice() {
     () => !hasActiveCookieNoticeAcknowledgement()
   )
 
-  const saveChoice = (accepted) => {
+  const acknowledgeNotice = () => {
     localStorage.setItem(COOKIE_NOTICE_STORAGE_KEY, JSON.stringify({
-      accepted,
       answeredAt: Date.now(),
       expiresAt: getCookieNoticeExpiry(),
     }))
@@ -40,16 +39,14 @@ function CookieNotice() {
   return (
     <section className="cookie-notice" aria-label="Cookie notice">
       <p>
-        Do you accept cookies? Red Tetris uses them to keep you signed in and run the game.
-        Your answer is remembered for 13 months.
+        Red Tetris uses only necessary cookies to keep you signed in and run the game.
+        They are required for the service and are not used for advertising or analytics.
+        We remember that this notice was shown for 13 months.
       </p>
       <div className="cookie-notice-actions">
         <Link to="/privacy-policy">Privacy</Link>
-        <button type="button" className="secondary" onClick={() => saveChoice(false)}>
-          Decline
-        </button>
-        <button type="button" onClick={() => saveChoice(true)}>
-          Accept
+        <button type="button" onClick={acknowledgeNotice}>
+          Got it
         </button>
       </div>
     </section>

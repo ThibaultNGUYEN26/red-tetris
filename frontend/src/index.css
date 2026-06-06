@@ -192,12 +192,6 @@ html, body, #root {
   cursor: pointer;
 }
 
-.cookie-notice button.secondary {
-  border: 2px solid rgba(74, 144, 226, 0.24);
-  background: rgba(255, 255, 255, 0.74);
-  color: #2e5c8a;
-}
-
 .cookie-notice a:hover,
 .cookie-notice a:focus-visible {
   background: rgba(74, 144, 226, 0.12);
@@ -208,11 +202,6 @@ html, body, #root {
 .cookie-notice button:focus-visible {
   background: #245f9f;
   outline: none;
-}
-
-.cookie-notice button.secondary:hover,
-.cookie-notice button.secondary:focus-visible {
-  background: rgba(74, 144, 226, 0.14);
 }
 
 .cookie-notice.dark {
@@ -231,20 +220,9 @@ html, body, #root {
   color: #102039;
 }
 
-.cookie-notice.dark button.secondary {
-  border-color: rgba(166, 202, 255, 0.28);
-  background: rgba(18, 25, 52, 0.72);
-  color: #eef5ff;
-}
-
 .cookie-notice.dark button:hover,
 .cookie-notice.dark button:focus-visible {
   background: #8fc0ff;
-}
-
-.cookie-notice.dark button.secondary:hover,
-.cookie-notice.dark button.secondary:focus-visible {
-  background: rgba(166, 202, 255, 0.16);
 }
 
 .info-page-wrapper {

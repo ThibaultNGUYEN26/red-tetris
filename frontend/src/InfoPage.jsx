@@ -211,7 +211,7 @@ const pages = {
       {
         title: 'Cookies And Local Storage',
         body:
-          'The app uses local storage for necessary features such as remembering the signed-in user locally, saved account details needed by the interface, and theme preferences. The backend may use a session cookie to keep you authenticated. These storage items are used for core service functionality, not advertising or cross-site tracking. No advertising or analytics cookies are currently required for the core game.',
+          'The app uses local storage for necessary features such as remembering the signed-in user locally, saved account details needed by the interface, theme preferences, and whether the cookie notice was shown. That notice acknowledgement is kept for 13 months, then the app shows it again. The backend may use a necessary session cookie to keep you authenticated. These storage items are used for core service functionality, not advertising or cross-site tracking. No advertising or analytics cookies are currently required for the core game.',
       },
       {
         title: 'IP Addresses And Logs',
