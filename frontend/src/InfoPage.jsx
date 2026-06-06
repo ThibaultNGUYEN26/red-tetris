@@ -361,6 +361,7 @@ function TutorialBoardDemo({ demo }) {
 
 function InfoPage({ type }) {
   const page = pages[type] || pages.about
+  const isTutorialPage = type === 'tutorial'
   const [theme] = useState(() => (
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
   ))
@@ -580,11 +581,15 @@ function InfoPage({ type }) {
       <div className="content-wrapper info-page-wrapper">
         <main className="info-page-card">
           <nav className="info-page-nav" aria-label="Information pages">
-            <Link to="/">Back</Link>
-            <Link to="/about">About</Link>
-            <Link to="/contact">Contact</Link>
-            <Link to="/terms">Terms</Link>
-            <Link to="/privacy-policy">Privacy</Link>
+            <Link className="info-page-back" to="/">← Back</Link>
+            {!isTutorialPage && (
+              <>
+                <Link to="/about">About</Link>
+                <Link to="/contact">Contact</Link>
+                <Link to="/terms">Terms</Link>
+                <Link to="/privacy-policy">Privacy</Link>
+              </>
+            )}
           </nav>
 
           <h1>{page.title}</h1>

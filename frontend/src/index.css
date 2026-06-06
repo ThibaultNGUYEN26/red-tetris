@@ -256,6 +256,13 @@ html, body, #root {
   text-decoration: none;
 }
 
+.info-page-nav .info-page-back {
+  padding-left: 0;
+  border-color: transparent;
+  background: transparent;
+  color: #1f466d;
+}
+
 .info-page-nav a:hover,
 .info-page-action:hover,
 .info-page-nav a:focus-visible,
@@ -263,6 +270,14 @@ html, body, #root {
   border-color: rgba(74, 144, 226, 0.5);
   background: #ffffff;
   outline: none;
+}
+
+.info-page-nav .info-page-back:hover,
+.info-page-nav .info-page-back:focus-visible {
+  border-color: transparent;
+  background: transparent;
+  color: #14314f;
+  text-decoration: underline;
 }
 
 .info-page-action:disabled {
@@ -994,6 +1009,20 @@ html, body, #root {
   border-color: rgba(170, 190, 255, 0.65);
   background: rgba(85, 105, 170, 0.45);
   color: #ffffff;
+}
+
+.sky-background.dark ~ .content-wrapper .info-page-nav .info-page-back {
+  border-color: transparent;
+  background: transparent;
+  color: #f0f5ff;
+}
+
+.sky-background.dark ~ .content-wrapper .info-page-nav .info-page-back:hover,
+.sky-background.dark ~ .content-wrapper .info-page-nav .info-page-back:focus-visible {
+  border-color: transparent;
+  background: transparent;
+  color: #ffffff;
+  text-decoration: underline;
 }
 
 .sky-background.dark ~ .content-wrapper .info-page-action.danger {
