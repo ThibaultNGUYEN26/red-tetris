@@ -16,6 +16,7 @@ function GameOver({
   const useGenericTitle =
     !isMultiplayer || ['cooperative', 'cooperative_roles'].includes(gameMode)
   const title = useGenericTitle ? 'Game Over' : winner === username ? 'You won' : 'You lost'
+  const winnerLabel = winner ? `Winner: ${winner}` : null
   const canSpectate = Boolean(onSpectate && isEliminated && !winner && !isGameOver)
   const showPlayAgain = Boolean(onPlayAgain && isGameOver)
 
@@ -23,6 +24,9 @@ function GameOver({
     <div className="game-over-overlay" role="dialog" aria-modal="true">
       <div className="game-over-card">
         <h3>{title}</h3>
+        {winnerLabel && (
+          <p className="game-over-winner">{winnerLabel}</p>
+        )}
         <div className="game-over-actions">
           <div className="game-over-primary-actions">
           {showPlayAgain && (

@@ -83,6 +83,7 @@ describe('Spectate page', () => {
     expect(document.querySelector('.game-card')).toBeInTheDocument()
     expect(screen.getByTestId('spectator-username')).toHaveTextContent('Titi')
     expect(mocks.socket.on.mock.calls[0][0]).toBe('gameState')
+    expect(mocks.socket.on.mock.calls[1][0]).toBe('gameOver')
     expect(mocks.socket.emit).toHaveBeenCalledWith(
       'joinSpectator',
       { roomId: '42', username: 'Titi' },
@@ -189,6 +190,9 @@ describe('Spectate page', () => {
     const gameStateHandler = mocks.socket.on.mock.calls.find(
       ([event]) => event === 'gameState'
     )?.[1]
+    const gameOverHandler = mocks.socket.on.mock.calls.find(
+      ([event]) => event === 'gameOver'
+    )?.[1]
 
     await act(async () => {
       gameStateHandler?.(null)
@@ -206,6 +210,47 @@ describe('Spectate page', () => {
       { roomId: '42', username: 'Titi' }
     )
     expect(mocks.socket.off).toHaveBeenCalledWith('gameState', gameStateHandler)
+    expect(mocks.socket.off).toHaveBeenCalledWith('gameOver', gameOverHandler)
+  })
+
+  it('shows game over and the winner while spectating', async () => {
+    render(<Spectate />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+    })
+
+    const gameOverHandler = mocks.socket.on.mock.calls.find(
+      ([event]) => event === 'gameOver'
+    )?.[1]
+
+    await act(async () => {
+      gameOverHandler?.({ winner: 'Riri' })
+    })
+
+    expect(screen.getByRole('dialog')).toHaveTextContent('Game Over')
+    expect(screen.getByText('Winner: Riri')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /back to menu/i }))
+    expect(mocks.navigate).toHaveBeenCalledWith('/')
+  })
+
+  it('shows a no-winner game over message while spectating', async () => {
+    render(<Spectate />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+    })
+
+    const gameOverHandler = mocks.socket.on.mock.calls.find(
+      ([event]) => event === 'gameOver'
+    )?.[1]
+
+    await act(async () => {
+      gameOverHandler?.({})
+    })
+
+    expect(screen.getByText('No winner')).toBeInTheDocument()
   })
 
   it('renders the dark loading state while room lookup is pending', () => {

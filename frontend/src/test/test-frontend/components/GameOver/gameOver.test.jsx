@@ -22,7 +22,7 @@ describe('GameOver Component', () => {
   it('shows Game Over title in solo or cooperative', () => {
     render(
       <GameOver
-        winner={null}
+        winner="Titi"
         isEliminated
         isGameOver
         onBack={vi.fn()}
@@ -33,6 +33,7 @@ describe('GameOver Component', () => {
     )
 
     expect(screen.getByRole('heading', { name: /game over/i })).toBeInTheDocument()
+    expect(screen.getByText('Winner: Titi')).toBeInTheDocument()
   })
 
   it('shows Game Over title in cooperative_roles too', () => {
@@ -65,6 +66,7 @@ describe('GameOver Component', () => {
     )
 
     expect(screen.getByRole('heading', { name: /you won/i })).toBeInTheDocument()
+    expect(screen.getByText('Winner: Titi')).toBeInTheDocument()
 
     rerender(
       <GameOver
@@ -79,6 +81,7 @@ describe('GameOver Component', () => {
     )
 
     expect(screen.getByRole('heading', { name: /you lost/i })).toBeInTheDocument()
+    expect(screen.getByText('Winner: Other')).toBeInTheDocument()
   })
 
   it('shows play again and spectate when applicable', () => {

@@ -1,4 +1,5 @@
 import './index.css'
+import './components/GameOver/GameOver.css'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { socket } from './socket'
@@ -26,6 +27,8 @@ function Spectate() {
   const [error, setError] = useState('')
   const [roomId, setRoomId] = useState(null)
   const [players, setPlayers] = useState([])
+  const [winner, setWinner] = useState(null)
+  const [isGameOver, setIsGameOver] = useState(false)
   const [loading, setLoading] = useState(true)
   const [theme] = useState(() => (
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
@@ -60,8 +63,13 @@ function Spectate() {
     const handleGameState = (state) => {
       setPlayers(state?.players || [])
     }
+    const handleGameOver = (payload = {}) => {
+      setWinner(payload?.winner || null)
+      setIsGameOver(true)
+    }
 
     socket.on('gameState', handleGameState)
+    socket.on('gameOver', handleGameOver)
     socket.emit('joinSpectator', { roomId: String(roomId), username: spectatorUsername }, (res) => {
       if (!res?.ok) {
         joinedSpectatorRef.current = false
@@ -80,6 +88,7 @@ function Spectate() {
         joinedSpectatorRef.current = false
       }
       socket.off('gameState', handleGameState)
+      socket.off('gameOver', handleGameOver)
     }
   }, [roomId, spectatorUsername])
 
@@ -129,6 +138,21 @@ function Spectate() {
       <div className="content-wrapper">
         <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
           <div className="game-card">
+            {isGameOver && (
+              <div className="game-over-overlay" role="dialog" aria-modal="true">
+                <div className="game-over-card">
+                  <h3>Game Over</h3>
+                  <p className="game-over-winner">
+                    {winner ? `Winner: ${winner}` : 'No winner'}
+                  </p>
+                  <div className="game-over-actions">
+                    <button className="back-button" onClick={() => navigate('/')}>
+                      Back to menu
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <SpectatorView
               players={players}
               onBack={() => navigate('/')}
