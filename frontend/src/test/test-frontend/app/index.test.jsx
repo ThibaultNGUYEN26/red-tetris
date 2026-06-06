@@ -103,6 +103,7 @@ const setSavedUser = (username = 'Titi') => {
 
 describe('Index main page', () => {
   beforeEach(() => {
+    vi.useRealTimers()
     vi.clearAllMocks()
     localStorage.clear()
     global.fetch.mockImplementation(async (url) => {

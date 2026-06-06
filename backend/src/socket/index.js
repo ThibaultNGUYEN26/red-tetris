@@ -10,10 +10,33 @@ const pendingDisconnects = new Map();
 const MOVE_INPUT_RATE_PER_SECOND = 45;
 const MOVE_INPUT_BURST = 30;
 const DEFAULT_RECONNECT_GRACE_MS = 15000;
+const DEFAULT_GAME_OVER_REVEAL_MS = process.env.NODE_ENV === "test" ? 0 : 800;
 
 const getReconnectGraceMs = () => {
   const value = Number(process.env.RECONNECT_GRACE_MS);
   return Number.isFinite(value) && value >= 0 ? value : DEFAULT_RECONNECT_GRACE_MS;
+};
+
+const getGameOverRevealMs = () => {
+  const value = Number(process.env.GAME_OVER_REVEAL_MS);
+  return Number.isFinite(value) && value >= 0 ? value : DEFAULT_GAME_OVER_REVEAL_MS;
+};
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const emitFinalGameState = (io, roomId, game) => {
+  const emit = (state) => io.to(String(roomId)).emit("gameState", state);
+
+  if (typeof game?.emitState === "function") {
+    return game.emitState({ force: true, emit });
+  }
+
+  if (typeof game?.serialize === "function") {
+    emit(game.serialize());
+    return true;
+  }
+
+  return false;
 };
 
 const getDisconnectKey = (roomId, username) => `${String(roomId)}:${username}`;
@@ -937,6 +960,11 @@ export default function setupSockets(io) {
           },
           onGameOver: async (summary) => {
             try {
+              const finalStateEmitted = emitFinalGameState(io, roomId, game);
+              if (finalStateEmitted) {
+                await wait(getGameOverRevealMs());
+              }
+
               io.to(String(roomId)).emit("gameOver", { winner: summary.winner });
 
               if (game.mode_player === "solo") {

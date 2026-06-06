@@ -79,6 +79,7 @@ describe('socket setup', () => {
     vi.resetModules()
     vi.useRealTimers()
     delete process.env.RECONNECT_GRACE_MS
+    delete process.env.GAME_OVER_REVEAL_MS
     delete process.env.DISABLE_AUTH_TEST_FALLBACK
   })
 
@@ -1102,6 +1103,215 @@ describe('socket setup', () => {
     callbacks.onTick({ tick: 1 })
 
     expect(io.roomEmit).toHaveBeenCalledWith('gameState', { tick: 1 })
+  })
+
+  it('onGameOver callback emits final gameState before gameOver', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ host: 'Titi', players: ['Titi', 'Riri'], status: 'waiting', game_mode: 'classic', ready_again: [] }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+
+    const finalState = { roomId: '1', players: [{ username: 'Riri', board: [['black']] }] }
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'multi',
+      mode: 'classic',
+      statsUpdated: true,
+      players: [{ username: 'Titi' }, { username: 'Riri' }],
+      emitState: vi.fn(({ emit }) => {
+        emit(finalState)
+        return true
+      }),
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+    io.roomEmit.mockClear()
+    await callbacks.onGameOver({ mode: 'classic', winner: 'Titi', results: [] })
+
+    expect(game.emitState).toHaveBeenCalledWith({ force: true, emit: expect.any(Function) })
+    expect(io.roomEmit).toHaveBeenCalledWith('gameState', finalState)
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi' })
+
+    const gameStateIndex = io.roomEmit.mock.calls.findIndex(([event]) => event === 'gameState')
+    const gameOverIndex = io.roomEmit.mock.calls.findIndex(([event]) => event === 'gameOver')
+    expect(io.roomEmit.mock.invocationCallOrder[gameStateIndex]).toBeLessThan(
+      io.roomEmit.mock.invocationCallOrder[gameOverIndex]
+    )
+  })
+
+  it('onGameOver callback falls back to serialize when final state emitState is unavailable', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ host: 'Titi', players: ['Titi', 'Riri'], status: 'waiting', game_mode: 'classic', ready_again: [] }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+
+    const finalState = { roomId: '1', players: [{ username: 'Riri', board: [['black']] }] }
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'multi',
+      mode: 'classic',
+      statsUpdated: true,
+      players: [{ username: 'Titi' }, { username: 'Riri' }],
+      serialize: vi.fn(() => finalState),
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+    io.roomEmit.mockClear()
+    await callbacks.onGameOver({ mode: 'classic', winner: 'Titi', results: [] })
+
+    expect(game.serialize).toHaveBeenCalled()
+    expect(io.roomEmit).toHaveBeenCalledWith('gameState', finalState)
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi' })
+  })
+
+  it('onGameOver callback waits for the configured reveal delay before gameOver', async () => {
+    vi.useFakeTimers()
+    process.env.GAME_OVER_REVEAL_MS = '25'
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ host: 'Titi', players: ['Titi', 'Riri'], status: 'waiting', game_mode: 'classic', ready_again: [] }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+
+    const finalState = { roomId: '1', players: [] }
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'multi',
+      mode: 'classic',
+      statsUpdated: true,
+      players: [{ username: 'Titi' }, { username: 'Riri' }],
+      emitState: vi.fn(({ emit }) => {
+        emit(finalState)
+        return true
+      }),
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+    await socket.handlers.get('startGame')({ roomId: '1' })
+
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+    io.roomEmit.mockClear()
+    const done = callbacks.onGameOver({ mode: 'classic', winner: 'Titi', results: [] })
+    await Promise.resolve()
+
+    expect(io.roomEmit).toHaveBeenCalledWith('gameState', finalState)
+    expect(io.roomEmit).not.toHaveBeenCalledWith('gameOver', expect.any(Object))
+
+    await vi.advanceTimersByTimeAsync(25)
+    await done
+
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi' })
+  })
+
+  it('onGameOver callback uses the production reveal delay by default', async () => {
+    const originalNodeEnv = process.env.NODE_ENV
+    process.env.NODE_ENV = 'production'
+    vi.useFakeTimers()
+    try {
+      mockQuery
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ host: 'Titi', players: ['Titi', 'Riri'], status: 'waiting', game_mode: 'classic', ready_again: [] }],
+        })
+        .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+        .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+        .mockResolvedValueOnce({
+          rows: [
+            { username: 'Titi', avatar: { eyeType: 'happy' } },
+            { username: 'Riri', avatar: { eyeType: 'sad' } },
+          ],
+        })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+
+      const finalState = { roomId: '1', players: [] }
+      const game = {
+        setCallbacks: vi.fn(),
+        start: vi.fn(),
+        mode_player: 'multi',
+        mode: 'classic',
+        statsUpdated: true,
+        players: [{ username: 'Titi' }, { username: 'Riri' }],
+        emitState: vi.fn(({ emit }) => {
+          emit(finalState)
+          return true
+        }),
+      }
+      mockCreateGame.mockReturnValue(game)
+
+      const { io, socket } = await setupConnectedSocket()
+      socket.data.username = 'Titi'
+      await socket.handlers.get('startGame')({ roomId: '1' })
+
+      const callbacks = game.setCallbacks.mock.calls[0][0]
+      io.roomEmit.mockClear()
+      const done = callbacks.onGameOver({ mode: 'classic', winner: 'Titi', results: [] })
+      await Promise.resolve()
+
+      expect(io.roomEmit).toHaveBeenCalledWith('gameState', finalState)
+      expect(io.roomEmit).not.toHaveBeenCalledWith('gameOver', expect.any(Object))
+
+      await vi.advanceTimersByTimeAsync(799)
+      await Promise.resolve()
+      expect(io.roomEmit).not.toHaveBeenCalledWith('gameOver', expect.any(Object))
+
+      await vi.advanceTimersByTimeAsync(1)
+      await done
+
+      expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi' })
+    } finally {
+      if (originalNodeEnv === undefined) delete process.env.NODE_ENV
+      else process.env.NODE_ENV = originalNodeEnv
+    }
   })
 
   it('onGameOver callback catches and logs handling failures', async () => {

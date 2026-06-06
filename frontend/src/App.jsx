@@ -3,6 +3,7 @@ import Index from './index.jsx';
 import Spectate from './Spectate.jsx';
 import InfoPage from './InfoPage.jsx';
 import AdminPage from './AdminPage.jsx';
+import CookieNotice from './components/CookieNotice/CookieNotice.jsx';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
       <div className="screen-credit" aria-label="Titi and Riri">
         © Titi&amp;Riri
       </div>
+      <CookieNotice />
     </BrowserRouter>
   );
 }
