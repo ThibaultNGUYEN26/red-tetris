@@ -8,6 +8,8 @@ export default class Player {
 
     this.currentPiece = null;
     this.nextPiece = null;
+    this.holdPiece = null;
+    this.hasHeldCurrentPiece = false;
     this.inputQueue = [];
     this.sequenceIndex = 0;
     this.dropAccumulator = 0;
@@ -69,6 +71,7 @@ export default class Player {
           }
         : null,
       nextType: this.nextPiece ? this.nextPiece.type.toLowerCase() : null,
+      holdType: this.holdPiece ? this.holdPiece.type.toLowerCase() : null,
     };
   }
 

@@ -122,6 +122,94 @@ describe('Game', () => {
     expect(player.currentPiece.rotation).not.toBe(originalRotation)
   })
 
+  it('holds a piece once per falling piece and serializes the held type', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+    game.sequenceBuffer = ['I', 'O', 'T', 'S']
+
+    game.spawnForPlayer(player)
+
+    expect(game.tryHold(player)).toBe(true)
+    expect(player.holdPiece.type).toBe('I')
+    expect(player.currentPiece.type).toBe('O')
+    expect(player.nextPiece.type).toBe('T')
+    expect(player.sequenceIndex).toBe(1)
+    expect(player.hasHeldCurrentPiece).toBe(true)
+    expect(player.serialize().holdType).toBe('i')
+
+    expect(game.tryHold(player)).toBe(false)
+    player.currentPiece.y = game.boardHeight
+    vi.spyOn(game, 'spawnForPlayer').mockImplementation((targetPlayer) => {
+      targetPlayer.currentPiece = { type: 'T', rotation: 0, x: 4, y: 0 }
+      targetPlayer.nextPiece = { type: 'S' }
+      targetPlayer.hasHeldCurrentPiece = false
+      return true
+    })
+    game.lockCurrentPiece(player)
+
+    expect(player.hasHeldCurrentPiece).toBe(false)
+    expect(game.tryHold(player)).toBe(true)
+    expect(player.currentPiece.type).toBe('I')
+    expect(player.holdPiece.type).toBe('T')
+  })
+
+  it('shares held pieces in cooperative state', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+    game.sequenceBuffer = ['I', 'O', 'T']
+
+    game.spawnForPlayer(players[0])
+    players[0].inputQueue = ['hold']
+    game.processInputs(players[0])
+    game.syncCooperativeStateFrom(players[0])
+
+    expect(players[1].holdPiece.type).toBe('I')
+    expect(game.serialize().players).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ username: 'Titi', holdType: 'i' }),
+        expect.objectContaining({ username: 'Riri', holdType: 'i' }),
+      ])
+    )
+    expect(game.serializePlayerView('Riri').player.holdType).toBe('i')
+  })
+
+  it('refuses hold when the incoming piece cannot spawn', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')
+    player.currentPiece = { type: 'T', rotation: 0, x: 4, y: 0 }
+    player.holdPiece = { type: 'I' }
+    vi.spyOn(game, 'canPlace').mockReturnValue(false)
+
+    expect(game.tryHold(player)).toBe(false)
+    expect(player.currentPiece.type).toBe('T')
+    expect(player.holdPiece.type).toBe('I')
+    expect(player.hasHeldCurrentPiece).toBe(false)
+  })
+
+  it('resets the chaotic swap timer when holding in chaotic mode', () => {
+    const player = new Player('Titi', '1')
+    const game = new Game('room-1', [player], 'chaotic', 'solo', 'Titi')
+    vi.spyOn(game, 'getChaoticSwapDelay').mockReturnValue(1234)
+    game.sequenceBuffer = ['I', 'O', 'T']
+
+    game.spawnForPlayer(player)
+    player.chaoticSwapMs = 1
+
+    expect(game.tryHold(player)).toBe(true)
+    expect(player.chaoticSwapMs).toBe(1234)
+  })
+
+  it('serializes cooperative player views without a held piece', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'cooperative', 'multi', 'Titi')
+    game.sequenceBuffer = ['I', 'O']
+
+    game.spawnForPlayer(players[0])
+    game.syncCooperativeStateFrom(players[0])
+
+    expect(game.serializePlayerView('Riri').player.holdType).toBeNull()
+  })
+
   it('spawns the I piece in the horizontal SRS spawn state', () => {
     const player = new Player('Titi', '1')
     const game = new Game('room-1', [player], 'classic', 'solo', 'Titi')

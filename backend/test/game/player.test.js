@@ -56,6 +56,7 @@ describe('Player', () => {
       maxLinesCleared: 0,
       currentPiece: null,
       nextType: 'l',
+      holdType: null,
     })
   })
 
@@ -73,6 +74,7 @@ describe('Player', () => {
       maxLinesCleared: 0,
       currentPiece: null,
       nextType: null,
+      holdType: null,
     })
   })
 

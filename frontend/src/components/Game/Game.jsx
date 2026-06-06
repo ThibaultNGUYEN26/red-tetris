@@ -85,6 +85,7 @@ function Game({
   const [board, setBoard] = useState(() => makeEmptyBoard(DEFAULT_BOARD))
   const [boardSize, setBoardSize] = useState(DEFAULT_BOARD)
   const [nextType, setNextType] = useState(null)
+  const [holdType, setHoldType] = useState(null)
   const [isPaused, setIsPaused] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
   const [stats, setStats] = useState({ score: 0, lines: 0, level: 1 })
@@ -180,7 +181,7 @@ function Game({
       return false
     }
     if (isMultiplayer && gameMode === 'cooperative_roles') {
-      if (cooperativeRole === 'rotate' && action !== 'rotate') {
+      if (cooperativeRole === 'rotate' && action !== 'rotate' && action !== 'hold') {
         return false
       }
       if (cooperativeRole === 'place' && action === 'rotate') {
@@ -324,6 +325,7 @@ function Game({
       setShowMenu(false)
       setStats({ score: 0, lines: 0, level: 1 })
       setNextType(null)
+      setHoldType(null)
       setOpponentBoards([])
       setWinner(null)
       setIsEliminated(false)
@@ -358,6 +360,7 @@ function Game({
             level: me.level ?? 1,
           })
           setNextType(me.nextType || null)
+          setHoldType(me.holdType || null)
 
           if (me.isAlive === false && !isLeavingSolo) {
             setIsEliminated(true)
@@ -400,6 +403,7 @@ function Game({
           level: me.level ?? 1,
         })
         setNextType(me.nextType || null)
+        setHoldType(me.holdType || null)
 
         /* v8 ignore next -- solo leave races are guarded for stale socket payloads after exit. @preserve */
         if (me.isAlive === false && !isLeavingSolo) {
@@ -509,6 +513,8 @@ function Game({
         }
       } else if (event.key === 'ArrowUp') {
         emitMove('rotate')
+      } else if (event.key.toLowerCase() === 'c' || event.key === 'Shift') {
+        emitMove('hold')
       } else if (event.key === ' ') {
         if (isMirrorMode) {
           startSoftDrop()
@@ -540,7 +546,7 @@ function Game({
       stopSoftDrop()
       stopHorizontalAutoMove()
     }
-  }, [isPaused, isMultiplayer, roomId, username, gameMode, activePlayerUsername, isEliminated])
+  }, [isPaused, isMultiplayer, roomId, username, gameMode, activePlayerUsername, cooperativeRole, isEliminated])
 
   useEffect(() => {
     if (isPaused) {
@@ -574,12 +580,12 @@ function Game({
     }
   }, [isPaused, isMultiplayer, isGameOver, soundEnabled])
 
-  const nextPreview = useMemo(() => {
-    if (!nextType || !SHAPES[nextType]) {
+  const createPiecePreview = (type) => {
+    if (!type || !SHAPES[type]) {
       return { grid: [], width: 0, height: 0 }
     }
 
-    const shape = SHAPES[nextType][0]
+    const shape = SHAPES[type][0]
     const rows = shape.map(([r]) => r)
     const cols = shape.map(([, c]) => c)
     const minRow = Math.min(...rows)
@@ -594,11 +600,19 @@ function Game({
     )
 
     shape.forEach(([r, c]) => {
-      preview[r - minRow][c - minCol] = nextType
+      preview[r - minRow][c - minCol] = type
     })
 
     return { grid: preview, width, height }
+  }
+
+  const nextPreview = useMemo(() => {
+    return createPiecePreview(nextType)
   }, [nextType])
+
+  const holdPreview = useMemo(() => {
+    return createPiecePreview(holdType)
+  }, [holdType])
 
   const isAlternatingCooperativeMode = isMultiplayer && gameMode === 'cooperative'
   const isRoleSplitCooperativeMode = isMultiplayer && gameMode === 'cooperative_roles'
@@ -715,8 +729,28 @@ function Game({
           </div>
 
           <div className="side-panel">
+            <h3>Hold</h3>
+            <div className="next-grid piece-preview-grid" role="grid" aria-label="Hold piece">
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${holdPreview.width}, var(--cell-size))`,
+                  gridTemplateRows: `repeat(${holdPreview.height}, var(--cell-size))`,
+                  gap: '2px'
+                }}
+              >
+                {holdPreview.grid.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => (
+                    <div
+                      key={`hold-${rowIndex}-${colIndex}`}
+                      className={`cell cell-${cell}`}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
             <h3>Next</h3>
-            <div className="next-grid" role="grid" aria-label="Next piece">
+            <div className="next-grid piece-preview-grid" role="grid" aria-label="Next piece">
               <div
                 style={{
                   display: 'grid',

@@ -375,6 +375,7 @@ describe('Game Component', () => {
           lines: 4,
           level: 2,
           nextType: 't',
+          holdType: 'o',
         }, {
           username: 'Riri',
           boardLocked: makeBoard(20, 10, 'z'),
@@ -384,7 +385,8 @@ describe('Game Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/1\D?234/)).toBeInTheDocument()
-      expect(document.querySelectorAll('.next-grid .cell-t')).toHaveLength(4)
+      expect(screen.getByRole('grid', { name: /next piece/i }).querySelectorAll('.cell-t')).toHaveLength(4)
+      expect(screen.getByRole('grid', { name: /hold piece/i }).querySelectorAll('.cell-o')).toHaveLength(4)
     })
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
@@ -394,6 +396,7 @@ describe('Game Component', () => {
     fireEvent.keyDown(window, { key: 'ArrowDown' })
     fireEvent.keyUp(window, { key: 'ArrowDown' })
     fireEvent.keyDown(window, { key: 'ArrowUp' })
+    fireEvent.keyDown(window, { key: 'c' })
     fireEvent.keyDown(window, { key: ' ' })
     fireEvent.keyDown(window, { key: 'Enter' })
 
@@ -401,6 +404,7 @@ describe('Game Component', () => {
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'right' })
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'drop' })
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'rotate' })
+    expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'hold' })
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'hardDrop' })
   })
 

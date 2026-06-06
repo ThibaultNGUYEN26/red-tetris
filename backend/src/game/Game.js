@@ -11,8 +11,8 @@ const CHAOTIC_MIN_SWAP_MS = 2500;
 const CHAOTIC_MAX_SWAP_MS = 5500;
 const COOPERATIVE_MODES = new Set(["cooperative", "cooperative_roles"]);
 const ROLE_ACTIONS = {
-  rotate: new Set(["rotate"]),
-  place: new Set(["left", "right", "drop", "hardDrop"]),
+  rotate: new Set(["rotate", "hold"]),
+  place: new Set(["left", "right", "drop", "hardDrop", "hold"]),
 };
 
 export default class Game {
@@ -151,6 +151,10 @@ export default class Game {
         player.nextPiece.x = sourcePlayer.nextPiece.x;
         player.nextPiece.y = sourcePlayer.nextPiece.y;
       }
+      player.holdPiece = sourcePlayer.holdPiece
+        ? new Piece(sourcePlayer.holdPiece.type, this.boardWidth, this.boardHeight)
+        : null;
+      player.hasHeldCurrentPiece = sourcePlayer.hasHeldCurrentPiece;
       player.sequenceIndex = sourcePlayer.sequenceIndex;
       player.dropAccumulator = sourcePlayer.dropAccumulator;
       player.lockDelayMs = sourcePlayer.lockDelayMs;
@@ -183,6 +187,8 @@ export default class Game {
     player.maxLinesCleared = 0;
     player.currentPiece = null;
     player.nextPiece = null;
+    player.holdPiece = null;
+    player.hasHeldCurrentPiece = false;
     player.inputQueue = [];
     player.sequenceIndex = 0;
     player.dropAccumulator = 0;
@@ -557,8 +563,37 @@ export default class Game {
     player.currentPiece = piece;
     const nextType = this.getSequenceAt(player.sequenceIndex + 1);
     player.nextPiece = new Piece(nextType, this.boardWidth, this.boardHeight);
+    player.hasHeldCurrentPiece = false;
     player.chaoticSwapMs = this.isChaoticMode() ? this.getChaoticSwapDelay() : 0;
 
+    return true;
+  }
+
+  tryHold(player) {
+    const current = player.currentPiece;
+    if (!current || player.hasHeldCurrentPiece) return false;
+
+    const heldType = player.holdPiece?.type ?? null;
+    const incomingType = heldType || this.getSequenceAt(player.sequenceIndex + 1);
+    const incomingPiece = new Piece(incomingType, this.boardWidth, this.boardHeight);
+
+    if (!this.canPlace(incomingType, incomingPiece.rotation, incomingPiece.x, incomingPiece.y, player.board)) {
+      return false;
+    }
+
+    player.holdPiece = new Piece(current.type, this.boardWidth, this.boardHeight);
+    player.currentPiece = incomingPiece;
+
+    if (!heldType) {
+      player.sequenceIndex += 1;
+      const nextType = this.getSequenceAt(player.sequenceIndex + 1);
+      player.nextPiece = new Piece(nextType, this.boardWidth, this.boardHeight);
+    }
+
+    player.hasHeldCurrentPiece = true;
+    player.chaoticSwapMs = this.isChaoticMode() ? this.getChaoticSwapDelay() : 0;
+    player.dropAccumulator = 0;
+    this.clearLockDelay(player);
     return true;
   }
 
@@ -614,6 +649,9 @@ export default class Game {
           break;
         case "rotate":
           this.tryRotate(player);
+          break;
+        case "hold":
+          this.tryHold(player);
           break;
         case "drop": {
           const moved = this.tryMove(player, 0, 1);
@@ -799,6 +837,7 @@ export default class Game {
           level: sharedPlayer?.level ?? 1,
           currentPiece: sharedCurrentPiece,
           nextType: sharedPlayer?.nextPiece ? sharedPlayer.nextPiece.type.toLowerCase() : null,
+          holdType: sharedPlayer?.holdPiece ? sharedPlayer.holdPiece.type.toLowerCase() : null,
           isCurrentTurn: player.username === this.currentTurnUsername,
           cooperativeRole: this.cooperativeRoles[player.username] ?? null,
           board: sharedPlayer
@@ -861,6 +900,7 @@ export default class Game {
           level: sharedPlayer?.level ?? 1,
           currentPiece: sharedCurrentPiece,
           nextType: sharedPlayer?.nextPiece ? sharedPlayer.nextPiece.type.toLowerCase() : null,
+          holdType: sharedPlayer?.holdPiece ? sharedPlayer.holdPiece.type.toLowerCase() : null,
           isCurrentTurn: player.username === this.currentTurnUsername,
           cooperativeRole: this.cooperativeRoles[player.username] ?? null,
           board: sharedPlayer
