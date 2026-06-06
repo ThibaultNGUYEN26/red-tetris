@@ -1,5 +1,5 @@
 import './index.css'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { socket } from './socket'
 import { apiFetch } from './api'
@@ -22,6 +22,7 @@ function Spectate() {
   const { roomName, username } = useParams()
   const navigate = useNavigate()
   const spectatorUsername = username || getSavedUsername()
+  const joinedSpectatorRef = useRef(false)
   const [error, setError] = useState('')
   const [roomId, setRoomId] = useState(null)
   const [players, setPlayers] = useState([])
@@ -63,15 +64,21 @@ function Spectate() {
     socket.on('gameState', handleGameState)
     socket.emit('joinSpectator', { roomId: String(roomId), username: spectatorUsername }, (res) => {
       if (!res?.ok) {
+        joinedSpectatorRef.current = false
         setError(res?.error || 'Spectator not allowed')
         setLoading(false)
         return
       }
+      joinedSpectatorRef.current = true
       setLoading(false)
       socket.emit('getRoomState', { roomId: String(roomId) })
     })
 
     return () => {
+      if (joinedSpectatorRef.current) {
+        socket.emit('playerLeave', { roomId: String(roomId), username: spectatorUsername })
+        joinedSpectatorRef.current = false
+      }
       socket.off('gameState', handleGameState)
     }
   }, [roomId, spectatorUsername])

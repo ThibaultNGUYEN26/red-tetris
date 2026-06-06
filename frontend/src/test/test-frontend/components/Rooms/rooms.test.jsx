@@ -1389,7 +1389,14 @@ describe('Rooms Component', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
 
-      expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'playerLeave',
+          { roomId: '2', username: 'TestUser' },
+          expect.any(Function)
+        )
+        expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
+      })
     })
 
     it('should navigate to cooperative spectator mode from game view', async () => {
@@ -1430,7 +1437,14 @@ describe('Rooms Component', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
 
-      expect(navigateMock).toHaveBeenCalledWith('/Coop Room/coop/spectate/TestUser')
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'playerLeave',
+          { roomId: '5', username: 'TestUser' },
+          expect.any(Function)
+        )
+        expect(navigateMock).toHaveBeenCalledWith('/Coop Room/coop/spectate/TestUser')
+      })
     })
 
     it('should use the current room name when spectating after the room list drops the room', async () => {
@@ -1465,7 +1479,14 @@ describe('Rooms Component', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
 
-      expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'playerLeave',
+          { roomId: '2', username: 'TestUser' },
+          expect.any(Function)
+        )
+        expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
+      })
     })
 
     it('should not navigate to spectator mode for a nameless current room', async () => {

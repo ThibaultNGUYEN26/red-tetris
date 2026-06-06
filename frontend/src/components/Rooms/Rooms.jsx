@@ -307,18 +307,35 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
     socket.emit('playAgain', { roomId: String(currentRoomId), username });
   };
 
-  const handleSpectate = () => {
+  const handleSpectate = async () => {
     if (!currentRoomName) return
-    setShowGame(false)
     const currentRoom = rooms.find(
       (room) => String(room.id) === String(currentRoomId)
     )
-    navigate(
-      buildSpectatePath(
-        currentRoom?.name || currentRoomName,
-        currentRoom?.game_mode
-      )
+    const spectatePath = buildSpectatePath(
+      currentRoom?.name || currentRoomName,
+      currentRoom?.game_mode
     )
+    const roomIdToLeave = currentRoomId
+
+    setShowGame(false)
+
+    if (roomIdToLeave) {
+      await new Promise((resolve) => {
+        socket.emit(
+          'playerLeave',
+          { roomId: String(roomIdToLeave), username },
+          () => resolve()
+        )
+      })
+      socket.emit('getAvailableRooms')
+    }
+
+    setCurrentRoomId(null)
+    setCurrentRoomPassword('')
+    setPendingPlayAgain(false)
+    hasJoinedRef.current = false
+    navigate(spectatePath)
   }
 
   const handleBackToMenu = () => {

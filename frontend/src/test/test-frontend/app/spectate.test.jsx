@@ -201,6 +201,10 @@ describe('Spectate page', () => {
     expect(mocks.navigate).toHaveBeenCalledWith('/')
 
     unmount()
+    expect(mocks.socket.emit).toHaveBeenCalledWith(
+      'playerLeave',
+      { roomId: '42', username: 'Titi' }
+    )
     expect(mocks.socket.off).toHaveBeenCalledWith('gameState', gameStateHandler)
   })
 
