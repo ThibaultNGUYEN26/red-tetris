@@ -77,6 +77,7 @@ describe('Game Component', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
   it('renders board, next preview, and options button', () => {
@@ -1075,6 +1076,166 @@ describe('Game Component', () => {
     })
 
     expect(audioInstances[4].play).toHaveBeenCalled()
+  })
+
+  it('highlights the board on level up, tetris, and full board clear', async () => {
+    const filledBoard = makeBoard()
+    filledBoard[19][0] = 'i'
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: filledBoard,
+          score: 100,
+          lines: 0,
+          level: 2,
+        }],
+      })
+    })
+
+    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+
+    await waitFor(() => {
+      expect(boardElement).toHaveClass('board-flash-level')
+    })
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: filledBoard,
+          score: 500,
+          lines: 4,
+          level: 2,
+        }],
+      })
+    })
+
+    await waitFor(() => {
+      expect(boardElement).toHaveClass('board-flash-tetris')
+    })
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+          score: 800,
+          lines: 4,
+          level: 2,
+        }],
+      })
+    })
+
+    await waitFor(() => {
+      expect(boardElement).toHaveClass('board-flash-clear')
+    })
+  })
+
+  it('clears pending board highlights when the animation ends or a new game starts', async () => {
+    vi.useFakeTimers()
+    const requestAnimationFrameMock = vi.fn((callback) => setTimeout(callback, 16))
+    const cancelAnimationFrameMock = vi.fn((timerId) => clearTimeout(timerId))
+
+    vi.stubGlobal('requestAnimationFrame', requestAnimationFrameMock)
+    vi.stubGlobal('cancelAnimationFrame', cancelAnimationFrameMock)
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+          level: 2,
+        }],
+      })
+    })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(16)
+    })
+
+    expect(boardElement).toHaveClass('board-flash-level')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(900)
+    })
+
+    expect(boardElement).not.toHaveClass('board-flash')
+
+    requestAnimationFrameMock.mockClear()
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+          level: 3,
+        }],
+      })
+    })
+
+    await act(async () => {})
+    expect(requestAnimationFrameMock).toHaveBeenCalled()
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.()
+    })
+
+    expect(cancelAnimationFrameMock).toHaveBeenCalled()
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+          level: 4,
+        }],
+      })
+    })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(16)
+    })
+
+    expect(boardElement).toHaveClass('board-flash-level')
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.()
+    })
+
+    expect(boardElement).not.toHaveClass('board-flash')
   })
 
   it('plays winner and loser sounds on multiplayer game over', async () => {

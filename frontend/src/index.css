@@ -577,6 +577,25 @@ html, body, #root {
   transform: rotate(315deg);
 }
 
+.tutorial-action-cue.hold {
+  left: 31%;
+  top: 38%;
+  width: 38%;
+  height: 24%;
+}
+
+.tutorial-action-cue.hold span:first-child {
+  transform: rotate(45deg);
+}
+
+.tutorial-action-cue.hold span:nth-child(2) {
+  opacity: 0;
+}
+
+.tutorial-action-cue.hold span:last-child {
+  transform: rotate(225deg);
+}
+
 .tutorial-demo-panel {
   display: grid;
   grid-template-columns: auto 1fr;

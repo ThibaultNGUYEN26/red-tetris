@@ -43,7 +43,7 @@ const pages = {
       {
         title: 'Controls',
         body:
-          'Use Left and Right to move the piece, Down for soft drop, Up to rotate, and Space for hard drop. Escape opens the pause/options menu in solo and the in-game menu in multiplayer.',
+          'Use Left and Right to move the piece, Down for soft drop, Up to rotate, Space for hard drop, and C or Shift to hold the current piece. Escape opens the pause/options menu in solo and the in-game menu in multiplayer.',
       },
       {
         title: 'Solo',
@@ -240,6 +240,12 @@ const rotatedPieceBlocks = [
   { row: 2, col: 6 },
   { row: 3, col: 5 },
 ]
+const heldPieceBlocks = [
+  { row: 1, col: 4 },
+  { row: 1, col: 5 },
+  { row: 2, col: 4 },
+  { row: 2, col: 5 },
+]
 
 const translateBlocks = (blocks, rowOffset, colOffset) => blocks.map((block) => ({
   row: block.row + rowOffset,
@@ -298,6 +304,16 @@ const tutorialControls = [
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: rotatedPieceBlocks,
     phantomBlocks: translateBlocks(rotatedPieceBlocks, tutorialInputRowOffset, 0),
+  },
+  {
+    action: 'hold',
+    ariaLabel: 'Hold piece tutorial',
+    key: 'C / Shift',
+    title: 'Hold Piece',
+    description: 'Press C or Shift to store the current piece and swap it back in later.',
+    activeBlocks: tutorialPieceBlocks,
+    targetBlocks: heldPieceBlocks,
+    phantomBlocks: translateBlocks(heldPieceBlocks, tutorialInputRowOffset, 0),
   },
 ]
 

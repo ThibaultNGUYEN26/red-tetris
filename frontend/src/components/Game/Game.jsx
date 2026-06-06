@@ -98,6 +98,7 @@ function Game({
   const [gameMode, setGameMode] = useState(null)
   const [activePlayerUsername, setActivePlayerUsername] = useState(null)
   const [cooperativeRole, setCooperativeRole] = useState(null)
+  const [boardFlash, setBoardFlash] = useState(null)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
@@ -116,6 +117,26 @@ function Game({
   const winnerRef = useRef(null)
   const loserRef = useRef(null)
   const roomModeRef = useRef(null)
+  const boardFlashTimerRef = useRef(null)
+  const boardFlashFrameRef = useRef(null)
+
+  const triggerBoardFlash = (type) => {
+    if (boardFlashFrameRef.current) {
+      cancelAnimationFrame(boardFlashFrameRef.current)
+    }
+    if (boardFlashTimerRef.current) {
+      clearTimeout(boardFlashTimerRef.current)
+    }
+    setBoardFlash(null)
+    boardFlashFrameRef.current = requestAnimationFrame(() => {
+      boardFlashFrameRef.current = null
+      setBoardFlash(type)
+      boardFlashTimerRef.current = setTimeout(() => {
+        setBoardFlash(null)
+        boardFlashTimerRef.current = null
+      }, 900)
+    })
+  }
 
   const startMusic = () => {
     /* v8 ignore next -- tested indirectly through game start; false sound suppresses the whole audio path. @preserve */
@@ -336,6 +357,15 @@ function Game({
       lastLevelRef.current = 1
       lastLinesRef.current = 0
       wasBoardEmptyRef.current = true
+      setBoardFlash(null)
+      if (boardFlashFrameRef.current) {
+        cancelAnimationFrame(boardFlashFrameRef.current)
+        boardFlashFrameRef.current = null
+      }
+      if (boardFlashTimerRef.current) {
+        clearTimeout(boardFlashTimerRef.current)
+        boardFlashTimerRef.current = null
+      }
       startMusic()
     }
 
@@ -444,44 +474,55 @@ function Game({
       socket.off('gameState', handleGameState)
       socket.off('playerState', handlePlayerState)
       socket.off('gameOver', handleGameOver)
+      if (boardFlashFrameRef.current) {
+        cancelAnimationFrame(boardFlashFrameRef.current)
+        boardFlashFrameRef.current = null
+      }
+      if (boardFlashTimerRef.current) {
+        clearTimeout(boardFlashTimerRef.current)
+        boardFlashTimerRef.current = null
+      }
       stopMusic()
     }
   }, [roomId, username, isMultiplayer])
 
   useEffect(() => {
     /* v8 ignore next -- refs are created on mount before stats effects can play sounds. @preserve */
-    if (!levelUpRef.current) return
-    if (!soundEnabled) return
     if (stats.level > lastLevelRef.current) {
-      levelUpRef.current.currentTime = 0
-      /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
-      levelUpRef.current.play().catch(() => {})
+      triggerBoardFlash('level')
+      if (soundEnabled && levelUpRef.current) {
+        levelUpRef.current.currentTime = 0
+        /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
+        levelUpRef.current.play().catch(() => {})
+      }
     }
     lastLevelRef.current = stats.level
   }, [stats.level])
 
   useEffect(() => {
     /* v8 ignore next -- refs are created on mount before stats effects can play sounds. @preserve */
-    if (!tetrisRef.current) return
-    if (!soundEnabled) return
     const delta = stats.lines - lastLinesRef.current
     if (delta === 4) {
-      tetrisRef.current.currentTime = 0
-      /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
-      tetrisRef.current.play().catch(() => {})
+      triggerBoardFlash('tetris')
+      if (soundEnabled && tetrisRef.current) {
+        tetrisRef.current.currentTime = 0
+        /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
+        tetrisRef.current.play().catch(() => {})
+      }
     }
     lastLinesRef.current = stats.lines
   }, [stats.lines])
 
   useEffect(() => {
     /* v8 ignore next -- refs are created on mount before board effects can play sounds. @preserve */
-    if (!clearRef.current) return
-    if (!soundEnabled) return
     const isEmpty = board.every((row) => row.every((cell) => cell === 'empty'))
     if (!wasBoardEmptyRef.current && isEmpty) {
-      clearRef.current.currentTime = 0
-      /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
-      clearRef.current.play().catch(() => {})
+      triggerBoardFlash('clear')
+      if (soundEnabled && clearRef.current) {
+        clearRef.current.currentTime = 0
+        /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
+        clearRef.current.play().catch(() => {})
+      }
     }
     wasBoardEmptyRef.current = isEmpty
   }, [board])
@@ -708,27 +749,7 @@ function Game({
         </div>
 
         <div className="game-layout">
-          <div
-            className="game-board"
-            role="grid"
-            aria-label="Tetris board"
-            style={{
-              gridTemplateColumns: `repeat(${boardSize.width}, var(--cell-size))`,
-              gridTemplateRows: `repeat(${boardSize.height}, var(--cell-size))`,
-              ['--cell-size']: `clamp(14px, min(calc((100vh - 180px) / ${boardSize.height}), calc((100vw - clamp(150px, 28vw, 420px)) / ${boardSize.width})), 48px)`,
-            }}
-          >
-            {board.map((row, rowIndex) =>
-              row.map((cell, colIndex) => (
-                <div
-                  key={`${rowIndex}-${colIndex}`}
-                  className={`cell cell-${cell}`}
-                />
-              ))
-            )}
-          </div>
-
-          <div className="side-panel">
+          <div className="hold-panel">
             <h3>Hold</h3>
             <div className="next-grid piece-preview-grid" role="grid" aria-label="Hold piece">
               <div
@@ -749,6 +770,29 @@ function Game({
                 )}
               </div>
             </div>
+          </div>
+
+          <div
+            className={`game-board${boardFlash ? ` board-flash board-flash-${boardFlash}` : ''}`}
+            role="grid"
+            aria-label="Tetris board"
+            style={{
+              gridTemplateColumns: `repeat(${boardSize.width}, var(--cell-size))`,
+              gridTemplateRows: `repeat(${boardSize.height}, var(--cell-size))`,
+              ['--cell-size']: `clamp(14px, min(calc((100vh - 180px) / ${boardSize.height}), calc((100vw - clamp(150px, 28vw, 420px)) / ${boardSize.width})), 48px)`,
+            }}
+          >
+            {board.map((row, rowIndex) =>
+              row.map((cell, colIndex) => (
+                <div
+                  key={`${rowIndex}-${colIndex}`}
+                  className={`cell cell-${cell}`}
+                />
+              ))
+            )}
+          </div>
+
+          <div className="side-panel">
             <h3>Next</h3>
             <div className="next-grid piece-preview-grid" role="grid" aria-label="Next piece">
               <div

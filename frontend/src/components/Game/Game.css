@@ -125,7 +125,16 @@
   margin-top: clamp(-80px, -4.2vw, -35px);
 }
 
-.side-panel h3 {
+.hold-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.55rem, 0.4rem + 0.35vw, 0.75rem);
+  margin-top: clamp(-80px, -4.2vw, -35px);
+}
+
+.side-panel h3,
+.hold-panel h3 {
   margin: 0;
   font-size: 1rem;
   color: #2a5298;
@@ -177,6 +186,79 @@
   content: '';
   display: block;
   height: 0;
+}
+
+.game-board.board-flash {
+  animation-duration: 900ms;
+  animation-timing-function: ease-out;
+  animation-iteration-count: 1;
+}
+
+.game-board.board-flash-level {
+  animation-name: board-flash-level;
+}
+
+.game-board.board-flash-tetris {
+  animation-name: board-flash-tetris;
+}
+
+.game-board.board-flash-clear {
+  animation-name: board-flash-clear;
+}
+
+@keyframes board-flash-level {
+  0% {
+    border-color: rgba(87, 217, 140, 0.95);
+    box-shadow:
+      inset 0 0 22px rgba(255, 255, 255, 0.75),
+      0 0 0 4px rgba(87, 217, 140, 0.38),
+      0 0 30px rgba(87, 217, 140, 0.55);
+  }
+  100% {
+    border-color: rgba(42, 82, 152, 0.25);
+    box-shadow:
+      inset 0 0 20px rgba(255, 255, 255, 0.6),
+      0 10px 24px rgba(0, 0, 0, 0.12);
+  }
+}
+
+@keyframes board-flash-tetris {
+  0%, 18%, 36% {
+    border-color: rgba(255, 210, 77, 0.98);
+    box-shadow:
+      inset 0 0 24px rgba(255, 255, 255, 0.8),
+      0 0 0 5px rgba(255, 210, 77, 0.32),
+      0 0 38px rgba(255, 179, 71, 0.62);
+  }
+  9%, 27% {
+    border-color: rgba(182, 107, 255, 0.95);
+    box-shadow:
+      inset 0 0 24px rgba(255, 255, 255, 0.8),
+      0 0 0 5px rgba(182, 107, 255, 0.3),
+      0 0 38px rgba(182, 107, 255, 0.58);
+  }
+  100% {
+    border-color: rgba(42, 82, 152, 0.25);
+    box-shadow:
+      inset 0 0 20px rgba(255, 255, 255, 0.6),
+      0 10px 24px rgba(0, 0, 0, 0.12);
+  }
+}
+
+@keyframes board-flash-clear {
+  0% {
+    border-color: rgba(77, 215, 255, 0.98);
+    box-shadow:
+      inset 0 0 26px rgba(255, 255, 255, 0.82),
+      0 0 0 5px rgba(77, 215, 255, 0.34),
+      0 0 36px rgba(77, 215, 255, 0.6);
+  }
+  100% {
+    border-color: rgba(42, 82, 152, 0.25);
+    box-shadow:
+      inset 0 0 20px rgba(255, 255, 255, 0.6),
+      0 10px 24px rgba(0, 0, 0, 0.12);
+  }
 }
 
 /* cell base in light mode */
@@ -404,7 +486,8 @@
   box-shadow: none;
 }
 
-.game-screen.dark .side-panel h3 {
+.game-screen.dark .side-panel h3,
+.game-screen.dark .hold-panel h3 {
   color: #d0e0ff;
   text-shadow: 0 0 8px rgba(120, 150, 255, 0.6);
 }
@@ -413,6 +496,79 @@
   background: rgba(30, 30, 60, 0.6);
   border-color: rgba(100, 100, 200, 0.4);
   animation: pulse-game-board 4s ease-in-out infinite;
+}
+
+.game-screen.dark .game-board.board-flash {
+  animation-duration: 900ms;
+  animation-timing-function: ease-out;
+  animation-iteration-count: 1;
+}
+
+.game-screen.dark .game-board.board-flash-level {
+  animation-name: board-flash-level-dark;
+}
+
+.game-screen.dark .game-board.board-flash-tetris {
+  animation-name: board-flash-tetris-dark;
+}
+
+.game-screen.dark .game-board.board-flash-clear {
+  animation-name: board-flash-clear-dark;
+}
+
+@keyframes board-flash-level-dark {
+  0% {
+    border-color: rgba(87, 217, 140, 1);
+    box-shadow:
+      inset 0 0 22px rgba(87, 217, 140, 0.22),
+      0 0 0 4px rgba(87, 217, 140, 0.42),
+      0 0 36px rgba(87, 217, 140, 0.72);
+  }
+  100% {
+    border-color: rgba(100, 100, 200, 0.4);
+    box-shadow:
+      inset 0 0 20px rgba(0, 0, 0, 0.4),
+      0 10px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@keyframes board-flash-tetris-dark {
+  0%, 18%, 36% {
+    border-color: rgba(255, 210, 77, 1);
+    box-shadow:
+      inset 0 0 24px rgba(255, 210, 77, 0.18),
+      0 0 0 5px rgba(255, 210, 77, 0.38),
+      0 0 42px rgba(255, 179, 71, 0.72);
+  }
+  9%, 27% {
+    border-color: rgba(182, 107, 255, 1);
+    box-shadow:
+      inset 0 0 24px rgba(182, 107, 255, 0.16),
+      0 0 0 5px rgba(182, 107, 255, 0.34),
+      0 0 42px rgba(182, 107, 255, 0.68);
+  }
+  100% {
+    border-color: rgba(100, 100, 200, 0.4);
+    box-shadow:
+      inset 0 0 20px rgba(0, 0, 0, 0.4),
+      0 10px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@keyframes board-flash-clear-dark {
+  0% {
+    border-color: rgba(77, 215, 255, 1);
+    box-shadow:
+      inset 0 0 26px rgba(77, 215, 255, 0.2),
+      0 0 0 5px rgba(77, 215, 255, 0.38),
+      0 0 40px rgba(77, 215, 255, 0.72);
+  }
+  100% {
+    border-color: rgba(100, 100, 200, 0.4);
+    box-shadow:
+      inset 0 0 20px rgba(0, 0, 0, 0.4),
+      0 10px 24px rgba(0, 0, 0, 0.3);
+  }
 }
 
 @keyframes pulse-game-board {
@@ -486,6 +642,11 @@
     flex-wrap: wrap;
   }
 
+  .hold-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
   .panel {
     flex: 1 1 200px;
   }
@@ -508,6 +669,10 @@
     margin-top: clamp(-50px, -3.6vw, -35px);
   }
 
+  .hold-panel {
+    margin-top: clamp(-50px, -3.6vw, -35px);
+  }
+
   .game-board {
     --cell-size: clamp(26px, calc((100vh - 240px) / 20), 42px);
     margin-top: clamp(-50px, -3.6vw, -35px);
@@ -526,6 +691,10 @@
   }
 
   .side-panel {
+    margin-top: -35px;
+  }
+
+  .hold-panel {
     margin-top: -35px;
   }
 
@@ -566,6 +735,10 @@
   }
 
   .side-panel {
+    margin-top: 0;
+  }
+
+  .hold-panel {
     margin-top: 0;
   }
 
