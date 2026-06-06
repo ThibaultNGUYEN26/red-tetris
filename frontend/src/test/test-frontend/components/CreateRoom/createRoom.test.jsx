@@ -327,6 +327,7 @@ describe('CreateRoom Component', () => {
       })
 
       expect(screen.getByRole('option', { name: /invisible/i })).toBeInTheDocument()
+      expect(screen.getByText(/standard versus tetris/i)).toBeInTheDocument()
     })
 
     it('should PATCH mode change when host selects a new mode', async () => {
@@ -358,6 +359,7 @@ describe('CreateRoom Component', () => {
       const modeSelect = screen.getByRole('combobox')
       vi.useFakeTimers()
       fireEvent.change(modeSelect, { target: { value: 'mirror' } })
+      expect(screen.getByText(/controls are reversed/i)).toBeInTheDocument()
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(600)
@@ -382,9 +384,9 @@ describe('CreateRoom Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      const handleRoomState = socket.on.mock.calls.find(
-        call => call[0] === 'roomState'
-      )?.[1]
+      const handleRoomState = socket.on.mock.calls
+        .filter(call => call[0] === 'roomState')
+        .at(-1)?.[1]
 
       handleRoomState?.({
         id: 1,

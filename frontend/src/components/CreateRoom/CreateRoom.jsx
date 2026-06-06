@@ -100,19 +100,22 @@ function CreateRoom({
 
   // Define available game modes
   const multiplayerModes = [
-    { value: 'classic', label: 'Classic', maxPlayers: 8 },
-    { value: 'mirror', label: 'Mirror', maxPlayers: 8 },
-    { value: 'chaotic', label: 'Chaotic', maxPlayers: 8 },
-    { value: 'invisible', label: 'Invisible', maxPlayers: 8 },
-    { value: 'giant', label: 'Giant', maxPlayers: 8 }
+    { value: 'classic', label: 'Classic', maxPlayers: 8, description: 'Standard versus Tetris where line clears send penalties to opponents.' },
+    { value: 'mirror', label: 'Mirror', maxPlayers: 8, description: 'Controls are reversed, so movement and drops behave differently.' },
+    { value: 'chaotic', label: 'Chaotic', maxPlayers: 8, description: 'Your current and next pieces can swap randomly while you play.' },
+    { value: 'invisible', label: 'Invisible', maxPlayers: 8, description: 'The active piece becomes harder to track as it falls.' },
+    { value: 'giant', label: 'Giant', maxPlayers: 8, description: 'Play on a larger board with more room and longer survival.' }
   ]
   const cooperativeModes = [
-    { value: 'cooperative', label: 'Co-op Alternate', maxPlayers: 2 },
-    { value: 'cooperative_roles', label: 'Co-op Roles', maxPlayers: 2 }
+    { value: 'cooperative', label: 'Co-op Alternate', maxPlayers: 2, description: 'Two players share one board and alternate turns.' },
+    { value: 'cooperative_roles', label: 'Co-op Roles', maxPlayers: 2, description: 'Two players share one board with split movement and rotation roles.' }
   ]
 
   const availableGameModes =
     roomType === 'cooperative' ? cooperativeModes : multiplayerModes
+  const selectedModeDescription =
+    availableGameModes.find((gameMode) => gameMode.value === selectedMode)?.description ||
+    'Standard versus Tetris where line clears send penalties to opponents.'
 
   // Filter modes based on current player count
   const getAvailableModes = () => {
@@ -645,6 +648,7 @@ function CreateRoom({
               </option>
             ))}
           </select>
+          <p className="mode-description">{selectedModeDescription}</p>
         </div>
 
         {/* Players */}

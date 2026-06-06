@@ -304,6 +304,13 @@
   color: #999;
 }
 
+.mode-description {
+  color: #2a5298;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .room-password-challenge {
   display: flex;
   flex-direction: column;
@@ -667,6 +674,11 @@
   background: rgba(100, 120, 180, 0.6);
   color: #e0f0ff;
   font-weight: 700;
+}
+
+.create-room-card.dark .mode-description {
+  color: #c8d6ff;
+  text-shadow: 0 0 8px rgba(100, 150, 255, 0.28);
 }
 
 .create-room-card.dark .mode-select option:disabled {
