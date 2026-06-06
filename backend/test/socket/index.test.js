@@ -100,7 +100,7 @@ describe('socket setup', () => {
     expect(io.emit).toHaveBeenCalledWith('availableRooms', [
       expect.objectContaining({
         id: 1,
-        maxPlayers: 6,
+        maxPlayers: 8,
       }),
     ])
     expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('AND is_listed = TRUE'))
@@ -1051,7 +1051,7 @@ describe('socket setup', () => {
 
     expect(mockCreateGame).not.toHaveBeenCalled()
     expect(socket.emit).toHaveBeenCalledWith('error', {
-      message: 'This room requires between 2 and 6 players to start.',
+      message: 'This room requires between 2 and 8 players to start.',
     })
   })
 
@@ -2946,7 +2946,7 @@ describe('socket setup', () => {
 
     expect(mockCreateGame).not.toHaveBeenCalled()
     expect(socket.emit).toHaveBeenCalledWith('error', {
-      message: 'This room requires between 2 and 6 players to start.',
+      message: 'This room requires between 2 and 8 players to start.',
     })
   })
 

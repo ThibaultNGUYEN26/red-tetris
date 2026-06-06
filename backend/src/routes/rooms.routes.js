@@ -8,7 +8,7 @@ import { authenticateRequest, rejectUnauthenticated } from "../auth/session.js";
 const router = express.Router();
 const ROOM_PASSWORD_MAX_LENGTH = 64;
 const getMaxPlayers = (gameMode) =>
-  ["cooperative", "cooperative_roles"].includes(gameMode) ? 2 : 6;
+  ["cooperative", "cooperative_roles"].includes(gameMode) ? 2 : 8;
 const MODE_LABELS = {
   cooperative: "Co-op Alternate",
   cooperative_roles: "Co-op Roles",

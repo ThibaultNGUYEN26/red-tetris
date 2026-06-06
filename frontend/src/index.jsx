@@ -42,7 +42,7 @@ const buildRoomPath = (roomName, type, username) => {
 }
 
 const getMaxPlayers = (gameMode) =>
-  ['cooperative', 'cooperative_roles'].includes(gameMode) ? 2 : 6
+  ['cooperative', 'cooperative_roles'].includes(gameMode) ? 2 : 8
 
 const reconnectSocketWithSession = () =>
   new Promise((resolve) => {

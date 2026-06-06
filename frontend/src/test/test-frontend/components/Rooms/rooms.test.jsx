@@ -87,7 +87,7 @@ describe('Rooms Component', () => {
       name: 'Full Room',
       game_mode: 'classic',
       host: 'Host',
-      player_count: 6,
+      player_count: 8,
       players: ['P1', 'P2', 'P3', 'P4', 'P5', 'P6'],
       status: 'waiting'
     }
@@ -152,8 +152,8 @@ describe('Rooms Component', () => {
       }
 
       await waitFor(() => {
-        expect(screen.getByText('2/6')).toBeInTheDocument()
-        expect(screen.getByText('1/6')).toBeInTheDocument()
+        expect(screen.getByText('2/8')).toBeInTheDocument()
+        expect(screen.getByText('1/8')).toBeInTheDocument()
       })
     })
 
@@ -169,7 +169,7 @@ describe('Rooms Component', () => {
       }
 
       await waitFor(() => {
-        expect(screen.getByText('6/6')).toBeInTheDocument()
+        expect(screen.getByText('8/8')).toBeInTheDocument()
       })
     })
 
@@ -243,7 +243,7 @@ describe('Rooms Component', () => {
       })
 
       expect(screen.getByText('Multiplayer Rooms').closest('.rooms-card')).toHaveClass('dark')
-      expect(screen.getAllByText('1/6')).toHaveLength(2)
+      expect(screen.getAllByText('1/8')).toHaveLength(2)
       expect(screen.getByText('1/2')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /joined/i })).toBeDisabled()
     })

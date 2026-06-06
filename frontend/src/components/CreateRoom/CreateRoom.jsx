@@ -100,11 +100,11 @@ function CreateRoom({
 
   // Define available game modes
   const multiplayerModes = [
-    { value: 'classic', label: 'Classic', maxPlayers: 6 },
-    { value: 'mirror', label: 'Mirror', maxPlayers: 6 },
-    { value: 'chaotic', label: 'Chaotic', maxPlayers: 6 },
-    { value: 'invisible', label: 'Invisible', maxPlayers: 6 },
-    { value: 'giant', label: 'Giant', maxPlayers: 6 }
+    { value: 'classic', label: 'Classic', maxPlayers: 8 },
+    { value: 'mirror', label: 'Mirror', maxPlayers: 8 },
+    { value: 'chaotic', label: 'Chaotic', maxPlayers: 8 },
+    { value: 'invisible', label: 'Invisible', maxPlayers: 8 },
+    { value: 'giant', label: 'Giant', maxPlayers: 8 }
   ]
   const cooperativeModes = [
     { value: 'cooperative', label: 'Co-op Alternate', maxPlayers: 2 },

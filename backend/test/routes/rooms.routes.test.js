@@ -769,30 +769,30 @@ describe('rooms routes', () => {
     await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'cooperative_roles', username: 'Titi' } }), res)
     expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Co-op Roles with 3 players' })
 
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 7 }] })
+    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 9 }] })
     res = buildRes()
     await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'classic', username: 'Titi' } }), res)
-    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Classic with 7 players' })
+    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Classic with 9 players' })
 
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 7 }] })
+    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 9 }] })
     res = buildRes()
     await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'mirror', username: 'Titi' } }), res)
-    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Mirror with 7 players' })
+    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Mirror with 9 players' })
 
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 7 }] })
+    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 9 }] })
     res = buildRes()
     await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'chaotic', username: 'Titi' } }), res)
-    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Chaotic with 7 players' })
+    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Chaotic with 9 players' })
 
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 7 }] })
+    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 9 }] })
     res = buildRes()
     await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'invisible', username: 'Titi' } }), res)
-    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Invisible with 7 players' })
+    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Invisible with 9 players' })
 
-    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 7 }] })
+    mockQuery.mockResolvedValueOnce({ rowCount: 1, rows: [{ host: 'Titi', player_count: 9 }] })
     res = buildRes()
     await handler(buildReq({ params: { roomId: '1' }, body: { mode: 'giant', username: 'Titi' } }), res)
-    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Giant with 7 players' })
+    expect(res.json).toHaveBeenCalledWith({ error: 'Cannot switch to Giant with 9 players' })
   })
 
   it('returns empty player_avatars when patching a room with no players', async () => {

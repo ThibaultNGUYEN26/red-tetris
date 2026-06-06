@@ -711,7 +711,7 @@ describe('CreateRoom Component', () => {
       })
 
       expect(screen.queryByText('Player2')).not.toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: /players \(2\/6\)/i })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /players \(2\/8\)/i })).toBeInTheDocument()
     })
 
     it('should fall back to two players when the selected mode is unknown', async () => {
@@ -871,7 +871,7 @@ describe('CreateRoom Component', () => {
         })
       })
 
-      expect(screen.getByRole('heading', { name: /players \(0\/6\)/i })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /players \(0\/8\)/i })).toBeInTheDocument()
     })
   })
 
