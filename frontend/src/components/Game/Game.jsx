@@ -1,6 +1,6 @@
 import './Game.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { flushSync, unstable_batchedUpdates } from 'react-dom'
+import { unstable_batchedUpdates } from 'react-dom'
 import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
 import ShadowBoards from '../ShadowBoards/ShadowBoards'
 import SpectatorView from '../SpectatorView/SpectatorView.jsx'
@@ -18,23 +18,7 @@ const DEFAULT_BOARD = { width: 10, height: 20 }
 const SOFT_DROP_MS = 60
 const DAS_MS = 220
 const ARR_MS = 60
-const PREDICTION_GRACE_MS = 500
 const SHARED_BOARD_MODES = ['cooperative', 'cooperative_roles']
-const ROTATE_KICKS = {
-  default: {
-    '0>1': [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]],
-    '1>2': [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]],
-    '2>3': [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]],
-    '3>0': [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]],
-  },
-  i: {
-    '0>1': [[0, 0], [-2, 0], [1, 0], [-2, 1], [1, -2]],
-    '1>2': [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]],
-    '2>3': [[0, 0], [2, 0], [-1, 0], [2, -1], [-1, 2]],
-    '3>0': [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]],
-  },
-}
-
 const SHAPES = {
   i: [
     [[1, 0], [1, 1], [1, 2], [1, 3]],
@@ -85,126 +69,6 @@ const makeEmptyBoard = (size = DEFAULT_BOARD) =>
     Array.from({ length: size.width }, () => 'empty')
   )
 
-const cloneBoard = (source, size = DEFAULT_BOARD) => {
-  /* v8 ignore next -- valid game-state payloads include a populated board; this tolerates stale or malformed socket data. @preserve */
-  if (!Array.isArray(source) || source.length === 0) return makeEmptyBoard(size)
-  return source.map((row) => {
-    /* v8 ignore next -- serialized board rows are arrays; this is a defensive malformed-payload fallback. @preserve */
-    if (!Array.isArray(row)) return []
-    return row.slice()
-  })
-}
-
-const getPieceShape = (piece) => {
-  const rotations = SHAPES[piece?.type]
-  /* v8 ignore next -- prediction is skipped before this for unknown piece types. @preserve */
-  if (!rotations) return null
-  /* v8 ignore next -- server-sent rotations are valid for the piece type. @preserve */
-  return rotations[piece.rotation] || null
-}
-
-const canPlacePiece = (piece, board, size) => {
-  const shape = getPieceShape(piece)
-  /* v8 ignore next -- getPredictedPiece validates the piece before placement checks. @preserve */
-  if (!shape) return false
-
-  return shape.every(([row, col]) => {
-    const boardX = piece.x + col
-    const boardY = piece.y + row
-
-    if (boardX < 0 || boardX >= size.width || boardY >= size.height) return false
-    if (boardY < 0) return true
-    /* v8 ignore next -- valid board payloads include all rows; optional access prevents malformed-payload crashes. @preserve */
-    return board[boardY]?.[boardX] === 'empty'
-  })
-}
-
-const renderPlayerBoard = (boardLocked, piece, size, { includeActive = true, includeGhost = true } = {}) => {
-  const grid = cloneBoard(boardLocked, size)
-  const shape = getPieceShape(piece)
-  /* v8 ignore next -- prediction passes a known piece and always renders at least ghost or active cells. @preserve */
-  if (!shape || (!includeActive && !includeGhost)) return grid
-
-  /* v8 ignore next -- prediction always includes ghosts; option exists to mirror the server render helper shape. @preserve */
-  if (includeGhost) {
-    let ghostY = piece.y
-    while (canPlacePiece({ ...piece, y: ghostY + 1 }, boardLocked, size)) {
-      ghostY += 1
-    }
-
-    shape.forEach(([row, col]) => {
-      const boardY = ghostY + row
-      const boardX = piece.x + col
-      /* v8 ignore next -- ghost cells are normally in-bounds; guards match server rendering for malformed or edge payloads. @preserve */
-      if (boardY >= 0 && boardY < size.height && boardX >= 0 && boardX < size.width && grid[boardY][boardX] === 'empty') {
-        grid[boardY][boardX] = 'ghost'
-      }
-    })
-  }
-
-  if (includeActive) {
-    shape.forEach(([row, col]) => {
-      const boardY = piece.y + row
-      const boardX = piece.x + col
-      /* v8 ignore next -- active cells are normally in-bounds after placement checks; guards match server rendering. @preserve */
-      if (boardY >= 0 && boardY < size.height && boardX >= 0 && boardX < size.width) {
-        if (grid[boardY][boardX] === 'empty' || grid[boardY][boardX] === 'ghost') {
-          grid[boardY][boardX] = piece.type
-        }
-      }
-    })
-  }
-
-  return grid
-}
-
-const getPredictedPiece = (view, action, size) => {
-  const boardLocked = view?.boardLocked
-  const currentPiece = view?.currentPiece
-  if (!Array.isArray(boardLocked) || !currentPiece || !SHAPES[currentPiece.type]) return null
-
-  const piece = { ...currentPiece }
-  if (action === 'left' || action === 'right' || action === 'drop') {
-    const nextPiece = {
-      ...piece,
-      x: piece.x + (action === 'left' ? -1 : action === 'right' ? 1 : 0),
-      y: piece.y + (action === 'drop' ? 1 : 0),
-    }
-    return canPlacePiece(nextPiece, boardLocked, size) ? nextPiece : piece
-  }
-
-  if (action === 'rotate') {
-    const rotations = SHAPES[piece.type]
-    const nextRotation = (piece.rotation + 1) % rotations.length
-    const kickKey = `${piece.rotation}>${nextRotation}`
-    const kickTable = piece.type === 'o'
-      ? [[0, 0]]
-      : piece.type === 'i'
-        ? ROTATE_KICKS.i[kickKey]
-        : ROTATE_KICKS.default[kickKey]
-
-    for (const [dx, dy] of kickTable) {
-      const nextPiece = { ...piece, rotation: nextRotation, x: piece.x + dx, y: piece.y + dy }
-      if (canPlacePiece(nextPiece, boardLocked, size)) return nextPiece
-    }
-
-    /* v8 ignore next -- if client-side kicks disagree, keep the last server-backed piece until reconciliation. @preserve */
-    return piece
-  }
-
-  /* v8 ignore next -- emitMove only passes known game actions; non-hard-drop actions return above. @preserve */
-  if (action === 'hardDrop') {
-    const nextPiece = { ...piece }
-    while (canPlacePiece({ ...nextPiece, y: nextPiece.y + 1 }, boardLocked, size)) {
-      nextPiece.y += 1
-    }
-    return nextPiece
-  }
-
-  /* v8 ignore next -- emitMove only passes known game actions; this is a defensive fallback. @preserve */
-  return null
-}
-
 function Game({
   theme,
   onBack,
@@ -251,9 +115,6 @@ function Game({
   const winnerRef = useRef(null)
   const loserRef = useRef(null)
   const roomModeRef = useRef(null)
-  const authoritativePlayerViewRef = useRef(null)
-  const pendingPredictionRef = useRef(false)
-  const predictionTimerRef = useRef(null)
 
   const startMusic = () => {
     /* v8 ignore next -- tested indirectly through game start; false sound suppresses the whole audio path. @preserve */
@@ -303,44 +164,7 @@ function Game({
 
   const setAuthoritativePlayerView = (player, mode) => {
     const size = getBoardSize(mode)
-    authoritativePlayerViewRef.current = player
     setBoard(player?.board || makeEmptyBoard(size))
-  }
-
-  const clearPendingPrediction = () => {
-    pendingPredictionRef.current = false
-    if (predictionTimerRef.current) {
-      clearTimeout(predictionTimerRef.current)
-      predictionTimerRef.current = null
-    }
-  }
-
-  const applyPredictedMove = (action) => {
-    const playerView = authoritativePlayerViewRef.current
-    const size = getBoardSize(gameMode)
-    const predictedPiece = getPredictedPiece(playerView, action, size)
-    if (!predictedPiece) return
-
-    const predictedBoard = renderPlayerBoard(playerView.boardLocked, predictedPiece, size, {
-      includeActive: gameMode !== 'invisible',
-      includeGhost: true,
-    })
-    authoritativePlayerViewRef.current = {
-      ...playerView,
-      currentPiece: predictedPiece,
-      board: predictedBoard,
-    }
-    pendingPredictionRef.current = true
-    if (predictionTimerRef.current) {
-      clearTimeout(predictionTimerRef.current)
-    }
-    predictionTimerRef.current = setTimeout(() => {
-      pendingPredictionRef.current = false
-      predictionTimerRef.current = null
-    }, PREDICTION_GRACE_MS)
-    flushSync(() => {
-      setBoard(predictedBoard)
-    })
   }
 
   const emitMove = (action) => {
@@ -364,7 +188,6 @@ function Game({
       }
     }
 
-    applyPredictedMove(action)
     socket.emit('movePiece', { roomId: String(roomId), action })
     return true
   }
@@ -419,7 +242,6 @@ function Game({
 
   const handleLeaveGame = () => {
     exitingRef.current = true
-    clearPendingPrediction()
     stopSoftDrop()
     stopHorizontalAutoMove()
     setShowMenu(false)
@@ -509,8 +331,6 @@ function Game({
       setIsGameOver(false)
       setActivePlayerUsername(null)
       setCooperativeRole(null)
-      authoritativePlayerViewRef.current = null
-      clearPendingPrediction()
       lastLevelRef.current = 1
       lastLinesRef.current = 0
       wasBoardEmptyRef.current = true
@@ -531,15 +351,7 @@ function Game({
 
         if (me) {
           setCooperativeRole(me.cooperativeRole || null)
-          if (!pendingPredictionRef.current) {
-            setAuthoritativePlayerView(me, mode)
-          } else {
-            authoritativePlayerViewRef.current = {
-              ...me,
-              currentPiece: authoritativePlayerViewRef.current.currentPiece,
-              board: authoritativePlayerViewRef.current.board,
-            }
-          }
+          setAuthoritativePlayerView(me, mode)
           setStats({
             score: me.score ?? 0,
             lines: me.lines ?? 0,
@@ -581,7 +393,6 @@ function Game({
         setBoardSize(getBoardSize(mode))
         setActivePlayerUsername(playerState?.currentTurnUsername || null)
         setCooperativeRole(me.cooperativeRole || null)
-        clearPendingPrediction()
         setAuthoritativePlayerView(me, mode)
         setStats({
           score: me.score ?? 0,
@@ -629,7 +440,6 @@ function Game({
       socket.off('gameState', handleGameState)
       socket.off('playerState', handlePlayerState)
       socket.off('gameOver', handleGameOver)
-      clearPendingPrediction()
       stopMusic()
     }
   }, [roomId, username, isMultiplayer])
