@@ -107,6 +107,9 @@ describe('Rooms Component', () => {
       if (event === 'playerLeave' && typeof callback === 'function') {
         callback({ ok: true })
       }
+      if (event === 'unregisterUser' && typeof callback === 'function') {
+        callback({ ok: true })
+      }
     })
   })
 
@@ -1395,7 +1398,11 @@ describe('Rooms Component', () => {
           { roomId: '2', username: 'TestUser' },
           expect.any(Function)
         )
-        expect(socket.emit).toHaveBeenCalledWith('unregisterUser', { username: 'TestUser' })
+        expect(socket.emit).toHaveBeenCalledWith(
+          'unregisterUser',
+          { username: 'TestUser' },
+          expect.any(Function)
+        )
         expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
       })
     })
@@ -1485,7 +1492,11 @@ describe('Rooms Component', () => {
           { roomId: '5', username: 'TestUser' },
           expect.any(Function)
         )
-        expect(socket.emit).toHaveBeenCalledWith('unregisterUser', { username: 'TestUser' })
+        expect(socket.emit).toHaveBeenCalledWith(
+          'unregisterUser',
+          { username: 'TestUser' },
+          expect.any(Function)
+        )
         expect(navigateMock).toHaveBeenCalledWith('/Coop Room/coop/spectate/TestUser')
       })
     })
@@ -1528,7 +1539,11 @@ describe('Rooms Component', () => {
           { roomId: '2', username: 'TestUser' },
           expect.any(Function)
         )
-        expect(socket.emit).toHaveBeenCalledWith('unregisterUser', { username: 'TestUser' })
+        expect(socket.emit).toHaveBeenCalledWith(
+          'unregisterUser',
+          { username: 'TestUser' },
+          expect.any(Function)
+        )
         expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
       })
     })

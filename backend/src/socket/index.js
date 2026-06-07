@@ -659,6 +659,7 @@ export default function setupSockets(io) {
         return;
       }
       const room = roomResult.rows[0];
+      unregisterUsername(username, socket);
       socket.join(String(roomId));
       socket.data.roomId = String(roomId);
       socket.data.username = username;

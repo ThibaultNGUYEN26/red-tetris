@@ -6,6 +6,14 @@ import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 import Game from '../Game/Game.jsx'
 import { logDuration, markStart, perfLog } from '../../perf'
 
+const unregisterUser = (username) => new Promise((resolve) => {
+  if (!username) {
+    resolve()
+    return
+  }
+  socket.emit('unregisterUser', { username }, () => resolve())
+})
+
 function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
@@ -331,9 +339,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
       socket.emit('getAvailableRooms')
     }
 
-    if (username) {
-      socket.emit('unregisterUser', { username })
-    }
+    await unregisterUser(username)
 
     setCurrentRoomId(null)
     setCurrentRoomPassword('')

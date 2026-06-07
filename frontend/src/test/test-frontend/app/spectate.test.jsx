@@ -64,6 +64,9 @@ describe('Spectate page', () => {
       json: async () => ({ id: 42 }),
     })
     mocks.socket.emit.mockImplementation((event, payload, callback) => {
+      if (event === 'unregisterUser') {
+        callback?.({ ok: true })
+      }
       if (event === 'joinSpectator') {
         callback?.({ ok: true })
       }
@@ -84,7 +87,11 @@ describe('Spectate page', () => {
     expect(screen.getByTestId('spectator-username')).toHaveTextContent('Titi')
     expect(mocks.socket.on.mock.calls[0][0]).toBe('gameState')
     expect(mocks.socket.on.mock.calls[1][0]).toBe('gameOver')
-    expect(mocks.socket.emit).toHaveBeenCalledWith('unregisterUser', { username: 'Titi' })
+    expect(mocks.socket.emit).toHaveBeenCalledWith(
+      'unregisterUser',
+      { username: 'Titi' },
+      expect.any(Function)
+    )
     expect(mocks.socket.emit).toHaveBeenCalledWith(
       'joinSpectator',
       { roomId: '42', username: 'Titi' },
@@ -172,6 +179,9 @@ describe('Spectate page', () => {
 
   it('renders spectator join failures', async () => {
     mocks.socket.emit.mockImplementation((event, payload, callback) => {
+      if (event === 'unregisterUser') {
+        callback?.({ ok: true })
+      }
       if (event === 'joinSpectator') {
         callback?.({ ok: false })
       }

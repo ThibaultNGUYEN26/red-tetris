@@ -19,6 +19,14 @@ const getSavedUsername = () => {
   }
 }
 
+const unregisterUser = (username) => new Promise((resolve) => {
+  if (!username) {
+    resolve()
+    return
+  }
+  socket.emit('unregisterUser', { username }, () => resolve())
+})
+
 function Spectate() {
   const { roomName, username } = useParams()
   const navigate = useNavigate()
@@ -68,22 +76,33 @@ function Spectate() {
       setIsGameOver(true)
     }
 
+    let cancelled = false
+
     socket.on('gameState', handleGameState)
     socket.on('gameOver', handleGameOver)
-    socket.emit('unregisterUser', { username: spectatorUsername })
-    socket.emit('joinSpectator', { roomId: String(roomId), username: spectatorUsername }, (res) => {
-      if (!res?.ok) {
-        joinedSpectatorRef.current = false
-        setError(res?.error || 'Spectator not allowed')
+
+    const joinSpectator = async () => {
+      await unregisterUser(spectatorUsername)
+      if (cancelled) return
+
+      socket.emit('joinSpectator', { roomId: String(roomId), username: spectatorUsername }, (res) => {
+        if (cancelled) return
+        if (!res?.ok) {
+          joinedSpectatorRef.current = false
+          setError(res?.error || 'Spectator not allowed')
+          setLoading(false)
+          return
+        }
+        joinedSpectatorRef.current = true
         setLoading(false)
-        return
-      }
-      joinedSpectatorRef.current = true
-      setLoading(false)
-      socket.emit('getRoomState', { roomId: String(roomId) })
-    })
+        socket.emit('getRoomState', { roomId: String(roomId) })
+      })
+    }
+
+    joinSpectator()
 
     return () => {
+      cancelled = true
       if (joinedSpectatorRef.current) {
         socket.emit('playerLeave', { roomId: String(roomId), username: spectatorUsername })
         joinedSpectatorRef.current = false
