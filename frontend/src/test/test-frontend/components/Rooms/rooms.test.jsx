@@ -1395,7 +1395,49 @@ describe('Rooms Component', () => {
           { roomId: '2', username: 'TestUser' },
           expect.any(Function)
         )
+        expect(socket.emit).toHaveBeenCalledWith('unregisterUser', { username: 'TestUser' })
         expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
+      })
+    })
+
+    it('should skip unregistering the user when spectating without a username', async () => {
+      render(<Rooms {...defaultProps} username="" />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+      availableRoomsCallback?.([mockRooms[1]])
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 2')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+
+      await waitFor(() => {
+        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
+      })
+
+      const gameStartedCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'gameStarted')
+        .at(-1)?.[1]
+
+      gameStartedCallback?.({ roomId: '2' })
+
+      await waitFor(() => {
+        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+
+      await waitFor(() => {
+        expect(socket.emit).toHaveBeenCalledWith(
+          'playerLeave',
+          { roomId: '2', username: '' },
+          expect.any(Function)
+        )
+        expect(socket.emit).not.toHaveBeenCalledWith('unregisterUser', expect.anything())
+        expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/')
       })
     })
 
@@ -1443,6 +1485,7 @@ describe('Rooms Component', () => {
           { roomId: '5', username: 'TestUser' },
           expect.any(Function)
         )
+        expect(socket.emit).toHaveBeenCalledWith('unregisterUser', { username: 'TestUser' })
         expect(navigateMock).toHaveBeenCalledWith('/Coop Room/coop/spectate/TestUser')
       })
     })
@@ -1485,6 +1528,7 @@ describe('Rooms Component', () => {
           { roomId: '2', username: 'TestUser' },
           expect.any(Function)
         )
+        expect(socket.emit).toHaveBeenCalledWith('unregisterUser', { username: 'TestUser' })
         expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
       })
     })

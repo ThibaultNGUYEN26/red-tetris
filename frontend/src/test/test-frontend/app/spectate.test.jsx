@@ -84,11 +84,19 @@ describe('Spectate page', () => {
     expect(screen.getByTestId('spectator-username')).toHaveTextContent('Titi')
     expect(mocks.socket.on.mock.calls[0][0]).toBe('gameState')
     expect(mocks.socket.on.mock.calls[1][0]).toBe('gameOver')
+    expect(mocks.socket.emit).toHaveBeenCalledWith('unregisterUser', { username: 'Titi' })
     expect(mocks.socket.emit).toHaveBeenCalledWith(
       'joinSpectator',
       { roomId: '42', username: 'Titi' },
       expect.any(Function)
     )
+    const unregisterCallOrder = mocks.socket.emit.mock.invocationCallOrder[
+      mocks.socket.emit.mock.calls.findIndex(([event]) => event === 'unregisterUser')
+    ]
+    const joinSpectatorCallOrder = mocks.socket.emit.mock.invocationCallOrder[
+      mocks.socket.emit.mock.calls.findIndex(([event]) => event === 'joinSpectator')
+    ]
+    expect(unregisterCallOrder).toBeLessThan(joinSpectatorCallOrder)
   })
 
   it('uses the saved username when the spectate URL omits it', async () => {

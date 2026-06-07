@@ -70,6 +70,7 @@ function Spectate() {
 
     socket.on('gameState', handleGameState)
     socket.on('gameOver', handleGameOver)
+    socket.emit('unregisterUser', { username: spectatorUsername })
     socket.emit('joinSpectator', { roomId: String(roomId), username: spectatorUsername }, (res) => {
       if (!res?.ok) {
         joinedSpectatorRef.current = false

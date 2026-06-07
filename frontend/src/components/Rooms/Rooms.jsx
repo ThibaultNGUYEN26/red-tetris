@@ -331,6 +331,10 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
       socket.emit('getAvailableRooms')
     }
 
+    if (username) {
+      socket.emit('unregisterUser', { username })
+    }
+
     setCurrentRoomId(null)
     setCurrentRoomPassword('')
     setPendingPlayAgain(false)
