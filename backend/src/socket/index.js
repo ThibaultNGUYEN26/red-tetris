@@ -648,13 +648,6 @@ export default function setupSockets(io) {
         return;
       }
 
-      const reg = registerUsername(username, socket);
-      if (!reg.ok) {
-        if (ack) ack(reg);
-        socket.emit("error", { message: reg.error });
-        return;
-      }
-
       const roomResult = await pool.query(
         `SELECT id, name, players, status
          FROM rooms

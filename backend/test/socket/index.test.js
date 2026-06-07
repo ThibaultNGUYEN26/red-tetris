@@ -2701,7 +2701,7 @@ describe('socket setup', () => {
     expect(ack).toHaveBeenCalledWith({ ok: true })
   })
 
-  it('joinSpectator rejects duplicate active usernames before loading the room', async () => {
+  it('joinSpectator allows an already active username to watch without re-registering it', async () => {
     const io = createIo()
     const firstSocket = createSocket('socket-1')
     const secondSocket = createSocket('socket-2')
@@ -2714,12 +2714,18 @@ describe('socket setup', () => {
 
     firstSocket.handlers.get('registerUser')({ username: 'Titi' }, vi.fn())
 
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{ id: 1, name: 'Room', players: ['Titi'], status: 'started' }],
+    })
+
     const ack = vi.fn()
     await secondSocket.handlers.get('joinSpectator')({ roomId: '1', username: 'Titi' }, ack)
 
-    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Username already connected' })
-    expect(secondSocket.emit).toHaveBeenCalledWith('error', { message: 'Username already connected' })
-    expect(mockQuery).not.toHaveBeenCalled()
+    expect(ack).toHaveBeenCalledWith({ ok: true })
+    expect(secondSocket.emit).not.toHaveBeenCalledWith('error', { message: 'Username already connected' })
+    expect(secondSocket.join).toHaveBeenCalledWith('1')
+    expect(secondSocket.data.isSpectator).toBe(true)
   })
 
   it('joinSpectator handles no-callback validation and success paths', async () => {
@@ -2741,8 +2747,13 @@ describe('socket setup', () => {
     expect(firstSocket.emit).toHaveBeenCalledWith('error', { message: 'Invalid username' })
 
     firstSocket.handlers.get('registerUser')({ username: 'Titi' }, vi.fn())
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{ id: 1, name: 'Room', players: ['Titi'], status: 'started' }],
+    })
     await secondSocket.handlers.get('joinSpectator')({ roomId: '1', username: 'Titi' })
-    expect(secondSocket.emit).toHaveBeenCalledWith('error', { message: 'Username already connected' })
+    expect(secondSocket.emit).not.toHaveBeenCalledWith('error', { message: 'Username already connected' })
+    expect(secondSocket.join).toHaveBeenCalledWith('1')
 
     mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
     await thirdSocket.handlers.get('joinSpectator')({ roomId: '1', username: 'Riri' })
