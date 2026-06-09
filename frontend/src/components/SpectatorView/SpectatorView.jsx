@@ -3,6 +3,72 @@ import './SpectatorView.css'
 import { useEffect, useMemo, useState } from 'react'
 import ShadowBoards from '../ShadowBoards/ShadowBoards'
 
+const SHAPES = {
+  i: [
+    [[0, 1], [1, 1], [2, 1], [3, 1]],
+    [[1, 0], [1, 1], [1, 2], [1, 3]],
+    [[0, 2], [1, 2], [2, 2], [3, 2]],
+    [[2, 0], [2, 1], [2, 2], [2, 3]],
+  ],
+  o: [[[0, 1], [0, 2], [1, 1], [1, 2]]],
+  t: [
+    [[0, 1], [1, 0], [1, 1], [1, 2]],
+    [[0, 1], [1, 1], [1, 2], [2, 1]],
+    [[1, 0], [1, 1], [1, 2], [2, 1]],
+    [[0, 1], [1, 0], [1, 1], [2, 1]],
+  ],
+  s: [
+    [[0, 1], [0, 2], [1, 0], [1, 1]],
+    [[0, 1], [1, 1], [1, 2], [2, 2]],
+    [[1, 1], [1, 2], [2, 0], [2, 1]],
+    [[0, 0], [1, 0], [1, 1], [2, 1]],
+  ],
+  z: [
+    [[0, 0], [0, 1], [1, 1], [1, 2]],
+    [[0, 2], [1, 1], [1, 2], [2, 1]],
+    [[1, 0], [1, 1], [2, 1], [2, 2]],
+    [[0, 1], [1, 0], [1, 1], [2, 0]],
+  ],
+  l: [
+    [[0, 2], [1, 0], [1, 1], [1, 2]],
+    [[0, 1], [1, 1], [2, 1], [2, 2]],
+    [[1, 0], [1, 1], [1, 2], [2, 0]],
+    [[0, 0], [0, 1], [1, 1], [2, 1]],
+  ],
+  j: [
+    [[0, 0], [1, 0], [1, 1], [1, 2]],
+    [[0, 1], [0, 2], [1, 1], [2, 1]],
+    [[1, 0], [1, 1], [1, 2], [2, 2]],
+    [[0, 1], [1, 1], [2, 0], [2, 1]],
+  ],
+}
+
+const createPiecePreview = (type) => {
+  if (!type || !SHAPES[type]) {
+    return { grid: [], width: 0, height: 0 }
+  }
+
+  const shape = SHAPES[type][0]
+  const rows = shape.map(([r]) => r)
+  const cols = shape.map(([, c]) => c)
+  const minRow = Math.min(...rows)
+  const maxRow = Math.max(...rows)
+  const minCol = Math.min(...cols)
+  const maxCol = Math.max(...cols)
+
+  const height = maxRow - minRow + 1
+  const width = maxCol - minCol + 1
+  const preview = Array.from({ length: height }, () =>
+    Array.from({ length: width }, () => 'empty')
+  )
+
+  shape.forEach(([r, c]) => {
+    preview[r - minRow][c - minCol] = type
+  })
+
+  return { grid: preview, width, height }
+}
+
 function SpectatorView({ players, onBack, username }) {
   const [index, setIndex] = useState(0)
 
@@ -22,73 +88,8 @@ function SpectatorView({ players, onBack, username }) {
       board: player.boardLocked || player.board || [],
     }))
 
-  const nextPreview = useMemo(() => {
-    const nextType = current?.nextType
-    if (!nextType) {
-      return { grid: [], width: 0, height: 0 }
-    }
-    const SHAPES = {
-      i: [
-        [[0, 1], [1, 1], [2, 1], [3, 1]],
-        [[1, 0], [1, 1], [1, 2], [1, 3]],
-        [[0, 2], [1, 2], [2, 2], [3, 2]],
-        [[2, 0], [2, 1], [2, 2], [2, 3]],
-      ],
-      o: [[[0, 1], [0, 2], [1, 1], [1, 2]]],
-      t: [
-        [[0, 1], [1, 0], [1, 1], [1, 2]],
-        [[0, 1], [1, 1], [1, 2], [2, 1]],
-        [[1, 0], [1, 1], [1, 2], [2, 1]],
-        [[0, 1], [1, 0], [1, 1], [2, 1]],
-      ],
-      s: [
-        [[0, 1], [0, 2], [1, 0], [1, 1]],
-        [[0, 1], [1, 1], [1, 2], [2, 2]],
-        [[1, 1], [1, 2], [2, 0], [2, 1]],
-        [[0, 0], [1, 0], [1, 1], [2, 1]],
-      ],
-      z: [
-        [[0, 0], [0, 1], [1, 1], [1, 2]],
-        [[0, 2], [1, 1], [1, 2], [2, 1]],
-        [[1, 0], [1, 1], [2, 1], [2, 2]],
-        [[0, 1], [1, 0], [1, 1], [2, 0]],
-      ],
-      l: [
-        [[0, 2], [1, 0], [1, 1], [1, 2]],
-        [[0, 1], [1, 1], [2, 1], [2, 2]],
-        [[1, 0], [1, 1], [1, 2], [2, 0]],
-        [[0, 0], [0, 1], [1, 1], [2, 1]],
-      ],
-      j: [
-        [[0, 0], [1, 0], [1, 1], [1, 2]],
-        [[0, 1], [0, 2], [1, 1], [2, 1]],
-        [[1, 0], [1, 1], [1, 2], [2, 2]],
-        [[0, 1], [1, 1], [2, 0], [2, 1]],
-      ],
-    }
-
-    const shape = SHAPES[nextType]?.[0]
-    if (!shape) return { grid: [], width: 0, height: 0 }
-
-    const rows = shape.map(([r]) => r)
-    const cols = shape.map(([, c]) => c)
-    const minRow = Math.min(...rows)
-    const maxRow = Math.max(...rows)
-    const minCol = Math.min(...cols)
-    const maxCol = Math.max(...cols)
-
-    const height = maxRow - minRow + 1
-    const width = maxCol - minCol + 1
-    const preview = Array.from({ length: height }, () =>
-      Array.from({ length: width }, () => 'empty')
-    )
-
-    shape.forEach(([r, c]) => {
-      preview[r - minRow][c - minCol] = nextType
-    })
-
-    return { grid: preview, width, height }
-  }, [current?.nextType])
+  const nextPreview = useMemo(() => createPiecePreview(current?.nextType), [current?.nextType])
+  const holdPreview = useMemo(() => createPiecePreview(current?.holdType), [current?.holdType])
 
   useEffect(() => {
     if (!list.length) return
@@ -161,6 +162,29 @@ function SpectatorView({ players, onBack, username }) {
       </div>
 
       <div className="game-layout spectator-layout">
+        <div className="hold-panel">
+          <h3>Hold</h3>
+          <div className="next-grid piece-preview-grid" role="grid" aria-label="Hold piece">
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${holdPreview.width}, var(--cell-size))`,
+                gridTemplateRows: `repeat(${holdPreview.height}, var(--cell-size))`,
+                gap: '2px'
+              }}
+            >
+              {holdPreview.grid.map((row, rowIndex) =>
+                row.map((cell, colIndex) => (
+                  <div
+                    key={`hold-${rowIndex}-${colIndex}`}
+                    className={`cell cell-${cell}`}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
         <div
           className="game-board"
           role="grid"

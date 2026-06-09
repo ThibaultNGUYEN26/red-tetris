@@ -29,7 +29,15 @@ describe('SpectatorView Component', () => {
         onBack={vi.fn()}
         players={[
           { username: 'Titi', score: 10, lines: 1, level: 1, board: [['i']] },
-          { username: 'Other', score: 1234, lines: 12, level: 3, board: [['o']], nextType: 'i' },
+          {
+            username: 'Other',
+            score: 1234,
+            lines: 12,
+            level: 3,
+            board: [['o']],
+            nextType: 'i',
+            holdType: 't',
+          },
         ]}
       />
     )
@@ -39,6 +47,7 @@ describe('SpectatorView Component', () => {
     expect(screen.getByText(/1\D?234/)).toBeInTheDocument()
     expect(screen.getByRole('grid', { name: /tetris board/i })).toBeInTheDocument()
     expect(screen.getByRole('grid', { name: /next piece/i })).toBeInTheDocument()
+    expect(screen.getByRole('grid', { name: /hold piece/i }).querySelectorAll('.cell-t')).toHaveLength(4)
   })
 
   it('cycles players with next/prev buttons', () => {
@@ -108,13 +117,13 @@ describe('SpectatorView Component', () => {
     expect(screen.getByRole('button', { name: /next/i })).toBeDisabled()
   })
 
-  it('uses fallback stats, unknown next pieces, and missing opponent boards', () => {
+  it('uses fallback stats, unknown piece previews, and missing opponent boards', () => {
     render(
       <SpectatorView
         username="Titi"
         onBack={vi.fn()}
         players={[
-          { username: 'A', board: [['empty']], nextType: 'unknown' },
+          { username: 'A', board: [['empty']], nextType: 'unknown', holdType: 'unknown' },
           { username: 'B' },
         ]}
       />
@@ -125,5 +134,6 @@ describe('SpectatorView Component', () => {
     expect(screen.getByText('Lines').nextSibling).toHaveTextContent('0')
     expect(screen.getByText('Level').nextSibling).toHaveTextContent('1')
     expect(screen.getByRole('grid', { name: /next piece/i }).querySelector('.cell')).not.toBeInTheDocument()
+    expect(screen.getByRole('grid', { name: /hold piece/i }).querySelector('.cell')).not.toBeInTheDocument()
   })
 })
