@@ -5,6 +5,7 @@ import { resolveSocketUser, USERNAME_PATTERN } from "../auth/session.js";
 import { perfLogDuration, perfStart } from "../perf.js";
 
 const activeUsers = new Map();
+const activeUserSockets = new Map();
 let peakActiveUserCount = 0;
 const pendingDisconnects = new Map();
 const MOVE_INPUT_RATE_PER_SECOND = 45;
@@ -75,6 +76,12 @@ export const isUsernameConnected = (username, socketId = null) => {
   const connectedSocketId = activeUsers.get(username);
   if (!connectedSocketId) return false;
   if (socketId && connectedSocketId === socketId) return false;
+  const activeSocket = activeUserSockets.get(username);
+  if (activeSocket && activeSocket.id === connectedSocketId && activeSocket.connected === false) {
+    activeUsers.delete(username);
+    activeUserSockets.delete(username);
+    return false;
+  }
   return true;
 };
 
@@ -94,6 +101,7 @@ const registerUsername = (username, socket) => {
     activeUsers.delete(username);
   }
   activeUsers.set(username, socket.id);
+  activeUserSockets.set(username, socket);
   peakActiveUserCount = Math.max(peakActiveUserCount, activeUsers.size);
   socket.data.username = username;
   return { ok: true };
@@ -104,6 +112,7 @@ const unregisterUsername = (username, socket) => {
   const existing = activeUsers.get(username);
   if (existing === socket.id) {
     activeUsers.delete(username);
+    activeUserSockets.delete(username);
   }
 };
 
@@ -792,6 +801,61 @@ export default function setupSockets(io) {
         return null;
       }
     };
+
+    const leaveAllRoomsForUser = async (username) => {
+      if (!username) return;
+
+      const roomsResult = await pool.query(
+        `SELECT id, players, ready_again, status
+         FROM rooms
+         WHERE players @> ARRAY[$1]::text[]
+            OR ready_again @> ARRAY[$1]::text[]`,
+        [username]
+      );
+
+      for (const room of roomsResult.rows || []) {
+        const roomId = String(room.id);
+        const game = getGame(roomId);
+        if (game && room.status === "started") {
+          const player = game.getPlayer?.(username);
+          if (player) {
+            player.isAlive = false;
+            if (typeof game.checkGameOver === "function" && typeof game.endGame === "function") {
+              const result = game.checkGameOver();
+              if (result.over && game.onGameOver) {
+                const summary = game.endGame();
+                await game.onGameOver(summary);
+              }
+            }
+          }
+        }
+        socket.leave(roomId);
+        clearPendingDisconnect(roomId, username);
+        await removePlayerFromRoom(roomId, username);
+      }
+    };
+
+    socket.on("enterMenu", async (payload = {}, callback) => {
+      const ack = typeof callback === "function" ? callback : null;
+      const resolved = resolveSocketUser(socket, payload);
+      const username = resolved.username || payload.username;
+
+      if (!resolved.ok) {
+        if (ack) ack(resolved);
+        return;
+      }
+
+      try {
+        await leaveAllRoomsForUser(username);
+        unregisterUsername(username, socket);
+        socket.data.roomId = null;
+        socket.data.isSpectator = false;
+        if (ack) ack({ ok: true });
+      } catch (err) {
+        console.error("enterMenu failed:", err);
+        if (ack) ack({ ok: false, error: "Server error" });
+      }
+    });
 
     socket.on("playerLeave", async (payload = {}, callback) => {
       const ack = typeof callback === "function" ? callback : null;

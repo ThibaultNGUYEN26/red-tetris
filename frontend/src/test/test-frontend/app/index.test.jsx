@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
 let mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
@@ -82,6 +82,7 @@ vi.mock('../../../components/Game/Game.jsx', () => ({
 }))
 
 import Index from '../../../index.jsx'
+import { socket } from '../../../socket'
 
 global.fetch = vi.fn()
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
@@ -143,6 +144,21 @@ describe('Index main page', () => {
       }
 
       throw new Error(`Unhandled fetch call: ${url}`)
+    })
+  })
+
+  it('announces idle menu presence so stale room membership is cleared', async () => {
+    mockParams = { username: undefined, roomName: undefined, roomType: undefined }
+    setSavedUser('Titi')
+
+    render(<Index />)
+
+    await waitFor(() => {
+      expect(socket.emit).toHaveBeenCalledWith(
+        'enterMenu',
+        { username: 'Titi' },
+        expect.any(Function)
+      )
     })
   })
 

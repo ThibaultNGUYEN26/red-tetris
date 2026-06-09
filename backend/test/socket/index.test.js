@@ -118,6 +118,27 @@ describe('socket setup', () => {
     expect(socket.emit).toHaveBeenCalledWith('usernameTaken', { username: '' })
   })
 
+  it('enterMenu clears active presence and socket room state when no rooms contain the user', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [] })
+    const { socket } = await setupConnectedSocket()
+    const { isUsernameConnected } = await import('../../src/socket/index.js')
+
+    socket.handlers.get('registerUser')({ username: 'Titi' }, vi.fn())
+    expect(isUsernameConnected('Titi')).toBe(true)
+
+    socket.data.roomId = '1'
+    socket.data.isSpectator = true
+    const ack = vi.fn()
+
+    await socket.handlers.get('enterMenu')({ username: 'Titi' }, ack)
+
+    expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('WHERE players @> ARRAY[$1]::text[]'), ['Titi'])
+    expect(socket.data.roomId).toBeNull()
+    expect(socket.data.isSpectator).toBe(false)
+    expect(isUsernameConnected('Titi')).toBe(false)
+    expect(ack).toHaveBeenCalledWith({ ok: true })
+  })
+
   it('registerUser rejects an invalid username', async () => {
     const { socket } = await setupConnectedSocket()
 

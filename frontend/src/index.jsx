@@ -144,6 +144,7 @@ function Index({ authMode = 'login' }) {
   const hadSocketIssueRef = useRef(false)
   const hasValidatedSavedSessionRef = useRef(false)
   const socketNoticeTimeoutRef = useRef(null)
+  const lastMenuCleanupUsernameRef = useRef(null)
 
   const isUsernameAlreadyConnected = async (name) => {
     if (!name) return false
@@ -376,6 +377,30 @@ function Index({ authMode = 'login' }) {
     }, 3500)
     return () => clearTimeout(timeoutId)
   }, [routeNotice])
+
+  useEffect(() => {
+    const isIdleMenu =
+      username &&
+      !showRooms &&
+      !showGame &&
+      !showSoloRoom &&
+      !showDirectRoom &&
+      !urlRoomName
+
+    if (!isIdleMenu) {
+      lastMenuCleanupUsernameRef.current = null
+      return
+    }
+
+    if (lastMenuCleanupUsernameRef.current === username) return
+    lastMenuCleanupUsernameRef.current = username
+
+    socket.emit('enterMenu', { username }, (res) => {
+      if (!res?.ok) {
+        lastMenuCleanupUsernameRef.current = null
+      }
+    })
+  }, [username, showRooms, showGame, showSoloRoom, showDirectRoom, urlRoomName])
 
   useEffect(() => {
     const clearSocketNoticeTimeout = () => {

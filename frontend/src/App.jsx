@@ -20,12 +20,12 @@ function App() {
         <Route path="/terms" element={<InfoPage type="terms" />} />
         <Route path="/privacy-policy" element={<InfoPage type="privacy" />} />
         <Route path="/admin" element={<AdminPage />} />
-        <Route path="/:roomName/:roomType/:username" element={<Index />} />
-        <Route path="/:roomName/:username" element={<Index />} />
         <Route path="/:roomName/:roomType/spectate/:username" element={<Spectate />} />
         <Route path="/:roomName/:roomType/spectate" element={<Spectate />} />
         <Route path="/:roomName/spectate/:username" element={<Spectate />} />
         <Route path="/:roomName/spectate" element={<Spectate />} />
+        <Route path="/:roomName/:roomType/:username" element={<Index />} />
+        <Route path="/:roomName/:username" element={<Index />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <div className="screen-credit" aria-label="Titi and Riri">
