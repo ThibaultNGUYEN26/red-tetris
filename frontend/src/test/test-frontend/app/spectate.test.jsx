@@ -292,6 +292,7 @@ describe('Spectate page', () => {
   })
 
   it('shows game over and the winner while spectating', async () => {
+    mocks.params.current = { roomName: 'Room-1', roomType: 'multi', username: 'Titi' }
     render(<Spectate />)
 
     await waitFor(() => {
@@ -309,8 +310,32 @@ describe('Spectate page', () => {
     expect(screen.getByRole('dialog')).toHaveTextContent('Game Over')
     expect(screen.getByText('Winner: Riri')).toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+    expect(mocks.navigate).toHaveBeenCalledWith('/Room-1/multi/Titi')
+
     fireEvent.click(screen.getByRole('button', { name: /back to menu/i }))
     expect(mocks.navigate).toHaveBeenCalledWith('/')
+  })
+
+  it('uses the short room URL when play again is clicked from a spectator route without room type', async () => {
+    mocks.params.current = { roomName: 'SoloRoom', roomType: undefined, username: 'Titi' }
+
+    render(<Spectate />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+    })
+
+    const gameOverHandler = mocks.socket.on.mock.calls.find(
+      ([event]) => event === 'gameOver'
+    )?.[1]
+
+    await act(async () => {
+      gameOverHandler?.({ winner: 'Titi' })
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+    expect(mocks.navigate).toHaveBeenCalledWith('/SoloRoom/Titi')
   })
 
   it('shows a no-winner game over message while spectating', async () => {

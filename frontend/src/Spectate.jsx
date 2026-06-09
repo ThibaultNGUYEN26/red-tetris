@@ -24,7 +24,7 @@ const unregisterUser = (username) => new Promise((resolve) => {
 })
 
 function Spectate() {
-  const { roomName, username } = useParams()
+  const { roomName, roomType, username } = useParams()
   const navigate = useNavigate()
   const spectatorUsername = username || getSavedUsername()
   const joinedSpectatorRef = useRef(false)
@@ -37,6 +37,13 @@ function Spectate() {
   const [theme] = useState(() => (
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
   ))
+
+  const handlePlayAgain = () => {
+    const roomPath = roomType
+      ? `/${roomName}/${roomType}/${spectatorUsername}`
+      : `/${roomName}/${spectatorUsername}`
+    navigate(roomPath)
+  }
 
   useEffect(() => {
     if (!roomName) return
@@ -162,6 +169,11 @@ function Spectate() {
                     {winner ? `Winner: ${winner}` : 'No winner'}
                   </p>
                   <div className="game-over-actions">
+                    <div className="game-over-primary-actions">
+                      <button className="resume-button" onClick={handlePlayAgain}>
+                        Play again
+                      </button>
+                    </div>
                     <button className="back-button" onClick={() => navigate('/')}>
                       Back to menu
                     </button>
