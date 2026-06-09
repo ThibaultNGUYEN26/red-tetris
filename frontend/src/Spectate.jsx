@@ -23,6 +23,23 @@ const unregisterUser = (username) => new Promise((resolve) => {
   socket.emit('unregisterUser', { username }, () => resolve())
 })
 
+const leaveSpectator = (roomId, username) => new Promise((resolve) => {
+  if (!roomId || !username) {
+    resolve()
+    return
+  }
+
+  let settled = false
+  const finish = () => {
+    if (settled) return
+    settled = true
+    clearTimeout(timeoutId)
+    resolve()
+  }
+  const timeoutId = setTimeout(finish, 500)
+  socket.emit('playerLeave', { roomId: String(roomId), username }, finish)
+})
+
 function Spectate() {
   const { roomName, roomType, username } = useParams()
   const navigate = useNavigate()
@@ -38,10 +55,14 @@ function Spectate() {
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
   ))
 
-  const handlePlayAgain = () => {
+  const handlePlayAgain = async () => {
     const roomPath = roomType
       ? `/${roomName}/${roomType}/${spectatorUsername}`
       : `/${roomName}/${spectatorUsername}`
+    if (joinedSpectatorRef.current) {
+      joinedSpectatorRef.current = false
+      await leaveSpectator(roomId, spectatorUsername)
+    }
     navigate(roomPath)
   }
 

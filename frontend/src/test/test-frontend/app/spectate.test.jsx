@@ -70,6 +70,9 @@ describe('Spectate page', () => {
       if (event === 'joinSpectator') {
         callback?.({ ok: true })
       }
+      if (event === 'playerLeave') {
+        callback?.({ ok: true })
+      }
     })
   })
 
@@ -311,7 +314,20 @@ describe('Spectate page', () => {
     expect(screen.getByText('Winner: Riri')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /play again/i }))
-    expect(mocks.navigate).toHaveBeenCalledWith('/Room-1/multi/Titi')
+
+    await waitFor(() => {
+      expect(mocks.navigate).toHaveBeenCalledWith('/Room-1/multi/Titi')
+    })
+    expect(mocks.socket.emit).toHaveBeenCalledWith(
+      'playerLeave',
+      { roomId: '42', username: 'Titi' },
+      expect.any(Function)
+    )
+    const leaveCallOrder = mocks.socket.emit.mock.invocationCallOrder[
+      mocks.socket.emit.mock.calls.findIndex(([event]) => event === 'playerLeave')
+    ]
+    const navigateCallOrder = mocks.navigate.mock.invocationCallOrder[0]
+    expect(leaveCallOrder).toBeLessThan(navigateCallOrder)
 
     fireEvent.click(screen.getByRole('button', { name: /back to menu/i }))
     expect(mocks.navigate).toHaveBeenCalledWith('/')
@@ -335,7 +351,9 @@ describe('Spectate page', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: /play again/i }))
-    expect(mocks.navigate).toHaveBeenCalledWith('/SoloRoom/Titi')
+    await waitFor(() => {
+      expect(mocks.navigate).toHaveBeenCalledWith('/SoloRoom/Titi')
+    })
   })
 
   it('shows a no-winner game over message while spectating', async () => {

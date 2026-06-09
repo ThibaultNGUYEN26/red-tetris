@@ -844,6 +844,7 @@ describe('socket setup', () => {
   it('playerLeave immediately acknowledges spectators', async () => {
     const { socket } = await setupConnectedSocket()
     socket.data.isSpectator = true
+    socket.data.roomId = '3'
 
     const playerLeaveHandler = socket.handlers.get('playerLeave')
     const ack = vi.fn()
@@ -851,6 +852,8 @@ describe('socket setup', () => {
     await playerLeaveHandler({ roomId: '3', username: 'Spec' }, ack)
 
     expect(socket.leave).toHaveBeenCalledWith('3')
+    expect(socket.data.roomId).toBeNull()
+    expect(socket.data.isSpectator).toBe(false)
     expect(ack).toHaveBeenCalledWith({ ok: true })
     expect(mockQuery).not.toHaveBeenCalled()
   })
@@ -3083,9 +3086,12 @@ describe('socket setup', () => {
   it('playerLeave lets spectators leave without an acknowledgement callback', async () => {
     const { socket } = await setupConnectedSocket()
     socket.data.isSpectator = true
+    socket.data.roomId = '1'
 
     await expect(socket.handlers.get('playerLeave')({ roomId: '1', username: 'Spec' })).resolves.toBeUndefined()
     expect(socket.leave).toHaveBeenCalledWith('1')
+    expect(socket.data.roomId).toBeNull()
+    expect(socket.data.isSpectator).toBe(false)
   })
 
   it('playerLeave tolerates missing in-game players and non-final leaves', async () => {

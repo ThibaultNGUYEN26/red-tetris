@@ -806,6 +806,8 @@ export default function setupSockets(io) {
 
       if (socket.data.isSpectator) {
         socket.leave(String(roomId));
+        socket.data.roomId = null;
+        socket.data.isSpectator = false;
         if (ack) ack({ ok: true });
         return;
       }
