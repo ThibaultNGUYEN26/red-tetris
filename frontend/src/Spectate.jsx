@@ -20,10 +20,6 @@ const getSavedUsername = () => {
 }
 
 const unregisterUser = (username) => new Promise((resolve) => {
-  if (!username) {
-    resolve()
-    return
-  }
   socket.emit('unregisterUser', { username }, () => resolve())
 })
 

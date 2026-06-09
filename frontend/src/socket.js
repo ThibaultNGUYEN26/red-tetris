@@ -6,3 +6,13 @@ export const socket = io(API_BASE_URL || window.location.origin, {
   transports: ['websocket'],
   withCredentials: true,
 });
+
+export const closeSocket = () => {
+  socket.disconnect();
+};
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    closeSocket();
+  });
+}

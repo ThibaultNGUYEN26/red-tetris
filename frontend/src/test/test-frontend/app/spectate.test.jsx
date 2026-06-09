@@ -194,6 +194,66 @@ describe('Spectate page', () => {
     })
   })
 
+  it('stops joining when unmounted while unregistering the spectator username', async () => {
+    let unregisterCallback
+    mocks.socket.emit.mockImplementation((event, payload, callback) => {
+      if (event === 'unregisterUser') {
+        unregisterCallback = callback
+      }
+      if (event === 'joinSpectator') {
+        callback?.({ ok: true })
+      }
+    })
+
+    const { unmount } = render(<Spectate />)
+
+    await waitFor(() => {
+      expect(unregisterCallback).toEqual(expect.any(Function))
+    })
+
+    unmount()
+
+    await act(async () => {
+      unregisterCallback?.({ ok: true })
+    })
+
+    expect(mocks.socket.emit).not.toHaveBeenCalledWith(
+      'joinSpectator',
+      expect.any(Object),
+      expect.any(Function)
+    )
+  })
+
+  it('ignores a spectator join acknowledgement after unmount', async () => {
+    let joinSpectatorCallback
+    mocks.socket.emit.mockImplementation((event, payload, callback) => {
+      if (event === 'unregisterUser') {
+        callback?.({ ok: true })
+      }
+      if (event === 'joinSpectator') {
+        joinSpectatorCallback = callback
+      }
+    })
+
+    const { unmount } = render(<Spectate />)
+
+    await waitFor(() => {
+      expect(joinSpectatorCallback).toEqual(expect.any(Function))
+    })
+
+    unmount()
+
+    await act(async () => {
+      joinSpectatorCallback?.({ ok: true })
+    })
+
+    expect(screen.queryByTestId('spectator-view')).not.toBeInTheDocument()
+    expect(mocks.socket.emit).not.toHaveBeenCalledWith(
+      'getRoomState',
+      expect.any(Object)
+    )
+  })
+
   it('updates players from gameState, cleans up the listener, and uses spectator back', async () => {
     localStorage.setItem('red-tetris-theme', 'dark')
     const { unmount } = render(<Spectate />)

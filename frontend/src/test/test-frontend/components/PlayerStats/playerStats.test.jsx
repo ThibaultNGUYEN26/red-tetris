@@ -137,7 +137,10 @@ describe('PlayerStats Component', () => {
       )
     })
 
-    expect(screen.getByText('Titi')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Titi')).toBeInTheDocument()
+    })
+
     expect(screen.getAllByText(/12\D?345/).length).toBeGreaterThan(0)
     expect(screen.getByText('75.0%')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /advanced stats/i }))

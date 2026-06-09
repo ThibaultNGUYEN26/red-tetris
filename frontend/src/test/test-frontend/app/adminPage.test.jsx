@@ -270,7 +270,10 @@ describe('AdminPage', () => {
     render(<AdminPage />)
     await unlock()
 
-    expect(screen.getByText('Updated Unknown')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Updated Unknown')).toBeInTheDocument()
+    })
+
     expect(screen.getByText('No rooms yet')).toBeInTheDocument()
     expect(screen.getByText('No scores yet')).toBeInTheDocument()
     expect(screen.getByText(/Unknown · Private/)).toBeInTheDocument()

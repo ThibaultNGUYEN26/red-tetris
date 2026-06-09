@@ -68,6 +68,25 @@ const reconnectSocketWithSession = () =>
     socket.connect()
   })
 
+const unregisterUserBeforeDisconnect = (username) =>
+  new Promise((resolve) => {
+    if (!username || !socket?.emit) {
+      resolve()
+      return
+    }
+
+    let settled = false
+    let timeoutId
+    const finish = () => {
+      if (settled) return
+      settled = true
+      if (timeoutId) clearTimeout(timeoutId)
+      resolve()
+    }
+    timeoutId = setTimeout(finish, 500)
+    socket.emit('unregisterUser', { username }, finish)
+  })
+
 function Index({ authMode = 'login' }) {
   const { roomName: urlRoomName, roomType: urlRoomType, username: urlUsername } = useParams()
   const navigate = useNavigate()
@@ -124,6 +143,7 @@ function Index({ authMode = 'login' }) {
   const soundEnabledRef = useRef(soundEnabled)
   const hadSocketIssueRef = useRef(false)
   const hasValidatedSavedSessionRef = useRef(false)
+  const socketNoticeTimeoutRef = useRef(null)
 
   const isUsernameAlreadyConnected = async (name) => {
     if (!name) return false
@@ -358,8 +378,25 @@ function Index({ authMode = 'login' }) {
   }, [routeNotice])
 
   useEffect(() => {
+    const clearSocketNoticeTimeout = () => {
+      if (!socketNoticeTimeoutRef.current) return
+      clearTimeout(socketNoticeTimeoutRef.current)
+      socketNoticeTimeoutRef.current = null
+    }
+
+    const clearSocketNoticeAfter = (message, delay) => {
+      clearSocketNoticeTimeout()
+      socketNoticeTimeoutRef.current = setTimeout(() => {
+        socketNoticeTimeoutRef.current = null
+        setSocketNotice((current) => (
+          current?.message === message ? null : current
+        ))
+      }, delay)
+    }
+
     const showSocketIssue = (message) => {
       hadSocketIssueRef.current = true
+      clearSocketNoticeTimeout()
       setSocketNotice({ type: 'warning', message })
     }
 
@@ -375,22 +412,14 @@ function Index({ authMode = 'login' }) {
     const handleBackendError = (error) => {
       const message = typeof error?.message === 'string' ? error.message : 'Server error'
       setSocketNotice({ type: 'error', message })
-      setTimeout(() => {
-        setSocketNotice((current) => (
-          current?.message === message ? null : current
-        ))
-      }, 4500)
+      clearSocketNoticeAfter(message, 4500)
     }
 
     const handleConnect = () => {
       if (!hadSocketIssueRef.current) return
       hadSocketIssueRef.current = false
       setSocketNotice({ type: 'success', message: 'Reconnected.' })
-      setTimeout(() => {
-        setSocketNotice((current) => (
-          current?.message === 'Reconnected.' ? null : current
-        ))
-      }, 2500)
+      clearSocketNoticeAfter('Reconnected.', 2500)
     }
 
     const handleReconnectAttempt = () => {
@@ -415,6 +444,7 @@ function Index({ authMode = 'login' }) {
       socket.off('connect', handleConnect)
       socket.io?.off('reconnect_attempt', handleReconnectAttempt)
       socket.io?.off('reconnect_failed', handleReconnectFailed)
+      clearSocketNoticeTimeout()
     }
   }, [])
 
@@ -458,10 +488,11 @@ function Index({ authMode = 'login' }) {
     setSoundEnabled(Boolean(enabled))
   }
 
-  const handleReturnToProfile = () => {
+  const handleReturnToProfile = async () => {
     if (username) {
-      socket.emit('unregisterUser', { username })
+      await unregisterUserBeforeDisconnect(username)
     }
+    socket.disconnect?.()
     apiFetch('/api/auth/logout', {
       method: 'POST',
       ...authFetchOptions(),
