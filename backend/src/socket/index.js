@@ -759,12 +759,14 @@ export default function setupSockets(io) {
         if (!roomResult.rowCount) return null;
 
         const room = roomResult.rows[0];
-        if (!room.players.includes(username)) return await attachPlayerAvatars(room);
+        const currentPlayers = Array.isArray(room.players) ? room.players : [];
+        const currentReadyAgain = Array.isArray(room.ready_again) ? room.ready_again : [];
+        const isInPlayers = currentPlayers.includes(username);
+        const isReadyAgain = currentReadyAgain.includes(username);
+        if (!isInPlayers && !isReadyAgain) return await attachPlayerAvatars(room);
 
-        const updatedPlayers = room.players.filter((p) => p !== username);
-
-        let readyAgain = room.ready_again || [];
-        readyAgain = readyAgain.filter((p) => p !== username);
+        const updatedPlayers = currentPlayers.filter((p) => p !== username);
+        const readyAgain = currentReadyAgain.filter((p) => p !== username);
 
         // No players left → DELETE room
         if (updatedPlayers.length === 0 && readyAgain.length === 0) {

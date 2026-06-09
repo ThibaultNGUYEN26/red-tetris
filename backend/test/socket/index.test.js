@@ -3272,6 +3272,51 @@ describe('socket setup', () => {
     )
   })
 
+  it('playerLeave removes stale ready_again membership even when the player list is already clean', async () => {
+    mockGetGame.mockReturnValue(null)
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 1,
+          players: ['Titi'],
+          status: 'waiting',
+          ready_again: ['Riri'],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 1,
+          players: ['Titi'],
+          status: 'waiting',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Riri'
+
+    await socket.handlers.get('playerLeave')({ roomId: '1', username: 'Riri' }, vi.fn())
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE rooms'),
+      [1, ['Titi'], 1, 'Titi', []]
+    )
+  })
+
   it('movePiece ends the game when immediate input causes game over', async () => {
     const summary = { roomId: '1', winner: 'Titi' }
     const onGameOver = vi.fn()
