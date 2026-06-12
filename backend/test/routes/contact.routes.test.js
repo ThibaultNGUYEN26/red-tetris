@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const sendContactEmail = vi.fn()
@@ -22,10 +23,38 @@ const getHandler = (router, method, path) =>
     (layer) => layer.route?.path === path && layer.route.methods?.[method]
   ).route.stack[0].handle
 
+const getCaptchaPayload = async (router) => {
+  const handler = getHandler(router, 'get', '/captcha')
+  const res = buildRes()
+
+  await handler({}, res)
+
+  return res.json.mock.calls[0][0]
+}
+
+const getCaptchaAnswer = (captcha) =>
+  captcha.question.split(' + ').reduce((sum, value) => sum + Number(value), 0).toString()
+
+const signCaptchaPayload = (payload) =>
+  crypto
+    .createHmac('sha256', process.env.CONTACT_CAPTCHA_SECRET)
+    .update(payload)
+    .digest('base64url')
+
+const buildContactBody = (captcha, overrides = {}) => ({
+  object: 'Bug report',
+  message: 'The game got stuck after a solo round.',
+  userEmail: 'player@example.com',
+  captchaToken: captcha.token,
+  captchaAnswer: getCaptchaAnswer(captcha),
+  ...overrides,
+})
+
 describe('contact routes', () => {
   beforeEach(() => {
     vi.resetModules()
     sendContactEmail.mockReset()
+    process.env.CONTACT_CAPTCHA_SECRET = 'test-contact-captcha-secret'
     delete process.env.CONTACT_RATE_LIMIT_MAX
     delete process.env.CONTACT_RATE_LIMIT_WINDOW_MS
   })
@@ -47,14 +76,11 @@ describe('contact routes', () => {
 
     const { default: router } = await import('../../src/routes/contact.routes.js')
     const handler = getHandler(router, 'post', '/')
+    const captcha = await getCaptchaPayload(router)
     const res = buildRes()
 
     await handler({
-      body: {
-        object: 'Bug report',
-        message: 'The game got stuck after a solo round.',
-        userEmail: 'player@example.com',
-      },
+      body: buildContactBody(captcha),
     }, res)
 
     expect(sendContactEmail).toHaveBeenCalledWith({
@@ -74,16 +100,17 @@ describe('contact routes', () => {
 
     const { default: router } = await import('../../src/routes/contact.routes.js')
     const handler = getHandler(router, 'post', '/')
+    const captcha = await getCaptchaPayload(router)
     const res = buildRes()
 
     await handler({
       headers: { 'x-forwarded-for': '198.51.100.20, 10.0.0.1' },
-      body: {
+      body: buildContactBody(captcha, {
         object: '  Feedback  ',
         message: '  Nice game  ',
         userEmail: ' PLAYER@EXAMPLE.COM ',
         website: 42,
-      },
+      }),
     }, res)
 
     expect(sendContactEmail).toHaveBeenCalledWith({
@@ -97,6 +124,99 @@ describe('contact routes', () => {
     await handler({ body: { object: 123, message: null, userEmail: 'player@example.com' } }, missingRes)
     expect(missingRes.status).toHaveBeenCalledWith(400)
     expect(missingRes.json).toHaveBeenCalledWith({ error: 'Missing data' })
+  })
+
+  it('returns captcha challenges and rejects incorrect captcha answers', async () => {
+    const { default: router } = await import('../../src/routes/contact.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const captcha = await getCaptchaPayload(router)
+    const res = buildRes()
+
+    expect(captcha.question).toMatch(/^\d+ \+ \d+$/)
+    expect(captcha.token).toEqual(expect.any(String))
+
+    await handler({
+      body: buildContactBody(captcha, {
+        captchaToken: captcha.token,
+        captchaAnswer: 'wrong',
+      }),
+    }, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Captcha answer is incorrect' })
+    expect(sendContactEmail).not.toHaveBeenCalled()
+  })
+
+  it('rejects malformed captcha tokens', async () => {
+    const { default: router } = await import('../../src/routes/contact.routes.js')
+    const handler = getHandler(router, 'post', '/')
+    const captcha = await getCaptchaPayload(router)
+
+    let res = buildRes()
+    await handler({
+      body: buildContactBody(captcha, {
+        captchaToken: 'payload.signature.extra',
+      }),
+    }, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Captcha answer is incorrect' })
+
+    res = buildRes()
+    await handler({
+      body: buildContactBody(captcha, {
+        captchaToken: `${captcha.token.split('.')[0]}.bad-signature`,
+      }),
+    }, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Captcha answer is incorrect' })
+
+    const invalidPayload = Buffer.from('not-json').toString('base64url')
+    res = buildRes()
+    await handler({
+      body: buildContactBody(captcha, {
+        captchaToken: `${invalidPayload}.${signCaptchaPayload(invalidPayload)}`,
+      }),
+    }, res)
+
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Captcha answer is incorrect' })
+    expect(sendContactEmail).not.toHaveBeenCalled()
+  })
+
+  it('accepts captcha tokens signed with configured fallback secrets', async () => {
+    const secretScenarios = [
+      { SESSION_SECRET: 'session-secret' },
+      { JWT_SECRET: 'jwt-secret' },
+      {},
+    ]
+
+    for (const [index, secrets] of secretScenarios.entries()) {
+      vi.resetModules()
+      sendContactEmail.mockResolvedValueOnce()
+      delete process.env.CONTACT_CAPTCHA_SECRET
+      delete process.env.SESSION_SECRET
+      delete process.env.JWT_SECRET
+      Object.assign(process.env, secrets)
+
+      const { default: router } = await import('../../src/routes/contact.routes.js')
+      const handler = getHandler(router, 'post', '/')
+      const captcha = await getCaptchaPayload(router)
+      const res = buildRes()
+
+      await handler({
+        ip: `198.51.100.${index + 20}`,
+        headers: {},
+        body: buildContactBody(captcha),
+      }, res)
+
+      expect(res.status).toHaveBeenCalledWith(200)
+      expect(res.json).toHaveBeenCalledWith({
+        ok: true,
+        message: 'Message sent',
+      })
+    }
   })
 
   it('rejects honeypot submissions', async () => {
@@ -169,15 +289,12 @@ describe('contact routes', () => {
 
     const { default: router } = await import('../../src/routes/contact.routes.js')
     const handler = getHandler(router, 'post', '/')
+    const captcha = await getCaptchaPayload(router)
 
     const buildReq = () => ({
       ip: '198.51.100.10',
       headers: {},
-      body: {
-        object: 'Bug report',
-        message: 'The game got stuck after a solo round.',
-        userEmail: 'player@example.com',
-      },
+      body: buildContactBody(captcha),
     })
 
     await handler(buildReq(), buildRes())
@@ -199,14 +316,14 @@ describe('contact routes', () => {
 
     const { default: router } = await import('../../src/routes/contact.routes.js')
     const handler = getHandler(router, 'post', '/')
+    const captcha = await getCaptchaPayload(router)
     const res = buildRes()
 
     await handler({
-      body: {
+      body: buildContactBody(captcha, {
         object: 'Suggestion',
         message: 'Add a sprint mode.',
-        userEmail: 'player@example.com',
-      },
+      }),
     }, res)
 
     expect(res.status).toHaveBeenCalledWith(500)
@@ -224,13 +341,10 @@ describe('contact routes', () => {
 
     const { default: router, resetContactRateLimit } = await import('../../src/routes/contact.routes.js')
     const handler = getHandler(router, 'post', '/')
+    const captcha = await getCaptchaPayload(router)
     const req = {
       headers: { 'x-real-ip': '203.0.113.10' },
-      body: {
-        object: 'Bug report',
-        message: 'The game got stuck after a solo round.',
-        userEmail: 'player@example.com',
-      },
+      body: buildContactBody(captcha),
     }
 
     await handler(req, buildRes())

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
 import { apiFetch } from './api'
@@ -384,6 +384,9 @@ function InfoPage({ type }) {
   const [contactObject, setContactObject] = useState('')
   const [contactMessage, setContactMessage] = useState('')
   const [contactEmail, setContactEmail] = useState('')
+  const [contactCaptcha, setContactCaptcha] = useState({ question: '', token: '' })
+  const [contactCaptchaAnswer, setContactCaptchaAnswer] = useState('')
+  const [isContactCaptchaLoading, setIsContactCaptchaLoading] = useState(false)
   const [contactStatus, setContactStatus] = useState({ type: '', message: '' })
   const [isContactSending, setIsContactSending] = useState(false)
   const [privacyStatus, setPrivacyStatus] = useState({ type: '', message: '' })
@@ -408,6 +411,33 @@ function InfoPage({ type }) {
   const getSavedUserEmail = () => getSavedAuthUser().email
   const savedUserEmail = savedAuthUser.email
 
+  const loadContactCaptcha = useCallback(async () => {
+    setIsContactCaptchaLoading(true)
+
+    try {
+      const response = await apiFetch('/api/contact/captcha')
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok || !payload?.question || !payload?.token) {
+        throw new Error('Unable to load captcha')
+      }
+
+      setContactCaptcha({
+        question: payload.question,
+        token: payload.token,
+      })
+      setContactCaptchaAnswer('')
+    } catch {
+      setContactCaptcha({ question: '', token: '' })
+      setContactStatus({
+        type: 'error',
+        message: 'Unable to load captcha. Please refresh the page.',
+      })
+    } finally {
+      setIsContactCaptchaLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (theme !== 'dark' || !starsRef.current) return
 
@@ -427,12 +457,19 @@ function InfoPage({ type }) {
     return () => clearInterval(interval)
   }, [theme])
 
+  useEffect(() => {
+    if (type === 'contact') {
+      loadContactCaptcha()
+    }
+  }, [loadContactCaptcha, type])
+
   const handleContactSubmit = async (event) => {
     event.preventDefault()
 
     const object = contactObject.trim()
     const message = contactMessage.trim()
     const userEmail = getSavedUserEmail() || contactEmail.trim().toLowerCase()
+    const captchaAnswer = contactCaptchaAnswer.trim()
 
     if (!object || !message) {
       setContactStatus({ type: 'error', message: 'Object and message are required.' })
@@ -454,6 +491,11 @@ function InfoPage({ type }) {
       return
     }
 
+    if (!contactCaptcha.token || !captchaAnswer) {
+      setContactStatus({ type: 'error', message: 'Captcha answer is required.' })
+      return
+    }
+
     setIsContactSending(true)
     setContactStatus({ type: '', message: '' })
 
@@ -469,6 +511,8 @@ function InfoPage({ type }) {
           object,
           message,
           userEmail,
+          captchaToken: contactCaptcha.token,
+          captchaAnswer,
           website: event.currentTarget.elements.website?.value || '',
         }),
       })
@@ -481,8 +525,10 @@ function InfoPage({ type }) {
       setContactObject('')
       setContactMessage('')
       setContactEmail('')
+      await loadContactCaptcha()
       setContactStatus({ type: 'success', message: 'Message sent.' })
     } catch (err) {
+      await loadContactCaptcha()
       setContactStatus({
         type: 'error',
         message: err?.name === 'AbortError'
@@ -740,6 +786,32 @@ function InfoPage({ type }) {
                   />
                 </>
               )}
+
+              <div className="contact-captcha">
+                <label htmlFor="contact-captcha">
+                  Captcha: {contactCaptcha.question || 'Loading...'}
+                </label>
+                <div className="contact-captcha-row">
+                  <input
+                    id="contact-captcha"
+                    type="text"
+                    inputMode="numeric"
+                    value={contactCaptchaAnswer}
+                    onChange={(event) => setContactCaptchaAnswer(event.target.value)}
+                    placeholder="Answer"
+                    disabled={isContactSending || isContactCaptchaLoading || !contactCaptcha.token}
+                  />
+                  <button
+                    className="contact-captcha-refresh"
+                    type="button"
+                    onClick={loadContactCaptcha}
+                    disabled={isContactSending || isContactCaptchaLoading}
+                    aria-label="Refresh captcha"
+                  >
+                    ↻
+                  </button>
+                </div>
+              </div>
 
               <div className="contact-honeypot" aria-hidden="true">
                 <label htmlFor="contact-website">Website</label>
