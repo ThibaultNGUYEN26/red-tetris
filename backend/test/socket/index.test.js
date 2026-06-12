@@ -139,6 +139,181 @@ describe('socket setup', () => {
     expect(ack).toHaveBeenCalledWith({ ok: true })
   })
 
+  it('isUsernameConnected removes stale disconnected sockets from active presence', async () => {
+    const { socket } = await setupConnectedSocket()
+    const { isUsernameConnected, getActiveUserCount } = await import('../../src/socket/index.js')
+
+    socket.handlers.get('registerUser')({ username: 'Titi' }, vi.fn())
+    socket.connected = false
+
+    expect(isUsernameConnected('Titi')).toBe(false)
+    expect(getActiveUserCount()).toBe(0)
+  })
+
+  it('enterMenu removes the player from started rooms and ends the game when needed', async () => {
+    const leavingPlayer = { isAlive: true }
+    const summary = { mode: 'classic', winner: 'Riri' }
+    const endGame = vi.fn(() => summary)
+    const onGameOver = vi.fn().mockResolvedValue(undefined)
+    mockGetGame.mockReturnValue({
+      getPlayer: vi.fn(() => leavingPlayer),
+      checkGameOver: vi.fn(() => ({ over: true, winner: 'Riri' })),
+      endGame,
+      onGameOver,
+    })
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [{
+          id: 1,
+          players: ['Titi', 'Riri'],
+          ready_again: [],
+          status: 'started',
+        }],
+      })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Titi',
+          player_count: 2,
+          players: ['Titi', 'Riri'],
+          status: 'started',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          game_mode: 'classic',
+          host: 'Riri',
+          player_count: 1,
+          players: ['Riri'],
+          status: 'started',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ username: 'Riri', avatar: { eyeType: 'sad' } }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ id: 2, name: 'Open', game_mode: 'classic', host: 'Lulu', player_count: 1, players: ['Lulu'] }],
+      })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+    socket.data.roomId = '1'
+    const ack = vi.fn()
+
+    await socket.handlers.get('enterMenu')({ username: 'Titi' }, ack)
+
+    expect(leavingPlayer.isAlive).toBe(false)
+    expect(endGame).toHaveBeenCalled()
+    expect(onGameOver).toHaveBeenCalledWith(summary)
+    expect(socket.leave).toHaveBeenCalledWith('1')
+    expect(ack).toHaveBeenCalledWith({ ok: true })
+  })
+
+  it('enterMenu acknowledges authentication failures before leaving rooms', async () => {
+    process.env.DISABLE_AUTH_TEST_FALLBACK = 'true'
+    const { socket } = await setupConnectedSocket()
+    const ack = vi.fn()
+
+    await socket.handlers.get('enterMenu')({ username: 'Titi' }, ack)
+
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Authentication required' })
+    expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('enterMenu reports server errors when room cleanup fails', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockQuery.mockRejectedValueOnce(new Error('db down'))
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+    const ack = vi.fn()
+
+    await socket.handlers.get('enterMenu')({ username: 'Titi' }, ack)
+
+    expect(consoleError).toHaveBeenCalledWith('enterMenu failed:', expect.any(Error))
+    expect(ack).toHaveBeenCalledWith({ ok: false, error: 'Server error' })
+    consoleError.mockRestore()
+  })
+
+  it('enterMenu handles room cleanup branches without an acknowledgement callback', async () => {
+    const noGameRoom = { id: 2, players: ['Titi'], ready_again: [], status: 'started' }
+    const missingPlayerGame = { getPlayer: vi.fn(() => null) }
+    const noGameOverMethods = { getPlayer: vi.fn(() => ({ isAlive: true })) }
+    const nonFinalGame = {
+      getPlayer: vi.fn(() => ({ isAlive: true })),
+      checkGameOver: vi.fn(() => ({ over: false })),
+      endGame: vi.fn(),
+      onGameOver: vi.fn(),
+    }
+    mockGetGame
+      .mockReturnValueOnce(null)
+      .mockReturnValueOnce(missingPlayerGame)
+      .mockReturnValueOnce(noGameOverMethods)
+      .mockReturnValueOnce(nonFinalGame)
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [
+          { id: 1, players: ['Titi'], ready_again: [], status: 'waiting' },
+          noGameRoom,
+          { id: 3, players: ['Titi'], ready_again: [], status: 'started' },
+          { id: 4, players: ['Titi'], ready_again: [], status: 'started' },
+          { id: 5, players: ['Titi'], ready_again: [], status: 'started' },
+        ],
+      })
+      .mockResolvedValue({ rowCount: 0, rows: [] })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await expect(socket.handlers.get('enterMenu')({ username: 'Titi' })).resolves.toBeUndefined()
+
+    expect(socket.leave).toHaveBeenCalledWith('1')
+    expect(socket.leave).toHaveBeenCalledWith('2')
+    expect(socket.leave).toHaveBeenCalledWith('3')
+    expect(socket.leave).toHaveBeenCalledWith('4')
+    expect(socket.leave).toHaveBeenCalledWith('5')
+    expect(missingPlayerGame.getPlayer).toHaveBeenCalledWith('Titi')
+    expect(nonFinalGame.endGame).not.toHaveBeenCalled()
+  })
+
+  it('enterMenu tolerates cleanup queries that omit rows', async () => {
+    mockQuery.mockResolvedValueOnce({})
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await expect(socket.handlers.get('enterMenu')({ username: 'Titi' })).resolves.toBeUndefined()
+
+    expect(socket.leave).not.toHaveBeenCalled()
+  })
+
+  it('enterMenu returns authentication failures without an acknowledgement callback', async () => {
+    process.env.DISABLE_AUTH_TEST_FALLBACK = 'true'
+    const { socket } = await setupConnectedSocket()
+
+    await expect(socket.handlers.get('enterMenu')({ username: 'Titi' })).resolves.toBeUndefined()
+
+    expect(mockQuery).not.toHaveBeenCalled()
+  })
+
+  it('enterMenu logs server errors without an acknowledgement callback', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockQuery.mockRejectedValueOnce(new Error('db down'))
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await expect(socket.handlers.get('enterMenu')({ username: 'Titi' })).resolves.toBeUndefined()
+
+    expect(consoleError).toHaveBeenCalledWith('enterMenu failed:', expect.any(Error))
+    consoleError.mockRestore()
+  })
+
   it('registerUser rejects an invalid username', async () => {
     const { socket } = await setupConnectedSocket()
 
@@ -2725,18 +2900,21 @@ describe('socket setup', () => {
     expect(ack).toHaveBeenCalledWith({ ok: true })
   })
 
-  it('joinSpectator allows an already active username to watch without re-registering it', async () => {
+  it('joinSpectator allows an already active username to watch and clears active presence', async () => {
     const io = createIo()
     const firstSocket = createSocket('socket-1')
     const secondSocket = createSocket('socket-2')
-    const { default: setupSockets } = await import('../../src/socket/index.js')
+    const thirdSocket = createSocket('socket-3')
+    const { default: setupSockets, isUsernameConnected } = await import('../../src/socket/index.js')
 
     setupSockets(io)
     const connectionHandler = io.on.mock.calls.find(([event]) => event === 'connection')[1]
     connectionHandler(firstSocket)
     connectionHandler(secondSocket)
+    connectionHandler(thirdSocket)
 
     firstSocket.handlers.get('registerUser')({ username: 'Titi' }, vi.fn())
+    expect(isUsernameConnected('Titi')).toBe(true)
 
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
@@ -2750,6 +2928,11 @@ describe('socket setup', () => {
     expect(secondSocket.emit).not.toHaveBeenCalledWith('error', { message: 'Username already connected' })
     expect(secondSocket.join).toHaveBeenCalledWith('1')
     expect(secondSocket.data.isSpectator).toBe(true)
+    expect(isUsernameConnected('Titi')).toBe(false)
+
+    const registerAck = vi.fn()
+    thirdSocket.handlers.get('registerUser')({ username: 'Titi' }, registerAck)
+    expect(registerAck).toHaveBeenCalledWith({ ok: true })
   })
 
   it('joinSpectator handles no-callback validation and success paths', async () => {
@@ -3180,6 +3363,31 @@ describe('socket setup', () => {
     await socket.handlers.get('playerLeave')({ roomId: '1', username: 'Riri' }, vi.fn())
 
     expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('WHERE id = $1'), [1])
+  })
+
+  it('playerLeave tolerates rooms with non-array players', async () => {
+    mockGetGame.mockReturnValue(null)
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 1,
+        name: 'Room',
+        game_mode: 'classic',
+        host: 'Titi',
+        player_count: 1,
+        players: null,
+        status: 'waiting',
+        ready_again: [],
+      }],
+    })
+
+    const { socket } = await setupConnectedSocket()
+    const ack = vi.fn()
+
+    await socket.handlers.get('playerLeave')({ roomId: '1', username: 'Titi' }, ack)
+
+    expect(socket.leave).toHaveBeenCalledWith('1')
+    expect(ack).toHaveBeenCalledWith({ ok: true })
   })
 
   it('playerLeave removes non-host players when ready_again is null', async () => {

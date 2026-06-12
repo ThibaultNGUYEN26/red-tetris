@@ -116,6 +116,11 @@ const unregisterUsername = (username, socket) => {
   }
 };
 
+const unregisterUsernamePresence = (username) => {
+  activeUsers.delete(username);
+  activeUserSockets.delete(username);
+};
+
 async function syncUsersIdSequence() {
   await pool.query(`
     SELECT setval(
@@ -668,7 +673,7 @@ export default function setupSockets(io) {
         return;
       }
       const room = roomResult.rows[0];
-      unregisterUsername(username, socket);
+      unregisterUsernamePresence(username);
       socket.join(String(roomId));
       socket.data.roomId = String(roomId);
       socket.data.username = username;
@@ -805,8 +810,6 @@ export default function setupSockets(io) {
     };
 
     const leaveAllRoomsForUser = async (username) => {
-      if (!username) return;
-
       const roomsResult = await pool.query(
         `SELECT id, players, ready_again, status
          FROM rooms

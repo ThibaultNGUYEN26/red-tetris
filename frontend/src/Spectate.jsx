@@ -23,7 +23,7 @@ const unregisterUser = (username) => new Promise((resolve) => {
   socket.emit('unregisterUser', { username }, () => resolve())
 })
 
-const leaveSpectator = (roomId, username) => new Promise((resolve) => {
+export const leaveSpectator = (roomId, username) => new Promise((resolve) => {
   if (!roomId || !username) {
     resolve()
     return

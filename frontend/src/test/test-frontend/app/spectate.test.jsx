@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
@@ -52,11 +52,12 @@ vi.mock('../../../components/SpectatorView/SpectatorView.jsx', () => ({
   ),
 }))
 
-import Spectate from '../../../Spectate.jsx'
+import Spectate, { leaveSpectator } from '../../../Spectate.jsx'
 
 describe('Spectate page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useRealTimers()
     localStorage.clear()
     mocks.params.current = { roomName: 'Room-1', username: 'Titi' }
     mocks.apiFetch.mockResolvedValue({
@@ -74,6 +75,10 @@ describe('Spectate page', () => {
         callback?.({ ok: true })
       }
     })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('renders the full game shell around spectator view', async () => {
@@ -125,6 +130,35 @@ describe('Spectate page', () => {
       { roomId: '42', username: 'SavedUser' },
       expect.any(Function)
     )
+  })
+
+  it('skips spectator leave when cleanup has no room or username', async () => {
+    await expect(leaveSpectator(null, 'Titi')).resolves.toBeUndefined()
+    await expect(leaveSpectator('42', '')).resolves.toBeUndefined()
+
+    expect(mocks.socket.emit).not.toHaveBeenCalledWith(
+      'playerLeave',
+      expect.any(Object),
+      expect.any(Function)
+    )
+  })
+
+  it('ignores late spectator leave acknowledgements after the timeout resolves', async () => {
+    vi.useFakeTimers()
+    let leaveCallback
+    mocks.socket.emit.mockImplementation((event, payload, callback) => {
+      if (event === 'playerLeave') {
+        leaveCallback = callback
+      }
+    })
+
+    const done = leaveSpectator('42', 'Titi')
+
+    await vi.advanceTimersByTimeAsync(500)
+    await expect(done).resolves.toBeUndefined()
+
+    expect(leaveCallback).toEqual(expect.any(Function))
+    expect(() => leaveCallback()).not.toThrow()
   })
 
   it('renders missing username errors and navigates back', async () => {
@@ -353,6 +387,49 @@ describe('Spectate page', () => {
     fireEvent.click(screen.getByRole('button', { name: /play again/i }))
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith('/SoloRoom/Titi')
+    })
+  })
+
+  it('does not send duplicate spectator leave events when play again is clicked twice while leaving', async () => {
+    let leaveCallback
+    mocks.socket.emit.mockImplementation((event, payload, callback) => {
+      if (event === 'unregisterUser') {
+        callback?.({ ok: true })
+      }
+      if (event === 'joinSpectator') {
+        callback?.({ ok: true })
+      }
+      if (event === 'playerLeave') {
+        leaveCallback = callback
+      }
+    })
+
+    render(<Spectate />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+    })
+
+    const gameOverHandler = mocks.socket.on.mock.calls.find(
+      ([event]) => event === 'gameOver'
+    )?.[1]
+
+    await act(async () => {
+      gameOverHandler?.({ winner: 'Titi' })
+    })
+
+    const playAgainButton = screen.getByRole('button', { name: /play again/i })
+    fireEvent.click(playAgainButton)
+    fireEvent.click(playAgainButton)
+
+    expect(mocks.socket.emit.mock.calls.filter(([event]) => event === 'playerLeave')).toHaveLength(1)
+
+    await act(async () => {
+      leaveCallback?.({ ok: true })
+    })
+
+    await waitFor(() => {
+      expect(mocks.navigate).toHaveBeenCalledWith('/Room-1/Titi')
     })
   })
 
