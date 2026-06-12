@@ -125,8 +125,8 @@ function Leaderboard({ theme }) {
 
   const renderCoopEntry = (entry) => {
     const [playerOne = {}, playerTwo = {}] = entry.players || []
-    const playerOneName = playerOne.name || 'Player 1'
-    const playerTwoName = playerTwo.name || 'Player 2'
+    const playerOneName = playerOne.name || 'Joueur 1'
+    const playerTwoName = playerTwo.name || 'Joueur 2'
 
     return (
       <div key={entry.rank} className={`leaderboard-entry coop-entry ${entry.rank <= 3 ? `top-${entry.rank}` : ''}`}>
@@ -150,7 +150,7 @@ function Leaderboard({ theme }) {
       }`}
     >
       <div className="leaderboard-header">
-        <h3 className="leaderboard-title">🏆 Leaderboard</h3>
+        <h3 className="leaderboard-title">🏆 Classement</h3>
         <div className="leaderboard-tabs">
           {(!allLeaderboardsLoaded || hasSoloScores) && (
             <button
@@ -167,14 +167,14 @@ function Leaderboard({ theme }) {
               onClick={() => setMode('coop')}
               className={`leaderboard-tab ${mode === 'coop' ? 'active' : ''}`}
             >
-              Co-op Duo
+              Duo coop
             </button>
           )}
         </div>
       </div>
 
       <div className="leaderboard-list">
-        {loading && <div className="leaderboard-entry">Loading…</div>}
+        {loading && <div className="leaderboard-entry">Chargement…</div>}
 
         {!loading &&
           displayedData.map((entry) =>

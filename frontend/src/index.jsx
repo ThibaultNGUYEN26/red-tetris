@@ -193,8 +193,8 @@ function Index({ authMode = 'login' }) {
   }
 
   const getRoomNoticeMessage = (error) => {
-    if (!error) return 'Room already used'
-    if (error === 'User is already in a room') return 'User already connected'
+    if (!error) return 'Salle déjà utilisée'
+    if (error === 'User is already in a room') return 'Utilisateur déjà connecté'
     return error
   }
 
@@ -851,7 +851,7 @@ function Index({ authMode = 'login' }) {
         }
         if (room.host && room.host !== username) {
           console.error('Solo room already owned by another player.')
-          returnHomeWithNotice('Room already used')
+          returnHomeWithNotice('Salle déjà utilisée')
           return
         }
         if (room.status === 'started' && room.players?.includes(username)) {
@@ -863,12 +863,12 @@ function Index({ authMode = 'login' }) {
         }
         if (getMaxPlayers(room.game_mode) <= room.player_count) {
           console.error('Solo room is full.')
-          returnHomeWithNotice('Room already used')
+          returnHomeWithNotice('Salle déjà utilisée')
           return
         }
         setSoloRoomId(room.id)
       } catch {
-        returnHomeWithNotice('Room already used')
+        returnHomeWithNotice('Salle déjà utilisée')
       }
     }
 
@@ -933,7 +933,7 @@ function Index({ authMode = 'login' }) {
         }
 
         if (await hasConflictingExistingRoom()) {
-          returnToProfileWithNotice('User already connected')
+          returnToProfileWithNotice('Utilisateur déjà connecté')
           return false
         }
 
@@ -962,27 +962,27 @@ function Index({ authMode = 'login' }) {
 
         const existingRoom = await existingRes.json()
         if (isUserAlreadyInFetchedRoom(existingRoom)) {
-          returnToProfileWithNotice('User already connected')
+          returnToProfileWithNotice('Utilisateur déjà connecté')
           return false
         }
 
         const isExistingCoopMode = ['cooperative', 'cooperative_roles'].includes(existingRoom.game_mode)
         if (directRoomType === 'coop' && !isExistingCoopMode) {
-          returnHomeWithNotice('Room already used')
+          returnHomeWithNotice('Salle déjà utilisée')
           return false
         }
         if (directRoomType === 'multi' && isExistingCoopMode) {
-          returnHomeWithNotice('Room already used')
+          returnHomeWithNotice('Salle déjà utilisée')
           return false
         }
         if (existingRoom.status === 'started') {
-          returnHomeWithNotice('Room already used')
+          returnHomeWithNotice('Salle déjà utilisée')
           return false
         }
 
         const existingMaxPlayers = getMaxPlayers(existingRoom.game_mode)
         if (existingRoom.player_count >= existingMaxPlayers) {
-          returnHomeWithNotice('Room already used')
+          returnHomeWithNotice('Salle déjà utilisée')
           return false
         }
 
@@ -992,7 +992,7 @@ function Index({ authMode = 'login' }) {
 
       try {
         if (await hasConflictingExistingRoom()) {
-          returnToProfileWithNotice('User already connected')
+          returnToProfileWithNotice('Utilisateur déjà connecté')
           return
         }
 
@@ -1017,19 +1017,19 @@ function Index({ authMode = 'login' }) {
         }
 
         if (isUserAlreadyInFetchedRoom(room) && room.status !== 'started') {
-          returnToProfileWithNotice('User already connected')
+          returnToProfileWithNotice('Utilisateur déjà connecté')
           return
         }
 
         const isCoopMode = ['cooperative', 'cooperative_roles'].includes(room.game_mode)
         if (directRoomType === 'coop' && !isCoopMode) {
           console.error('Room type mismatch for coop.')
-          returnHomeWithNotice('Room already used')
+          returnHomeWithNotice('Salle déjà utilisée')
           return
         }
         if (directRoomType === 'multi' && isCoopMode) {
           console.error('Room type mismatch for multi.')
-          returnHomeWithNotice('Room already used')
+          returnHomeWithNotice('Salle déjà utilisée')
           return
         }
         if (room.status === 'started') {
@@ -1041,20 +1041,20 @@ function Index({ authMode = 'login' }) {
             return
           }
           console.error('Room already started.')
-          returnHomeWithNotice('Room already used')
+          returnHomeWithNotice('Salle déjà utilisée')
           return
         }
 
         const maxPlayers = getMaxPlayers(room.game_mode)
         if (room.player_count >= maxPlayers) {
           console.error('Room is full.')
-          returnHomeWithNotice('Room already used')
+          returnHomeWithNotice('Salle déjà utilisée')
           return
         }
 
         setDirectRoomId(room.id)
       } catch {
-        returnHomeWithNotice('Room already used')
+        returnHomeWithNotice('Salle déjà utilisée')
       }
     }
 
@@ -1241,10 +1241,10 @@ function Index({ authMode = 'login' }) {
                       onNotice={setRouteNotice}
                       onJoinError={(error) => {
                         if (error === 'Username already connected' || error === 'User is already in a room') {
-                          returnToProfileWithNotice('User already connected')
+                          returnToProfileWithNotice('Utilisateur déjà connecté')
                           return
                         }
-                        returnHomeWithNotice('Room already used')
+                        returnHomeWithNotice('Salle déjà utilisée')
                       }}
                       onRoomRenamed={(roomName) => {
                         setSoloRoomName(roomName)
@@ -1275,10 +1275,10 @@ function Index({ authMode = 'login' }) {
                       onNotice={setRouteNotice}
                       onJoinError={(error) => {
                         if (error === 'Username already connected' || error === 'User is already in a room') {
-                          returnToProfileWithNotice('User already connected')
+                          returnToProfileWithNotice('Utilisateur déjà connecté')
                           return
                         }
-                        returnHomeWithNotice('Room already used')
+                        returnHomeWithNotice('Salle déjà utilisée')
                       }}
                       onRoomRenamed={(roomName) => {
                         setDirectRoomName(roomName)

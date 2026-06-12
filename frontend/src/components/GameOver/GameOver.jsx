@@ -15,8 +15,8 @@ function GameOver({
 
   const useGenericTitle =
     !isMultiplayer || ['cooperative', 'cooperative_roles'].includes(gameMode)
-  const title = useGenericTitle ? 'Game Over' : winner === username ? 'You won' : 'You lost'
-  const winnerLabel = winner ? `Winner: ${winner}` : null
+  const title = useGenericTitle ? 'Partie terminée' : winner === username ? 'Vous avez gagné' : 'Vous avez perdu'
+  const winnerLabel = winner ? `Vainqueur : ${winner}` : null
   const canSpectate = Boolean(onSpectate && isEliminated && !winner && !isGameOver)
   const showPlayAgain = Boolean(onPlayAgain && isGameOver)
 
@@ -31,17 +31,17 @@ function GameOver({
           <div className="game-over-primary-actions">
           {showPlayAgain && (
             <button className="resume-button" onClick={onPlayAgain}>
-              Play again
+              Rejouer
             </button>
           )}
           {canSpectate && (
               <button className="back-button" onClick={onSpectate}>
-              Spectate
+              Regarder
             </button>
           )}
           </div>
           <button className="back-button" onClick={onBack}>
-            Back to menu
+            Retour au menu
           </button>
         </div>
       </div>

@@ -82,12 +82,12 @@ function Game({
 }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
   const controls = [
-    { keys: 'Arrow Left / Right', action: 'Move' },
-    { keys: 'Arrow Up', action: 'Rotate' },
-    { keys: 'Arrow Down', action: 'Soft drop' },
-    { keys: 'Space', action: 'Hard drop' },
-    { keys: 'C / Shift', action: 'Hold' },
-    { keys: 'Escape', action: 'Options' },
+    { keys: 'Flèche gauche / droite', action: 'Déplacer' },
+    { keys: 'Flèche haut', action: 'Rotation' },
+    { keys: 'Flèche bas', action: 'Descente rapide' },
+    { keys: 'Espace', action: 'Chute instantanée' },
+    { keys: 'C / Maj', action: 'Garder' },
+    { keys: 'Échap', action: 'Options' },
   ]
 
   const [board, setBoard] = useState(() => makeEmptyBoard(DEFAULT_BOARD))
@@ -729,7 +729,7 @@ function Game({
                 }}
                 disabled={isPaused}
               >
-                Options
+                Paramètres
               </button>
               {cooperativeStatusLabel && (
                 <div
@@ -746,11 +746,11 @@ function Game({
               <span className="stat-value">{stats.score.toLocaleString()}</span>
             </div>
             <div className="stat">
-              <span className="stat-label">Lines</span>
+              <span className="stat-label">Lignes</span>
               <span className="stat-value">{stats.lines.toLocaleString()}</span>
             </div>
             <div className="stat">
-              <span className="stat-label">Level</span>
+              <span className="stat-label">Niveau</span>
               <span className="stat-value">{stats.level.toLocaleString()}</span>
             </div>
           </div>
@@ -758,8 +758,8 @@ function Game({
 
         <div className="game-layout">
           <div className="hold-panel">
-            <h3>Hold</h3>
-            <div className="next-grid piece-preview-grid" role="grid" aria-label="Hold piece">
+            <h3>Réserve</h3>
+            <div className="next-grid piece-preview-grid" role="grid" aria-label="Pièce en réserve">
               <div
                 style={{
                   display: 'grid',
@@ -783,7 +783,7 @@ function Game({
           <div
             className={`game-board${boardFlash ? ` board-flash board-flash-${boardFlash}` : ''}`}
             role="grid"
-            aria-label="Tetris board"
+            aria-label="Plateau Tetris"
             style={{
               gridTemplateColumns: `repeat(${boardSize.width}, var(--cell-size))`,
               gridTemplateRows: `repeat(${boardSize.height}, var(--cell-size))`,
@@ -801,8 +801,8 @@ function Game({
           </div>
 
           <div className="side-panel">
-            <h3>Next</h3>
-            <div className="next-grid piece-preview-grid" role="grid" aria-label="Next piece">
+            <h3>Suivante</h3>
+            <div className="next-grid piece-preview-grid" role="grid" aria-label="Pièce suivante">
               <div
                 style={{
                   display: 'grid',
@@ -828,22 +828,22 @@ function Game({
         {!isMultiplayer && isPaused && (
           <div className="pause-overlay" role="dialog" aria-modal="true">
             <div className="pause-card">
-              <h3>Paused</h3>
+              <h3>Pause</h3>
               <div className="pause-actions">
                 <button
                   className={soundEnabled ? 'resume-button' : 'back-button'}
                   onClick={() => onSoundChange?.(!soundEnabled)}
                 >
-                  {soundEnabled ? 'Sound: On' : 'Sound: Off'}
+                  {soundEnabled ? 'Son : activé' : 'Son : désactivé'}
                 </button>
                 <button
                   className="resume-button"
                   onClick={() => setIsPaused(false)}
                 >
-                  Resume
+                  Reprendre
                 </button>
                 <button className="back-button" onClick={handleLeaveGame}>
-                  Leave game
+                  Quitter la partie
                 </button>
               </div>
             </div>
@@ -853,29 +853,29 @@ function Game({
         {isMultiplayer && showMenu && (
           <div className="pause-overlay" role="dialog" aria-modal="true">
             <div className="pause-card">
-              <h3>Game Menu</h3>
+              <h3>Menu de jeu</h3>
               <div className="pause-actions">
                 <button
                   className={soundEnabled ? 'resume-button' : 'back-button'}
                   onClick={() => onSoundChange?.(!soundEnabled)}
                 >
-                  {soundEnabled ? 'Sound: On' : 'Sound: Off'}
+                  {soundEnabled ? 'Son : activé' : 'Son : désactivé'}
                 </button>
                 <button
                   className="resume-button"
                   onClick={() => setShowMenu(false)}
                 >
-                  Resume
+                  Reprendre
                 </button>
                 <button className="back-button" onClick={handleLeaveGame}>
-                  Leave game
+                  Quitter la partie
                 </button>
               </div>
             </div>
           </div>
         )}
       </div>
-      <aside className="game-controls-help" aria-label="Keyboard controls">
+      <aside className="game-controls-help" aria-label="Contrôles clavier">
         {controls.map(({ keys, action }) => (
           <div className="control-hint" key={keys}>
             <span className="control-key">{keys}</span>

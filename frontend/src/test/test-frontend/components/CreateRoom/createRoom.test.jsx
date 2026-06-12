@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+﻿import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import CreateRoom from '../../../../components/CreateRoom/CreateRoom'
@@ -121,7 +121,7 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} initialRoomPassword="secret-code" />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Room password')).toHaveTextContent('secret-code')
+        expect(screen.getByLabelText('Mot de passe actuel de la salle')).toHaveTextContent('secret-code')
       })
     })
 
@@ -153,7 +153,7 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} />)
 
       await waitFor(() => {
-        expect(mockOnNotice).toHaveBeenCalledWith('Invalid game mode')
+        expect(mockOnNotice).toHaveBeenCalledWith('Mode de jeu invalide')
       })
     })
 
@@ -187,7 +187,7 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} onJoinError={onJoinError} />)
 
       await waitFor(() => {
-        expect(mockOnNotice).toHaveBeenCalledWith('Room already used.')
+        expect(mockOnNotice).toHaveBeenCalledWith('Salle déjà utilisée.')
         expect(onJoinError).toHaveBeenCalledWith('Room already used')
       })
     })
@@ -248,9 +248,9 @@ describe('CreateRoom Component', () => {
     })
 
     it.each([
-      ['Room already used', 'Room already used.'],
-      ['Only the host can rename the room', 'Only the host can rename the room.'],
-      ['Unexpected room error', 'Unable to update the room right now.'],
+      ['Room already used', 'Salle déjà utilisée.'],
+      ['Only the host can rename the room', 'Seul l’hôte peut renommer la salle.'],
+      ['Unexpected room error', 'Impossible de mettre à jour la salle pour le moment.'],
     ])('should map room creation error "%s"', async (error, expectedMessage) => {
       global.fetch.mockResolvedValueOnce({
         ok: false,
@@ -295,7 +295,7 @@ describe('CreateRoom Component', () => {
         expect(screen.getByRole('combobox')).toBeInTheDocument()
       })
 
-      expect(screen.getByRole('option', { name: /co-op alternate/i })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: /co-op alternée/i })).toBeInTheDocument()
     })
 
     it('shows the co-op roles mode in the selector', async () => {
@@ -316,7 +316,7 @@ describe('CreateRoom Component', () => {
         expect(screen.getByRole('combobox')).toBeInTheDocument()
       })
 
-      expect(screen.getByRole('option', { name: /co-op roles/i })).toBeInTheDocument()
+      expect(screen.getByRole('option', { name: /co-op rôles/i })).toBeInTheDocument()
     })
 
     it('shows the invisible mode in the multiplayer selector', async () => {
@@ -327,7 +327,7 @@ describe('CreateRoom Component', () => {
       })
 
       expect(screen.getByRole('option', { name: /invisible/i })).toBeInTheDocument()
-      expect(screen.getByText(/standard versus tetris/i)).toBeInTheDocument()
+      expect(screen.getByText(/tetris compétitif standard/i)).toBeInTheDocument()
     })
 
     it('should PATCH mode change when host selects a new mode', async () => {
@@ -359,7 +359,7 @@ describe('CreateRoom Component', () => {
       const modeSelect = screen.getByRole('combobox')
       vi.useFakeTimers()
       fireEvent.change(modeSelect, { target: { value: 'mirror' } })
-      expect(screen.getByText(/controls are reversed/i)).toBeInTheDocument()
+      expect(screen.getByText(/les contrôles sont inversés/i)).toBeInTheDocument()
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(600)
@@ -508,7 +508,7 @@ describe('CreateRoom Component', () => {
       await waitFor(() => {
         expect(screen.queryByText('Titi')).not.toBeInTheDocument()
         expect(screen.getByText('Riri')).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: /joueurs \(1\/2\)/i })).toBeInTheDocument()
       })
     })
 
@@ -569,9 +569,9 @@ describe('CreateRoom Component', () => {
         expect(socket.emit).toHaveBeenCalledWith('getRoomState', { roomId: '1' })
       })
 
-      const startButton = screen.getByRole('button', { name: /start game/i })
+      const startButton = screen.getByRole('button', { name: /lancer la partie/i })
       expect(startButton).toBeDisabled()
-      expect(screen.queryByRole('button', { name: /✏️/i })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /âœï¸/i })).not.toBeInTheDocument()
     })
 
     it('should use existingRooms as a cooperative single-player fallback', async () => {
@@ -600,7 +600,7 @@ describe('CreateRoom Component', () => {
 
       await waitFor(() => {
         expect(screen.getByText('SoloHost')).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: /joueurs \(1\/2\)/i })).toBeInTheDocument()
       })
     })
 
@@ -624,7 +624,7 @@ describe('CreateRoom Component', () => {
 
       await waitFor(() => {
         expect(screen.getByText('ListedHost')).toBeInTheDocument()
-        expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: /joueurs \(1\/2\)/i })).toBeInTheDocument()
       })
     })
 
@@ -647,7 +647,7 @@ describe('CreateRoom Component', () => {
       )
 
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: /joueurs \(1\/2\)/i })).toBeInTheDocument()
       })
     })
 
@@ -713,7 +713,7 @@ describe('CreateRoom Component', () => {
       })
 
       expect(screen.queryByText('Player2')).not.toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: /players \(2\/8\)/i })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /joueurs \(2\/8\)/i })).toBeInTheDocument()
     })
 
     it('should fall back to two players when the selected mode is unknown', async () => {
@@ -734,7 +734,7 @@ describe('CreateRoom Component', () => {
         })
       })
 
-      expect(screen.getByRole('heading', { name: /players \(1\/2\)/i })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /joueurs \(1\/2\)/i })).toBeInTheDocument()
       expect(container.querySelector('.player-item.waiting')).toBeInTheDocument()
     })
 
@@ -873,7 +873,7 @@ describe('CreateRoom Component', () => {
         })
       })
 
-      expect(screen.getByRole('heading', { name: /players \(0\/8\)/i })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: /joueurs \(0\/8\)/i })).toBeInTheDocument()
     })
   })
 
@@ -941,7 +941,7 @@ describe('CreateRoom Component', () => {
       expect(socket.emit).not.toHaveBeenCalledWith('getRoomState', { roomId: '42' })
 
       render(<CreateRoom {...defaultProps} mode="join" roomId={43} />)
-      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+      fireEvent.click(screen.getByRole('button', { name: /retour/i }))
 
       await act(async () => {
         callbacks[1]?.({ ok: true })
@@ -1013,8 +1013,8 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
-        expect(screen.getByText('Invalid room password')).toBeInTheDocument()
+        expect(screen.getByLabelText('Mot de passe de la salle')).toBeInTheDocument()
+        expect(screen.getByText('Mot de passe invalide')).toBeInTheDocument()
       })
     })
 
@@ -1028,20 +1028,20 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+        expect(screen.getByLabelText('Mot de passe de la salle')).toBeInTheDocument()
       })
 
-      const passwordInput = screen.getByLabelText('Room Password')
+      const passwordInput = screen.getByLabelText('Mot de passe de la salle')
       expect(passwordInput).toHaveClass('masked-password-input')
 
-      fireEvent.click(screen.getByRole('button', { name: /join room/i }))
-      expect(screen.getByText('Room password required')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /rejoindre la salle/i }))
+      expect(screen.getByText('Mot de passe requis')).toBeInTheDocument()
 
       fireEvent.change(passwordInput, { target: { value: 'secret' } })
-      expect(screen.queryByText('Room password required')).not.toBeInTheDocument()
+      expect(screen.queryByText('Mot de passe requis')).not.toBeInTheDocument()
 
-      fireEvent.click(screen.getByRole('button', { name: /show password/i }))
-      expect(screen.getByRole('button', { name: /hide password/i })).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /afficher le mot de passe/i }))
+      expect(screen.getByRole('button', { name: /masquer le mot de passe/i })).toBeInTheDocument()
       expect(passwordInput).not.toHaveClass('masked-password-input')
     })
 
@@ -1064,29 +1064,29 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+        expect(screen.getByLabelText('Mot de passe de la salle')).toBeInTheDocument()
       })
 
-      const passwordInput = screen.getByLabelText('Room Password')
+      const passwordInput = screen.getByLabelText('Mot de passe de la salle')
       fireEvent.change(passwordInput, { target: { value: 'wrong' } })
       fireEvent.submit(passwordInput.closest('form'))
 
       await waitFor(() => {
-        expect(screen.getByText('Invalid room password')).toBeInTheDocument()
+        expect(screen.getByText('Mot de passe invalide')).toBeInTheDocument()
       })
 
       fireEvent.change(passwordInput, { target: { value: 'correct' } })
       fireEvent.submit(passwordInput.closest('form'))
 
       await waitFor(() => {
-        expect(screen.queryByLabelText('Room Password')).not.toBeInTheDocument()
+        expect(screen.queryByLabelText('Mot de passe de la salle')).not.toBeInTheDocument()
         expect(socket.emit).toHaveBeenCalledWith('getRoomState', { roomId: '42' })
       })
     })
 
     it.each([
       [{ ok: false, error: 'Room closed' }, 'Room closed'],
-      [{ ok: false }, 'Unable to join room'],
+      [{ ok: false }, 'Impossible de rejoindre la salle'],
     ])('should show password retry failure messages', async (retryResponse, expectedMessage) => {
       socket.emit.mockImplementation((event, payload, callback) => {
         if (event !== 'joinRoom') return
@@ -1101,10 +1101,10 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+        expect(screen.getByLabelText('Mot de passe de la salle')).toBeInTheDocument()
       })
 
-      const passwordInput = screen.getByLabelText('Room Password')
+      const passwordInput = screen.getByLabelText('Mot de passe de la salle')
       fireEvent.change(passwordInput, { target: { value: 'secret' } })
       fireEvent.submit(passwordInput.closest('form'))
 
@@ -1129,13 +1129,13 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+        expect(screen.getByLabelText('Mot de passe de la salle')).toBeInTheDocument()
       })
 
-      const passwordInput = screen.getByLabelText('Room Password')
+      const passwordInput = screen.getByLabelText('Mot de passe de la salle')
       fireEvent.change(passwordInput, { target: { value: 'secret' } })
       fireEvent.submit(passwordInput.closest('form'))
-      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+      fireEvent.click(screen.getByRole('button', { name: /retour/i }))
 
       await act(async () => {
         retryCallback?.({ ok: true })
@@ -1156,10 +1156,10 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
 
       await waitFor(() => {
-        form = screen.getByLabelText('Room Password').closest('form')
+        form = screen.getByLabelText('Mot de passe de la salle').closest('form')
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+      fireEvent.click(screen.getByRole('button', { name: /retour/i }))
       socket.emit.mockClear()
       fireEvent.submit(form)
 
@@ -1176,10 +1176,10 @@ describe('CreateRoom Component', () => {
       render(<CreateRoom {...defaultProps} mode="join" roomId={42} />)
 
       await waitFor(() => {
-        expect(screen.getByLabelText('Room Password')).toBeInTheDocument()
+        expect(screen.getByLabelText('Mot de passe de la salle')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+      fireEvent.click(screen.getByRole('button', { name: /retour/i }))
 
       expect(mockOnBack).toHaveBeenCalled()
     })
@@ -1193,7 +1193,7 @@ describe('CreateRoom Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      const startButton = screen.getByRole('button', { name: /start game/i })
+      const startButton = screen.getByRole('button', { name: /lancer la partie/i })
       expect(startButton).toBeDisabled()
     })
 
@@ -1323,7 +1323,7 @@ describe('CreateRoom Component', () => {
       fireEvent.keyDown(input, { key: 'Enter' })
 
       await waitFor(() => {
-        expect(mockOnNotice).toHaveBeenCalledWith('Room already used.')
+        expect(mockOnNotice).toHaveBeenCalledWith('Salle déjà utilisée.')
       })
     })
 
@@ -1541,7 +1541,7 @@ describe('CreateRoom Component', () => {
         expect(screen.getByText('Player2')).toBeInTheDocument()
       })
 
-      const startButton = screen.getByRole('button', { name: /start game/i })
+      const startButton = screen.getByRole('button', { name: /lancer la partie/i })
       fireEvent.click(startButton)
       fireEvent.click(startButton)
 
@@ -1580,7 +1580,7 @@ describe('CreateRoom Component', () => {
         }
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /start game/i }))
+      fireEvent.click(screen.getByRole('button', { name: /lancer la partie/i }))
 
       await waitFor(() => {
         expect(consoleError).toHaveBeenCalledWith(
@@ -1601,7 +1601,7 @@ describe('CreateRoom Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+      fireEvent.click(screen.getByRole('button', { name: /retour/i }))
 
       expect(mockOnBack).toHaveBeenCalled()
     })
@@ -1618,7 +1618,7 @@ describe('CreateRoom Component', () => {
       )?.[1]
 
       socket.emit.mockClear()
-      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+      fireEvent.click(screen.getByRole('button', { name: /retour/i }))
 
       await act(async () => {
         availableRoomsHandler?.([])
