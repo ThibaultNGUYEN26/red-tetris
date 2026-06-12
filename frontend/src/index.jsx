@@ -17,10 +17,12 @@ import Title from './components/Title/Title.jsx'
 import { socket } from './socket'
 import { AUTH_STORAGE_KEY, authFetchOptions } from './authToken'
 import { apiFetch } from './api'
+import { DEFAULT_LANGUAGE, isSupportedLanguage } from './i18n/playerStats'
 import bopSound from './res/sounds/bop.mp3'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const THEME_STORAGE_KEY = 'red-tetris-theme'
+const LANGUAGE_STORAGE_KEY = 'red-tetris-language'
 const DEFAULT_URL_AVATAR = {
   skinColor: '#cccccc',
   eyeType: 'normal',
@@ -113,6 +115,10 @@ function Index({ authMode = 'login' }) {
   const [theme, setTheme] = useState(() => (
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
   ))
+  const [language, setLanguage] = useState(() => {
+    const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+    return isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
+  })
   const [showRooms, setShowRooms] = useState(false)
   const [showGame, setShowGame] = useState(false)
   const [showSoloRoom, setShowSoloRoom] = useState(false)
@@ -511,6 +517,12 @@ function Index({ authMode = 'login' }) {
 
   const handleSoundChange = (enabled) => {
     setSoundEnabled(Boolean(enabled))
+  }
+
+  const handleLanguageChange = (nextLanguage) => {
+    const languageCode = isSupportedLanguage(nextLanguage) ? nextLanguage : DEFAULT_LANGUAGE
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, languageCode)
+    setLanguage(languageCode)
   }
 
   const handleReturnToProfile = async () => {
@@ -1105,6 +1117,7 @@ function Index({ authMode = 'login' }) {
                   theme={theme}
                   userProfile={userProfile}
                   username={username}
+                  language={language}
                 />
                 <Leaderboard theme={theme} />
               </>
@@ -1194,6 +1207,8 @@ function Index({ authMode = 'login' }) {
                       isMultiplayer={activeGameType !== 'solo'}
                       soundEnabled={soundEnabled}
                       onSoundChange={handleSoundChange}
+                      selectedLanguage={language}
+                      onLanguageChange={handleLanguageChange}
                     />
                   ) : (
                     <ModeMenuSelector

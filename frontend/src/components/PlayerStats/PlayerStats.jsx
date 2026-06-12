@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { apiFetch } from '../../api'
+import { getPlayerStatsTranslation } from '../../i18n/playerStats'
 
 const DEFAULT_ADVANCED = {
   timePlayed: {
@@ -74,10 +75,11 @@ const mergeAdvancedStats = (advanced = {}) => ({
   coop: { ...DEFAULT_ADVANCED.coop, ...(advanced.coop || {}) },
 })
 
-function PlayerStats({ theme, userProfile, username }) {
+function PlayerStats({ theme, userProfile, username, language = 'en' }) {
   const [stats, setStats] = useState(DEFAULT_STATS)
   const [loading, setLoading] = useState(true)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const t = getPlayerStatsTranslation(language)
 
   useEffect(() => {
     let cancelled = false
@@ -158,7 +160,7 @@ function PlayerStats({ theme, userProfile, username }) {
     return (
       <div className={`player-stats-panel ${theme === 'dark' ? 'dark' : ''}`}>
         <div className={`player-stats ${theme === 'dark' ? 'dark' : ''}`}>
-          <p className="loading">Loading stats...</p>
+          <p className="loading">{t.loadingStats}</p>
         </div>
       </div>
     )
@@ -186,57 +188,57 @@ function PlayerStats({ theme, userProfile, username }) {
           <button
             type="button"
             className="advanced-stats-close"
-            aria-label="Close advanced stats"
+            aria-label={t.closeAdvancedStats}
             onClick={() => setShowAdvanced(false)}
           >
             x
           </button>
-          <h3 id="advanced-stats-title" className="player-stats-title">Advanced Stats</h3>
+          <h3 id="advanced-stats-title" className="player-stats-title">{t.advancedStatsTitle}</h3>
           <section className="advanced-time-section">
-            <h4>Time played</h4>
+            <h4>{t.timePlayed}</h4>
             <div className="advanced-time-grid">
-              <Stat label="Total" value={formatDuration(stats.advanced.timePlayed.total)} />
-              <Stat label="Solo" value={formatDuration(stats.advanced.timePlayed.solo)} />
-              <Stat label="Co-op" value={formatDuration(stats.advanced.timePlayed.coop)} />
-              <Stat label="Multi" value={formatDuration(stats.advanced.timePlayed.multi)} />
+              <Stat label={t.total} value={formatDuration(stats.advanced.timePlayed.total)} />
+              <Stat label={t.solo} value={formatDuration(stats.advanced.timePlayed.solo)} />
+              <Stat label={t.coop} value={formatDuration(stats.advanced.timePlayed.coop)} />
+              <Stat label={t.multi} value={formatDuration(stats.advanced.timePlayed.multi)} />
             </div>
           </section>
           <div className="advanced-sections">
-            <AdvancedSection title="Solo" stats={[
-              ['Games', stats.advanced.solo.games],
-              ['Highest score', stats.advanced.solo.highestScore],
-              ['Average score', stats.advanced.solo.averageScore],
-              ['Highest level', stats.advanced.solo.highestLevel],
-              ['Highest lines', stats.advanced.solo.highestLines],
-              ['Total lines', stats.advanced.solo.totalLines],
-              ['Highest tetris', stats.advanced.solo.highestTetris],
-              ['Total tetris', stats.advanced.solo.totalTetris],
-              ['Longest game', formatDuration(stats.advanced.solo.longestGameSeconds)],
+            <AdvancedSection title={t.solo} stats={[
+              [t.games, stats.advanced.solo.games],
+              [t.highestScore, stats.advanced.solo.highestScore],
+              [t.averageScore, stats.advanced.solo.averageScore],
+              [t.highestLevel, stats.advanced.solo.highestLevel],
+              [t.highestLines, stats.advanced.solo.highestLines],
+              [t.totalLines, stats.advanced.solo.totalLines],
+              [t.highestTetris, stats.advanced.solo.highestTetris],
+              [t.totalTetris, stats.advanced.solo.totalTetris],
+              [t.longestGame, formatDuration(stats.advanced.solo.longestGameSeconds)],
             ]} />
-            <AdvancedSection title="Multi" stats={[
-              ['Games', stats.advanced.multi.games],
-              ['Win / Loss', `${stats.advanced.multi.wins} / ${stats.advanced.multi.losses}`],
-              ['W/L ratio', stats.advanced.multi.winLossRatio],
-              ['Highest score', stats.advanced.multi.highestScore],
-              ['Average score', stats.advanced.multi.averageScore],
-              ['Highest level', stats.advanced.multi.highestLevel],
-              ['Highest lines', stats.advanced.multi.highestLines],
-              ['Total lines', stats.advanced.multi.totalLines],
-              ['Highest sent', stats.advanced.multi.highestLinesSent],
-              ['Total sent', stats.advanced.multi.totalLinesSent],
-              ['Highest tetris', stats.advanced.multi.highestTetris],
-              ['Total tetris', stats.advanced.multi.totalTetris],
-              ['Longest game', formatDuration(stats.advanced.multi.longestGameSeconds)],
+            <AdvancedSection title={t.multi} stats={[
+              [t.games, stats.advanced.multi.games],
+              [t.winLoss, `${stats.advanced.multi.wins} / ${stats.advanced.multi.losses}`],
+              [t.winLossRatio, stats.advanced.multi.winLossRatio],
+              [t.highestScore, stats.advanced.multi.highestScore],
+              [t.averageScore, stats.advanced.multi.averageScore],
+              [t.highestLevel, stats.advanced.multi.highestLevel],
+              [t.highestLines, stats.advanced.multi.highestLines],
+              [t.totalLines, stats.advanced.multi.totalLines],
+              [t.highestSent, stats.advanced.multi.highestLinesSent],
+              [t.totalSent, stats.advanced.multi.totalLinesSent],
+              [t.highestTetris, stats.advanced.multi.highestTetris],
+              [t.totalTetris, stats.advanced.multi.totalTetris],
+              [t.longestGame, formatDuration(stats.advanced.multi.longestGameSeconds)],
             ]} />
-            <AdvancedSection title="Co-op" stats={[
-              ['Games', stats.advanced.coop.games],
-              ['Highest score', stats.advanced.coop.highestScore],
-              ['Highest level', stats.advanced.coop.highestLevel],
-              ['Highest lines', stats.advanced.coop.highestLines],
-              ['Total lines', stats.advanced.coop.totalLines],
-              ['Highest tetris', stats.advanced.coop.highestTetris],
-              ['Total tetris', stats.advanced.coop.totalTetris],
-              ['Longest game', formatDuration(stats.advanced.coop.longestGameSeconds)],
+            <AdvancedSection title={t.coop} stats={[
+              [t.games, stats.advanced.coop.games],
+              [t.highestScore, stats.advanced.coop.highestScore],
+              [t.highestLevel, stats.advanced.coop.highestLevel],
+              [t.highestLines, stats.advanced.coop.highestLines],
+              [t.totalLines, stats.advanced.coop.totalLines],
+              [t.highestTetris, stats.advanced.coop.highestTetris],
+              [t.totalTetris, stats.advanced.coop.totalTetris],
+              [t.longestGame, formatDuration(stats.advanced.coop.longestGameSeconds)],
             ]} />
           </div>
         </div>
@@ -249,7 +251,7 @@ function PlayerStats({ theme, userProfile, username }) {
     <>
       <div className={`player-stats-panel ${theme === 'dark' ? 'dark' : ''}`}>
         <div className={`player-stats ${theme === 'dark' ? 'dark' : ''}`}>
-          <h3 className="player-stats-title">Player Stats</h3>
+          <h3 className="player-stats-title">{t.playerStatsTitle}</h3>
 
           <div className="player-header">
             <FaceAvatar faceConfig={stats.avatar} size="medium" />
@@ -257,12 +259,12 @@ function PlayerStats({ theme, userProfile, username }) {
           </div>
 
           <div className="stats-grid">
-            <Stat label="Solo Games" value={stats.soloGames} />
-            <Stat label="Highest Solo Score" value={stats.soloTopScore.toLocaleString()} />
-            <Stat label="Multiplayer Games" value={stats.multiGames} />
-            <Stat label="Multiplayer Wins" value={stats.wins} />
-            <Stat label="Multiplayer Losses" value={stats.losses} />
-            <Stat label="Multiplayer Winrate" value={`${ratio}%`} highlight />
+            <Stat label={t.soloGames} value={stats.soloGames} />
+            <Stat label={t.highestSoloScore} value={stats.soloTopScore.toLocaleString()} />
+            <Stat label={t.multiplayerGames} value={stats.multiGames} />
+            <Stat label={t.multiplayerWins} value={stats.wins} />
+            <Stat label={t.multiplayerLosses} value={stats.losses} />
+            <Stat label={t.multiplayerWinrate} value={`${ratio}%`} highlight />
           </div>
 
           <button
@@ -270,7 +272,7 @@ function PlayerStats({ theme, userProfile, username }) {
             className="advanced-stats-button"
             onClick={() => setShowAdvanced(true)}
           >
-            Advanced stats
+            {t.advancedStatsButton}
           </button>
         </div>
       </div>

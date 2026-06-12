@@ -9,6 +9,8 @@ function ModeMenuSelector({
   onShowSoloRoom,
   soundEnabled,
   onSoundChange,
+  selectedLanguage,
+  onLanguageChange,
 }) {
   const [showOptions, setShowOptions] = useState(false)
 
@@ -36,6 +38,8 @@ function ModeMenuSelector({
         onThemeChange={onThemeChange}
         soundEnabled={soundEnabled}
         onSoundChange={onSoundChange}
+        selectedLanguage={selectedLanguage}
+        onLanguageChange={onLanguageChange}
       />
     )
   }

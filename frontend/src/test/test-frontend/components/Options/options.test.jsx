@@ -23,6 +23,8 @@ describe('Options Component', () => {
     expect(screen.getByRole('button', { name: /light theme/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sound/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /guide/i })).toHaveAttribute('href', '/tutorial')
+    expect(screen.getByRole('button', { name: /language/i })).toBeInTheDocument()
+    expect(screen.queryByLabelText(/language options/i)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument()
   })
 
@@ -67,5 +69,34 @@ describe('Options Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /dark theme/i }))
     expect(onThemeChange).toHaveBeenCalledWith('light')
     expect(screen.getByRole('button', { name: /sound/i })).toHaveTextContent(/disabled/i)
+  })
+
+  it('shows language choices after clicking language', () => {
+    const onLanguageChange = vi.fn()
+
+    render(
+      <Options
+        onBack={vi.fn()}
+        theme="light"
+        onThemeChange={vi.fn()}
+        soundEnabled
+        onSoundChange={vi.fn()}
+        selectedLanguage="fr"
+        onLanguageChange={onLanguageChange}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /language/i }))
+
+    expect(screen.getByLabelText(/language options/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'French' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Spanish' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Italian' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'German' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'French' })).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(screen.getByRole('button', { name: 'German' }))
+    expect(onLanguageChange).toHaveBeenCalledWith('de')
   })
 })

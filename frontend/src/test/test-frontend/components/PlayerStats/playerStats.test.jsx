@@ -174,6 +174,45 @@ describe('PlayerStats Component', () => {
     expect(screen.getByText('66.7%')).toBeInTheDocument()
   })
 
+  it('translates player stats labels for the selected language', async () => {
+    render(
+      <PlayerStats
+        theme="light"
+        language="fr"
+        userProfile={{
+          username: 'Titi',
+          soloGames: 2,
+          soloTopScore: 900,
+          multiGames: 1,
+          wins: 1,
+          losses: 0,
+          advanced: {
+            timePlayed: {
+              total: 125,
+            },
+            solo: {
+              totalLines: 12,
+            },
+          },
+        }}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Stats du joueur')).toBeInTheDocument()
+    })
+
+    expect(screen.getByText('Parties solo')).toBeInTheDocument()
+    expect(screen.getByText('Meilleur score solo')).toBeInTheDocument()
+    expect(screen.getByText('Taux de victoire multijoueur')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /stats avancees/i }))
+
+    expect(screen.getByRole('dialog', { name: /stats avancees/i })).toBeInTheDocument()
+    expect(screen.getByText('Temps joue')).toBeInTheDocument()
+    expect(screen.getAllByText('Lignes totales').length).toBeGreaterThan(0)
+  })
+
   it('uses default profile values when optional profile stats are missing', async () => {
     render(
       <PlayerStats
