@@ -81,6 +81,14 @@ function Game({
   onSoundChange,
 }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
+  const controls = [
+    { keys: 'Arrow Left / Right', action: 'Move' },
+    { keys: 'Arrow Up', action: 'Rotate' },
+    { keys: 'Arrow Down', action: 'Soft drop' },
+    { keys: 'Space', action: 'Hard drop' },
+    { keys: 'C / Shift', action: 'Hold' },
+    { keys: 'Escape', action: 'Options' },
+  ]
 
   const [board, setBoard] = useState(() => makeEmptyBoard(DEFAULT_BOARD))
   const [boardSize, setBoardSize] = useState(DEFAULT_BOARD)
@@ -867,6 +875,14 @@ function Game({
           </div>
         )}
       </div>
+      <aside className="game-controls-help" aria-label="Keyboard controls">
+        {controls.map(({ keys, action }) => (
+          <div className="control-hint" key={keys}>
+            <span className="control-key">{keys}</span>
+            <span className="control-action">{action}</span>
+          </div>
+        ))}
+      </aside>
     </div>
   )
 }

@@ -96,6 +96,9 @@ describe('Game Component', () => {
     expect(screen.getByRole('grid', { name: /tetris board/i })).toBeInTheDocument()
     expect(screen.getByRole('grid', { name: /next piece/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/keyboard controls/i)).toHaveTextContent('Arrow Left / Right')
+    expect(screen.getByLabelText(/keyboard controls/i)).toHaveTextContent('Space')
+    expect(screen.getByLabelText(/keyboard controls/i)).toHaveTextContent('Hard drop')
   })
 
   it('shows pause overlay on Escape and allows sound toggle', async () => {
