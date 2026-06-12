@@ -3,9 +3,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
 import { apiFetch } from './api'
+import { DEFAULT_LANGUAGE, isSupportedLanguage } from './i18n/playerStats'
 
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
+const LANGUAGE_STORAGE_KEY = 'red-tetris-language'
 const CONTACT_TIMEOUT_MS = 15000
 const CONTACT_OBJECT_MAX_LENGTH = 120
 const CONTACT_MESSAGE_MAX_LENGTH = 4000
@@ -227,6 +229,97 @@ const pages = {
   },
 }
 
+const localizedPages = {
+  fr: {
+    about: {
+      title: 'À propos de Red Tetris',
+      intro:
+        'Red Tetris est un projet de l’école 42 que nous avons réalisé en équipe de deux. L’objectif était de créer une version web de Tetris en temps réel, avec un mode solo, des salles coopératives, des salles multijoueur et un gameplay synchronisé.',
+      sections: [
+        {
+          title: 'Modes de jeu',
+          body:
+            'Le jeu propose un mode solo pour viser votre meilleur score, des salles coopératives où deux joueurs relèvent un défi commun, et des salles multijoueur où les joueurs s’affrontent en temps réel. En multijoueur compétitif, supprimer des lignes peut envoyer des pénalités aux adversaires, ce qui rend chaque partie plus stratégique.',
+        },
+        {
+          title: 'Profils et scores',
+          body:
+            'Les profils des joueurs conservent des statistiques utiles comme les meilleurs scores, les parties jouées, les lignes supprimées, les niveaux atteints, les résultats solo, les scores coopératifs et les résultats multijoueur, afin de suivre leur progression au fil du temps.',
+        },
+        {
+          title: 'Projet',
+          body:
+            'Ce projet a été développé à 42 par une équipe de deux personnes. Nous avons créé le frontend avec React et utilisé Socket.IO pour gérer la communication en temps réel entre les joueurs. Le backend gère les salles, l’état du jeu, la synchronisation, les scores et les événements multijoueur.',
+        },
+      ],
+    },
+    contact: {
+      title: 'Contact',
+      intro: 'Envoyez vos signalements de bugs, suggestions, questions de compte ou demandes de confidentialité directement à la boîte mail de Red Tetris. Les réponses sont envoyées à l’adresse e-mail liée à votre compte ou à celle que vous indiquez dans le formulaire.',
+      sections: [
+        {
+          title: 'Signalements de bugs',
+          body: 'Indiquez ce qui s’est passé, ce que vous attendiez, ainsi que la salle ou la page où le problème est apparu.',
+        },
+        {
+          title: 'Suggestions',
+          body: 'Partagez vos idées de modes de jeu, de contrôles, de fonctionnalités de profil, de score, ou tout ce qui pourrait améliorer le site.',
+        },
+        {
+          title: 'Demandes de confidentialité',
+          body:
+            'Pour les demandes d’accès, de correction, de suppression ou d’opposition, indiquez le nom d’utilisateur et l’e-mail enregistré associés au compte afin que la demande puisse être vérifiée.',
+        },
+      ],
+    },
+  },
+}
+
+const contactTranslations = {
+  en: {
+    captchaLoadError: 'Unable to load captcha',
+    captchaLoadStatus: 'Unable to load captcha. Please refresh the page.',
+    requiredObjectAndMessage: 'Object and message are required.',
+    requiredEmail: 'Email is required.',
+    objectTooLong: `Object must be ${CONTACT_OBJECT_MAX_LENGTH} characters or fewer.`,
+    messageTooLong: `Message must be ${CONTACT_MESSAGE_MAX_LENGTH} characters or fewer.`,
+    requiredCaptcha: 'Captcha answer is required.',
+    sendError: 'Unable to send message',
+    sendSuccess: 'Message sent.',
+    mailTimeout: 'Mail server timeout. Please try again later.',
+    objectLabel: 'Object',
+    objectPlaceholder: 'Bug report or suggestion',
+    messagePlaceholder: 'Describe the issue or idea...',
+    emailPlaceholder: 'Your email',
+    captchaLoading: 'Loading...',
+    captchaPlaceholder: 'Answer',
+    refreshCaptcha: 'Refresh captcha',
+    sending: 'Sending...',
+    sendMessage: 'Send message',
+  },
+  fr: {
+    captchaLoadError: 'Impossible de charger le captcha',
+    captchaLoadStatus: 'Impossible de charger le captcha. Veuillez actualiser la page.',
+    requiredObjectAndMessage: 'L’objet et le message sont obligatoires.',
+    requiredEmail: 'L’e-mail est obligatoire.',
+    objectTooLong: `L’objet doit contenir ${CONTACT_OBJECT_MAX_LENGTH} caractères ou moins.`,
+    messageTooLong: `Le message doit contenir ${CONTACT_MESSAGE_MAX_LENGTH} caractères ou moins.`,
+    requiredCaptcha: 'La réponse au captcha est obligatoire.',
+    sendError: 'Impossible d’envoyer le message',
+    sendSuccess: 'Message envoyé.',
+    mailTimeout: 'Délai d’attente du serveur mail dépassé. Veuillez réessayer plus tard.',
+    objectLabel: 'Objet',
+    objectPlaceholder: 'Signalement de bug ou suggestion',
+    messagePlaceholder: 'Décrivez le problème ou l’idée...',
+    emailPlaceholder: 'Votre e-mail',
+    captchaLoading: 'Chargement...',
+    captchaPlaceholder: 'Réponse',
+    refreshCaptcha: 'Actualiser le captcha',
+    sending: 'Envoi...',
+    sendMessage: 'Envoyer le message',
+  },
+}
+
 const tutorialCells = Array.from({ length: 140 }, (_, index) => index)
 const tutorialPieceBlocks = [
   { row: 1, col: 5 },
@@ -376,7 +469,12 @@ function TutorialBoardDemo({ demo }) {
 }
 
 function InfoPage({ type }) {
-  const page = pages[type] || pages.about
+  const [language] = useState(() => {
+    const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+    return isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
+  })
+  const page = localizedPages[language]?.[type] || pages[type] || pages.about
+  const contactText = contactTranslations[language] || contactTranslations[DEFAULT_LANGUAGE]
   const isTutorialPage = type === 'tutorial'
   const [theme] = useState(() => (
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
@@ -419,7 +517,7 @@ function InfoPage({ type }) {
       const payload = await response.json().catch(() => ({}))
 
       if (!response.ok || !payload?.question || !payload?.token) {
-        throw new Error('Unable to load captcha')
+        throw new Error(contactText.captchaLoadError)
       }
 
       setContactCaptcha({
@@ -431,12 +529,12 @@ function InfoPage({ type }) {
       setContactCaptcha({ question: '', token: '' })
       setContactStatus({
         type: 'error',
-        message: 'Unable to load captcha. Please refresh the page.',
+        message: contactText.captchaLoadStatus,
       })
     } finally {
       setIsContactCaptchaLoading(false)
     }
-  }, [])
+  }, [contactText])
 
   useEffect(() => {
     if (theme !== 'dark' || !starsRef.current) return
@@ -472,27 +570,27 @@ function InfoPage({ type }) {
     const captchaAnswer = contactCaptchaAnswer.trim()
 
     if (!object || !message) {
-      setContactStatus({ type: 'error', message: 'Object and message are required.' })
+      setContactStatus({ type: 'error', message: contactText.requiredObjectAndMessage })
       return
     }
 
     if (!userEmail) {
-      setContactStatus({ type: 'error', message: 'Email is required.' })
+      setContactStatus({ type: 'error', message: contactText.requiredEmail })
       return
     }
 
     if (object.length > CONTACT_OBJECT_MAX_LENGTH) {
-      setContactStatus({ type: 'error', message: `Object must be ${CONTACT_OBJECT_MAX_LENGTH} characters or fewer.` })
+      setContactStatus({ type: 'error', message: contactText.objectTooLong })
       return
     }
 
     if (message.length > CONTACT_MESSAGE_MAX_LENGTH) {
-      setContactStatus({ type: 'error', message: `Message must be ${CONTACT_MESSAGE_MAX_LENGTH} characters or fewer.` })
+      setContactStatus({ type: 'error', message: contactText.messageTooLong })
       return
     }
 
     if (!contactCaptcha.token || !captchaAnswer) {
-      setContactStatus({ type: 'error', message: 'Captcha answer is required.' })
+      setContactStatus({ type: 'error', message: contactText.requiredCaptcha })
       return
     }
 
@@ -519,21 +617,21 @@ function InfoPage({ type }) {
       const payload = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        throw new Error(payload?.error || 'Unable to send message')
+        throw new Error(payload?.error || contactText.sendError)
       }
 
       setContactObject('')
       setContactMessage('')
       setContactEmail('')
       await loadContactCaptcha()
-      setContactStatus({ type: 'success', message: 'Message sent.' })
+      setContactStatus({ type: 'success', message: contactText.sendSuccess })
     } catch (err) {
       await loadContactCaptcha()
       setContactStatus({
         type: 'error',
         message: err?.name === 'AbortError'
-          ? 'Mail server timeout. Please try again later.'
-          : err?.message || 'Unable to send message',
+          ? contactText.mailTimeout
+          : err?.message || contactText.sendError,
       })
     } finally {
       clearTimeout(timeoutId)
@@ -748,14 +846,14 @@ function InfoPage({ type }) {
 
           {type === 'contact' && (
             <form className="contact-form" onSubmit={handleContactSubmit}>
-              <label htmlFor="contact-object">Object</label>
+              <label htmlFor="contact-object">{contactText.objectLabel}</label>
               <input
                 id="contact-object"
                 type="text"
                 value={contactObject}
                 onChange={(event) => setContactObject(event.target.value)}
                 maxLength={CONTACT_OBJECT_MAX_LENGTH}
-                placeholder="Bug report or suggestion"
+                placeholder={contactText.objectPlaceholder}
                 disabled={isContactSending}
               />
 
@@ -766,7 +864,7 @@ function InfoPage({ type }) {
                 onChange={(event) => setContactMessage(event.target.value)}
                 maxLength={CONTACT_MESSAGE_MAX_LENGTH}
                 rows={7}
-                placeholder="Describe the issue or idea..."
+                placeholder={contactText.messagePlaceholder}
                 disabled={isContactSending}
               />
               <p className="contact-character-count">
@@ -781,7 +879,7 @@ function InfoPage({ type }) {
                     type="email"
                     value={contactEmail}
                     onChange={(event) => setContactEmail(event.target.value)}
-                    placeholder="Your email"
+                    placeholder={contactText.emailPlaceholder}
                     disabled={isContactSending}
                   />
                 </>
@@ -789,7 +887,7 @@ function InfoPage({ type }) {
 
               <div className="contact-captcha">
                 <label htmlFor="contact-captcha">
-                  Captcha: {contactCaptcha.question || 'Loading...'}
+                  Captcha: {contactCaptcha.question || contactText.captchaLoading}
                 </label>
                 <div className="contact-captcha-row">
                   <input
@@ -798,7 +896,7 @@ function InfoPage({ type }) {
                     inputMode="numeric"
                     value={contactCaptchaAnswer}
                     onChange={(event) => setContactCaptchaAnswer(event.target.value)}
-                    placeholder="Answer"
+                    placeholder={contactText.captchaPlaceholder}
                     disabled={isContactSending || isContactCaptchaLoading || !contactCaptcha.token}
                   />
                   <button
@@ -806,7 +904,7 @@ function InfoPage({ type }) {
                     type="button"
                     onClick={loadContactCaptcha}
                     disabled={isContactSending || isContactCaptchaLoading}
-                    aria-label="Refresh captcha"
+                    aria-label={contactText.refreshCaptcha}
                   >
                     ↻
                   </button>
@@ -836,7 +934,7 @@ function InfoPage({ type }) {
                 type="submit"
                 disabled={isContactSending}
               >
-                {isContactSending ? 'Sending...' : 'Send message'}
+                {isContactSending ? contactText.sending : contactText.sendMessage}
               </button>
             </form>
           )}
