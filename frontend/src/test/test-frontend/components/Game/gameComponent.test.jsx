@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+﻿import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { socket } from '../../../../socket'
@@ -31,7 +31,7 @@ vi.mock('../../../../components/GameOver/GameOver', () => ({
       </span>
       {onSpectate && (
         <button type="button" onClick={onSpectate}>
-          Spectate
+          Regarder
         </button>
       )}
     </div>
@@ -93,12 +93,12 @@ describe('Game Component', () => {
       />
     )
 
-    expect(screen.getByRole('grid', { name: /tetris board/i })).toBeInTheDocument()
-    expect(screen.getByRole('grid', { name: /next piece/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
-    expect(screen.getByLabelText(/keyboard controls/i)).toHaveTextContent('Arrow Left / Right')
-    expect(screen.getByLabelText(/keyboard controls/i)).toHaveTextContent('Space')
-    expect(screen.getByLabelText(/keyboard controls/i)).toHaveTextContent('Hard drop')
+    expect(screen.getByRole('grid', { name: /plateau de tetris/i })).toBeInTheDocument()
+    expect(screen.getByRole('grid', { name: /pièce suivante/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /paramètres/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/contrôles au clavier/i)).toHaveTextContent('Flèche gauche / droite')
+    expect(screen.getByLabelText(/contrôles au clavier/i)).toHaveTextContent('Espace')
+    expect(screen.getByLabelText(/contrôles au clavier/i)).toHaveTextContent('Chute instantanée')
   })
 
   it('shows pause overlay on Escape and allows sound toggle', async () => {
@@ -122,11 +122,11 @@ describe('Game Component', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /sound: on/i }))
+    fireEvent.click(screen.getByRole('button', { name: /son : activé/i }))
     expect(onSoundChange).toHaveBeenCalledWith(false)
 
-    expect(screen.getByRole('button', { name: /resume/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /leave game/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /reprendre/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /quitter la partie/i })).toBeInTheDocument()
   })
 
   it('resumes and leaves a local game from the pause overlay', async () => {
@@ -143,16 +143,16 @@ describe('Game Component', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /options/i }))
-    expect(screen.getByRole('dialog')).toHaveTextContent('Paused')
+    fireEvent.click(screen.getByRole('button', { name: /paramètres/i }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('Pause')
 
-    fireEvent.click(screen.getByRole('button', { name: /resume/i }))
+    fireEvent.click(screen.getByRole('button', { name: /reprendre/i }))
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /options/i }))
-    fireEvent.click(screen.getByRole('button', { name: /leave game/i }))
+    fireEvent.click(screen.getByRole('button', { name: /paramètres/i }))
+    fireEvent.click(screen.getByRole('button', { name: /quitter la partie/i }))
 
     expect(onBack).toHaveBeenCalled()
   })
@@ -264,7 +264,7 @@ describe('Game Component', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByRole('grid', { name: /tetris board/i })).toBeInTheDocument()
+      expect(screen.getByRole('grid', { name: /plateau de tetris/i })).toBeInTheDocument()
     })
   })
 
@@ -307,7 +307,7 @@ describe('Game Component', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('YOU ROTATE')).toBeInTheDocument()
+      expect(screen.getByText('ROTATION')).toBeInTheDocument()
     })
   })
 
@@ -349,7 +349,7 @@ describe('Game Component', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('Playing: Riri')).toBeInTheDocument()
+      expect(screen.getByText('Joue : Riri')).toBeInTheDocument()
     })
 
     expect(container.querySelector('.game-screen.dark')).toBeTruthy()
@@ -389,8 +389,8 @@ describe('Game Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/1\D?234/)).toBeInTheDocument()
-      expect(screen.getByRole('grid', { name: /next piece/i }).querySelectorAll('.cell-t')).toHaveLength(4)
-      expect(screen.getByRole('grid', { name: /hold piece/i }).querySelectorAll('.cell-o')).toHaveLength(4)
+      expect(screen.getByRole('grid', { name: /pièce suivante/i }).querySelectorAll('.cell-t')).toHaveLength(4)
+      expect(screen.getByRole('grid', { name: /pièce en réserve/i }).querySelectorAll('.cell-o')).toHaveLength(4)
     })
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' })
@@ -452,7 +452,7 @@ describe('Game Component', () => {
       })
     })
 
-    const cells = () => screen.getByRole('grid', { name: /tetris board/i }).querySelectorAll('.cell')
+    const cells = () => screen.getByRole('grid', { name: /plateau de tetris/i }).querySelectorAll('.cell')
 
     expect(cells()[12]).toHaveClass('cell-empty')
     expect(cells()[13]).toHaveClass('cell-i')
@@ -673,7 +673,7 @@ describe('Game Component', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /paramètres/i })).toBeInTheDocument()
     })
 
     socket.emit.mockClear()
@@ -693,25 +693,25 @@ describe('Game Component', () => {
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'drop' })
 
     fireEvent.keyDown(window, { key: 'Escape' })
-    expect(screen.getByRole('dialog')).toHaveTextContent('Game Menu')
-    fireEvent.click(screen.getByRole('button', { name: /resume/i }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('Menu de jeu')
+    fireEvent.click(screen.getByRole('button', { name: /reprendre/i }))
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /options/i }))
-    expect(screen.getByRole('dialog')).toHaveTextContent('Game Menu')
+    fireEvent.click(screen.getByRole('button', { name: /paramètres/i }))
+    expect(screen.getByRole('dialog')).toHaveTextContent('Menu de jeu')
 
-    fireEvent.click(screen.getByRole('button', { name: /sound: off/i }))
+    fireEvent.click(screen.getByRole('button', { name: /son : désactivé/i }))
     expect(onSoundChange).toHaveBeenCalledWith(true)
 
-    fireEvent.click(screen.getByRole('button', { name: /resume/i }))
+    fireEvent.click(screen.getByRole('button', { name: /reprendre/i }))
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /options/i }))
-    fireEvent.click(screen.getByRole('button', { name: /leave game/i }))
+    fireEvent.click(screen.getByRole('button', { name: /paramètres/i }))
+    fireEvent.click(screen.getByRole('button', { name: /quitter la partie/i }))
     expect(socket.emit).toHaveBeenCalledWith(
       'playerLeave',
       expect.objectContaining({ roomId: '1' }),
@@ -745,7 +745,7 @@ describe('Game Component', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('YOU ROTATE')).toBeInTheDocument()
+      expect(screen.getByText('ROTATION')).toBeInTheDocument()
     })
 
     socket.emit.mockClear()
@@ -784,7 +784,7 @@ describe('Game Component', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('YOU PLACE')).toBeInTheDocument()
+      expect(screen.getByText('PLACEMENT')).toBeInTheDocument()
     })
 
     socket.emit.mockClear()
@@ -878,7 +878,7 @@ describe('Game Component', () => {
       })
     })
 
-    expect(screen.getByText('Playing: ...')).toBeInTheDocument()
+    expect(screen.getByText('Joue : ...')).toBeInTheDocument()
 
     await act(async () => {
       getSocketHandler('gameState')?.({
@@ -891,7 +891,7 @@ describe('Game Component', () => {
       })
     })
 
-    expect(screen.getByText('YOUR TURN')).toBeInTheDocument()
+    expect(screen.getByText('À VOUS')).toBeInTheDocument()
 
     rerender(
       <Game
@@ -915,7 +915,7 @@ describe('Game Component', () => {
       })
     })
 
-    expect(screen.getByText('ASSIGNING ROLE...')).toBeInTheDocument()
+    expect(screen.getByText('ATTRIBUTION DU RÔLE...')).toBeInTheDocument()
   })
 
   it('marks the player eliminated from playerState updates', async () => {
@@ -1009,8 +1009,8 @@ describe('Game Component', () => {
 
     expect(document.querySelectorAll('.game-board .cell')).toHaveLength(200)
 
-    fireEvent.click(screen.getByRole('button', { name: /options/i }))
-    fireEvent.click(screen.getByRole('button', { name: /leave game/i }))
+    fireEvent.click(screen.getByRole('button', { name: /paramètres/i }))
+    fireEvent.click(screen.getByRole('button', { name: /quitter la partie/i }))
 
     await act(async () => {
       getSocketHandler('roomState')?.({ id: 1, game_mode: 'giant' })
@@ -1110,7 +1110,7 @@ describe('Game Component', () => {
       })
     })
 
-    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+    const boardElement = screen.getByRole('grid', { name: /plateau de tetris/i })
 
     await waitFor(() => {
       expect(boardElement).toHaveClass('board-flash-level')
@@ -1171,7 +1171,7 @@ describe('Game Component', () => {
       />
     )
 
-    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+    const boardElement = screen.getByRole('grid', { name: /plateau de tetris/i })
 
     await act(async () => {
       getSocketHandler('gameState')?.({
@@ -1336,10 +1336,10 @@ describe('Game Component', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /spectate/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /regarder/i })).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+    fireEvent.click(screen.getByRole('button', { name: /regarder/i }))
 
     expect(onSpectate).toHaveBeenCalled()
     expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
@@ -1369,7 +1369,7 @@ describe('Game Component', () => {
       })
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+    fireEvent.click(screen.getByRole('button', { name: /regarder/i }))
 
     expect(container.querySelector('.game-screen.dark')).toBeTruthy()
     expect(screen.getByTestId('spectator-view')).toBeInTheDocument()

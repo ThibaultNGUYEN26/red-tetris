@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+﻿import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
@@ -47,7 +47,7 @@ vi.mock('../../../components/SpectatorView/SpectatorView.jsx', () => ({
   default: ({ onBack, username }) => (
     <div data-testid="spectator-view">
       <span data-testid="spectator-username">{username}</span>
-      <button type="button" onClick={onBack}>Back</button>
+      <button type="button" onClick={onBack}>Retour</button>
     </div>
   ),
 }))
@@ -169,14 +169,14 @@ describe('Spectate page', () => {
     render(<Spectate />)
 
     await waitFor(() => {
-      expect(screen.getByText('Missing username in spectator URL.')).toBeInTheDocument()
+      expect(screen.getByText('Pseudo manquant dans l’URL spectateur.')).toBeInTheDocument()
     })
 
     expect(document.querySelector('.sky-background.dark')).toBeInTheDocument()
     expect(document.querySelector('.stars')).toBeInTheDocument()
     expect(mocks.apiFetch).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: /back/i }))
+    fireEvent.click(screen.getByRole('button', { name: /retour/i }))
     expect(mocks.navigate).toHaveBeenCalledWith('/')
   })
 
@@ -187,7 +187,7 @@ describe('Spectate page', () => {
     render(<Spectate />)
 
     await waitFor(() => {
-      expect(screen.getByText('Missing username in spectator URL.')).toBeInTheDocument()
+      expect(screen.getByText('Pseudo manquant dans l’URL spectateur.')).toBeInTheDocument()
     })
   })
 
@@ -197,7 +197,7 @@ describe('Spectate page', () => {
     render(<Spectate />)
 
     await waitFor(() => {
-      expect(screen.getByText('Missing username in spectator URL.')).toBeInTheDocument()
+      expect(screen.getByText('Pseudo manquant dans l’URL spectateur.')).toBeInTheDocument()
     })
   })
 
@@ -210,7 +210,7 @@ describe('Spectate page', () => {
     render(<Spectate />)
 
     await waitFor(() => {
-      expect(screen.getByText('Room not found')).toBeInTheDocument()
+      expect(screen.getByText('Salle introuvable')).toBeInTheDocument()
     })
   })
 
@@ -227,7 +227,7 @@ describe('Spectate page', () => {
     render(<Spectate />)
 
     await waitFor(() => {
-      expect(screen.getByText('Spectator not allowed')).toBeInTheDocument()
+      expect(screen.getByText('Spectateur non autorisé')).toBeInTheDocument()
     })
   })
 
@@ -316,7 +316,7 @@ describe('Spectate page', () => {
       })
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /back/i }))
+    fireEvent.click(screen.getByRole('button', { name: /retour/i }))
     expect(mocks.navigate).toHaveBeenCalledWith('/')
 
     unmount()
@@ -344,10 +344,10 @@ describe('Spectate page', () => {
       gameOverHandler?.({ winner: 'Riri' })
     })
 
-    expect(screen.getByRole('dialog')).toHaveTextContent('Game Over')
-    expect(screen.getByText('Winner: Riri')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toHaveTextContent('Partie terminée')
+    expect(screen.getByText('Vainqueur : Riri')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+    fireEvent.click(screen.getByRole('button', { name: /rejouer/i }))
 
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith('/Room-1/multi/Titi')
@@ -363,7 +363,7 @@ describe('Spectate page', () => {
     const navigateCallOrder = mocks.navigate.mock.invocationCallOrder[0]
     expect(leaveCallOrder).toBeLessThan(navigateCallOrder)
 
-    fireEvent.click(screen.getByRole('button', { name: /back to menu/i }))
+    fireEvent.click(screen.getByRole('button', { name: /retour au menu/i }))
     expect(mocks.navigate).toHaveBeenCalledWith('/')
   })
 
@@ -384,7 +384,7 @@ describe('Spectate page', () => {
       gameOverHandler?.({ winner: 'Titi' })
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+    fireEvent.click(screen.getByRole('button', { name: /rejouer/i }))
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith('/SoloRoom/Titi')
     })
@@ -418,7 +418,7 @@ describe('Spectate page', () => {
       gameOverHandler?.({ winner: 'Titi' })
     })
 
-    const playAgainButton = screen.getByRole('button', { name: /play again/i })
+    const playAgainButton = screen.getByRole('button', { name: /rejouer/i })
     fireEvent.click(playAgainButton)
     fireEvent.click(playAgainButton)
 
@@ -448,7 +448,7 @@ describe('Spectate page', () => {
       gameOverHandler?.({})
     })
 
-    expect(screen.getByText('No winner')).toBeInTheDocument()
+      expect(screen.getByText('Aucun vainqueur')).toBeInTheDocument()
   })
 
   it('renders the dark loading state while room lookup is pending', () => {
@@ -457,7 +457,7 @@ describe('Spectate page', () => {
 
     render(<Spectate />)
 
-    expect(screen.getByText(/loading spectator view/i)).toBeInTheDocument()
+    expect(screen.getByText(/chargement du mode spectateur/i)).toBeInTheDocument()
     expect(document.querySelector('.sky-background.dark')).toBeInTheDocument()
     expect(document.querySelector('.game-screen.dark')).toBeInTheDocument()
     expect(document.querySelector('.stars')).toBeInTheDocument()
@@ -468,7 +468,7 @@ describe('Spectate page', () => {
 
     render(<Spectate />)
 
-    expect(screen.getByText(/loading spectator view/i)).toBeInTheDocument()
+    expect(screen.getByText(/chargement du mode spectateur/i)).toBeInTheDocument()
     expect(mocks.apiFetch).not.toHaveBeenCalled()
     expect(mocks.socket.emit).not.toHaveBeenCalled()
   })

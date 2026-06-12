@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+﻿import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import GameOver from '../../../../components/GameOver/GameOver.jsx'
@@ -32,8 +32,8 @@ describe('GameOver Component', () => {
       />
     )
 
-    expect(screen.getByRole('heading', { name: /game over/i })).toBeInTheDocument()
-    expect(screen.getByText('Winner: Titi')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /partie terminée/i })).toBeInTheDocument()
+    expect(screen.getByText('Vainqueur : Titi')).toBeInTheDocument()
   })
 
   it('shows Game Over title in cooperative_roles too', () => {
@@ -49,7 +49,7 @@ describe('GameOver Component', () => {
       />
     )
 
-    expect(screen.getByRole('heading', { name: /game over/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /partie terminée/i })).toBeInTheDocument()
   })
 
   it('shows win/lose title in multiplayer versus modes', () => {
@@ -65,8 +65,8 @@ describe('GameOver Component', () => {
       />
     )
 
-    expect(screen.getByRole('heading', { name: /you won/i })).toBeInTheDocument()
-    expect(screen.getByText('Winner: Titi')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /vous avez gagné/i })).toBeInTheDocument()
+    expect(screen.getByText('Vainqueur : Titi')).toBeInTheDocument()
 
     rerender(
       <GameOver
@@ -80,8 +80,8 @@ describe('GameOver Component', () => {
       />
     )
 
-    expect(screen.getByRole('heading', { name: /you lost/i })).toBeInTheDocument()
-    expect(screen.getByText('Winner: Other')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /vous avez perdu/i })).toBeInTheDocument()
+    expect(screen.getByText('Vainqueur : Other')).toBeInTheDocument()
   })
 
   it('shows play again and spectate when applicable', () => {
@@ -102,7 +102,7 @@ describe('GameOver Component', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+    fireEvent.click(screen.getByRole('button', { name: /rejouer/i }))
     expect(onPlayAgain).toHaveBeenCalled()
   })
 
@@ -122,7 +122,7 @@ describe('GameOver Component', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+    fireEvent.click(screen.getByRole('button', { name: /regarder/i }))
     expect(onSpectate).toHaveBeenCalled()
   })
 
@@ -141,7 +141,7 @@ describe('GameOver Component', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /back to menu/i }))
+    fireEvent.click(screen.getByRole('button', { name: /retour au menu/i }))
     expect(onBack).toHaveBeenCalled()
   })
 })

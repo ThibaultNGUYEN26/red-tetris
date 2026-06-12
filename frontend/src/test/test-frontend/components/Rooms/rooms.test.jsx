@@ -39,9 +39,9 @@ vi.mock('../../../../components/CreateRoom/CreateRoom.jsx', () => ({
 vi.mock('../../../../components/Game/Game.jsx', () => ({
   default: ({ onPlayAgain, onBack, onSpectate }) => (
     <div data-testid="game-mock">
-      <button onClick={onPlayAgain}>Play again</button>
-      <button onClick={onBack}>Back to menu</button>
-      <button onClick={onSpectate}>Spectate</button>
+      <button onClick={onPlayAgain}>Rejouer</button>
+      <button onClick={onBack}>Retour au menu</button>
+      <button onClick={onSpectate}>Regarder</button>
     </div>
   )
 }))
@@ -1392,7 +1392,7 @@ describe('Rooms Component', () => {
 
       socket.emit.mockClear()
       navigateMock.mockClear()
-      fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+      fireEvent.click(screen.getByRole('button', { name: /regarder/i }))
 
       expect(socket.emit).not.toHaveBeenCalledWith(
         'playerLeave',
@@ -1430,7 +1430,7 @@ describe('Rooms Component', () => {
       })
 
       navigateMock.mockClear()
-      fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
+      fireEvent.click(screen.getByRole('button', { name: /regarder/i }))
 
       expect(navigateMock).not.toHaveBeenCalled()
     })
@@ -1464,7 +1464,7 @@ describe('Rooms Component', () => {
         expect(screen.getByTestId('game-mock')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+      fireEvent.click(screen.getByRole('button', { name: /rejouer/i }))
 
       expect(socket.emit).toHaveBeenCalledWith(
         'playAgain',
@@ -1513,7 +1513,7 @@ describe('Rooms Component', () => {
         expect(screen.getByTestId('game-mock')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /play again/i }))
+      fireEvent.click(screen.getByRole('button', { name: /rejouer/i }))
 
       const roomStateCallback = socket.on.mock.calls
         .filter(call => call[0] === 'roomState')
@@ -1562,7 +1562,7 @@ describe('Rooms Component', () => {
         expect(screen.getByTestId('game-mock')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /back to menu/i }))
+      fireEvent.click(screen.getByRole('button', { name: /retour au menu/i }))
 
       await waitFor(() => {
         expect(socket.emit).toHaveBeenCalledWith(

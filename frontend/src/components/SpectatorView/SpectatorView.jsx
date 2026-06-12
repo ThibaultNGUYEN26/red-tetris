@@ -107,9 +107,9 @@ function SpectatorView({ players, onBack, username }) {
   if (!current) {
     return (
       <div className="spectator-empty">
-        <h3>Spectator Mode</h3>
-        <p>No players to watch.</p>
-        <button className="back-button" onClick={onBack}>Back</button>
+        <h3>Mode spectateur</h3>
+        <p>Aucun joueur à regarder.</p>
+        <button className="back-button" onClick={onBack}>Retour</button>
       </div>
     )
   }
@@ -120,7 +120,7 @@ function SpectatorView({ players, onBack, username }) {
         <div className="game-title">
           <div className="spectator-info">
             <div className="spectator-title">
-              Spectating <span className="spectator-name">{current.username}</span>
+              Spectateur de <span className="spectator-name">{current.username}</span>
             </div>
             <div className="spectator-controls">
               <button
@@ -129,19 +129,19 @@ function SpectatorView({ players, onBack, username }) {
                 disabled={list.length <= 1}
               >
                 <span className="spectator-btn-icon">←</span>
-                Prev
+                Précédent
               </button>
               <button
                 className="spectator-btn spectator-btn-next"
                 onClick={() => setIndex((prev) => (prev + 1) % list.length)}
                 disabled={list.length <= 1}
               >
-                Next
+                Suivant
                 <span className="spectator-btn-icon">→</span>
               </button>
             </div>
             <div className="spectator-actions">
-              <button className="back-button" onClick={onBack}>Back</button>
+              <button className="back-button" onClick={onBack}>Retour</button>
             </div>
           </div>
         </div>
@@ -151,11 +151,11 @@ function SpectatorView({ players, onBack, username }) {
             <span className="stat-value">{(current.score ?? 0).toLocaleString()}</span>
           </div>
           <div className="stat">
-            <span className="stat-label">Lines</span>
+            <span className="stat-label">Lignes</span>
             <span className="stat-value">{(current.lines ?? 0).toLocaleString()}</span>
           </div>
           <div className="stat">
-            <span className="stat-label">Level</span>
+            <span className="stat-label">Niveau</span>
             <span className="stat-value">{(current.level ?? 1).toLocaleString()}</span>
           </div>
         </div>
@@ -163,8 +163,8 @@ function SpectatorView({ players, onBack, username }) {
 
       <div className="game-layout spectator-layout">
         <div className="hold-panel">
-          <h3>Hold</h3>
-          <div className="next-grid piece-preview-grid" role="grid" aria-label="Hold piece">
+          <h3>Réserve</h3>
+          <div className="next-grid piece-preview-grid" role="grid" aria-label="Pièce en réserve">
             <div
               style={{
                 display: 'grid',
@@ -188,7 +188,7 @@ function SpectatorView({ players, onBack, username }) {
         <div
           className="game-board"
           role="grid"
-          aria-label="Tetris board"
+          aria-label="Plateau de Tetris"
           style={{
             gridTemplateColumns: `repeat(${boardWidth}, var(--cell-size))`,
             gridTemplateRows: `repeat(${boardHeight}, var(--cell-size))`,
@@ -206,8 +206,8 @@ function SpectatorView({ players, onBack, username }) {
         </div>
 
         <div className="side-panel">
-          <h3>Next</h3>
-          <div className="next-grid" role="grid" aria-label="Next piece">
+          <h3>Suivante</h3>
+          <div className="next-grid" role="grid" aria-label="Pièce suivante">
             <div
               style={{
                 display: 'grid',

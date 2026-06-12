@@ -69,7 +69,7 @@ function Spectate() {
   useEffect(() => {
     if (!roomName) return
     if (!spectatorUsername) {
-      setError('Missing username in spectator URL.')
+      setError('Pseudo manquant dans l’URL spectateur.')
       setLoading(false)
       return
     }
@@ -77,11 +77,11 @@ function Spectate() {
     const fetchRoom = async () => {
       try {
         const res = await apiFetch(`/api/rooms/by-name/${encodeURIComponent(roomName)}`)
-        if (!res.ok) throw new Error('Room not found')
+        if (!res.ok) throw new Error('Salle introuvable')
         const room = await res.json()
         setRoomId(room.id)
       } catch {
-        setError('Room not found')
+        setError('Salle introuvable')
         setLoading(false)
       }
     }
@@ -113,7 +113,7 @@ function Spectate() {
         if (cancelled) return
         if (!res?.ok) {
           joinedSpectatorRef.current = false
-          setError(res?.error || 'Spectator not allowed')
+          setError(res?.error || 'Spectateur non autorisé')
           setLoading(false)
           return
         }
@@ -146,7 +146,7 @@ function Spectate() {
         <div className="content-wrapper">
           <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
             <div className="game-card spectator-empty">
-              <p>Loading spectator view…</p>
+              <p>Chargement du mode spectateur…</p>
             </div>
           </div>
         </div>
@@ -165,7 +165,7 @@ function Spectate() {
           <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
             <div className="game-card spectator-empty">
               <p>{error}</p>
-              <button className="back-button" onClick={() => navigate('/')}>Back</button>
+              <button className="back-button" onClick={() => navigate('/')}>Retour</button>
             </div>
           </div>
         </div>
@@ -185,18 +185,18 @@ function Spectate() {
             {isGameOver && (
               <div className="game-over-overlay" role="dialog" aria-modal="true">
                 <div className="game-over-card">
-                  <h3>Game Over</h3>
+                  <h3>Partie terminée</h3>
                   <p className="game-over-winner">
-                    {winner ? `Winner: ${winner}` : 'No winner'}
+                    {winner ? `Vainqueur : ${winner}` : 'Aucun vainqueur'}
                   </p>
                   <div className="game-over-actions">
                     <div className="game-over-primary-actions">
                       <button className="resume-button" onClick={handlePlayAgain}>
-                        Play again
+                        Rejouer
                       </button>
                     </div>
                     <button className="back-button" onClick={() => navigate('/')}>
-                      Back to menu
+                      Retour au menu
                     </button>
                   </div>
                 </div>

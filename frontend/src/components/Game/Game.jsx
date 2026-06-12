@@ -669,16 +669,16 @@ function Game({
     isAlternatingCooperativeMode && activePlayerUsername && activePlayerUsername === username
   const cooperativeStatusLabel = isAlternatingCooperativeMode
     ? isYourTurn
-      ? 'YOUR TURN'
+      ? 'À VOUS'
       : activePlayerUsername
-        ? `Playing: ${activePlayerUsername}`
-        : 'Playing: ...'
+        ? `Joue : ${activePlayerUsername}`
+        : 'Joue : ...'
     : isRoleSplitCooperativeMode
       ? cooperativeRole === 'rotate'
-        ? 'YOU ROTATE'
+        ? 'ROTATION'
         : cooperativeRole === 'place'
-          ? 'YOU PLACE'
-          : 'ASSIGNING ROLE...'
+          ? 'PLACEMENT'
+          : 'ATTRIBUTION DU RÔLE...'
       : null
 
   if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
@@ -783,7 +783,7 @@ function Game({
           <div
             className={`game-board${boardFlash ? ` board-flash board-flash-${boardFlash}` : ''}`}
             role="grid"
-            aria-label="Plateau Tetris"
+            aria-label="Plateau de Tetris"
             style={{
               gridTemplateColumns: `repeat(${boardSize.width}, var(--cell-size))`,
               gridTemplateRows: `repeat(${boardSize.height}, var(--cell-size))`,
@@ -875,7 +875,7 @@ function Game({
           </div>
         )}
       </div>
-      <aside className="game-controls-help" aria-label="Contrôles clavier">
+      <aside className="game-controls-help" aria-label="Contrôles au clavier">
         {controls.map(({ keys, action }) => (
           <div className="control-hint" key={keys}>
             <span className="control-key">{keys}</span>
