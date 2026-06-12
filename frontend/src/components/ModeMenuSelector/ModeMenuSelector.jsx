@@ -46,7 +46,7 @@ function ModeMenuSelector({
 
   return (
     <div className={`mode-card ${theme === 'dark' ? 'dark' : ''}`}>
-      <h2>Select Game Mode</h2>
+      <h2>Sélection du mode de jeu</h2>
 
       <div className="mode-buttons">
         <button
@@ -55,7 +55,7 @@ function ModeMenuSelector({
         >
           <span className="mode-icon">🕹️</span>
           <span className="mode-title">Solo</span>
-          <span className="mode-description">Play alone and beat your highest score</span>
+          <span className="mode-description">Jouez seul et battez votre meilleur score</span>
         </button>
 
         <button
@@ -63,8 +63,8 @@ function ModeMenuSelector({
           onClick={handleMultiplayer}
         >
           <span className="mode-icon">🎮</span>
-          <span className="mode-title">Multiplayer</span>
-          <span className="mode-description">Compete with other players</span>
+          <span className="mode-title">Multijoueur</span>
+          <span className="mode-description">Affrontez d'autres joueurs</span>
         </button>
       </div>
 
@@ -72,7 +72,7 @@ function ModeMenuSelector({
         className="options-button"
         onClick={handleOptions}
       >
-        ⚙️ Options
+        ⚙️ Paramètres
       </button>
     </div>
   )

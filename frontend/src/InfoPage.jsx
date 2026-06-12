@@ -38,62 +38,62 @@ const pages = {
   tutorial: {
     title: 'Guide',
     intro:
-      'Learn the controls and game modes before jumping into a room.',
+      'Apprenez les contrôles et les modes de jeu avant de rejoindre une salle.',
     sections: [
       {
-        title: 'Controls',
+        title: 'Contrôles',
         body:
-          'Use Left and Right to move the piece, Down for soft drop, Up to rotate, Space for hard drop, and C or Shift to hold the current piece. Escape opens the pause/options menu in solo and the in-game menu in multiplayer.',
+          'Utilisez Gauche et Droite pour déplacer la pièce, Bas pour la descente rapide, Haut pour la rotation, Espace pour la chute instantanée, et C ou Maj pour garder la pièce actuelle. Échap ouvre le menu pause/options en solo et le menu de jeu en multijoueur.',
       },
       {
         title: 'Solo',
         body:
-          'Solo mode lets you play alone, clear lines, level up, and chase your best score. Your solo results can appear in your profile and on the solo leaderboard.',
+          'Le mode solo vous permet de jouer seul, de supprimer des lignes, de monter de niveau et de viser votre meilleur score. Vos résultats solo peuvent apparaître dans votre profil et dans le classement solo.',
       },
       {
-        title: 'Multiplayer',
+        title: 'Multijoueur',
         body:
-          'In multiplayer rooms, up to 8 players compete on separate boards in real time. Clearing multiple lines sends penalty lines to opponents, and the last surviving player wins.',
+          'Dans les salles multijoueur, jusqu’à 8 joueurs s’affrontent en temps réel sur des plateaux séparés. Supprimer plusieurs lignes envoie des lignes de pénalité aux adversaires, et le dernier joueur encore en jeu gagne.',
       },
       {
-        title: 'Classic',
+        title: 'Classique',
         body:
-          'Classic is the standard competitive multiplayer mode. Everyone plays with normal controls, and line clears can send penalties to the other boards.',
+          'Classique est le mode multijoueur compétitif standard. Tout le monde joue avec les contrôles normaux, et les lignes supprimées peuvent envoyer des pénalités aux autres plateaux.',
       },
       {
-        title: 'Mirror',
+        title: 'Miroir',
         body:
-          'Mirror reverses part of the control scheme: Left and Right move in opposite directions, Down performs a hard drop, and Space becomes soft drop.',
+          'Miroir inverse une partie des contrôles : Gauche et Droite déplacent la pièce dans le sens opposé, Bas déclenche une chute instantanée, et Espace devient une descente rapide.',
       },
       {
-        title: 'Chaotic',
+        title: 'Chaotique',
         body:
-          'Chaotic keeps the competitive rules but randomly swaps your current piece with the next piece while you play, forcing quick adaptation.',
+          'Chaotique conserve les règles compétitives, mais échange aléatoirement votre pièce actuelle avec la pièce suivante pendant la partie, ce qui demande une adaptation rapide.',
       },
       {
         title: 'Invisible',
         body:
-          'Invisible keeps the competitive rules but hides the active falling piece, so players must track its position from memory while locked pieces remain visible.',
+          'Invisible conserve les règles compétitives, mais cache la pièce active en chute. Les joueurs doivent donc suivre sa position de mémoire, tandis que les pièces posées restent visibles.',
       },
       {
-        title: 'Giant',
+        title: 'Géant',
         body:
-          'Giant uses a larger board, giving players more space but also more rows and columns to manage during multiplayer pressure.',
+          'Géant utilise un plateau plus grand, ce qui donne plus d’espace aux joueurs, mais aussi plus de lignes et de colonnes à gérer sous la pression du multijoueur.',
       },
       {
-        title: 'Co-op Alternate',
+        title: 'Co-op alternée',
         body:
-          'Co-op Alternate is a two-player shared-board mode. Players take turns controlling pieces, so communication and timing matter.',
+          'La co-op alternée est un mode à deux joueurs sur un plateau partagé. Les joueurs contrôlent les pièces à tour de rôle, donc la communication et le timing sont essentiels.',
       },
       {
-        title: 'Co-op Roles',
+        title: 'Co-op rôles',
         body:
-          'Co-op Roles is a two-player shared-board mode where one player handles rotation and the other handles movement and dropping. Both players must coordinate to survive.',
+          'La co-op rôles est un mode à deux joueurs sur un plateau partagé où un joueur gère la rotation et l’autre gère les déplacements et les chutes. Les deux joueurs doivent se coordonner pour survivre.',
       },
       {
-        title: 'Spectate',
+        title: 'Spectateur',
         body:
-          'In multiplayer, eliminated players can spectate the remaining boards instead of leaving immediately.',
+          'En multijoueur, les joueurs éliminés peuvent regarder les plateaux restants au lieu de quitter immédiatement.',
       },
     ],
   },
@@ -257,60 +257,60 @@ const tutorialInputRowOffset = 3
 const tutorialControls = [
   {
     action: 'move-left',
-    ariaLabel: 'Left movement tutorial',
-    key: 'Left',
-    title: 'Move Left',
-    description: 'Press the left arrow key to slide the falling piece one column to the left.',
+    ariaLabel: 'Tutoriel du déplacement à gauche',
+    key: 'Gauche',
+    title: 'Déplacer à gauche',
+    description: 'Appuyez sur la flèche gauche pour déplacer la pièce en chute d’une colonne vers la gauche.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: translateBlocks(tutorialPieceBlocks, 0, -1),
     phantomBlocks: translateBlocks(tutorialPieceBlocks, tutorialInputRowOffset, -1),
   },
   {
     action: 'move-right',
-    ariaLabel: 'Right movement tutorial',
-    key: 'Right',
-    title: 'Move Right',
-    description: 'Press the right arrow key to slide the falling piece one column to the right.',
+    ariaLabel: 'Tutoriel du déplacement à droite',
+    key: 'Droite',
+    title: 'Déplacer à droite',
+    description: 'Appuyez sur la flèche droite pour déplacer la pièce en chute d’une colonne vers la droite.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: translateBlocks(tutorialPieceBlocks, 0, 1),
     phantomBlocks: translateBlocks(tutorialPieceBlocks, tutorialInputRowOffset, 1),
   },
   {
     action: 'soft-drop',
-    ariaLabel: 'Soft drop tutorial',
-    key: 'Down',
-    title: 'Soft Drop',
-    description: 'Hold the down arrow key to drop the piece faster while keeping control.',
+    ariaLabel: 'Tutoriel de la descente rapide',
+    key: 'Bas',
+    title: 'Descente rapide',
+    description: 'Maintenez la flèche bas pour faire descendre la pièce plus vite tout en gardant le contrôle.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: translateBlocks(tutorialPieceBlocks, 1, 0),
     phantomBlocks: translateBlocks(tutorialPieceBlocks, tutorialInputRowOffset + 1, 0),
   },
   {
     action: 'hard-drop',
-    ariaLabel: 'Hard drop tutorial',
-    key: 'Space',
-    title: 'Hard Drop',
-    description: 'Press Space to send the piece straight to its landing position.',
+    ariaLabel: 'Tutoriel de la chute instantanée',
+    key: 'Espace',
+    title: 'Chute instantanée',
+    description: 'Appuyez sur Espace pour envoyer la pièce directement à sa position d’atterrissage.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: translateBlocks(tutorialPieceBlocks, 12, 0),
     phantomBlocks: translateBlocks(tutorialPieceBlocks, 12, 0),
   },
   {
     action: 'rotation',
-    ariaLabel: 'Rotation tutorial',
-    key: 'Up',
+    ariaLabel: 'Tutoriel de la rotation',
+    key: 'Haut',
     title: 'Rotation',
-    description: 'Press Up to rotate the falling piece into the shape you need.',
+    description: 'Appuyez sur Haut pour faire pivoter la pièce en chute dans la forme dont vous avez besoin.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: rotatedPieceBlocks,
     phantomBlocks: translateBlocks(rotatedPieceBlocks, tutorialInputRowOffset, 0),
   },
   {
     action: 'hold',
-    ariaLabel: 'Hold piece tutorial',
+    ariaLabel: 'Tutoriel de la pièce gardée',
     key: 'C / Shift',
-    title: 'Hold Piece',
-    description: 'Press C or Shift to store the current piece and swap it back in later.',
+    title: 'Garder la pièce',
+    description: 'Appuyez sur C ou Maj pour mettre la pièce actuelle de côté et la reprendre plus tard.',
     activeBlocks: tutorialPieceBlocks,
     targetBlocks: heldPieceBlocks,
     phantomBlocks: translateBlocks(heldPieceBlocks, tutorialInputRowOffset, 0),
@@ -642,8 +642,8 @@ function InfoPage({ type }) {
 
       <div className="content-wrapper info-page-wrapper">
         <main className="info-page-card">
-          <nav className="info-page-nav" aria-label="Information pages">
-            <Link className="info-page-back" to="/">← Back</Link>
+          <nav className="info-page-nav" aria-label="Pages d'information">
+            <Link className="info-page-back" to="/">← Retour</Link>
             {!isTutorialPage && (
               <>
                 <Link to="/about">About</Link>
@@ -699,7 +699,7 @@ function InfoPage({ type }) {
             <div
               className="tutorial-carousel"
               aria-roledescription="carousel"
-              aria-label="Tetris controls tutorial"
+              aria-label="Tutoriel des contrôles de Tetris"
               tabIndex={0}
               onKeyDown={handleTutorialCarouselKeyDown}
             >
@@ -707,7 +707,7 @@ function InfoPage({ type }) {
                 className="tutorial-carousel-arrow previous"
                 type="button"
                 onClick={showPreviousTutorial}
-                aria-label="Show previous control"
+                aria-label="Afficher le contrôle précédent"
               >
                 ‹
               </button>
@@ -723,14 +723,14 @@ function InfoPage({ type }) {
                 className="tutorial-carousel-arrow next"
                 type="button"
                 onClick={showNextTutorial}
-                aria-label="Show next control"
+                aria-label="Afficher le contrôle suivant"
               >
                 ›
               </button>
 
               <div
                 className="tutorial-carousel-dots"
-                aria-label="Tutorial slides"
+                aria-label="Diapositives du tutoriel"
               >
                 {tutorialControls.map((demo, index) => (
                   <button
@@ -738,7 +738,7 @@ function InfoPage({ type }) {
                     className={`tutorial-carousel-dot${index === activeTutorialIndex ? ' active' : ''}`}
                     type="button"
                     onClick={() => setActiveTutorialIndex(index)}
-                    aria-label={`Show ${demo.title}`}
+                    aria-label={`Afficher ${demo.title}`}
                     aria-current={index === activeTutorialIndex ? 'true' : undefined}
                   />
                 ))}

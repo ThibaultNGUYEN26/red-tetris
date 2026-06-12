@@ -26,7 +26,7 @@ function Options({
 
   return (
     <div className={`mode-card ${theme === 'dark' ? 'dark' : ''}`}>
-      <h2>Options</h2>
+      <h2>Paramètres</h2>
 
       <div className="options-buttons">
         <button
@@ -34,8 +34,8 @@ function Options({
           onClick={handleThemeToggle}
         >
           <span className="option-icon">{theme === 'dark' ? '🌙' : '☀️'}</span>
-          <span className="option-title">{theme === 'dark' ? 'Dark' : 'Light'} Theme</span>
-          <span className="option-description">Switch to {theme === 'dark' ? 'light' : 'dark'} mode</span>
+          <span className="option-title">Thème {theme === 'dark' ? 'sombre' : 'clair'}</span>
+          <span className="option-description">Passer au mode {theme === 'dark' ? 'clair' : 'sombre'}</span>
         </button>
 
         <button
@@ -43,8 +43,8 @@ function Options({
           onClick={handleSoundToggle}
         >
           <span className="option-icon">{soundEnabled ? '🔊' : '🔈'}</span>
-          <span className="option-title">Sound</span>
-          <span className="option-description">{soundEnabled ? 'Enabled' : 'Disabled'}</span>
+          <span className="option-title">Son</span>
+          <span className="option-description">{soundEnabled ? 'Activé' : 'Désactivé'}</span>
         </button>
 
         <Link
@@ -53,7 +53,7 @@ function Options({
         >
           <span className="option-icon">?</span>
           <span className="option-title">Guide</span>
-          <span className="option-description">Controls and modes</span>
+          <span className="option-description">Contrôles et modes</span>
         </Link>
 
         <button
@@ -63,8 +63,8 @@ function Options({
           aria-controls="language-options"
         >
           <span className="option-icon">Aa</span>
-          <span className="option-title">Language</span>
-          <span className="option-description">Choose display language</span>
+          <span className="option-title">Langue</span>
+          <span className="option-description">Choisir la langue d'affichage</span>
         </button>
       </div>
 
@@ -77,7 +77,7 @@ function Options({
           <div
             className="language-options"
             id="language-options"
-            aria-label="Language options"
+            aria-label="Options de langue"
             onClick={(event) => event.stopPropagation()}
           >
             {PLAYER_STATS_LANGUAGES.map(({ code, label }) => (
@@ -102,7 +102,7 @@ function Options({
         className="back-button"
         onClick={onBack}
       >
-        ← Back
+        ← Retour
       </button>
     </div>
   )
