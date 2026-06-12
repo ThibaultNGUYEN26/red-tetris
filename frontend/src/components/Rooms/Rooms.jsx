@@ -6,14 +6,6 @@ import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 import Game from '../Game/Game.jsx'
 import { logDuration, markStart, perfLog } from '../../perf'
 
-const unregisterUser = (username) => new Promise((resolve) => {
-  if (!username) {
-    resolve()
-    return
-  }
-  socket.emit('unregisterUser', { username }, () => resolve())
-})
-
 function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
@@ -40,15 +32,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
       ? 'coop'
       : 'multi'
     return `/${roomName}/${roomType}/${username}`
-  }
-
-  const buildSpectatePath = (roomName, gameMode) => {
-    /* v8 ignore next -- handleSpectate already skips nameless rooms before building a path. @preserve */
-    if (!roomName) return ''
-    const roomType = ['cooperative', 'cooperative_roles'].includes(gameMode)
-      ? 'coop'
-      : 'multi'
-    return `/${roomName}/${roomType}/spectate/${username}`
   }
 
   const getRoomMaxPlayers = (room) => {
@@ -315,39 +298,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
     socket.emit('playAgain', { roomId: String(currentRoomId), username });
   };
 
-  const handleSpectate = async () => {
-    if (!currentRoomName) return
-    const currentRoom = rooms.find(
-      (room) => String(room.id) === String(currentRoomId)
-    )
-    const spectatePath = buildSpectatePath(
-      currentRoom?.name || currentRoomName,
-      currentRoom?.game_mode
-    )
-    const roomIdToLeave = currentRoomId
-
-    setShowGame(false)
-
-    if (roomIdToLeave) {
-      await new Promise((resolve) => {
-        socket.emit(
-          'playerLeave',
-          { roomId: String(roomIdToLeave), username },
-          () => resolve()
-        )
-      })
-      socket.emit('getAvailableRooms')
-    }
-
-    await unregisterUser(username)
-
-    setCurrentRoomId(null)
-    setCurrentRoomPassword('')
-    setPendingPlayAgain(false)
-    hasJoinedRef.current = false
-    navigate(spectatePath)
-  }
-
   const handleBackToMenu = () => {
     onBack()
   }
@@ -360,7 +310,6 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         theme={theme}
         onBack={handleExitGame}
         onPlayAgain={handlePlayAgain}
-        onSpectate={handleSpectate}
         roomId={currentRoomId}
         username={username}
         isMultiplayer={true}

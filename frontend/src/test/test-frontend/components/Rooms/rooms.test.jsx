@@ -1354,7 +1354,7 @@ describe('Rooms Component', () => {
       expect(mockOnLeaveRoom).toHaveBeenCalled()
     })
 
-    it('should navigate to spectator mode from game view', async () => {
+    it('should stay in the active game room when spectating from game view', async () => {
       render(<Rooms {...defaultProps} />)
 
       const availableRoomsCallback = socket.on.mock.calls.find(
@@ -1390,162 +1390,21 @@ describe('Rooms Component', () => {
         expect(screen.getByTestId('game-mock')).toBeInTheDocument()
       })
 
+      socket.emit.mockClear()
+      navigateMock.mockClear()
       fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
 
-      await waitFor(() => {
-        expect(socket.emit).toHaveBeenCalledWith(
-          'playerLeave',
-          { roomId: '2', username: 'TestUser' },
-          expect.any(Function)
-        )
-        expect(socket.emit).toHaveBeenCalledWith(
-          'unregisterUser',
-          { username: 'TestUser' },
-          expect.any(Function)
-        )
-        expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
-      })
-    })
-
-    it('should skip unregistering the user when spectating without a username', async () => {
-      render(<Rooms {...defaultProps} username="" />)
-
-      const availableRoomsCallback = socket.on.mock.calls.find(
-        call => call[0] === 'availableRooms'
-      )?.[1]
-      availableRoomsCallback?.([mockRooms[1]])
-
-      await waitFor(() => {
-        expect(screen.getByText('Room 2')).toBeInTheDocument()
-      })
-
-      fireEvent.click(screen.getByRole('button', { name: /join/i }))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
-      })
-
-      const gameStartedCallback = socket.on.mock.calls
-        .filter(call => call[0] === 'gameStarted')
-        .at(-1)?.[1]
-
-      gameStartedCallback?.({ roomId: '2' })
-
-      await waitFor(() => {
-        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
-      })
-
-      fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
-
-      await waitFor(() => {
-        expect(socket.emit).toHaveBeenCalledWith(
-          'playerLeave',
-          { roomId: '2', username: '' },
-          expect.any(Function)
-        )
-        expect(socket.emit).not.toHaveBeenCalledWith('unregisterUser', expect.anything())
-        expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/')
-      })
-    })
-
-    it('should navigate to cooperative spectator mode from game view', async () => {
-      render(<Rooms {...defaultProps} />)
-
-      const availableRoomsCallback = socket.on.mock.calls.find(
-        call => call[0] === 'availableRooms'
-      )?.[1]
-      availableRoomsCallback?.([{
-        id: 5,
-        name: 'Coop Room',
-        game_mode: 'cooperative',
-        host: 'Player5',
-        player_count: 1,
-        players: ['Player5'],
-        status: 'waiting',
-      }])
-
-      await waitFor(() => {
-        expect(screen.getByText('Coop Room')).toBeInTheDocument()
-      })
-
-      fireEvent.click(screen.getByRole('button', { name: /join/i }))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
-      })
-
-      const gameStartedCallback = socket.on.mock.calls
-        .filter(call => call[0] === 'gameStarted')
-        .at(-1)?.[1]
-
-      gameStartedCallback?.({ roomId: '5' })
-
-      await waitFor(() => {
-        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
-      })
-
-      fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
-
-      await waitFor(() => {
-        expect(socket.emit).toHaveBeenCalledWith(
-          'playerLeave',
-          { roomId: '5', username: 'TestUser' },
-          expect.any(Function)
-        )
-        expect(socket.emit).toHaveBeenCalledWith(
-          'unregisterUser',
-          { username: 'TestUser' },
-          expect.any(Function)
-        )
-        expect(navigateMock).toHaveBeenCalledWith('/Coop Room/coop/spectate/TestUser')
-      })
-    })
-
-    it('should use the current room name when spectating after the room list drops the room', async () => {
-      render(<Rooms {...defaultProps} />)
-
-      const availableRoomsCallback = socket.on.mock.calls.find(
-        call => call[0] === 'availableRooms'
-      )?.[1]
-      availableRoomsCallback?.([mockRooms[1]])
-
-      await waitFor(() => {
-        expect(screen.getByText('Room 2')).toBeInTheDocument()
-      })
-
-      fireEvent.click(screen.getByRole('button', { name: /join/i }))
-
-      await waitFor(() => {
-        expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
-      })
-
-      availableRoomsCallback?.([])
-
-      const gameStartedCallback = socket.on.mock.calls
-        .filter(call => call[0] === 'gameStarted')
-        .at(-1)?.[1]
-
-      gameStartedCallback?.({ roomId: '2' })
-
-      await waitFor(() => {
-        expect(screen.getByTestId('game-mock')).toBeInTheDocument()
-      })
-
-      fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
-
-      await waitFor(() => {
-        expect(socket.emit).toHaveBeenCalledWith(
-          'playerLeave',
-          { roomId: '2', username: 'TestUser' },
-          expect.any(Function)
-        )
-        expect(socket.emit).toHaveBeenCalledWith(
-          'unregisterUser',
-          { username: 'TestUser' },
-          expect.any(Function)
-        )
-        expect(navigateMock).toHaveBeenCalledWith('/Room 2/multi/spectate/TestUser')
-      })
+      expect(socket.emit).not.toHaveBeenCalledWith(
+        'playerLeave',
+        expect.any(Object),
+        expect.any(Function)
+      )
+      expect(socket.emit).not.toHaveBeenCalledWith(
+        'unregisterUser',
+        expect.any(Object),
+        expect.any(Function)
+      )
+      expect(navigateMock).not.toHaveBeenCalled()
     })
 
     it('should not navigate to spectator mode for a nameless current room', async () => {
