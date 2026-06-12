@@ -47,6 +47,7 @@ describe('profile routes', () => {
           username: 'Titi',
           email: 'titi@example.com',
           avatar: { eyeType: 'happy' },
+          preferences: { theme: 'dark', soundEnabled: false, language: 'fr' },
           solo_games_played: 2,
           highest_solo_score: 900,
           multiplayer_games_played: 3,
@@ -89,6 +90,7 @@ describe('profile routes', () => {
         username: 'Titi',
         email: 'titi@example.com',
         avatar: { eyeType: 'happy' },
+        preferences: { theme: 'dark', soundEnabled: false, language: 'fr' },
         createdAt,
         passwordHashStored: true,
         resetPasswordTokenActive: true,
@@ -722,6 +724,7 @@ describe('profile routes', () => {
         id: 1,
         username: 'Titi',
         avatar: { eyeType: 'happy' },
+        preferences: { theme: 'light', soundEnabled: true, language: 'en' },
       }],
     })
 
@@ -738,13 +741,48 @@ describe('profile routes', () => {
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO users'),
-      ['Titi', JSON.stringify({ eyeType: 'happy' })]
+      ['Titi', JSON.stringify({ eyeType: 'happy' }), null]
     )
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({
       id: 1,
       username: 'Titi',
       avatar: { eyeType: 'happy' },
+      preferences: { theme: 'light', soundEnabled: true, language: 'en' },
+    })
+  })
+
+  it('upserts preferences without requiring an avatar', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{
+        id: 1,
+        username: 'Titi',
+        avatar: { eyeType: 'happy' },
+        preferences: { theme: 'dark', soundEnabled: false, language: 'fr' },
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'post', '/profile')
+    const res = buildRes()
+
+    await handler({
+      body: {
+        username: 'Titi',
+        preferences: { theme: 'dark', soundEnabled: false, language: 'fr' },
+      },
+    }, res)
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining('preferences = users.preferences'),
+      ['Titi', null, JSON.stringify({ theme: 'dark', soundEnabled: false, language: 'fr' })]
+    )
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.json).toHaveBeenCalledWith({
+      id: 1,
+      username: 'Titi',
+      avatar: { eyeType: 'happy' },
+      preferences: { theme: 'dark', soundEnabled: false, language: 'fr' },
     })
   })
 
@@ -816,6 +854,7 @@ describe('profile routes', () => {
           id: 65,
           username: 'Titi',
           avatar: { eyeType: 'happy' },
+          preferences: { theme: 'light', soundEnabled: true, language: 'en' },
         }],
       })
 
@@ -839,6 +878,7 @@ describe('profile routes', () => {
       id: 65,
       username: 'Titi',
       avatar: { eyeType: 'happy' },
+      preferences: { theme: 'light', soundEnabled: true, language: 'en' },
     })
   })
 

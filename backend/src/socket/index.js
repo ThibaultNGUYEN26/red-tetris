@@ -136,17 +136,18 @@ async function updateProfile(username, avatar) {
     INSERT INTO users (
       username,
       avatar,
+      preferences,
       solo_games_played,
       highest_solo_score,
       multiplayer_games_played,
       multiplayer_wins,
       multiplayer_losses
     )
-    VALUES ($1, $2, 0, 0, 0, 0, 0)
+    VALUES ($1, $2, '{"theme":"light","soundEnabled":true,"language":"en"}'::jsonb, 0, 0, 0, 0, 0)
     ON CONFLICT (username)
     DO UPDATE SET avatar = EXCLUDED.avatar
     WHERE users.deleted_at IS NULL
-    RETURNING id, username, avatar;
+    RETURNING id, username, avatar, preferences;
   `;
 
   const values = [username, JSON.stringify(avatar)];

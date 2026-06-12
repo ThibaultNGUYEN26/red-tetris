@@ -33,7 +33,7 @@ export async function restoreDeletedAccount(username) {
      WHERE username = $1
        AND deleted_at IS NOT NULL
        AND delete_after > NOW()
-     RETURNING id, username, email, avatar`,
+     RETURNING id, username, email, avatar, preferences`,
     [username]
   );
 

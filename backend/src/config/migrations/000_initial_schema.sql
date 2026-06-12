@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   username VARCHAR(50) UNIQUE NOT NULL,
   avatar JSONB NOT NULL,
+  preferences JSONB NOT NULL DEFAULT '{"theme":"light","soundEnabled":true,"language":"en"}'::jsonb,
   password_hash TEXT,
   email TEXT,
   reset_password_token TEXT,
@@ -18,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 ALTER TABLE users
   ADD COLUMN IF NOT EXISTS password_hash TEXT,
+  ADD COLUMN IF NOT EXISTS preferences JSONB NOT NULL DEFAULT '{"theme":"light","soundEnabled":true,"language":"en"}'::jsonb,
   ADD COLUMN IF NOT EXISTS email TEXT,
   ADD COLUMN IF NOT EXISTS reset_password_token TEXT,
   ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMPTZ,

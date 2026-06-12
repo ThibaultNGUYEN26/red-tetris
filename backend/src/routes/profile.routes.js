@@ -8,6 +8,35 @@ import {
 } from "../auth/session.js";
 
 const router = express.Router();
+const DEFAULT_PREFERENCES = {
+  theme: "light",
+  soundEnabled: true,
+  language: "en",
+};
+
+const normalizePreferences = (preferences) => ({
+  ...DEFAULT_PREFERENCES,
+  ...(preferences && typeof preferences === "object" ? preferences : {}),
+});
+
+const sanitizePreferences = (preferences) => {
+  if (!preferences || typeof preferences !== "object" || Array.isArray(preferences)) {
+    return null;
+  }
+
+  const sanitized = {};
+  if (preferences.theme === "light" || preferences.theme === "dark") {
+    sanitized.theme = preferences.theme;
+  }
+  if (typeof preferences.soundEnabled === "boolean") {
+    sanitized.soundEnabled = preferences.soundEnabled;
+  }
+  if (preferences.language === "en" || preferences.language === "fr") {
+    sanitized.language = preferences.language;
+  }
+
+  return Object.keys(sanitized).length ? sanitized : null;
+};
 
 async function syncUsersIdSequence() {
   await pool.query(`
@@ -19,25 +48,42 @@ async function syncUsersIdSequence() {
   `);
 }
 
-async function updateProfile(username, avatar) {
+async function updateProfile(username, avatar, preferences = null) {
+  const sanitizedPreferences = sanitizePreferences(preferences);
   const query = `
     INSERT INTO users (
       username,
       avatar,
+      preferences,
       solo_games_played,
       highest_solo_score,
       multiplayer_games_played,
       multiplayer_wins,
       multiplayer_losses
     )
-    VALUES ($1, $2, 0, 0, 0, 0, 0)
+    VALUES (
+      $1,
+      COALESCE($2::jsonb, '{"skinColor":"#cccccc","eyeType":"normal","mouthType":"neutral"}'::jsonb),
+      COALESCE($3::jsonb, '{"theme":"light","soundEnabled":true,"language":"en"}'::jsonb),
+      0,
+      0,
+      0,
+      0,
+      0
+    )
     ON CONFLICT (username)
-    DO UPDATE SET avatar = EXCLUDED.avatar
+    DO UPDATE SET
+      avatar = COALESCE($2::jsonb, users.avatar),
+      preferences = users.preferences || COALESCE($3::jsonb, '{}'::jsonb)
     WHERE users.deleted_at IS NULL
-    RETURNING id, username, avatar;
+    RETURNING id, username, avatar, preferences;
   `;
 
-  const values = [username, JSON.stringify(avatar)];
+  const values = [
+    username,
+    avatar ? JSON.stringify(avatar) : null,
+    sanitizedPreferences ? JSON.stringify(sanitizedPreferences) : null,
+  ];
   return pool.query(query, values);
 }
 
@@ -55,6 +101,7 @@ async function fetchAccountExport(username) {
           username,
           email,
           avatar,
+          preferences,
           solo_games_played,
           highest_solo_score,
           multiplayer_games_played,
@@ -112,6 +159,7 @@ async function fetchAccountExport(username) {
       username: account.username,
       email: account.email,
       avatar: account.avatar,
+      preferences: normalizePreferences(account.preferences),
       createdAt: account.created_at,
       passwordHashStored: Boolean(account.password_hash_stored),
       resetPasswordTokenActive: Boolean(account.reset_password_token_active),
@@ -442,10 +490,10 @@ router.get("/leaderboard/coop", async (req, res) => {
 
 router.post("/profile", async (req, res) => {
   try {
-    const { avatar } = req.body;
+    const { avatar, preferences } = req.body;
     const auth = authenticateRequest(req);
 
-    if (!avatar) {
+    if (!avatar && !sanitizePreferences(preferences)) {
       return res.status(400).json({ error: "Missing data" });
     }
 
@@ -458,11 +506,11 @@ router.post("/profile", async (req, res) => {
 
     let result;
     try {
-      result = await updateProfile(username, avatar);
+      result = await updateProfile(username, avatar, preferences);
     } catch (err) {
       if (err?.code === "23505" && err?.constraint === "users_pkey") {
         await syncUsersIdSequence();
-        result = await updateProfile(username, avatar);
+        result = await updateProfile(username, avatar, preferences);
       } else {
         throw err;
       }
@@ -472,7 +520,10 @@ router.post("/profile", async (req, res) => {
       return res.status(403).json({ error: "Account scheduled for deletion" });
     }
 
-    res.status(200).json(result.rows[0]);
+    res.status(200).json({
+      ...result.rows[0],
+      preferences: normalizePreferences(result.rows[0].preferences),
+    });
   } catch (err) {
     console.error("Profile upsert failed:", err);
     res.status(500).json({ error: "Server error" });

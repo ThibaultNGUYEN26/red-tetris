@@ -21,6 +21,16 @@ const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/;
 const PASSWORD_MIN_LENGTH = 8;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RESET_TOKEN_TTL_MS = 1000 * 60 * 30;
+const DEFAULT_PREFERENCES = {
+  theme: "light",
+  soundEnabled: true,
+  language: "en",
+};
+
+const normalizePreferences = (preferences) => ({
+  ...DEFAULT_PREFERENCES,
+  ...(preferences && typeof preferences === "object" ? preferences : {}),
+});
 
 const buildResetUrl = (token) => {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:8080";
@@ -111,11 +121,14 @@ router.post("/register", async (req, res) => {
         multiplayer_losses
       )
       VALUES ($1, $2, $3, $4, 0, 0, 0, 0, 0)
-      RETURNING id, username, email, avatar`,
+      RETURNING id, username, email, avatar, preferences`,
       [username, normalizedEmail, JSON.stringify(avatar), passwordHash]
     );
 
-    return res.status(201).json(result.rows[0]);
+    return res.status(201).json({
+      ...result.rows[0],
+      preferences: normalizePreferences(result.rows[0].preferences),
+    });
   } catch (err) {
     if (err?.code === "23505") {
       if (String(err?.constraint).includes("email")) {
@@ -143,7 +156,7 @@ router.post("/login", async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, username, email, avatar, password_hash, deleted_at, delete_after
+      `SELECT id, username, email, avatar, preferences, password_hash, deleted_at, delete_after
        FROM users
        WHERE username = $1`,
       [username]
@@ -179,6 +192,7 @@ router.post("/login", async (req, res) => {
       username: user.username,
       email: user.email,
       avatar: user.avatar,
+      preferences: normalizePreferences(user.preferences),
     });
   } catch (err) {
     console.error("Login failed:", err);
@@ -192,7 +206,7 @@ router.get("/me", async (req, res) => {
     if (!auth) return rejectUnauthenticated(res);
 
     const result = await pool.query(
-      `SELECT id, username, email, avatar
+      `SELECT id, username, email, avatar, preferences
        FROM users
        WHERE username = $1
          AND deleted_at IS NULL`,
@@ -204,7 +218,10 @@ router.get("/me", async (req, res) => {
       return rejectUnauthenticated(res);
     }
 
-    return res.status(200).json(result.rows[0]);
+    return res.status(200).json({
+      ...result.rows[0],
+      preferences: normalizePreferences(result.rows[0].preferences),
+    });
   } catch (err) {
     console.error("Fetch current session failed:", err);
     return res.status(500).json({ error: "Server error" });
@@ -226,7 +243,7 @@ router.post("/restore", async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT id, username, email, avatar, password_hash, deleted_at, delete_after
+      `SELECT id, username, email, avatar, preferences, password_hash, deleted_at, delete_after
        FROM users
        WHERE username = $1`,
       [username]
@@ -268,6 +285,7 @@ router.post("/restore", async (req, res) => {
       username: restoredUser.username,
       email: restoredUser.email,
       avatar: restoredUser.avatar,
+      preferences: normalizePreferences(restoredUser.preferences),
     });
   } catch (err) {
     console.error("Restore account failed:", err);

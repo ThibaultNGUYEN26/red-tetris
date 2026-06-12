@@ -23,11 +23,26 @@ import bopSound from './res/sounds/bop.mp3'
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const LANGUAGE_STORAGE_KEY = 'red-tetris-language'
+const DEFAULT_PREFERENCES = {
+  theme: 'light',
+  soundEnabled: true,
+  language: DEFAULT_LANGUAGE,
+}
 const DEFAULT_URL_AVATAR = {
   skinColor: '#cccccc',
   eyeType: 'normal',
   mouthType: 'neutral',
 }
+
+const normalizePreferences = (preferences = {}) => ({
+  theme: preferences.theme === 'dark' ? 'dark' : 'light',
+  soundEnabled: typeof preferences.soundEnabled === 'boolean'
+    ? preferences.soundEnabled
+    : DEFAULT_PREFERENCES.soundEnabled,
+  language: isSupportedLanguage(preferences.language)
+    ? preferences.language
+    : DEFAULT_PREFERENCES.language,
+})
 
 const parseRoomParams = (roomName, roomType) => {
   if (!roomName) return { name: null, type: null }
@@ -112,11 +127,12 @@ function Index({ authMode = 'login' }) {
   const [username, setUsername] = useState(
     savedAuth?.username || null
   )
-  const [theme, setTheme] = useState(() => (
-    localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
-  ))
+  const [theme, setTheme] = useState(() => {
+    const savedTheme = savedAuth?.preferences?.theme || localStorage.getItem(THEME_STORAGE_KEY)
+    return savedTheme === 'dark' ? 'dark' : 'light'
+  })
   const [language, setLanguage] = useState(() => {
-    const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+    const savedLanguage = savedAuth?.preferences?.language || localStorage.getItem(LANGUAGE_STORAGE_KEY)
     return isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
   })
   const [showRooms, setShowRooms] = useState(false)
@@ -140,7 +156,11 @@ function Index({ authMode = 'login' }) {
   const [soloRoomId, setSoloRoomId] = useState(null)
   const [directRoomId, setDirectRoomId] = useState(null)
   const [activeGameType, setActiveGameType] = useState(null)
-  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [soundEnabled, setSoundEnabled] = useState(() => (
+    typeof savedAuth?.preferences?.soundEnabled === 'boolean'
+      ? savedAuth.preferences.soundEnabled
+      : true
+  ))
   const [routeNotice, setRouteNotice] = useState('')
   const [socketNotice, setSocketNotice] = useState(null)
   const [showProfileCard, setShowProfileCard] = useState(false)
@@ -176,6 +196,40 @@ function Index({ authMode = 'login' }) {
     if (!error) return 'Room already used'
     if (error === 'User is already in a room') return 'User already connected'
     return error
+  }
+
+  const applyPreferences = (preferences) => {
+    const normalized = normalizePreferences(preferences)
+    localStorage.setItem(THEME_STORAGE_KEY, normalized.theme)
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized.language)
+    setTheme(normalized.theme)
+    setSoundEnabled(normalized.soundEnabled)
+    setLanguage(normalized.language)
+    return normalized
+  }
+
+  const savePreferences = (preferences) => {
+    if (!username) return
+    const normalized = normalizePreferences(preferences)
+
+    apiFetch('/api/profile', {
+      method: 'POST',
+      ...authFetchOptions(),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ preferences: normalized }),
+    })
+      .then(async (response) => {
+        if (!response.ok) return
+        const profile = await response.json()
+        setUserProfile((current) => ({
+          ...(current || {}),
+          ...profile,
+          preferences: normalizePreferences(profile.preferences),
+        }))
+      })
+      .catch(() => {})
   }
 
   /* ---------------- SYNC URL PARAMS ---------------- */
@@ -215,6 +269,7 @@ function Index({ authMode = 'login' }) {
         username,
         email: userProfile.email,
         avatar: userProfile.avatar,
+        preferences: normalizePreferences(userProfile.preferences),
       }))
       return
     }
@@ -253,8 +308,10 @@ function Index({ authMode = 'login' }) {
           ...profile,
           name: profile.name || profile.username,
           avatar: profile.avatar || DEFAULT_URL_AVATAR,
+          preferences: normalizePreferences(profile.preferences),
         })
         setUsername(profile.username)
+        applyPreferences(profile.preferences)
       } catch {
         // Keep the optimistic local session during transient network failures.
       }
@@ -284,13 +341,14 @@ function Index({ authMode = 'login' }) {
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
           if (cancelled) return
-          setUserProfile({
-            ...statsData,
-            username,
-            name: statsData.name || username,
-            avatar: statsData.avatar || DEFAULT_URL_AVATAR,
-            statsFetchedAt: Date.now(),
-          })
+        setUserProfile({
+          ...statsData,
+          username,
+          name: statsData.name || username,
+          avatar: statsData.avatar || DEFAULT_URL_AVATAR,
+          preferences: normalizePreferences(userProfile?.preferences),
+          statsFetchedAt: Date.now(),
+        })
           return
         }
 
@@ -319,12 +377,14 @@ function Index({ authMode = 'login' }) {
         setUserProfile({
           username: profileData.username || username,
           avatar: profileData.avatar || DEFAULT_URL_AVATAR,
+          preferences: normalizePreferences(userProfile?.preferences),
         })
       } catch {
         if (!cancelled) {
           setUserProfile((current) => current || {
             username,
             avatar: DEFAULT_URL_AVATAR,
+            preferences: DEFAULT_PREFERENCES,
           })
         }
       }
@@ -505,24 +565,59 @@ function Index({ authMode = 'login' }) {
 
     setUserProfile(profile)
     setUsername(profile.username)
+    applyPreferences(profile.preferences)
 
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }
 
   const handleThemeChange = (newTheme) => {
     const nextTheme = newTheme === 'dark' ? 'dark' : 'light'
+    const nextPreferences = normalizePreferences({
+      ...(userProfile?.preferences || {}),
+      theme: nextTheme,
+      soundEnabled,
+      language,
+    })
     localStorage.setItem(THEME_STORAGE_KEY, nextTheme)
     setTheme(nextTheme)
+    setUserProfile((current) => ({
+      ...(current || {}),
+      preferences: nextPreferences,
+    }))
+    savePreferences(nextPreferences)
   }
 
   const handleSoundChange = (enabled) => {
-    setSoundEnabled(Boolean(enabled))
+    const nextSoundEnabled = Boolean(enabled)
+    const nextPreferences = normalizePreferences({
+      ...(userProfile?.preferences || {}),
+      theme,
+      soundEnabled: nextSoundEnabled,
+      language,
+    })
+    setSoundEnabled(nextSoundEnabled)
+    setUserProfile((current) => ({
+      ...(current || {}),
+      preferences: nextPreferences,
+    }))
+    savePreferences(nextPreferences)
   }
 
   const handleLanguageChange = (nextLanguage) => {
     const languageCode = isSupportedLanguage(nextLanguage) ? nextLanguage : DEFAULT_LANGUAGE
+    const nextPreferences = normalizePreferences({
+      ...(userProfile?.preferences || {}),
+      theme,
+      soundEnabled,
+      language: languageCode,
+    })
     localStorage.setItem(LANGUAGE_STORAGE_KEY, languageCode)
     setLanguage(languageCode)
+    setUserProfile((current) => ({
+      ...(current || {}),
+      preferences: nextPreferences,
+    }))
+    savePreferences(nextPreferences)
   }
 
   const handleReturnToProfile = async () => {
@@ -552,7 +647,11 @@ function Index({ authMode = 'login' }) {
   }
 
   const handleProfileUpdate = (profile) => {
-    setUserProfile(profile)
+    setUserProfile((current) => ({
+      ...(current || {}),
+      ...profile,
+      preferences: normalizePreferences(profile.preferences || current?.preferences),
+    }))
     setUsername(profile.username)
     setShowProfileCard(false)
   }

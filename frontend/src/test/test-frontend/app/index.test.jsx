@@ -230,7 +230,7 @@ describe('Index main page', () => {
     expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
   })
 
-  it('passes the selected language from the menu to player stats', () => {
+  it('passes and saves the selected language from the menu to player stats', async () => {
     mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
     setSavedUser('Titi')
     render(<Index />)
@@ -243,6 +243,21 @@ describe('Index main page', () => {
     expect(screen.getByTestId('player-stats')).toHaveTextContent('fr')
     expect(screen.getByTestId('selected-language')).toHaveTextContent('fr')
     expect(localStorage.getItem('red-tetris-language')).toBe('fr')
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/profile'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            preferences: {
+              theme: 'light',
+              soundEnabled: true,
+              language: 'fr',
+            },
+          }),
+        })
+      )
+    })
   })
 
   it('clears a saved local user when the session cookie is missing', async () => {
@@ -263,6 +278,18 @@ describe('Index main page', () => {
           ok: true,
           status: 200,
           json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (requestPath(url) === '/api/profile') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+            preferences: { theme: 'light', soundEnabled: true, language: 'fr' },
+          }),
         }
       }
 
