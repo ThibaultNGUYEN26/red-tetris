@@ -69,18 +69,32 @@ function Options({
       </div>
 
       {showLanguages && (
-        <div className="language-options" id="language-options" aria-label="Language options">
-          {PLAYER_STATS_LANGUAGES.map(({ code, label }) => (
-            <button
-              className={`language-option${selectedLanguage === code ? ' selected' : ''}`}
-              key={code}
-              type="button"
-              aria-pressed={selectedLanguage === code}
-              onClick={() => onLanguageChange?.(code)}
-            >
-              {label}
-            </button>
-          ))}
+        <div
+          className="language-options-overlay"
+          role="presentation"
+          onClick={() => setShowLanguages(false)}
+        >
+          <div
+            className="language-options"
+            id="language-options"
+            aria-label="Language options"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {PLAYER_STATS_LANGUAGES.map(({ code, label }) => (
+              <button
+                className={`language-option${selectedLanguage === code ? ' selected' : ''}`}
+                key={code}
+                type="button"
+                aria-pressed={selectedLanguage === code}
+                onClick={() => {
+                  onLanguageChange?.(code)
+                  setShowLanguages(false)
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
