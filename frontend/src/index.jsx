@@ -1207,8 +1207,6 @@ function Index({ authMode = 'login' }) {
                       isMultiplayer={activeGameType !== 'solo'}
                       soundEnabled={soundEnabled}
                       onSoundChange={handleSoundChange}
-                      selectedLanguage={language}
-                      onLanguageChange={handleLanguageChange}
                     />
                   ) : (
                     <ModeMenuSelector
@@ -1218,6 +1216,8 @@ function Index({ authMode = 'login' }) {
                       onShowSoloRoom={setShowSoloRoom}
                       soundEnabled={soundEnabled}
                       onSoundChange={handleSoundChange}
+                      selectedLanguage={language}
+                      onLanguageChange={handleLanguageChange}
                     />
                   )}
               </>

@@ -29,7 +29,7 @@ vi.mock('../../../components/TetriminosClouds/TetriminosClouds.jsx', () => ({
 }))
 
 vi.mock('../../../components/PlayerStats/PlayerStats.jsx', () => ({
-  default: () => <div data-testid="player-stats" />,
+  default: ({ language }) => <div data-testid="player-stats">{language}</div>,
 }))
 
 vi.mock('../../../components/Leaderboard/Leaderboard.jsx', () => ({
@@ -41,12 +41,14 @@ vi.mock('../../../components/Title/Title.jsx', () => ({
 }))
 
 vi.mock('../../../components/ModeMenuSelector/ModeMenuSelector.jsx', () => ({
-  default: () => (
+  default: ({ onLanguageChange, selectedLanguage }) => (
     <div data-testid="mode-menu">
       <h2>Select Game Mode</h2>
       <button type="button">Solo</button>
       <button type="button">Multiplayer</button>
       <button type="button">Options</button>
+      <span data-testid="selected-language">{selectedLanguage}</span>
+      <button type="button" onClick={() => onLanguageChange?.('fr')}>French</button>
     </div>
   ),
 }))
@@ -226,6 +228,21 @@ describe('Index main page', () => {
       screen.getByRole('button', { name: /multiplayer/i })
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
+  })
+
+  it('passes the selected language from the menu to player stats', () => {
+    mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
+    setSavedUser('Titi')
+    render(<Index />)
+
+    expect(screen.getByTestId('player-stats')).toHaveTextContent('en')
+    expect(screen.getByTestId('selected-language')).toHaveTextContent('en')
+
+    fireEvent.click(screen.getByRole('button', { name: 'French' }))
+
+    expect(screen.getByTestId('player-stats')).toHaveTextContent('fr')
+    expect(screen.getByTestId('selected-language')).toHaveTextContent('fr')
+    expect(localStorage.getItem('red-tetris-language')).toBe('fr')
   })
 
   it('clears a saved local user when the session cookie is missing', async () => {
