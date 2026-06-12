@@ -582,10 +582,12 @@ html, body, #root {
   top: 38%;
   width: 38%;
   height: 24%;
+  animation-name: tutorial-hold-cue-pulse;
 }
 
 .tutorial-action-cue.hold span:first-child {
   transform: rotate(45deg);
+  animation: tutorial-hold-cue-right 1.1s ease-in-out infinite;
 }
 
 .tutorial-action-cue.hold span:nth-child(2) {
@@ -594,6 +596,7 @@ html, body, #root {
 
 .tutorial-action-cue.hold span:last-child {
   transform: rotate(225deg);
+  animation: tutorial-hold-cue-left 1.1s ease-in-out infinite;
 }
 
 .tutorial-demo-panel {
@@ -748,6 +751,36 @@ html, body, #root {
   50% {
     opacity: 1;
     transform: translateY(-14px) scale(1);
+  }
+}
+
+@keyframes tutorial-hold-cue-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes tutorial-hold-cue-right {
+  0%,
+  100% {
+    transform: translateX(0) rotate(45deg) scale(0.92);
+  }
+  50% {
+    transform: translateX(12px) rotate(45deg) scale(1);
+  }
+}
+
+@keyframes tutorial-hold-cue-left {
+  0%,
+  100% {
+    transform: translateX(0) rotate(225deg) scale(0.92);
+  }
+  50% {
+    transform: translateX(-12px) rotate(225deg) scale(1);
   }
 }
 
