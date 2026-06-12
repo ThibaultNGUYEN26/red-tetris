@@ -43,6 +43,15 @@
   color: #f0f0f0;
 }
 
+.advanced-stats-modal.dark {
+  background: linear-gradient(
+    135deg,
+    rgba(22, 26, 50, 0.96) 0%,
+    rgba(12, 16, 34, 0.97) 100%
+  );
+  border-color: rgba(150, 175, 255, 0.48);
+}
+
 /* TITLE */
 .player-stats-title {
   text-align: center;
@@ -149,7 +158,8 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(12, 24, 48, 0.12);
+  background: rgba(18, 36, 62, 0.42);
+  backdrop-filter: blur(6px) saturate(0.9);
 }
 
 .advanced-stats-modal {
@@ -159,16 +169,16 @@
   overflow-y: auto;
   background: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.2),
-    rgba(255, 255, 255, 0.1)
+    rgba(249, 253, 255, 0.96),
+    rgba(232, 242, 255, 0.94)
   );
-  border: 3px solid rgba(255, 255, 255, 0.45);
+  border: 3px solid rgba(255, 255, 255, 0.8);
   border-radius: 20px;
   padding: 28px;
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(18px);
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.15),
-    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    0 24px 60px rgba(20, 46, 84, 0.28),
+    inset 0 2px 4px rgba(255, 255, 255, 0.55);
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -297,6 +307,24 @@
     rgba(30, 30, 60, 0.5)
   );
   border-color: rgba(100, 100, 200, 0.4);
+}
+
+.advanced-stats-modal .stat-item {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.88),
+    rgba(241, 247, 255, 0.82)
+  );
+  border-color: rgba(83, 128, 190, 0.22);
+}
+
+.advanced-stats-modal.dark .stat-item {
+  background: linear-gradient(
+    135deg,
+    rgba(42, 48, 82, 0.94),
+    rgba(28, 34, 64, 0.94)
+  );
+  border-color: rgba(132, 160, 255, 0.34);
 }
 
 /* LABEL + VALUE */
