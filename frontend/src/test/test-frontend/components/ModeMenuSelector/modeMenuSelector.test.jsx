@@ -38,6 +38,14 @@ describe('ModeMenuSelector Component', () => {
     expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
   })
 
+  it('renders French labels when French is selected', () => {
+    render(<ModeMenuSelector {...defaultProps} selectedLanguage="fr" />)
+
+    expect(screen.getByRole('heading', { name: /sélection du mode de jeu/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /multijoueur/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /paramètres/i })).toBeInTheDocument()
+  })
+
   it('applies dark theme class', () => {
     const { container } = render(<ModeMenuSelector {...defaultProps} theme="dark" />)
 

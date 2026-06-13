@@ -71,6 +71,25 @@ describe('Options Component', () => {
     expect(screen.getByRole('button', { name: /sound/i })).toHaveTextContent(/disabled/i)
   })
 
+  it('renders French labels when French is selected', () => {
+    render(
+      <Options
+        onBack={vi.fn()}
+        theme="light"
+        onThemeChange={vi.fn()}
+        soundEnabled
+        onSoundChange={vi.fn()}
+        selectedLanguage="fr"
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /paramètres/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /thème clair/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /son/i })).toHaveTextContent(/activé/i)
+    expect(screen.getByRole('button', { name: /langue/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /retour/i })).toBeInTheDocument()
+  })
+
   it('shows language choices after clicking language', () => {
     const onLanguageChange = vi.fn()
 
@@ -86,9 +105,9 @@ describe('Options Component', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /language/i }))
+    fireEvent.click(screen.getByRole('button', { name: /langue/i }))
 
-    expect(screen.getByLabelText(/language options/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/options de langue/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'French' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Spanish' })).not.toBeInTheDocument()

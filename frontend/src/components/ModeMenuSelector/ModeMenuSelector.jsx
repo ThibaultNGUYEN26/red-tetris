@@ -1,6 +1,26 @@
 import './ModeMenuSelector.css'
 import { useState } from 'react'
 import Options from './Options.jsx/Options.jsx'
+import { DEFAULT_LANGUAGE } from '../../i18n/playerStats'
+
+const MENU_TRANSLATIONS = {
+  en: {
+    heading: 'Select game mode',
+    soloTitle: 'Solo',
+    soloDescription: 'Play alone and beat your high score',
+    multiplayerTitle: 'Multiplayer',
+    multiplayerDescription: 'Compete against other players',
+    options: 'Options',
+  },
+  fr: {
+    heading: 'Sélection du mode de jeu',
+    soloTitle: 'Solo',
+    soloDescription: 'Jouez seul et battez votre meilleur score',
+    multiplayerTitle: 'Multijoueur',
+    multiplayerDescription: "Affrontez d'autres joueurs",
+    options: 'Paramètres',
+  },
+}
 
 function ModeMenuSelector({
   theme,
@@ -9,10 +29,11 @@ function ModeMenuSelector({
   onShowSoloRoom,
   soundEnabled,
   onSoundChange,
-  selectedLanguage,
+  selectedLanguage = DEFAULT_LANGUAGE,
   onLanguageChange,
 }) {
   const [showOptions, setShowOptions] = useState(false)
+  const text = MENU_TRANSLATIONS[selectedLanguage] || MENU_TRANSLATIONS[DEFAULT_LANGUAGE]
 
   const handleSolo = () => {
     onShowSoloRoom?.(true)
@@ -46,7 +67,7 @@ function ModeMenuSelector({
 
   return (
     <div className={`mode-card ${theme === 'dark' ? 'dark' : ''}`}>
-      <h2>Sélection du mode de jeu</h2>
+      <h2>{text.heading}</h2>
 
       <div className="mode-buttons">
         <button
@@ -54,8 +75,8 @@ function ModeMenuSelector({
           onClick={handleSolo}
         >
           <span className="mode-icon">🕹️</span>
-          <span className="mode-title">Solo</span>
-          <span className="mode-description">Jouez seul et battez votre meilleur score</span>
+          <span className="mode-title">{text.soloTitle}</span>
+          <span className="mode-description">{text.soloDescription}</span>
         </button>
 
         <button
@@ -63,8 +84,8 @@ function ModeMenuSelector({
           onClick={handleMultiplayer}
         >
           <span className="mode-icon">🎮</span>
-          <span className="mode-title">Multijoueur</span>
-          <span className="mode-description">Affrontez d'autres joueurs</span>
+          <span className="mode-title">{text.multiplayerTitle}</span>
+          <span className="mode-description">{text.multiplayerDescription}</span>
         </button>
       </div>
 
@@ -72,7 +93,7 @@ function ModeMenuSelector({
         className="options-button"
         onClick={handleOptions}
       >
-        ⚙️ Paramètres
+        {text.options}
       </button>
     </div>
   )

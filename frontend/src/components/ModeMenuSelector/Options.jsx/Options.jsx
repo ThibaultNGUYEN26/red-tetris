@@ -3,6 +3,41 @@ import { useState } from 'react'
 import './Options.css'
 import { DEFAULT_LANGUAGE, PLAYER_STATS_LANGUAGES } from '../../../i18n/playerStats'
 
+const OPTIONS_TRANSLATIONS = {
+  en: {
+    heading: 'Options',
+    lightTheme: 'Light theme',
+    darkTheme: 'Dark theme',
+    switchToLight: 'Switch to light mode',
+    switchToDark: 'Switch to dark mode',
+    sound: 'Sound',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    guide: 'Guide',
+    guideDescription: 'Controls and modes',
+    language: 'Language',
+    languageDescription: 'Choose display language',
+    languageOptions: 'Language options',
+    back: 'Back',
+  },
+  fr: {
+    heading: 'Paramètres',
+    lightTheme: 'Thème clair',
+    darkTheme: 'Thème sombre',
+    switchToLight: 'Passer au mode clair',
+    switchToDark: 'Passer au mode sombre',
+    sound: 'Son',
+    enabled: 'Activé',
+    disabled: 'Désactivé',
+    guide: 'Guide',
+    guideDescription: 'Contrôles et modes',
+    language: 'Langue',
+    languageDescription: "Choisir la langue d'affichage",
+    languageOptions: 'Options de langue',
+    back: 'Retour',
+  },
+}
+
 function Options({
   onBack,
   theme,
@@ -13,6 +48,9 @@ function Options({
   onLanguageChange,
 }) {
   const [showLanguages, setShowLanguages] = useState(false)
+  const text = OPTIONS_TRANSLATIONS[selectedLanguage] || OPTIONS_TRANSLATIONS[DEFAULT_LANGUAGE]
+  const themeTitle = theme === 'dark' ? text.darkTheme : text.lightTheme
+  const themeDescription = theme === 'dark' ? text.switchToLight : text.switchToDark
 
   const handleThemeToggle = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark'
@@ -26,7 +64,7 @@ function Options({
 
   return (
     <div className={`mode-card ${theme === 'dark' ? 'dark' : ''}`}>
-      <h2>Paramètres</h2>
+      <h2>{text.heading}</h2>
 
       <div className="options-buttons">
         <button
@@ -34,8 +72,8 @@ function Options({
           onClick={handleThemeToggle}
         >
           <span className="option-icon">{theme === 'dark' ? '🌙' : '☀️'}</span>
-          <span className="option-title">Thème {theme === 'dark' ? 'sombre' : 'clair'}</span>
-          <span className="option-description">Passer au mode {theme === 'dark' ? 'clair' : 'sombre'}</span>
+          <span className="option-title">{themeTitle}</span>
+          <span className="option-description">{themeDescription}</span>
         </button>
 
         <button
@@ -43,8 +81,8 @@ function Options({
           onClick={handleSoundToggle}
         >
           <span className="option-icon">{soundEnabled ? '🔊' : '🔈'}</span>
-          <span className="option-title">Son</span>
-          <span className="option-description">{soundEnabled ? 'Activé' : 'Désactivé'}</span>
+          <span className="option-title">{text.sound}</span>
+          <span className="option-description">{soundEnabled ? text.enabled : text.disabled}</span>
         </button>
 
         <Link
@@ -52,8 +90,8 @@ function Options({
           to="/tutorial"
         >
           <span className="option-icon">?</span>
-          <span className="option-title">Guide</span>
-          <span className="option-description">Contrôles et modes</span>
+          <span className="option-title">{text.guide}</span>
+          <span className="option-description">{text.guideDescription}</span>
         </Link>
 
         <button
@@ -63,8 +101,8 @@ function Options({
           aria-controls="language-options"
         >
           <span className="option-icon">Aa</span>
-          <span className="option-title">Langue</span>
-          <span className="option-description">Choisir la langue d'affichage</span>
+          <span className="option-title">{text.language}</span>
+          <span className="option-description">{text.languageDescription}</span>
         </button>
       </div>
 
@@ -77,7 +115,7 @@ function Options({
           <div
             className="language-options"
             id="language-options"
-            aria-label="Options de langue"
+            aria-label={text.languageOptions}
             onClick={(event) => event.stopPropagation()}
           >
             {PLAYER_STATS_LANGUAGES.map(({ code, label }) => (
@@ -102,7 +140,7 @@ function Options({
         className="back-button"
         onClick={onBack}
       >
-        ← Retour
+        {text.back}
       </button>
     </div>
   )
