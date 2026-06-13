@@ -96,6 +96,16 @@ describe('AuthMenu', () => {
     expect(onLanguageChange).toHaveBeenCalledWith('en')
   })
 
+  it('falls back to English auth labels when language is unsupported', () => {
+    render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" language="zz" />)
+
+    expect(screen.getByRole('heading', { name: 'Login to Your Account' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Login' })).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Register' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Username')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Password')).toBeInTheDocument()
+  })
+
   it('validates login and maps login errors', async () => {
     const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
 

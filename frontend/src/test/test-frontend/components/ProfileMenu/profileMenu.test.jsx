@@ -597,6 +597,27 @@ describe('ProfileMenu Component', () => {
       expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Se deconnecter' })).toBeInTheDocument()
     })
+
+    it('should fall back to English labels when language is unsupported', () => {
+      render(
+        <ProfileMenu
+          {...defaultProps}
+          title="Profile"
+          submitLabel="Save"
+          language="zz"
+          onLogout={vi.fn()}
+        />
+      )
+
+      expect(screen.getByRole('heading', { name: 'Profile' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Random' })).toBeInTheDocument()
+      expect(screen.getByText('Skin')).toBeInTheDocument()
+      expect(screen.getByText('Eyes')).toBeInTheDocument()
+      expect(screen.getByText('Mouth')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Username')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument()
+    })
   })
 
   describe('Avatar Validation', () => {

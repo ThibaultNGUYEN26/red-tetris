@@ -89,7 +89,7 @@ function Spectate() {
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
   ))
   const [language] = useState(getSavedLanguage)
-  const text = SPECTATE_TRANSLATIONS[language] || SPECTATE_TRANSLATIONS[DEFAULT_LANGUAGE]
+  const text = SPECTATE_TRANSLATIONS[language]
 
   const handlePlayAgain = async () => {
     const roomPath = roomType

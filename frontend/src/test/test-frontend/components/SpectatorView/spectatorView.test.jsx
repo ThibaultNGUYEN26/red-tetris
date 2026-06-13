@@ -24,6 +24,14 @@ describe('SpectatorView Component', () => {
     expect(screen.getByRole('button', { name: /retour/i })).toBeInTheDocument()
   })
 
+  it('falls back to English labels when language is unsupported', () => {
+    render(<SpectatorView players={[]} onBack={vi.fn()} username="Titi" language="zz" />)
+
+    expect(screen.getByText(/spectator mode/i)).toBeInTheDocument()
+    expect(screen.getByText(/no players to watch/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument()
+  })
+
   it('shows empty state when players is not an array', () => {
     render(<SpectatorView players={null} onBack={vi.fn()} username="Titi" />)
 
