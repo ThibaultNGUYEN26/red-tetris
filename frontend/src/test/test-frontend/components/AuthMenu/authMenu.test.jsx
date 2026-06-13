@@ -91,6 +91,7 @@ describe('AuthMenu', () => {
     expect(screen.getByPlaceholderText('Pseudo')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Mot de passe')).toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole('button', { name: /langue/i }))
     fireEvent.click(screen.getByRole('button', { name: /English/i }))
 
     expect(onLanguageChange).toHaveBeenCalledWith('en')
@@ -104,6 +105,25 @@ describe('AuthMenu', () => {
     expect(screen.getByRole('button', { name: 'Register' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Username')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Password')).toBeInTheDocument()
+  })
+
+  it('closes the language options when the backdrop is clicked', () => {
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
+
+    fireEvent.click(screen.getByRole('button', { name: /language/i }))
+    expect(screen.getByRole('button', { name: /French/i })).toBeInTheDocument()
+
+    fireEvent.click(container.querySelector('.auth-language-options-overlay'))
+
+    expect(screen.queryByRole('button', { name: /French/i })).not.toBeInTheDocument()
+  })
+
+  it('uses dark styling for the language options overlay', () => {
+    const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="dark" />)
+
+    fireEvent.click(screen.getByRole('button', { name: /language/i }))
+
+    expect(container.querySelector('.auth-language-options-overlay.dark')).toBeInTheDocument()
   })
 
   it('validates login and maps login errors', async () => {

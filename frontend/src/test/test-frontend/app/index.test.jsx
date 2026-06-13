@@ -156,6 +156,7 @@ describe('Index main page', () => {
 
     expect(screen.getByRole('heading', { name: /login to your account/i })).toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole('button', { name: /language/i }))
     fireEvent.click(screen.getByRole('button', { name: /french/i }))
 
     expect(screen.getByRole('heading', { name: 'Connectez-vous' })).toBeInTheDocument()
@@ -173,6 +174,7 @@ describe('Index main page', () => {
 
     expect(screen.getByRole('heading', { name: /create your account/i })).toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole('button', { name: /language/i }))
     fireEvent.click(screen.getByRole('button', { name: /french/i }))
 
     expect(screen.getByRole('heading', { name: 'Creer votre compte' })).toBeInTheDocument()

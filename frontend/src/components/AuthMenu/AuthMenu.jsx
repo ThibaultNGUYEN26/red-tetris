@@ -167,6 +167,7 @@ function AuthMenu({
   const [successMessage, setSuccessMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [canRestoreAccount, setCanRestoreAccount] = useState(false)
+  const [showLanguages, setShowLanguages] = useState(false)
   const inputRef = useRef(null)
 
   const resetToken = useMemo(
@@ -469,22 +470,51 @@ function AuthMenu({
   const isRegisterLayout = mode === 'register'
 
   return (
-    <div className={`username-card auth-card ${isRegisterLayout ? 'register-mode' : 'login-mode'} ${theme === 'dark' ? 'dark' : ''}`}>
-      <div className="auth-language-switcher" aria-label={text.languageLabel}>
-        {PLAYER_STATS_LANGUAGES.map(({ code, label }) => (
-          <button
-            key={code}
-            type="button"
-            className={`auth-language-option${language === code ? ' active' : ''}`}
-            aria-pressed={language === code}
-            onClick={() => onLanguageChange?.(code)}
-          >
-            {code.toUpperCase()}
-            <span className="auth-language-name">{label}</span>
-          </button>
-        ))}
+    <>
+      <div className={`auth-language-control ${theme === 'dark' ? 'dark' : ''}`}>
+        <button
+          type="button"
+          className="auth-language-trigger"
+          aria-label={text.languageLabel}
+          aria-expanded={showLanguages}
+          aria-controls="auth-language-options"
+          onClick={() => setShowLanguages((current) => !current)}
+        >
+          Aa
+        </button>
       </div>
 
+      {showLanguages && (
+        <div
+          className={`auth-language-options-overlay ${theme === 'dark' ? 'dark' : ''}`}
+          role="presentation"
+          onClick={() => setShowLanguages(false)}
+        >
+          <div
+            className="auth-language-options"
+            id="auth-language-options"
+            aria-label={text.languageLabel}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {PLAYER_STATS_LANGUAGES.map(({ code, label }) => (
+              <button
+                key={code}
+                type="button"
+                className={`auth-language-option${language === code ? ' selected' : ''}`}
+                aria-pressed={language === code}
+                onClick={() => {
+                  onLanguageChange?.(code)
+                  setShowLanguages(false)
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className={`username-card auth-card ${isRegisterLayout ? 'register-mode' : 'login-mode'} ${theme === 'dark' ? 'dark' : ''}`}>
       <div className="auth-switch-row">
         <button
           type="button"
@@ -658,6 +688,7 @@ function AuthMenu({
         </div>
       </div>
     </div>
+    </>
   )
 }
 
