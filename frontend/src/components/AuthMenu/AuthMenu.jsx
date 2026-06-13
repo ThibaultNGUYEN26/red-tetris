@@ -480,7 +480,7 @@ function AuthMenu({
           aria-controls="auth-language-options"
           onClick={() => setShowLanguages((current) => !current)}
         >
-          Aa
+          🌍
         </button>
       </div>
 
