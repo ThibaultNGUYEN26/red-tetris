@@ -575,9 +575,26 @@ function Index({ authMode = 'login' }) {
       return
     }
 
-    setUserProfile(profile)
+    const nextPreferences = normalizePreferences({
+      ...(profile.preferences || {}),
+      language,
+    })
+    const nextProfile = {
+      ...profile,
+      preferences: nextPreferences,
+    }
+
+    setUserProfile(nextProfile)
     setUsername(profile.username)
-    applyPreferences(profile.preferences)
+    applyPreferences(nextPreferences)
+    apiFetch('/api/profile', {
+      method: 'POST',
+      ...authFetchOptions(),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ preferences: nextPreferences }),
+    }).catch(() => {})
 
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
   }

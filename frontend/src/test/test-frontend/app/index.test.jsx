@@ -17,7 +17,14 @@ vi.mock('react-router-dom', () => ({
 }))
 
 vi.mock('../../../socket', () => ({
-  socket: { emit: vi.fn(), on: vi.fn(), off: vi.fn() },
+  socket: {
+    emit: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
+    timeout: vi.fn(() => ({
+      emit: vi.fn((event, payload, callback) => callback?.(null, { ok: true })),
+    })),
+  },
 }))
 
 vi.mock('../../../components/GoodClouds/GoodClouds.jsx', () => ({
@@ -165,6 +172,63 @@ describe('Index main page', () => {
     expect(screen.getByPlaceholderText('Pseudo')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Mot de passe')).toBeInTheDocument()
     expect(localStorage.getItem('red-tetris-language')).toBe('fr')
+  })
+
+  it('keeps the login page language selection after signing in', async () => {
+    mockParams = { username: undefined, roomName: undefined, roomType: undefined }
+    global.fetch.mockImplementation(async (url) => {
+      if (requestPath(url) === '/api/auth/login') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+            preferences: { theme: 'light', soundEnabled: true, language: 'en' },
+          }),
+        }
+      }
+
+      if (requestPath(url) === '/api/profile') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+            preferences: { theme: 'light', soundEnabled: true, language: 'fr' },
+          }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    const { container } = render(<Index />)
+
+    fireEvent.click(screen.getByRole('button', { name: /language/i }))
+    fireEvent.click(screen.getByRole('button', { name: /french/i }))
+    fireEvent.change(screen.getByPlaceholderText('Pseudo'), { target: { value: 'Titi' } })
+    fireEvent.change(screen.getByPlaceholderText('Mot de passe'), { target: { value: 'Secret123!' } })
+    fireEvent.click(container.querySelector('.submit-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('player-stats')).toHaveTextContent('fr')
+    })
+    expect(localStorage.getItem('red-tetris-language')).toBe('fr')
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/profile'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          preferences: {
+            theme: 'light',
+            soundEnabled: true,
+            language: 'fr',
+          },
+        }),
+      })
+    )
   })
 
   it('translates the register page when language is changed before signing in', () => {
