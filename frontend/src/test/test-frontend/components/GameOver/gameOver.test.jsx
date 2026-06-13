@@ -32,8 +32,27 @@ describe('GameOver Component', () => {
       />
     )
 
+    expect(screen.getByRole('heading', { name: /game over/i })).toBeInTheDocument()
+    expect(screen.getByText('Winner: Titi')).toBeInTheDocument()
+  })
+
+  it('renders French labels when French is selected', () => {
+    render(
+      <GameOver
+        winner="Titi"
+        isEliminated
+        isGameOver
+        onBack={vi.fn()}
+        username="Titi"
+        isMultiplayer={true}
+        gameMode="cooperative"
+        language="fr"
+      />
+    )
+
     expect(screen.getByRole('heading', { name: /partie terminée/i })).toBeInTheDocument()
-    expect(screen.getByText('Vainqueur : Titi')).toBeInTheDocument()
+    expect(screen.getByText('Vainqueur: Titi')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /retour au menu/i })).toBeInTheDocument()
   })
 
   it('shows Game Over title in cooperative_roles too', () => {
@@ -49,7 +68,7 @@ describe('GameOver Component', () => {
       />
     )
 
-    expect(screen.getByRole('heading', { name: /partie terminée/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /game over/i })).toBeInTheDocument()
   })
 
   it('shows win/lose title in multiplayer versus modes', () => {
@@ -65,8 +84,8 @@ describe('GameOver Component', () => {
       />
     )
 
-    expect(screen.getByRole('heading', { name: /vous avez gagné/i })).toBeInTheDocument()
-    expect(screen.getByText('Vainqueur : Titi')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /you won/i })).toBeInTheDocument()
+    expect(screen.getByText('Winner: Titi')).toBeInTheDocument()
 
     rerender(
       <GameOver
@@ -80,8 +99,8 @@ describe('GameOver Component', () => {
       />
     )
 
-    expect(screen.getByRole('heading', { name: /vous avez perdu/i })).toBeInTheDocument()
-    expect(screen.getByText('Vainqueur : Other')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /you lost/i })).toBeInTheDocument()
+    expect(screen.getByText('Winner: Other')).toBeInTheDocument()
   })
 
   it('shows play again and spectate when applicable', () => {
@@ -102,7 +121,7 @@ describe('GameOver Component', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /rejouer/i }))
+    fireEvent.click(screen.getByRole('button', { name: /play again/i }))
     expect(onPlayAgain).toHaveBeenCalled()
   })
 
@@ -122,7 +141,7 @@ describe('GameOver Component', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /regarder/i }))
+    fireEvent.click(screen.getByRole('button', { name: /spectate/i }))
     expect(onSpectate).toHaveBeenCalled()
   })
 
@@ -141,7 +160,7 @@ describe('GameOver Component', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /retour au menu/i }))
+    fireEvent.click(screen.getByRole('button', { name: /back to menu/i }))
     expect(onBack).toHaveBeenCalled()
   })
 })

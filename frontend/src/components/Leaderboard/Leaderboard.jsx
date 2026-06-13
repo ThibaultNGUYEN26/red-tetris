@@ -2,6 +2,7 @@ import './Leaderboard.css'
 import { useEffect, useState } from 'react'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { socket } from '../../socket'
+import { DEFAULT_LANGUAGE } from '../../i18n/playerStats'
 
 const DEFAULT_AVATAR = {
   skinColor: '#cccccc',
@@ -13,6 +14,28 @@ const hasScoreEntries = (data) =>
   Array.isArray(data) && data.some((entry) => Number(entry?.score || 0) > 0)
 
 const LEADERBOARD_CACHE_KEY = 'red-tetris-leaderboards'
+const LEADERBOARD_TRANSLATIONS = {
+  en: {
+    title: '🏆 Leaderboard',
+    solo: 'Solo',
+    coop: 'Co-op Duo',
+    loading: 'Loading…',
+    playerOne: 'Player 1',
+    playerTwo: 'Player 2',
+    previousPage: 'Previous page',
+    nextPage: 'Next page',
+  },
+  fr: {
+    title: '🏆 Classement',
+    solo: 'Solo',
+    coop: 'Duo coop',
+    loading: 'Chargement…',
+    playerOne: 'Joueur 1',
+    playerTwo: 'Joueur 2',
+    previousPage: 'Page précédente',
+    nextPage: 'Page suivante',
+  },
+}
 
 const readCachedLeaderboards = () => {
   try {
@@ -34,7 +57,8 @@ const writeCachedLeaderboards = (nextCache) => {
   }
 }
 
-function Leaderboard({ theme }) {
+function Leaderboard({ theme, language = DEFAULT_LANGUAGE }) {
+  const text = LEADERBOARD_TRANSLATIONS[language] || LEADERBOARD_TRANSLATIONS[DEFAULT_LANGUAGE]
   const [leaderboards, setLeaderboards] = useState(() => readCachedLeaderboards())
   const [soloLoaded, setSoloLoaded] = useState(() => leaderboards.solo.length > 0)
   const [coopLoaded, setCoopLoaded] = useState(() => leaderboards.coop.length > 0)
@@ -125,8 +149,8 @@ function Leaderboard({ theme }) {
 
   const renderCoopEntry = (entry) => {
     const [playerOne = {}, playerTwo = {}] = entry.players || []
-    const playerOneName = playerOne.name || 'Joueur 1'
-    const playerTwoName = playerTwo.name || 'Joueur 2'
+    const playerOneName = playerOne.name || text.playerOne
+    const playerTwoName = playerTwo.name || text.playerTwo
 
     return (
       <div key={entry.rank} className={`leaderboard-entry coop-entry ${entry.rank <= 3 ? `top-${entry.rank}` : ''}`}>
@@ -150,7 +174,7 @@ function Leaderboard({ theme }) {
       }`}
     >
       <div className="leaderboard-header">
-        <h3 className="leaderboard-title">🏆 Classement</h3>
+        <h3 className="leaderboard-title">{text.title}</h3>
         <div className="leaderboard-tabs">
           {(!allLeaderboardsLoaded || hasSoloScores) && (
             <button
@@ -158,7 +182,7 @@ function Leaderboard({ theme }) {
               onClick={() => setMode('solo')}
               className={`leaderboard-tab ${mode === 'solo' ? 'active' : ''}`}
             >
-              Solo
+              {text.solo}
             </button>
           )}
           {hasCoopScores && (
@@ -167,14 +191,14 @@ function Leaderboard({ theme }) {
               onClick={() => setMode('coop')}
               className={`leaderboard-tab ${mode === 'coop' ? 'active' : ''}`}
             >
-              Duo coop
+              {text.coop}
             </button>
           )}
         </div>
       </div>
 
       <div className="leaderboard-list">
-        {loading && <div className="leaderboard-entry">Chargement…</div>}
+        {loading && <div className="leaderboard-entry">{text.loading}</div>}
 
         {!loading &&
           displayedData.map((entry) =>
@@ -188,6 +212,7 @@ function Leaderboard({ theme }) {
             onClick={handlePrevPage}
             disabled={currentPage === 0}
             className="pagination-btn"
+            aria-label={text.previousPage}
           >
             ←
           </button>
@@ -198,6 +223,7 @@ function Leaderboard({ theme }) {
             onClick={handleNextPage}
             disabled={currentPage === totalPages - 1}
             className="pagination-btn"
+            aria-label={text.nextPage}
           >
             →
           </button>

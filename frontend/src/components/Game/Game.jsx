@@ -13,12 +13,79 @@ import pauseSound from '../../res/sounds/pause.mp3'
 import clearSound from '../../res/sounds/clear.mp3'
 import winnerSound from '../../res/sounds/winner.mp3'
 import loserSound from '../../res/sounds/loser.mp3'
+import { DEFAULT_LANGUAGE } from '../../i18n/playerStats'
 
 const DEFAULT_BOARD = { width: 10, height: 20 }
 const SOFT_DROP_MS = 60
 const DAS_MS = 220
 const ARR_MS = 60
 const SHARED_BOARD_MODES = ['cooperative', 'cooperative_roles']
+const GAME_TRANSLATIONS = {
+  en: {
+    controls: [
+      { keys: 'Left / Right arrow', action: 'Move' },
+      { keys: 'Up arrow', action: 'Rotate' },
+      { keys: 'Down arrow', action: 'Soft drop' },
+      { keys: 'Space', action: 'Hard drop' },
+      { keys: 'C / Shift', action: 'Hold' },
+      { keys: 'Escape', action: 'Options' },
+    ],
+    options: 'Options',
+    score: 'Score',
+    lines: 'Lines',
+    level: 'Level',
+    hold: 'Hold',
+    holdAria: 'Held piece',
+    boardAria: 'Tetris board',
+    next: 'Next',
+    nextAria: 'Next piece',
+    keyboardControlsAria: 'Keyboard controls',
+    pause: 'Pause',
+    gameMenu: 'Game menu',
+    soundOn: 'Sound: enabled',
+    soundOff: 'Sound: disabled',
+    resume: 'Resume',
+    leaveGame: 'Leave game',
+    yourTurn: 'YOUR TURN',
+    playing: 'Playing',
+    playingFallback: 'Playing: ...',
+    rotateRole: 'ROTATION',
+    placeRole: 'PLACEMENT',
+    assigningRole: 'ASSIGNING ROLE...',
+  },
+  fr: {
+    controls: [
+      { keys: 'Flèche gauche / droite', action: 'Déplacer' },
+      { keys: 'Flèche haut', action: 'Rotation' },
+      { keys: 'Flèche bas', action: 'Descente rapide' },
+      { keys: 'Espace', action: 'Chute instantanée' },
+      { keys: 'C / Maj', action: 'Garder' },
+      { keys: 'Échap', action: 'Options' },
+    ],
+    options: 'Paramètres',
+    score: 'Score',
+    lines: 'Lignes',
+    level: 'Niveau',
+    hold: 'Réserve',
+    holdAria: 'Pièce en réserve',
+    boardAria: 'Plateau de Tetris',
+    next: 'Suivante',
+    nextAria: 'Pièce suivante',
+    keyboardControlsAria: 'Contrôles au clavier',
+    pause: 'Pause',
+    gameMenu: 'Menu de jeu',
+    soundOn: 'Son : activé',
+    soundOff: 'Son : désactivé',
+    resume: 'Reprendre',
+    leaveGame: 'Quitter la partie',
+    yourTurn: 'À VOUS',
+    playing: 'Joue',
+    playingFallback: 'Joue : ...',
+    rotateRole: 'ROTATION',
+    placeRole: 'PLACEMENT',
+    assigningRole: 'ATTRIBUTION DU RÔLE...',
+  },
+}
 const SHAPES = {
   i: [
     [[1, 0], [1, 1], [1, 2], [1, 3]],
@@ -79,16 +146,11 @@ function Game({
   isMultiplayer: isMultiplayerProp,
   soundEnabled = true,
   onSoundChange,
+  language = DEFAULT_LANGUAGE,
 }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
-  const controls = [
-    { keys: 'Flèche gauche / droite', action: 'Déplacer' },
-    { keys: 'Flèche haut', action: 'Rotation' },
-    { keys: 'Flèche bas', action: 'Descente rapide' },
-    { keys: 'Espace', action: 'Chute instantanée' },
-    { keys: 'C / Maj', action: 'Garder' },
-    { keys: 'Échap', action: 'Options' },
-  ]
+  const text = GAME_TRANSLATIONS[language] || GAME_TRANSLATIONS[DEFAULT_LANGUAGE]
+  const controls = text.controls
 
   const [board, setBoard] = useState(() => makeEmptyBoard(DEFAULT_BOARD))
   const [boardSize, setBoardSize] = useState(DEFAULT_BOARD)
@@ -669,16 +731,16 @@ function Game({
     isAlternatingCooperativeMode && activePlayerUsername && activePlayerUsername === username
   const cooperativeStatusLabel = isAlternatingCooperativeMode
     ? isYourTurn
-      ? 'À VOUS'
+      ? text.yourTurn
       : activePlayerUsername
-        ? `Joue : ${activePlayerUsername}`
-        : 'Joue : ...'
+        ? `${text.playing}: ${activePlayerUsername}`
+        : text.playingFallback
     : isRoleSplitCooperativeMode
       ? cooperativeRole === 'rotate'
-        ? 'ROTATION'
+        ? text.rotateRole
         : cooperativeRole === 'place'
-          ? 'PLACEMENT'
-          : 'ATTRIBUTION DU RÔLE...'
+          ? text.placeRole
+          : text.assigningRole
       : null
 
   if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
@@ -714,6 +776,7 @@ function Game({
                 }
               : null
           }
+          language={language}
         />
         <div className="game-header">
           <div className="game-title">
@@ -729,7 +792,7 @@ function Game({
                 }}
                 disabled={isPaused}
               >
-                Paramètres
+                {text.options}
               </button>
               {cooperativeStatusLabel && (
                 <div
@@ -742,15 +805,15 @@ function Game({
           </div>
           <div className="game-stats">
             <div className="stat">
-              <span className="stat-label">Score</span>
+              <span className="stat-label">{text.score}</span>
               <span className="stat-value">{stats.score.toLocaleString()}</span>
             </div>
             <div className="stat">
-              <span className="stat-label">Lignes</span>
+              <span className="stat-label">{text.lines}</span>
               <span className="stat-value">{stats.lines.toLocaleString()}</span>
             </div>
             <div className="stat">
-              <span className="stat-label">Niveau</span>
+              <span className="stat-label">{text.level}</span>
               <span className="stat-value">{stats.level.toLocaleString()}</span>
             </div>
           </div>
@@ -758,8 +821,8 @@ function Game({
 
         <div className="game-layout">
           <div className="hold-panel">
-            <h3>Réserve</h3>
-            <div className="next-grid piece-preview-grid" role="grid" aria-label="Pièce en réserve">
+            <h3>{text.hold}</h3>
+            <div className="next-grid piece-preview-grid" role="grid" aria-label={text.holdAria}>
               <div
                 style={{
                   display: 'grid',
@@ -783,7 +846,7 @@ function Game({
           <div
             className={`game-board${boardFlash ? ` board-flash board-flash-${boardFlash}` : ''}`}
             role="grid"
-            aria-label="Plateau de Tetris"
+            aria-label={text.boardAria}
             style={{
               gridTemplateColumns: `repeat(${boardSize.width}, var(--cell-size))`,
               gridTemplateRows: `repeat(${boardSize.height}, var(--cell-size))`,
@@ -801,8 +864,8 @@ function Game({
           </div>
 
           <div className="side-panel">
-            <h3>Suivante</h3>
-            <div className="next-grid piece-preview-grid" role="grid" aria-label="Pièce suivante">
+            <h3>{text.next}</h3>
+            <div className="next-grid piece-preview-grid" role="grid" aria-label={text.nextAria}>
               <div
                 style={{
                   display: 'grid',
@@ -828,22 +891,22 @@ function Game({
         {!isMultiplayer && isPaused && (
           <div className="pause-overlay" role="dialog" aria-modal="true">
             <div className="pause-card">
-              <h3>Pause</h3>
+              <h3>{text.pause}</h3>
               <div className="pause-actions">
                 <button
                   className={soundEnabled ? 'resume-button' : 'back-button'}
                   onClick={() => onSoundChange?.(!soundEnabled)}
                 >
-                  {soundEnabled ? 'Son : activé' : 'Son : désactivé'}
+                  {soundEnabled ? text.soundOn : text.soundOff}
                 </button>
                 <button
                   className="resume-button"
                   onClick={() => setIsPaused(false)}
                 >
-                  Reprendre
+                  {text.resume}
                 </button>
                 <button className="back-button" onClick={handleLeaveGame}>
-                  Quitter la partie
+                  {text.leaveGame}
                 </button>
               </div>
             </div>
@@ -853,29 +916,29 @@ function Game({
         {isMultiplayer && showMenu && (
           <div className="pause-overlay" role="dialog" aria-modal="true">
             <div className="pause-card">
-              <h3>Menu de jeu</h3>
+              <h3>{text.gameMenu}</h3>
               <div className="pause-actions">
                 <button
                   className={soundEnabled ? 'resume-button' : 'back-button'}
                   onClick={() => onSoundChange?.(!soundEnabled)}
                 >
-                  {soundEnabled ? 'Son : activé' : 'Son : désactivé'}
+                  {soundEnabled ? text.soundOn : text.soundOff}
                 </button>
                 <button
                   className="resume-button"
                   onClick={() => setShowMenu(false)}
                 >
-                  Reprendre
+                  {text.resume}
                 </button>
                 <button className="back-button" onClick={handleLeaveGame}>
-                  Quitter la partie
+                  {text.leaveGame}
                 </button>
               </div>
             </div>
           </div>
         )}
       </div>
-      <aside className="game-controls-help" aria-label="Contrôles au clavier">
+      <aside className="game-controls-help" aria-label={text.keyboardControlsAria}>
         {controls.map(({ keys, action }) => (
           <div className="control-hint" key={keys}>
             <span className="control-key">{keys}</span>

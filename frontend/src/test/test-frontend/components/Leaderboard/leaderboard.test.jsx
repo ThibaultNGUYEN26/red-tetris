@@ -116,6 +116,22 @@ describe('Leaderboard Component', () => {
       })
     })
 
+    it('renders French labels when French is selected', async () => {
+      render(<Leaderboard {...defaultProps} language="fr" />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+      })
+      triggerSocketEvent('leaderboardSolo', soloLeaderboard)
+      triggerSocketEvent('leaderboardCoop', coopLeaderboard)
+
+      expect(screen.getByText(/classement/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Solo' })).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Duo coop' })).toBeInTheDocument()
+      })
+    })
+
     it('should ignore invalid cached leaderboard data', async () => {
       localStorage.setItem('red-tetris-leaderboards', '{invalid-json')
 
@@ -450,7 +466,7 @@ describe('Leaderboard Component', () => {
         expect(screen.getByText('1 / 2')).toBeInTheDocument()
       })
 
-      const nextButton = screen.getByRole('button', { name: '→' })
+      const nextButton = screen.getByRole('button', { name: /next page/i })
       fireEvent.click(nextButton)
 
       await waitFor(() => {
@@ -458,7 +474,7 @@ describe('Leaderboard Component', () => {
         expect(screen.getByText('2 / 2')).toBeInTheDocument()
       })
 
-      const prevButton = screen.getByRole('button', { name: '←' })
+      const prevButton = screen.getByRole('button', { name: /previous page/i })
       fireEvent.click(prevButton)
 
       await waitFor(() => {

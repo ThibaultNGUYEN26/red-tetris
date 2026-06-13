@@ -4,6 +4,88 @@ import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { socket } from '../../socket'
 import { authFetchOptions } from '../../authToken'
 import { apiFetch } from '../../api'
+import { DEFAULT_LANGUAGE } from '../../i18n/playerStats'
+
+const CREATE_ROOM_TRANSLATIONS = {
+  en: {
+    joinErrors: {
+      'Username already connected': 'This username is already connected in this room.',
+      'Room is full': 'This room is already full.',
+      'User is already in a room': 'This player is already busy in another room.',
+      default: 'This room is already occupied. Try another room or another username.',
+    },
+    roomActionErrors: {
+      used: 'Room already used.',
+      invalidName: 'Invalid room name',
+      invalidMode: 'Invalid game mode',
+      hostRenameOnly: 'Only the host can rename the room.',
+      default: 'Unable to update the room right now.',
+    },
+    modes: {
+      classic: { label: 'Classic', description: 'Standard competitive Tetris where cleared lines send penalties to opponents.' },
+      mirror: { label: 'Mirror', description: 'Controls are reversed, so movement and drops behave differently.' },
+      chaotic: { label: 'Chaotic', description: 'Your current piece and next piece can be randomly swapped during the game.' },
+      invisible: { label: 'Invisible', description: 'The active piece becomes harder to track while it falls.' },
+      giant: { label: 'Giant', description: 'Play on a larger board with more space and longer survival.' },
+      cooperative: { label: 'Alternating co-op', description: 'Two players share a board and play turn by turn.' },
+      cooperative_roles: { label: 'Role co-op', description: 'Two players share a board with separate movement and rotation roles.' },
+    },
+    invalidPassword: 'Invalid password',
+    passwordRequired: 'Password required',
+    joinFailed: 'Unable to join the room',
+    editRoomName: 'Edit room name',
+    currentPassword: 'Current room password',
+    password: 'Password',
+    roomPassword: 'Room password',
+    hidePassword: 'Hide password',
+    showPassword: 'Show password',
+    joinRoom: 'Join room',
+    back: 'Back',
+    gameMode: 'Game mode',
+    players: 'Players',
+    waitingPlayers: 'Waiting for players...',
+    startGame: 'Start game',
+  },
+  fr: {
+    joinErrors: {
+      'Username already connected': 'Ce pseudo est déjà connecté dans cette salle.',
+      'Room is full': 'Cette salle est déjà complète.',
+      'User is already in a room': 'Ce joueur est déjà occupé dans une autre salle.',
+      default: 'Cette salle est déjà occupée. Essayez une autre salle ou un autre pseudo.',
+    },
+    roomActionErrors: {
+      used: 'Salle déjà utilisée.',
+      invalidName: 'Nom de salle invalide',
+      invalidMode: 'Mode de jeu invalide',
+      hostRenameOnly: 'Seul l’hôte peut renommer la salle.',
+      default: 'Impossible de mettre à jour la salle pour le moment.',
+    },
+    modes: {
+      classic: { label: 'Classique', description: 'Tetris compétitif standard où les lignes supprimées envoient des pénalités aux adversaires.' },
+      mirror: { label: 'Miroir', description: 'Les contrôles sont inversés, donc les déplacements et les chutes se comportent différemment.' },
+      chaotic: { label: 'Chaotique', description: 'Votre pièce actuelle et la pièce suivante peuvent être échangées aléatoirement pendant la partie.' },
+      invisible: { label: 'Invisible', description: 'La pièce active devient plus difficile à suivre pendant sa chute.' },
+      giant: { label: 'Géant', description: 'Jouez sur un plateau plus grand, avec plus d’espace et une survie plus longue.' },
+      cooperative: { label: 'Co-op alternée', description: 'Deux joueurs partagent un plateau et jouent à tour de rôle.' },
+      cooperative_roles: { label: 'Co-op rôles', description: 'Deux joueurs partagent un plateau avec des rôles séparés pour les déplacements et la rotation.' },
+    },
+    invalidPassword: 'Mot de passe invalide',
+    passwordRequired: 'Mot de passe requis',
+    joinFailed: 'Impossible de rejoindre la salle',
+    editRoomName: 'Modifier le nom de la salle',
+    currentPassword: 'Mot de passe actuel de la salle',
+    password: 'Mot de passe',
+    roomPassword: 'Mot de passe de la salle',
+    hidePassword: 'Masquer le mot de passe',
+    showPassword: 'Afficher le mot de passe',
+    joinRoom: 'Rejoindre la salle',
+    back: 'Retour',
+    gameMode: 'Mode de jeu',
+    players: 'Joueurs',
+    waitingPlayers: 'En attente de joueurs...',
+    startGame: 'Lancer la partie',
+  },
+}
 
 function CreateRoom({
   theme,
@@ -22,8 +104,10 @@ function CreateRoom({
   knownRoomPassword = '',
   onRoomCreated,
   onRoomRenamed,
-  onStartGame
+  onStartGame,
+  language = DEFAULT_LANGUAGE,
 }) {
+  const text = CREATE_ROOM_TRANSLATIONS[language] || CREATE_ROOM_TRANSLATIONS[DEFAULT_LANGUAGE]
   const sharedBoardModes = ['cooperative', 'cooperative_roles']
   const defaultAvatar = {
     skinColor: '#cccccc',
@@ -70,52 +154,43 @@ function CreateRoom({
   }
 
   const getJoinErrorMessage = (error) => {
-    switch (error) {
-      case 'Username already connected':
-        return 'Ce pseudo est déjà connecté dans cette salle.'
-      case 'Room is full':
-        return 'Cette salle est déjà complète.'
-      case 'User is already in a room':
-        return 'Ce joueur est déjà occupé dans une autre salle.'
-      default:
-        return 'Cette salle est déjà occupée. Essayez une autre salle ou un autre pseudo.'
-    }
+    return text.joinErrors[error] || text.joinErrors.default
   }
 
   const getRoomActionErrorMessage = (error) => {
     switch (error) {
       case 'Room already used':
       case 'Room name already exists':
-        return 'Salle déjà utilisée.'
+        return text.roomActionErrors.used
       case 'Invalid room name':
-        return 'Nom de salle invalide'
+        return text.roomActionErrors.invalidName
       case 'Invalid game mode':
-        return 'Mode de jeu invalide'
+        return text.roomActionErrors.invalidMode
       case 'Only the host can rename the room':
-        return 'Seul l’hôte peut renommer la salle.'
+        return text.roomActionErrors.hostRenameOnly
       default:
-        return 'Impossible de mettre à jour la salle pour le moment.'
+        return text.roomActionErrors.default
     }
   }
 
   // Define available game modes
   const multiplayerModes = [
-    { value: 'classic', label: 'Classique', maxPlayers: 8, description: 'Tetris compétitif standard où les lignes supprimées envoient des pénalités aux adversaires.' },
-    { value: 'mirror', label: 'Miroir', maxPlayers: 8, description: 'Les contrôles sont inversés, donc les déplacements et les chutes se comportent différemment.' },
-    { value: 'chaotic', label: 'Chaotique', maxPlayers: 8, description: 'Votre pièce actuelle et la pièce suivante peuvent être échangées aléatoirement pendant la partie.' },
-    { value: 'invisible', label: 'Invisible', maxPlayers: 8, description: 'La pièce active devient plus difficile à suivre pendant sa chute.' },
-    { value: 'giant', label: 'Géant', maxPlayers: 8, description: 'Jouez sur un plateau plus grand, avec plus d’espace et une survie plus longue.' }
+    { value: 'classic', maxPlayers: 8, ...text.modes.classic },
+    { value: 'mirror', maxPlayers: 8, ...text.modes.mirror },
+    { value: 'chaotic', maxPlayers: 8, ...text.modes.chaotic },
+    { value: 'invisible', maxPlayers: 8, ...text.modes.invisible },
+    { value: 'giant', maxPlayers: 8, ...text.modes.giant }
   ]
   const cooperativeModes = [
-    { value: 'cooperative', label: 'Co-op alternée', maxPlayers: 2, description: 'Deux joueurs partagent un plateau et jouent à tour de rôle.' },
-    { value: 'cooperative_roles', label: 'Co-op rôles', maxPlayers: 2, description: 'Deux joueurs partagent un plateau avec des rôles séparés pour les déplacements et la rotation.' }
+    { value: 'cooperative', maxPlayers: 2, ...text.modes.cooperative },
+    { value: 'cooperative_roles', maxPlayers: 2, ...text.modes.cooperative_roles }
   ]
 
   const availableGameModes =
     roomType === 'cooperative' ? cooperativeModes : multiplayerModes
   const selectedModeDescription =
     availableGameModes.find((gameMode) => gameMode.value === selectedMode)?.description ||
-    'Tetris compétitif standard où les lignes supprimées envoient des pénalités aux adversaires.'
+    text.modes.classic.description
 
   // Filter modes based on current player count
   const getAvailableModes = () => {
@@ -244,7 +319,7 @@ function CreateRoom({
       if (!response?.ok) {
         if (response?.error === 'Room password required' || response?.error === 'Invalid room password') {
           setNeedsRoomPassword(true)
-          setPasswordError(response.error === 'Invalid room password' ? 'Mot de passe invalide' : '')
+          setPasswordError(response.error === 'Invalid room password' ? text.invalidPassword : '')
           return
         }
         console.error('Failed to join room:', response?.error || 'Unknown error')
@@ -448,7 +523,7 @@ function CreateRoom({
         const errorPayload = await response.json().catch(() => ({}))
         const message =
           response.status === 409
-            ? 'Salle déjà utilisée.'
+            ? text.roomActionErrors.used
             : getRoomActionErrorMessage(errorPayload?.error)
         setJoinError(message)
         if (response.status === 409) {
@@ -509,7 +584,7 @@ function CreateRoom({
     event.preventDefault()
     if (isLeavingRoom.current) return
     if (!roomPassword.trim()) {
-      setPasswordError('Mot de passe requis')
+      setPasswordError(text.passwordRequired)
       return
     }
 
@@ -521,8 +596,8 @@ function CreateRoom({
         setNeedsRoomPassword(true)
         setPasswordError(
           response?.error === 'Invalid room password'
-            ? 'Mot de passe invalide'
-            : response?.error || 'Impossible de rejoindre la salle'
+            ? text.invalidPassword
+            : response?.error || text.joinFailed
         )
         return
       }
@@ -569,8 +644,8 @@ function CreateRoom({
               <button
                 className="edit-button"
                 onClick={handleEditClick}
-                aria-label="Modifier le nom de la salle"
-                title="Modifier le nom de la salle"
+                aria-label={text.editRoomName}
+                title={text.editRoomName}
                 type="button"
               >
               </button>
@@ -579,8 +654,8 @@ function CreateRoom({
         )}
       </div>
       {visibleRoomPassword && (
-        <div className="room-password-display" aria-label="Mot de passe actuel de la salle">
-          <span className="room-password-display-label">Mot de passe</span>
+        <div className="room-password-display" aria-label={text.currentPassword}>
+          <span className="room-password-display-label">{text.password}</span>
           <span className="room-password-display-value">{visibleRoomPassword}</span>
         </div>
       )}
@@ -594,7 +669,7 @@ function CreateRoom({
         <div className="create-room-form">
         {needsRoomPassword ? (
           <form className="room-password-challenge" onSubmit={handleJoinPasswordSubmit}>
-            <label htmlFor="room-password">Mot de passe de la salle</label>
+            <label htmlFor="room-password">{text.roomPassword}</label>
             <div className="password-input-wrapper">
               <input
                 id="room-password"
@@ -614,17 +689,17 @@ function CreateRoom({
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowRoomPassword((current) => !current)}
-                aria-label={showRoomPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                aria-label={showRoomPassword ? text.hidePassword : text.showPassword}
               >
                 {showRoomPassword ? '🙉' : '🙈'}
               </button>
             </div>
             {passwordError && <p className="room-password-error">{passwordError}</p>}
             <button className="start-button" type="submit">
-              Rejoindre la salle
+              {text.joinRoom}
             </button>
             <button className="back-button" type="button" onClick={handleBack}>
-              Retour
+              {text.back}
             </button>
           </form>
         ) : (
@@ -632,7 +707,7 @@ function CreateRoom({
 
         {/* Game Mode */}
         <div className="form-group">
-          <label>Mode de jeu</label>
+          <label>{text.gameMode}</label>
           <select
             value={selectedMode}
             onChange={handleModeChange}
@@ -654,7 +729,7 @@ function CreateRoom({
         {/* Players */}
         {!isSolo && (
           <div className="players-section">
-            <h3>Joueurs ({players.length}/{availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2})</h3>
+            <h3>{text.players} ({players.length}/{availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2})</h3>
 
             <div className="players-list">
               {players.map((player) => (
@@ -670,7 +745,7 @@ function CreateRoom({
               {players.length < (availableGameModes.find(m => m.value === selectedMode)?.maxPlayers || 2) && (
                 <div className="player-item waiting">
                   {/* Animated waiting text */}
-                  {Array.from('En attente de joueurs...').map((char, i) => (
+                  {Array.from(text.waitingPlayers).map((char, i) => (
                     <span key={i} className="wave-text">{char}</span>
                   ))}
                 </div>
@@ -689,11 +764,11 @@ function CreateRoom({
             (hostName && hostName !== username)
           }
         >
-          🎮 Lancer la partie
+          🎮 {text.startGame}
         </button>
 
         <button className="back-button" onClick={handleBack}>
-          ← Retour
+          ← {text.back}
         </button>
 
         </>

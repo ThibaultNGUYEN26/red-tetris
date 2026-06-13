@@ -1,4 +1,4 @@
-import './index.css'
+﻿import './index.css'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
@@ -27,6 +27,16 @@ const DEFAULT_PREFERENCES = {
   theme: 'light',
   soundEnabled: true,
   language: DEFAULT_LANGUAGE,
+}
+const ROOM_NOTICE_TRANSLATIONS = {
+  en: {
+    roomUsed: 'Room already used',
+    userConnected: 'User already connected',
+  },
+  fr: {
+    roomUsed: 'Salle déjà utilisée',
+    userConnected: 'Utilisateur déjà connecté',
+  },
 }
 const DEFAULT_URL_AVATAR = {
   skinColor: '#cccccc',
@@ -193,8 +203,9 @@ function Index({ authMode = 'login' }) {
   }
 
   const getRoomNoticeMessage = (error) => {
-    if (!error) return 'Salle déjà utilisée'
-    if (error === 'User is already in a room') return 'Utilisateur déjà connecté'
+    const noticeText = ROOM_NOTICE_TRANSLATIONS[language] || ROOM_NOTICE_TRANSLATIONS[DEFAULT_LANGUAGE]
+    if (!error) return noticeText.roomUsed
+    if (error === 'User is already in a room') return noticeText.userConnected
     return error
   }
 
@@ -851,7 +862,7 @@ function Index({ authMode = 'login' }) {
         }
         if (room.host && room.host !== username) {
           console.error('Solo room already owned by another player.')
-          returnHomeWithNotice('Salle déjà utilisée')
+          returnHomeWithNotice(getRoomNoticeMessage())
           return
         }
         if (room.status === 'started' && room.players?.includes(username)) {
@@ -863,12 +874,12 @@ function Index({ authMode = 'login' }) {
         }
         if (getMaxPlayers(room.game_mode) <= room.player_count) {
           console.error('Solo room is full.')
-          returnHomeWithNotice('Salle déjà utilisée')
+          returnHomeWithNotice(getRoomNoticeMessage())
           return
         }
         setSoloRoomId(room.id)
       } catch {
-        returnHomeWithNotice('Salle déjà utilisée')
+        returnHomeWithNotice(getRoomNoticeMessage())
       }
     }
 
@@ -933,7 +944,7 @@ function Index({ authMode = 'login' }) {
         }
 
         if (await hasConflictingExistingRoom()) {
-          returnToProfileWithNotice('Utilisateur déjà connecté')
+          returnToProfileWithNotice(getRoomNoticeMessage('User is already in a room'))
           return false
         }
 
@@ -962,27 +973,27 @@ function Index({ authMode = 'login' }) {
 
         const existingRoom = await existingRes.json()
         if (isUserAlreadyInFetchedRoom(existingRoom)) {
-          returnToProfileWithNotice('Utilisateur déjà connecté')
+          returnToProfileWithNotice(getRoomNoticeMessage('User is already in a room'))
           return false
         }
 
         const isExistingCoopMode = ['cooperative', 'cooperative_roles'].includes(existingRoom.game_mode)
         if (directRoomType === 'coop' && !isExistingCoopMode) {
-          returnHomeWithNotice('Salle déjà utilisée')
+          returnHomeWithNotice(getRoomNoticeMessage())
           return false
         }
         if (directRoomType === 'multi' && isExistingCoopMode) {
-          returnHomeWithNotice('Salle déjà utilisée')
+          returnHomeWithNotice(getRoomNoticeMessage())
           return false
         }
         if (existingRoom.status === 'started') {
-          returnHomeWithNotice('Salle déjà utilisée')
+          returnHomeWithNotice(getRoomNoticeMessage())
           return false
         }
 
         const existingMaxPlayers = getMaxPlayers(existingRoom.game_mode)
         if (existingRoom.player_count >= existingMaxPlayers) {
-          returnHomeWithNotice('Salle déjà utilisée')
+          returnHomeWithNotice(getRoomNoticeMessage())
           return false
         }
 
@@ -992,7 +1003,7 @@ function Index({ authMode = 'login' }) {
 
       try {
         if (await hasConflictingExistingRoom()) {
-          returnToProfileWithNotice('Utilisateur déjà connecté')
+          returnToProfileWithNotice(getRoomNoticeMessage('User is already in a room'))
           return
         }
 
@@ -1017,19 +1028,19 @@ function Index({ authMode = 'login' }) {
         }
 
         if (isUserAlreadyInFetchedRoom(room) && room.status !== 'started') {
-          returnToProfileWithNotice('Utilisateur déjà connecté')
+          returnToProfileWithNotice(getRoomNoticeMessage('User is already in a room'))
           return
         }
 
         const isCoopMode = ['cooperative', 'cooperative_roles'].includes(room.game_mode)
         if (directRoomType === 'coop' && !isCoopMode) {
           console.error('Room type mismatch for coop.')
-          returnHomeWithNotice('Salle déjà utilisée')
+          returnHomeWithNotice(getRoomNoticeMessage())
           return
         }
         if (directRoomType === 'multi' && isCoopMode) {
           console.error('Room type mismatch for multi.')
-          returnHomeWithNotice('Salle déjà utilisée')
+          returnHomeWithNotice(getRoomNoticeMessage())
           return
         }
         if (room.status === 'started') {
@@ -1041,20 +1052,20 @@ function Index({ authMode = 'login' }) {
             return
           }
           console.error('Room already started.')
-          returnHomeWithNotice('Salle déjà utilisée')
+          returnHomeWithNotice(getRoomNoticeMessage())
           return
         }
 
         const maxPlayers = getMaxPlayers(room.game_mode)
         if (room.player_count >= maxPlayers) {
           console.error('Room is full.')
-          returnHomeWithNotice('Salle déjà utilisée')
+          returnHomeWithNotice(getRoomNoticeMessage())
           return
         }
 
         setDirectRoomId(room.id)
       } catch {
-        returnHomeWithNotice('Salle déjà utilisée')
+        returnHomeWithNotice(getRoomNoticeMessage())
       }
     }
 
@@ -1184,6 +1195,7 @@ function Index({ authMode = 'login' }) {
             onNotice={setRouteNotice}
             soundEnabled={soundEnabled}
             onSoundChange={handleSoundChange}
+            language={language}
           />
         ) : (
           <>
@@ -1218,7 +1230,7 @@ function Index({ authMode = 'login' }) {
                   username={username}
                   language={language}
                 />
-                <Leaderboard theme={theme} />
+                <Leaderboard theme={theme} language={language} />
               </>
             )}
 
@@ -1239,12 +1251,13 @@ function Index({ authMode = 'login' }) {
                       desiredRoomName={soloRoomName}
                       onBack={handleExitSoloLobby}
                       onNotice={setRouteNotice}
+                      language={language}
                       onJoinError={(error) => {
                         if (error === 'Username already connected' || error === 'User is already in a room') {
-                          returnToProfileWithNotice('Utilisateur déjà connecté')
+                          returnToProfileWithNotice(getRoomNoticeMessage('User is already in a room'))
                           return
                         }
-                        returnHomeWithNotice('Salle déjà utilisée')
+                        returnHomeWithNotice(getRoomNoticeMessage())
                       }}
                       onRoomRenamed={(roomName) => {
                         setSoloRoomName(roomName)
@@ -1273,12 +1286,13 @@ function Index({ authMode = 'login' }) {
                       desiredRoomName={directRoomName}
                       onBack={handleExitDirectLobby}
                       onNotice={setRouteNotice}
+                      language={language}
                       onJoinError={(error) => {
                         if (error === 'Username already connected' || error === 'User is already in a room') {
-                          returnToProfileWithNotice('Utilisateur déjà connecté')
+                          returnToProfileWithNotice(getRoomNoticeMessage('User is already in a room'))
                           return
                         }
-                        returnHomeWithNotice('Salle déjà utilisée')
+                        returnHomeWithNotice(getRoomNoticeMessage())
                       }}
                       onRoomRenamed={(roomName) => {
                         setDirectRoomName(roomName)
@@ -1306,6 +1320,7 @@ function Index({ authMode = 'login' }) {
                       isMultiplayer={activeGameType !== 'solo'}
                       soundEnabled={soundEnabled}
                       onSoundChange={handleSoundChange}
+                      language={language}
                     />
                   ) : (
                     <ModeMenuSelector
@@ -1329,3 +1344,5 @@ function Index({ authMode = 'login' }) {
 }
 
 export default Index
+
+

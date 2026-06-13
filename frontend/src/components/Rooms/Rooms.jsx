@@ -5,8 +5,59 @@ import { socket } from '../../socket'
 import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 import Game from '../Game/Game.jsx'
 import { logDuration, markStart, perfLog } from '../../perf'
+import { DEFAULT_LANGUAGE } from '../../i18n/playerStats'
 
-function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, joinRoomName, userProfile, soundEnabled, onSoundChange }) {
+const ROOM_TRANSLATIONS = {
+  en: {
+    passwordRequired: 'Password required',
+    invalidPassword: 'Invalid password',
+    title: 'Multiplayer rooms',
+    createRoom: 'Create room',
+    chooseRoomType: 'Choose room type',
+    cooperative: 'Cooperative',
+    multiplayer: 'Multiplayer',
+    optionalPassword: 'Optional password',
+    publicRoomPlaceholder: 'Leave empty for a public room',
+    availableRooms: 'Available rooms',
+    emptyRooms: 'No rooms available. Create one!',
+    password: 'Password',
+    host: 'Host',
+    roomPasswordPlaceholder: 'Room password',
+    hidePassword: 'Hide password',
+    showPassword: 'Show password',
+    joined: 'Joined',
+    full: 'Full',
+    enter: 'Enter',
+    join: 'Join',
+    back: 'Back',
+  },
+  fr: {
+    passwordRequired: 'Mot de passe requis',
+    invalidPassword: 'Mot de passe invalide',
+    title: 'Salles multijoueur',
+    createRoom: 'Créer une salle',
+    chooseRoomType: 'Choisir le type de salle',
+    cooperative: 'Coopérative',
+    multiplayer: 'Multijoueur',
+    optionalPassword: 'Mot de passe optionnel',
+    publicRoomPlaceholder: 'Laisser vide pour une salle publique',
+    availableRooms: 'Salles disponibles',
+    emptyRooms: 'Aucune salle disponible. Créez-en une !',
+    password: 'Mot de passe',
+    host: 'Hôte',
+    roomPasswordPlaceholder: 'Mot de passe de la salle',
+    hidePassword: 'Masquer le mot de passe',
+    showPassword: 'Afficher le mot de passe',
+    joined: 'Rejointe',
+    full: 'Complet',
+    enter: 'Entrer',
+    join: 'Rejoindre',
+    back: 'Retour',
+  },
+}
+
+function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, joinRoomName, userProfile, soundEnabled, onSoundChange, language = DEFAULT_LANGUAGE }) {
+  const text = ROOM_TRANSLATIONS[language] || ROOM_TRANSLATIONS[DEFAULT_LANGUAGE]
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
   const [showCreateRoom, setShowCreateRoom] = useState(false)
@@ -95,7 +146,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
 
       const roomPassword = requiresPassword ? (joinRoomPasswords[roomKey] || '') : ''
       if (requiresPassword && !roomPassword.trim()) {
-        onNotice?.('Mot de passe requis')
+        onNotice?.(text.passwordRequired)
         return
       }
 
@@ -109,7 +160,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         if (!res?.ok) {
           console.error('Join failed:', res?.error || 'Failed to join room')
           if (res?.error === 'Invalid room password') {
-            onNotice?.('Mot de passe invalide')
+            onNotice?.(text.invalidPassword)
           }
           hasJoinedRef.current = false
           return
@@ -315,6 +366,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         isMultiplayer={true}
         soundEnabled={soundEnabled}
         onSoundChange={onSoundChange}
+        language={language}
       />
     )
   }
@@ -335,6 +387,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         onRoomCreated={handleRoomCreated}
         onRoomRenamed={handleRoomRenamed}
         onNotice={onNotice}
+        language={language}
       />
     )
   }
@@ -343,37 +396,37 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
 
   return (
     <div className={`rooms-card ${theme === 'dark' ? 'dark' : ''}`}>
-      <h2>Salles multijoueur</h2>
+      <h2>{text.title}</h2>
 
       {!showCreateRoomPicker ? (
         <button className="create-room-button" onClick={handleCreateRoom}>
-          ➕ Créer une salle
+          ➕ {text.createRoom}
         </button>
       ) : (
         <div className="create-room-choice">
-          <p className="create-room-choice-title">Choisir le type de salle</p>
+          <p className="create-room-choice-title">{text.chooseRoomType}</p>
           <div className="create-room-choice-buttons">
             <button
               className="choice-button"
               onClick={() => handleChooseRoomType('cooperative')}
             >
-              Coopérative
+              {text.cooperative}
             </button>
             <button
               className="choice-button"
               onClick={() => handleChooseRoomType('multiplayer')}
             >
-              Multijoueur
+              {text.multiplayer}
             </button>
           </div>
           <label className="room-password-option">
-            Mot de passe optionnel
+            {text.optionalPassword}
             <input
               type="text"
               value={createRoomPassword}
               onChange={(event) => setCreateRoomPassword(event.target.value)}
               maxLength={64}
-              placeholder="Laisser vide pour une salle publique"
+              placeholder={text.publicRoomPlaceholder}
               autoComplete="off"
             />
           </label>
@@ -381,10 +434,10 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
       )}
 
       <div className="rooms-list">
-        <h3>Salles disponibles</h3>
+        <h3>{text.availableRooms}</h3>
 
         {rooms.length === 0 ? (
-          <p className="no-rooms">Aucune salle disponible. Créez-en une !</p>
+          <p className="no-rooms">{text.emptyRooms}</p>
         ) : (
           rooms.map((room, index) => {
             const isInRoom = room.players?.includes(username)
@@ -398,8 +451,8 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
               <div key={`room-${room.id ?? index}`} className="room-entry">
                 <div className="room-info">
                   <span className="room-name">{room.name}</span>
-                  {room.has_password && <span className="room-lock">Mot de passe</span>}
-                  <span className="room-host">Hôte : {room.host}</span>
+                  {room.has_password && <span className="room-lock">{text.password}</span>}
+                  <span className="room-host">{text.host}: {room.host}</span>
                   {canEnterPassword && isEnteringPassword && (
                     <div className="room-join-password">
                       <div className="password-input-wrapper">
@@ -427,7 +480,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
                             }
                           }}
                           maxLength={64}
-                          placeholder="Mot de passe de la salle"
+                          placeholder={text.roomPasswordPlaceholder}
                           className={`password-input ${showJoinPassword ? '' : 'masked-password-input'}`}
                           autoComplete="one-time-code"
                           data-lpignore="true"
@@ -440,7 +493,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
                             ...current,
                             [roomKey]: !current[roomKey],
                           }))}
-                          aria-label={showJoinPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                          aria-label={showJoinPassword ? text.hidePassword : text.showPassword}
                         >
                           {showJoinPassword ? '🙉' : '🙈'}
                         </button>
@@ -460,7 +513,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
                     disabled={isFull || isInRoom}
                   onClick={() => joinRoom(room.id, room)}
                 >
-                    {isInRoom ? 'Rejointe' : isFull ? 'Complet' : isEnteringPassword ? 'Entrer' : 'Rejoindre'}
+                    {isInRoom ? text.joined : isFull ? text.full : isEnteringPassword ? text.enter : text.join}
                 </button>
               </div>
             )
@@ -469,7 +522,7 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
       </div>
 
       <button className="back-button" onClick={handleBackToMenu}>
-        ← Retour
+        ← {text.back}
       </button>
     </div>
   )

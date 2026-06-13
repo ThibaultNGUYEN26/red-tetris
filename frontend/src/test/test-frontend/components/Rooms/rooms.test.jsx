@@ -40,7 +40,7 @@ vi.mock('../../../../components/Game/Game.jsx', () => ({
   default: ({ onPlayAgain, onBack, onSpectate }) => (
     <div data-testid="game-mock">
       <button onClick={onPlayAgain}>Rejouer</button>
-      <button onClick={onBack}>Retour au menu</button>
+      <button onClick={onBack}>back au menu</button>
       <button onClick={onSpectate}>Regarder</button>
     </div>
   )
@@ -123,6 +123,22 @@ describe('Rooms Component', () => {
       render(<Rooms {...defaultProps} />)
       
       expect(socket.emit).toHaveBeenCalledWith('getAvailableRooms')
+    })
+
+    it('renders French room list labels when French is selected', async () => {
+      render(<Rooms {...defaultProps} language="fr" />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([])
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /salles multijoueur/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /créer une salle/i })).toBeInTheDocument()
+        expect(screen.getByText(/aucune salle disponible/i)).toBeInTheDocument()
+      })
     })
 
     it('should display available rooms', async () => {
@@ -245,10 +261,10 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Fallback Mode Room')).toBeInTheDocument()
       })
 
-      expect(screen.getByText('Salles multijoueur').closest('.rooms-card')).toHaveClass('dark')
+      expect(screen.getByText('Multiplayer rooms').closest('.rooms-card')).toHaveClass('dark')
       expect(screen.getAllByText('1/8')).toHaveLength(2)
       expect(screen.getByText('1/2')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /rejointe/i })).toBeDisabled()
+      expect(screen.getByRole('button', { name: /joined/i })).toBeDisabled()
     })
 
     it('should log availableRooms payloads without an active request timer on later updates', async () => {
@@ -282,17 +298,17 @@ describe('Rooms Component', () => {
     it('should show create room button', () => {
       render(<Rooms {...defaultProps} />)
       
-      const createButton = screen.getByRole('button', { name: /créer/i })
+      const createButton = screen.getByRole('button', { name: /create/i })
       expect(createButton).toBeInTheDocument()
     })
 
     it('should open CreateRoom view when create button is clicked', async () => {
       render(<Rooms {...defaultProps} />)
       
-      const createButton = screen.getByRole('button', { name: /créer/i })
+      const createButton = screen.getByRole('button', { name: /create/i })
       fireEvent.click(createButton)
 
-      const coopButton = screen.getByRole('button', { name: /coopérative/i })
+      const coopButton = screen.getByRole('button', { name: /cooperative/i })
       fireEvent.click(coopButton)
 
       await waitFor(() => {
@@ -303,10 +319,10 @@ describe('Rooms Component', () => {
     it('should switch to the created room when room is created', async () => {
       render(<Rooms {...defaultProps} />)
       
-      const createButton = screen.getByRole('button', { name: /créer/i })
+      const createButton = screen.getByRole('button', { name: /create/i })
       fireEvent.click(createButton)
 
-      const coopButton = screen.getByRole('button', { name: /coopérative/i })
+      const coopButton = screen.getByRole('button', { name: /cooperative/i })
       fireEvent.click(coopButton)
 
       await waitFor(() => {
@@ -325,11 +341,11 @@ describe('Rooms Component', () => {
       const mockOnRoomCreated = vi.fn()
       render(<Rooms {...defaultProps} onRoomCreated={mockOnRoomCreated} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /créer/i }))
-      fireEvent.change(screen.getByPlaceholderText('Laisser vide pour une salle publique'), {
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.change(screen.getByPlaceholderText('Leave empty for a public room'), {
         target: { value: 'new-room-password' },
       })
-      fireEvent.click(screen.getByRole('button', { name: /multijoueur/i }))
+      fireEvent.click(screen.getByRole('button', { name: /multiplayer/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -349,8 +365,8 @@ describe('Rooms Component', () => {
     it('should route created multiplayer rooms through the multi path', async () => {
       render(<Rooms {...defaultProps} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /créer/i }))
-      fireEvent.click(screen.getByRole('button', { name: /^multijoueur$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^multiplayer$/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -367,8 +383,8 @@ describe('Rooms Component', () => {
     it('should use the root path when a room is created without a name', async () => {
       render(<Rooms {...defaultProps} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /créer/i }))
-      fireEvent.click(screen.getByRole('button', { name: /^multijoueur$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^multiplayer$/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -395,7 +411,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -422,7 +438,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getAllByRole('button', { name: /rejoindre/i })[0])
+      fireEvent.click(screen.getAllByRole('button', { name: /join/i })[0])
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -439,10 +455,10 @@ describe('Rooms Component', () => {
     it('should return to rooms list when back button is clicked', async () => {
       render(<Rooms {...defaultProps} />)
       
-      const createButton = screen.getByRole('button', { name: /créer/i })
+      const createButton = screen.getByRole('button', { name: /create/i })
       fireEvent.click(createButton)
 
-      const coopButton = screen.getByRole('button', { name: /coopérative/i })
+      const coopButton = screen.getByRole('button', { name: /cooperative/i })
       fireEvent.click(coopButton)
 
       await waitFor(() => {
@@ -474,7 +490,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      const joinButtons = screen.getAllByRole('button', { name: /rejoindre/i })
+      const joinButtons = screen.getAllByRole('button', { name: /join/i })
       fireEvent.click(joinButtons[0])
 
       await waitFor(() => {
@@ -501,7 +517,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      const joinButtons = screen.getAllByRole('button', { name: /rejoindre/i })
+      const joinButtons = screen.getAllByRole('button', { name: /join/i })
       fireEvent.click(joinButtons[0])
 
       await waitFor(() => {
@@ -538,9 +554,9 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Locked Room')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
 
-      const passwordInput = await screen.findByPlaceholderText('Mot de passe de la salle')
+      const passwordInput = await screen.findByPlaceholderText('Room password')
       expect(passwordInput).toHaveFocus()
     })
 
@@ -568,11 +584,11 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Locked Room')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
-      fireEvent.change(await screen.findByPlaceholderText('Mot de passe de la salle'), {
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+      fireEvent.change(await screen.findByPlaceholderText('Room password'), {
         target: { value: 'secret-code' },
       })
-      fireEvent.click(screen.getByRole('button', { name: /entrer/i }))
+      fireEvent.click(screen.getByRole('button', { name: /enter/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('known-room-password')).toHaveTextContent('secret-code')
@@ -604,10 +620,10 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Locked Room')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
-      fireEvent.click(await screen.findByRole('button', { name: /entrer/i }))
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+      fireEvent.click(await screen.findByRole('button', { name: /enter/i }))
 
-      expect(onNotice).toHaveBeenCalledWith('Mot de passe requis')
+      expect(onNotice).toHaveBeenCalledWith('Password required')
       expect(socket.emit).not.toHaveBeenCalledWith(
         'joinRoom',
         expect.anything(),
@@ -647,13 +663,13 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Locked Room')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
-      fireEvent.change(await screen.findByPlaceholderText('Mot de passe de la salle'), {
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+      fireEvent.change(await screen.findByPlaceholderText('Room password'), {
         target: { value: 'bad-password' },
       })
-      fireEvent.click(screen.getByRole('button', { name: /entrer/i }))
+      fireEvent.click(screen.getByRole('button', { name: /enter/i }))
 
-      expect(onNotice).toHaveBeenCalledWith('Mot de passe invalide')
+      expect(onNotice).toHaveBeenCalledWith('Invalid password')
       consoleError.mockRestore()
     })
 
@@ -676,7 +692,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
 
       expect(consoleError).toHaveBeenCalledWith('Join failed:', expect.any(Error))
       consoleError.mockRestore()
@@ -701,7 +717,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
 
       expect(consoleError).toHaveBeenCalledWith('Join failed:', 'Failed to join room')
       consoleError.mockRestore()
@@ -725,10 +741,10 @@ describe('Rooms Component', () => {
       ])
 
       await waitFor(() => {
-        expect(screen.getByText('Hôte : NamelessHost')).toBeInTheDocument()
+        expect(screen.getByText('Host: NamelessHost')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -761,12 +777,12 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Locked Room')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
 
-      const passwordInput = await screen.findByPlaceholderText('Mot de passe de la salle')
+      const passwordInput = await screen.findByPlaceholderText('Room password')
       expect(passwordInput).toHaveClass('masked-password-input')
 
-      fireEvent.click(screen.getByRole('button', { name: /afficher le mot de passe/i }))
+      fireEvent.click(screen.getByRole('button', { name: /show password/i }))
       expect(passwordInput).not.toHaveClass('masked-password-input')
 
       fireEvent.change(passwordInput, { target: { value: 'secret-code' } })
@@ -805,13 +821,13 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Locked Room')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
-      fireEvent.change(await screen.findByPlaceholderText('Mot de passe de la salle'), {
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
+      fireEvent.change(await screen.findByPlaceholderText('Room password'), {
         target: { value: 'secret-code' },
       })
 
       socket.emit.mockClear()
-      fireEvent.keyDown(screen.getByPlaceholderText('Mot de passe de la salle'), { key: 'Tab' })
+      fireEvent.keyDown(screen.getByPlaceholderText('Room password'), { key: 'Tab' })
 
       expect(socket.emit).not.toHaveBeenCalledWith(
         'joinRoom',
@@ -835,7 +851,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 2')).toBeInTheDocument()
       })
 
-      const joinButtons = screen.getAllByRole('button', { name: /rejoindre/i })
+      const joinButtons = screen.getAllByRole('button', { name: /join/i })
       fireEvent.click(joinButtons[1])
 
       await waitFor(() => {
@@ -865,7 +881,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      const joinButtons = screen.getAllByRole('button', { name: /rejoindre/i })
+      const joinButtons = screen.getAllByRole('button', { name: /join/i })
       fireEvent.click(joinButtons[0])
 
       await waitFor(() => {
@@ -1085,7 +1101,7 @@ describe('Rooms Component', () => {
 
       expect(screen.getByText('Room 1')).toBeInTheDocument()
 
-      fireEvent.click(screen.getAllByRole('button', { name: /rejoindre/i })[0])
+      fireEvent.click(screen.getAllByRole('button', { name: /join/i })[0])
 
       await act(async () => {
         await Promise.resolve()
@@ -1111,7 +1127,7 @@ describe('Rooms Component', () => {
         availableRoomsCallback?.([mockRooms[0]])
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
 
       await act(async () => {
         await Promise.resolve()
@@ -1142,7 +1158,7 @@ describe('Rooms Component', () => {
         availableRoomsCallback?.([mockRooms[0]])
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
 
       await act(async () => {
         await Promise.resolve()
@@ -1191,7 +1207,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getAllByRole('button', { name: /rejoindre/i })[0])
+      fireEvent.click(screen.getAllByRole('button', { name: /join/i })[0])
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -1250,7 +1266,7 @@ describe('Rooms Component', () => {
         expect(joinButton).toBeTruthy()
         if (joinButton) {
           expect(joinButton).toBeDisabled()
-          expect(joinButton.textContent).toMatch(/complet/i)
+          expect(joinButton.textContent).toMatch(/full/i)
         }
       }
     })
@@ -1260,7 +1276,7 @@ describe('Rooms Component', () => {
     it('should call onBack when back button is clicked', () => {
       render(<Rooms {...defaultProps} />)
       
-      const backButton = screen.getByRole('button', { name: /retour|←/i })
+      const backButton = screen.getByRole('button', { name: /back/i })
       if (backButton) {
         fireEvent.click(backButton)
         expect(mockOnBack).toHaveBeenCalled()
@@ -1282,7 +1298,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 1')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getAllByRole('button', { name: /rejoindre/i })[0])
+      fireEvent.click(screen.getAllByRole('button', { name: /join/i })[0])
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -1297,8 +1313,8 @@ describe('Rooms Component', () => {
       const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
       render(<Rooms {...defaultProps} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /créer/i }))
-      fireEvent.click(screen.getByRole('button', { name: /coopérative/i }))
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cooperative/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -1331,8 +1347,8 @@ describe('Rooms Component', () => {
     it('should leave lobby and clear state', async () => {
       render(<Rooms {...defaultProps} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /créer/i }))
-      fireEvent.click(screen.getByRole('button', { name: /coopérative/i }))
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cooperative/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -1366,7 +1382,7 @@ describe('Rooms Component', () => {
         expect(screen.getByText('Room 2')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /rejoindre/i }))
+      fireEvent.click(screen.getByRole('button', { name: /join/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -1410,8 +1426,8 @@ describe('Rooms Component', () => {
     it('should not navigate to spectator mode for a nameless current room', async () => {
       render(<Rooms {...defaultProps} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /créer/i }))
-      fireEvent.click(screen.getByRole('button', { name: /^multijoueur$/i }))
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /^multiplayer$/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -1438,8 +1454,8 @@ describe('Rooms Component', () => {
     it('should return to the room card when play again is clicked after multiplayer game over', async () => {
       render(<Rooms {...defaultProps} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /créer/i }))
-      fireEvent.click(screen.getByRole('button', { name: /coopérative/i }))
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cooperative/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -1494,8 +1510,8 @@ describe('Rooms Component', () => {
     it('should stay in the game view when play-again room state does not include the user', async () => {
       render(<Rooms {...defaultProps} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /créer/i }))
-      fireEvent.click(screen.getByRole('button', { name: /coopérative/i }))
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cooperative/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -1536,8 +1552,8 @@ describe('Rooms Component', () => {
     it('should propagate back-to-menu when leaving from the multiplayer game view', async () => {
       render(<Rooms {...defaultProps} />)
 
-      fireEvent.click(screen.getByRole('button', { name: /créer/i }))
-      fireEvent.click(screen.getByRole('button', { name: /coopérative/i }))
+      fireEvent.click(screen.getByRole('button', { name: /create/i }))
+      fireEvent.click(screen.getByRole('button', { name: /cooperative/i }))
 
       await waitFor(() => {
         expect(screen.getByTestId('create-room-mock')).toBeInTheDocument()
@@ -1562,7 +1578,7 @@ describe('Rooms Component', () => {
         expect(screen.getByTestId('game-mock')).toBeInTheDocument()
       })
 
-      fireEvent.click(screen.getByRole('button', { name: /retour au menu/i }))
+      fireEvent.click(screen.getByRole('button', { name: /back au menu/i }))
 
       await waitFor(() => {
         expect(socket.emit).toHaveBeenCalledWith(
@@ -1576,3 +1592,6 @@ describe('Rooms Component', () => {
     })
   })
 })
+
+
+
