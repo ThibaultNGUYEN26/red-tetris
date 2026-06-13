@@ -55,6 +55,25 @@ describe('GameOver Component', () => {
     expect(screen.getByRole('button', { name: /retour au menu/i })).toBeInTheDocument()
   })
 
+  it('falls back to English labels when the language is unsupported', () => {
+    render(
+      <GameOver
+        winner="Titi"
+        isEliminated
+        isGameOver
+        onBack={vi.fn()}
+        username="Titi"
+        isMultiplayer={true}
+        gameMode="cooperative"
+        language="zz"
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /game over/i })).toBeInTheDocument()
+    expect(screen.getByText('Winner: Titi')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /back to menu/i })).toBeInTheDocument()
+  })
+
   it('shows Game Over title in cooperative_roles too', () => {
     render(
       <GameOver

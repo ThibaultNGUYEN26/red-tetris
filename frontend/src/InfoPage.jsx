@@ -275,6 +275,164 @@ const localizedPages = {
   },
 }
 
+localizedPages.fr.terms = {
+  title: 'Conditions d\u2019utilisation',
+  intro:
+    'Ces conditions decrivent les regles de base pour utiliser Red Tetris. En utilisant le site, vous acceptez de jouer loyalement et de respecter les autres joueurs.',
+  sections: [
+    {
+      title: 'Utilisation du service',
+      body:
+        'Red Tetris est fourni pour un usage personnel de divertissement. N\u2019abusez pas du service, ne perturbez pas les parties, ne tentez pas d\u2019acces non autorise et n\u2019utilisez pas d\u2019automatisation pour destabiliser les salles, les scores ou les comptes.',
+    },
+    {
+      title: 'Comptes et profils',
+      body:
+        'Vous etes responsable de l\u2019activite liee a votre nom d\u2019utilisateur et a vos identifiants. Utilisez des informations de compte exactes et n\u2019usurpez pas l\u2019identite d\u2019un autre joueur.',
+    },
+    {
+      title: 'Parties et scores',
+      body:
+        'Les scores, classements, salles et resultats multijoueur peuvent etre reinitialises, corriges ou supprimes s\u2019ils sont affectes par des bugs, de la triche, un abus ou une maintenance.',
+    },
+    {
+      title: 'Disponibilite',
+      body:
+        'Le site est fourni en l\u2019etat. Des fonctionnalites peuvent changer, devenir indisponibles ou etre retirees sans preavis pendant l\u2019evolution du projet.',
+    },
+  ],
+}
+
+localizedPages.fr.privacy = {
+  title: 'Politique de confidentialite',
+  intro:
+    `Derniere mise a jour le ${PRIVACY_LAST_UPDATED}. Cette politique explique ce que Red Tetris collecte, pourquoi ces donnees sont utilisees, combien de temps elles sont conservees et comment exercer vos droits RGPD/GDPR.`,
+  sections: [
+    {
+      title: 'Responsable du traitement',
+      body:
+        `${PRIVACY_CONTROLLER_NAME} sont responsables de decider comment les donnees de compte, de profil, de contact et de jeu sont utilisees pour ce deploiement de Red Tetris. Aucun delegue a la protection des donnees distinct n\u2019est nomme sauf indication contraire dans cette section.`,
+    },
+    {
+      title: 'Informations collectees',
+      body:
+        'Le site peut stocker votre nom d\u2019utilisateur, votre adresse e-mail, le hash de votre mot de passe, vos parametres d\u2019avatar, vos scores solo, scores cooperatifs, resultats multijoueur, entrees de classement, jetons de reinitialisation de mot de passe, messages de contact et des donnees techniques comme les adresses IP utilisees pour les journaux de securite et la limitation anti-spam.',
+    },
+    {
+      title: 'Utilisation des informations',
+      body:
+        'Les donnees servent a creer des comptes, authentifier les joueurs, restaurer l\u2019acces, afficher les profils, faire fonctionner les salles, enregistrer les scores, maintenir les classements, repondre aux demandes de contact, proteger le service contre les abus et ameliorer sa fiabilite.',
+    },
+    {
+      title: 'Bases legales',
+      body:
+        'Les donnees de compte, de connexion, de profil et de jeu sont traitees pour fournir le service que vous demandez. Les donnees de securite, d\u2019anti-abus et de fiabilite sont traitees au titre de l\u2019interet legitime a proteger le site. Les messages de contact sont traites pour repondre a votre demande. Des obligations legales peuvent imposer la conservation de certains enregistrements lorsque c\u2019est applicable.',
+    },
+    {
+      title: 'Conservation',
+      body:
+        'La suppression du compte peut etre demandee depuis le menu du profil. Les comptes supprimes sont d\u2019abord programmes pour suppression et peuvent etre restaures pendant 30 jours en se reconnectant puis en choisissant de restaurer le compte. Apres cette periode, le compte et les donnees de profil, de salle et de score associees sont supprimes definitivement de la base de donnees. Les jetons de reinitialisation de mot de passe sont temporaires et expirent rapidement. Les messages de contact et journaux techniques sont conserves uniquement le temps necessaire au support, a la securite et a la prevention des abus, puis supprimes ou anonymises lorsqu\u2019ils ne sont plus necessaires.',
+    },
+    {
+      title: 'Vos droits',
+      body:
+        'Dans le cadre du RGPD/GDPR, vous pouvez demander l\u2019acces, la rectification, la suppression, la limitation, la portabilite ou l\u2019opposition au traitement de vos donnees personnelles. Les demandes recoivent une reponse sous un mois lorsque la loi l\u2019exige, sauf si la demande est complexe ou si une verification d\u2019identite est necessaire.',
+    },
+    {
+      title: 'Demandes de suppression',
+      body:
+        'Les utilisateurs connectes peuvent exporter leurs donnees de compte ou supprimer leur compte depuis cette page de confidentialite. Vous pouvez aussi utiliser la page de contact pour les demandes de confidentialite qui necessitent un examen manuel. Certaines donnees peuvent etre conservees temporairement lorsque c\u2019est necessaire pour la securite, la prevention des abus, des obligations legales ou l\u2019integrite des sauvegardes.',
+    },
+    {
+      title: 'Destinataires et prestataires',
+      body:
+        'Les donnees personnelles sont traitees par le backend du site, la base PostgreSQL, Railway pour l\u2019hebergement du backend et de la base de donnees, Vercel pour l\u2019hebergement du frontend et Resend pour les e-mails transactionnels comme la reinitialisation de mot de passe et les messages de contact. Les messages du formulaire de contact incluent l\u2019adresse e-mail que vous indiquez comme adresse de reponse. Les donnees ne sont pas vendues.',
+    },
+    {
+      title: 'Transferts internationaux',
+      body:
+        'Railway, Vercel et Resend peuvent traiter des donnees hors de l\u2019Espace economique europeen, notamment aux Etats-Unis. Ces transferts s\u2019appuient sur les conditions de traitement des donnees et les garanties de transfert fournies par ces prestataires, y compris les clauses contractuelles types de l\u2019UE et, lorsque c\u2019est applicable, les engagements du Data Privacy Framework.',
+      links: [
+        { href: 'https://railway.com/legal/dpa', label: 'Railway DPA' },
+        { href: 'https://vercel.com/legal/dpa', label: 'Vercel DPA' },
+        { href: 'https://resend.com/legal/dpa', label: 'Resend DPA' },
+      ],
+    },
+    {
+      title: 'Accords de sous-traitance',
+      body:
+        'L\u2019operateur du site doit conserver les conditions de traitement des donnees ou accords de sous-traitance pertinents avec les prestataires d\u2019hebergement, de base de donnees et d\u2019e-mail avant d\u2019utiliser ces prestataires pour des donnees personnelles en production. Ces prestataires sont utilises uniquement pour heberger le frontend, executer le backend, stocker la base de donnees, envoyer les e-mails transactionnels, maintenir la securite et assurer la fiabilite operationnelle.',
+    },
+    {
+      title: 'Cookies et stockage local',
+      body:
+        'L\u2019application utilise le stockage local pour des fonctions necessaires comme memoriser localement l\u2019utilisateur connecte, les informations de compte utiles a l\u2019interface, les preferences de theme et l\u2019affichage de l\u2019avis sur les cookies. L\u2019acceptation de cet avis est conservee 13 mois, puis l\u2019application l\u2019affiche a nouveau. Le backend peut utiliser un cookie de session necessaire pour vous garder authentifie. Ces elements servent aux fonctionnalites essentielles du service, pas a la publicite ni au suivi inter-sites. Aucun cookie publicitaire ou analytique n\u2019est actuellement requis pour le jeu principal.',
+    },
+    {
+      title: 'Adresses IP et journaux',
+      body:
+        'Le backend utilise des informations de requete derivees de l\u2019IP pour la prevention des abus et la limitation de debit. Les entrees de limitation du formulaire de contact sont stockees en memoire serveur pendant la fenetre configuree, actuellement 1 heure par defaut. Les entrees de limitation d\u2019authentification sont stockees en memoire serveur pendant 15 minutes par defaut. Ces entrees en memoire ne sont pas utilisees a des fins publicitaires et disparaissent a l\u2019expiration de la fenetre ou au redemarrage du serveur. Les prestataires d\u2019hebergement, de proxy inverse, d\u2019e-mail et de base de donnees peuvent aussi creer des journaux operationnels contenant des adresses IP, horodatages, metadonnees de requete ou metadonnees de livraison ; ces journaux sont conserves jusqu\u2019a 30 jours sauf si une conservation plus longue est necessaire pour enqueter sur un abus, maintenir la securite, resoudre un probleme juridique ou respecter des obligations du prestataire ou de la loi.',
+    },
+    {
+      title: 'Securite',
+      body:
+        'Les mots de passe sont stockes sous forme de hash, jamais en clair. Les deploiements de production utilisent HTTPS et limitent les identifiants de base de donnees, de fournisseur d\u2019e-mail et de serveur aux mainteneurs autorises uniquement.',
+    },
+    {
+      title: 'Contact et demandes',
+      body:
+        'Pour les questions de confidentialite ou les demandes liees aux donnees de compte, utilisez la page de contact et indiquez le nom d\u2019utilisateur ainsi que l\u2019e-mail enregistre du compte. La suppression du compte est disponible depuis le menu du profil. Si vous pensez que vos droits n\u2019ont pas ete respectes, vous pouvez contacter votre autorite locale de protection des donnees, comme la CNIL en France.',
+    },
+  ],
+}
+
+const infoPageTranslations = {
+  en: {
+    informationPages: 'Information pages',
+    back: '\u2190 Back',
+    about: 'About',
+    contact: 'Contact',
+    terms: 'Terms',
+    privacy: 'Privacy',
+    accountPrivacyTools: 'Account privacy tools',
+    accountTools: 'Account Tools',
+    signedInAs: 'Signed in as',
+    exporting: 'Exporting...',
+    exportData: 'Export my data',
+    deleting: 'Deleting...',
+    deleteAccount: 'Delete my account',
+    signInForPrivacyTools: 'Sign in to export your account data or delete your account directly.',
+    exportError: 'Unable to export account data',
+    exportSuccess: 'Account data export downloaded.',
+    deleteConfirm: (username) =>
+      `Delete the Red Tetris account "${username}" and its scores? This cannot be undone.`,
+    deleteError: 'Unable to delete account',
+    deleteSuccess: 'Account deleted.',
+  },
+  fr: {
+    informationPages: 'Pages d\u2019information',
+    back: '\u2190 Retour',
+    about: 'A propos',
+    contact: 'Contact',
+    terms: 'Conditions',
+    privacy: 'Confidentialite',
+    accountPrivacyTools: 'Outils de confidentialite du compte',
+    accountTools: 'Outils du compte',
+    signedInAs: 'Connecte en tant que',
+    exporting: 'Export...',
+    exportData: 'Exporter mes donnees',
+    deleting: 'Suppression...',
+    deleteAccount: 'Supprimer mon compte',
+    signInForPrivacyTools: 'Connectez-vous pour exporter vos donnees de compte ou supprimer directement votre compte.',
+    exportError: 'Impossible d\u2019exporter les donnees du compte',
+    exportSuccess: 'Export des donnees du compte telecharge.',
+    deleteConfirm: (username) =>
+      `Supprimer le compte Red Tetris "${username}" et ses scores ? Cette action est irreversible.`,
+    deleteError: 'Impossible de supprimer le compte',
+    deleteSuccess: 'Compte supprime.',
+  },
+}
+
 const contactTranslations = {
   en: {
     captchaLoadError: 'Unable to load captcha',
@@ -474,6 +632,7 @@ function InfoPage({ type }) {
     return isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
   })
   const page = localizedPages[language]?.[type] || pages[type] || pages.about
+  const infoText = infoPageTranslations[language] || infoPageTranslations[DEFAULT_LANGUAGE]
   const contactText = contactTranslations[language] || contactTranslations[DEFAULT_LANGUAGE]
   const isTutorialPage = type === 'tutorial'
   const [theme] = useState(() => (
@@ -648,7 +807,7 @@ function InfoPage({ type }) {
       const payload = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        throw new Error(payload?.error || 'Unable to export account data')
+        throw new Error(payload?.error || infoText.exportError)
       }
 
       const blob = new Blob([JSON.stringify(payload, null, 2)], {
@@ -663,11 +822,11 @@ function InfoPage({ type }) {
       link.remove()
       URL.revokeObjectURL(downloadUrl)
 
-      setPrivacyStatus({ type: 'success', message: 'Account data export downloaded.' })
+      setPrivacyStatus({ type: 'success', message: infoText.exportSuccess })
     } catch (err) {
       setPrivacyStatus({
         type: 'error',
-        message: err?.message || 'Unable to export account data',
+        message: err?.message || infoText.exportError,
       })
     } finally {
       setIsExportingData(false)
@@ -675,10 +834,11 @@ function InfoPage({ type }) {
   }
 
   const handleDeleteAccount = async () => {
+    /* v8 ignore next -- the delete button is only rendered when a saved username exists. @preserve */
     if (!savedAuthUser.username) return
 
     const confirmed = window.confirm(
-      `Delete the Red Tetris account "${savedAuthUser.username}" and its scores? This cannot be undone.`
+      infoText.deleteConfirm(savedAuthUser.username)
     )
     if (!confirmed) return
 
@@ -690,16 +850,16 @@ function InfoPage({ type }) {
       const payload = await response.json().catch(() => ({}))
 
       if (!response.ok) {
-        throw new Error(payload?.error || 'Unable to delete account')
+        throw new Error(payload?.error || infoText.deleteError)
       }
 
       localStorage.removeItem(AUTH_STORAGE_KEY)
       setSavedAuthUser({ username: '', email: '' })
-      setPrivacyStatus({ type: 'success', message: 'Account deleted.' })
+      setPrivacyStatus({ type: 'success', message: infoText.deleteSuccess })
     } catch (err) {
       setPrivacyStatus({
         type: 'error',
-        message: err?.message || 'Unable to delete account',
+        message: err?.message || infoText.deleteError,
       })
     } finally {
       setIsDeletingAccount(false)
@@ -744,10 +904,10 @@ function InfoPage({ type }) {
             <Link className="info-page-back" to="/">← Retour</Link>
             {!isTutorialPage && (
               <>
-                <Link to="/about">About</Link>
-                <Link to="/contact">Contact</Link>
-                <Link to="/terms">Terms</Link>
-                <Link to="/privacy-policy">Privacy</Link>
+                <Link to="/about">{infoText.about}</Link>
+                <Link to="/contact">{infoText.contact}</Link>
+                <Link to="/terms">{infoText.terms}</Link>
+                <Link to="/privacy-policy">{infoText.privacy}</Link>
               </>
             )}
           </nav>
@@ -756,12 +916,12 @@ function InfoPage({ type }) {
           <p className="info-page-intro">{page.intro}</p>
 
           {type === 'privacy' && (
-            <section className="privacy-account-tools" aria-label="Account privacy tools">
-              <h2>Account Tools</h2>
+            <section className="privacy-account-tools" aria-label={infoText.accountPrivacyTools}>
+              <h2>{infoText.accountTools}</h2>
               {savedAuthUser.username ? (
                 <>
                   <p>
-                    Signed in as <strong>{savedAuthUser.username}</strong>.
+                    {infoText.signedInAs} <strong>{savedAuthUser.username}</strong>.
                   </p>
                   <div className="privacy-tool-actions">
                     <button
@@ -770,7 +930,7 @@ function InfoPage({ type }) {
                       onClick={handleExportAccountData}
                       disabled={isExportingData || isDeletingAccount}
                     >
-                      {isExportingData ? 'Exporting...' : 'Export my data'}
+                      {isExportingData ? infoText.exporting : infoText.exportData}
                     </button>
                     <button
                       className="info-page-action danger"
@@ -778,12 +938,12 @@ function InfoPage({ type }) {
                       onClick={handleDeleteAccount}
                       disabled={isExportingData || isDeletingAccount}
                     >
-                      {isDeletingAccount ? 'Deleting...' : 'Delete my account'}
+                      {isDeletingAccount ? infoText.deleting : infoText.deleteAccount}
                     </button>
                   </div>
                 </>
               ) : (
-                <p>Sign in to export your account data or delete your account directly.</p>
+                <p>{infoText.signInForPrivacyTools}</p>
               )}
               {privacyStatus.message && (
                 <p className={`contact-status ${privacyStatus.type}`} role="status">
@@ -944,16 +1104,6 @@ function InfoPage({ type }) {
               <section key={section.title} className="info-page-section">
                 <h2>{section.title}</h2>
                 <p>{section.body}</p>
-                {section.link && (
-                  <a
-                    className="info-page-action"
-                    href={section.link.href}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {section.link.label}
-                  </a>
-                )}
                 {section.links && (
                   <div className="info-page-action-row">
                     {section.links.map((link) => (

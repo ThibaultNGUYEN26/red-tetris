@@ -141,6 +141,22 @@ describe('Rooms Component', () => {
       })
     })
 
+    it('falls back to English room list labels when the language is unsupported', async () => {
+      render(<Rooms {...defaultProps} language="zz" />)
+
+      const availableRoomsCallback = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      availableRoomsCallback?.([])
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /multiplayer rooms/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /create room/i })).toBeInTheDocument()
+        expect(screen.getByText(/no rooms available/i)).toBeInTheDocument()
+      })
+    })
+
     it('should display available rooms', async () => {
       render(<Rooms {...defaultProps} />)
 

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import PlayerStats from '../../../../components/PlayerStats/PlayerStats.jsx'
+import { getPlayerStatsTranslation } from '../../../../i18n/playerStats'
 
 vi.mock('../../../../components/FaceAvatar/FaceAvatar', () => ({
   default: () => <div data-testid="face-avatar" />,
@@ -172,6 +173,10 @@ describe('PlayerStats Component', () => {
     expect(screen.getByText('Player')).toBeInTheDocument()
     expect(screen.getByText(/1\D?200/)).toBeInTheDocument()
     expect(screen.getByText('66.7%')).toBeInTheDocument()
+  })
+
+  it('falls back to English player stats translations when the language is unsupported', () => {
+    expect(getPlayerStatsTranslation('zz').playerStatsTitle).toBe('Player Stats')
   })
 
   it('translates player stats labels for the selected language', async () => {

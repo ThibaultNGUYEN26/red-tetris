@@ -121,6 +121,26 @@ describe('Game Component', () => {
     expect(screen.getByLabelText(/contrôles au clavier/i)).toHaveTextContent('Chute instantanée')
   })
 
+  it('falls back to English in-game labels when the language is unsupported', () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+        language="zz"
+      />
+    )
+
+    expect(screen.getByRole('grid', { name: /tetris board/i })).toBeInTheDocument()
+    expect(screen.getByRole('grid', { name: /next piece/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/keyboard controls/i)).toHaveTextContent('Hard drop')
+  })
+
   it('shows pause overlay on Escape and allows sound toggle', async () => {
     const onSoundChange = vi.fn()
 

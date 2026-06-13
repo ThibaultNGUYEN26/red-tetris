@@ -83,6 +83,16 @@ describe('CreateRoom Component', () => {
       })
     })
 
+    it('falls back to English lobby labels when the language is unsupported', async () => {
+      render(<CreateRoom {...defaultProps} language="zz" />)
+
+      await waitFor(() => {
+        expect(screen.getByText(/Game Mode/i)).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /start game/i })).toBeInTheDocument()
+        expect(screen.getByText(/standard competitive tetris/i)).toBeInTheDocument()
+      })
+    })
+
     it('should use a default avatar when no profile avatar is provided', async () => {
       render(<CreateRoom {...defaultProps} userProfile={{}} />)
 

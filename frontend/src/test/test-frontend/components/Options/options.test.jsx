@@ -90,6 +90,24 @@ describe('Options Component', () => {
     expect(screen.getByRole('button', { name: /retour/i })).toBeInTheDocument()
   })
 
+  it('falls back to English labels when the language is unsupported', () => {
+    render(
+      <Options
+        onBack={vi.fn()}
+        theme="light"
+        onThemeChange={vi.fn()}
+        soundEnabled
+        onSoundChange={vi.fn()}
+        selectedLanguage="zz"
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: /options/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /light theme/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sound/i })).toHaveTextContent(/enabled/i)
+    expect(screen.getByRole('button', { name: /language/i })).toBeInTheDocument()
+  })
+
   it('shows language choices after clicking language', () => {
     const onLanguageChange = vi.fn()
 
@@ -117,5 +135,24 @@ describe('Options Component', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'French' }))
     expect(onLanguageChange).toHaveBeenCalledWith('fr')
+  })
+
+  it('closes language choices when the overlay is clicked', () => {
+    render(
+      <Options
+        onBack={vi.fn()}
+        theme="light"
+        onThemeChange={vi.fn()}
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /language/i }))
+    const overlay = screen.getByLabelText(/language options/i).closest('.language-options-overlay')
+
+    expect(screen.getByLabelText(/language options/i)).toBeInTheDocument()
+    fireEvent.click(overlay)
+    expect(screen.queryByLabelText(/language options/i)).not.toBeInTheDocument()
   })
 })

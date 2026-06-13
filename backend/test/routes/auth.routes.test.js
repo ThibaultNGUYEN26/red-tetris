@@ -117,7 +117,13 @@ describe('auth routes', () => {
       .mockResolvedValueOnce({ rowCount: 0, rows: [] })
       .mockResolvedValueOnce({
         rowCount: 1,
-        rows: [{ id: 1, username: 'Titi', email: 'titi@example.com', avatar: { eyeType: 'happy' } }],
+        rows: [{
+          id: 1,
+          username: 'Titi',
+          email: 'titi@example.com',
+          avatar: { eyeType: 'happy' },
+          preferences: { theme: 'dark' },
+        }],
       })
 
     const { default: router } = await import('../../src/routes/auth.routes.js')
@@ -140,6 +146,7 @@ describe('auth routes', () => {
       username: 'Titi',
       email: 'titi@example.com',
       avatar: { eyeType: 'happy' },
+      preferences: { theme: 'dark', soundEnabled: true, language: 'en' },
     }))
   })
 

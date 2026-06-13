@@ -46,6 +46,14 @@ describe('ModeMenuSelector Component', () => {
     expect(screen.getByRole('button', { name: /paramètres/i })).toBeInTheDocument()
   })
 
+  it('falls back to English labels when the language is unsupported', () => {
+    render(<ModeMenuSelector {...defaultProps} selectedLanguage="zz" />)
+
+    expect(screen.getByRole('heading', { name: /select game mode/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /multiplayer/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
+  })
+
   it('applies dark theme class', () => {
     const { container } = render(<ModeMenuSelector {...defaultProps} theme="dark" />)
 

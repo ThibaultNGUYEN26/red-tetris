@@ -132,6 +132,22 @@ describe('Leaderboard Component', () => {
       })
     })
 
+    it('falls back to English labels when the language is unsupported', async () => {
+      render(<Leaderboard {...defaultProps} language="zz" />)
+
+      await waitFor(() => {
+        expect(socket.on).toHaveBeenCalledWith('leaderboardSolo', expect.any(Function))
+      })
+      triggerSocketEvent('leaderboardSolo', soloLeaderboard)
+      triggerSocketEvent('leaderboardCoop', coopLeaderboard)
+
+      expect(screen.getByText(/leaderboard/i)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Solo' })).toBeInTheDocument()
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Co-op Duo' })).toBeInTheDocument()
+      })
+    })
+
     it('should ignore invalid cached leaderboard data', async () => {
       localStorage.setItem('red-tetris-leaderboards', '{invalid-json')
 

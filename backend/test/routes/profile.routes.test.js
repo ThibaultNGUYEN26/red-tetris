@@ -786,6 +786,23 @@ describe('profile routes', () => {
     })
   })
 
+  it('rejects preferences when every preference value is invalid', async () => {
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'post', '/profile')
+    const res = buildRes()
+
+    await handler({
+      body: {
+        username: 'Titi',
+        preferences: { theme: 'blue', soundEnabled: 'yes', language: 'es' },
+      },
+    }, res)
+
+    expect(mockQuery).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Missing data' })
+  })
+
   it('returns forbidden when profile upsert targets a soft-deleted account', async () => {
     mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
 
