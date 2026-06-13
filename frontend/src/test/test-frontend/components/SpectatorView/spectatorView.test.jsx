@@ -11,15 +11,23 @@ describe('SpectatorView Component', () => {
   it('shows empty state when no players to watch', () => {
     render(<SpectatorView players={[]} onBack={vi.fn()} username="Titi" />)
 
+    expect(screen.getByText(/spectator mode/i)).toBeInTheDocument()
+    expect(screen.getByText(/no players to watch/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument()
+  })
+
+  it('renders French labels when French is selected', () => {
+    render(<SpectatorView players={[]} onBack={vi.fn()} username="Titi" language="fr" />)
+
     expect(screen.getByText(/mode spectateur/i)).toBeInTheDocument()
-    expect(screen.getByText(/aucun joueur à regarder/i)).toBeInTheDocument()
+    expect(screen.getByText(/aucun joueur a regarder/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /retour/i })).toBeInTheDocument()
   })
 
   it('shows empty state when players is not an array', () => {
     render(<SpectatorView players={null} onBack={vi.fn()} username="Titi" />)
 
-    expect(screen.getByText(/aucun joueur à regarder/i)).toBeInTheDocument()
+    expect(screen.getByText(/no players to watch/i)).toBeInTheDocument()
   })
 
   it('renders current player info and stats', () => {
@@ -42,12 +50,12 @@ describe('SpectatorView Component', () => {
       />
     )
 
-    expect(screen.getByText(/spectateur de/i)).toBeInTheDocument()
+    expect(screen.getByText(/watching/i)).toBeInTheDocument()
     expect(screen.getByText('Other')).toBeInTheDocument()
     expect(screen.getByText(/1\D?234/)).toBeInTheDocument()
-    expect(screen.getByRole('grid', { name: /plateau de tetris/i })).toBeInTheDocument()
-    expect(screen.getByRole('grid', { name: /pièce suivante/i })).toBeInTheDocument()
-    expect(screen.getByRole('grid', { name: /pièce en réserve/i }).querySelectorAll('.cell-t')).toHaveLength(4)
+    expect(screen.getByRole('grid', { name: /tetris board/i })).toBeInTheDocument()
+    expect(screen.getByRole('grid', { name: /next piece/i })).toBeInTheDocument()
+    expect(screen.getByRole('grid', { name: /held piece/i }).querySelectorAll('.cell-t')).toHaveLength(4)
   })
 
   it('cycles players with next/prev buttons', () => {
@@ -64,13 +72,13 @@ describe('SpectatorView Component', () => {
 
     expect(screen.getByText('A')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /suivant/i }))
+    fireEvent.click(screen.getByRole('button', { name: /next/i }))
     expect(screen.getByText('B')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /précédent/i }))
+    fireEvent.click(screen.getByRole('button', { name: /previous/i }))
     expect(screen.getByText('A')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /précédent/i }))
+    fireEvent.click(screen.getByRole('button', { name: /previous/i }))
     expect(screen.getByText('B')).toBeInTheDocument()
   })
 
@@ -113,8 +121,8 @@ describe('SpectatorView Component', () => {
       />
     )
 
-    expect(screen.getByRole('button', { name: /précédent/i })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /suivant/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled()
   })
 
   it('uses fallback stats, unknown piece previews, and missing opponent boards', () => {
@@ -131,9 +139,9 @@ describe('SpectatorView Component', () => {
 
     expect(screen.getByText('A')).toBeInTheDocument()
     expect(screen.getByText('Score').nextSibling).toHaveTextContent('0')
-    expect(screen.getByText('Lignes').nextSibling).toHaveTextContent('0')
-    expect(screen.getByText('Niveau').nextSibling).toHaveTextContent('1')
-    expect(screen.getByRole('grid', { name: /pièce suivante/i }).querySelector('.cell')).not.toBeInTheDocument()
-    expect(screen.getByRole('grid', { name: /pièce en réserve/i }).querySelector('.cell')).not.toBeInTheDocument()
+    expect(screen.getByText('Lines').nextSibling).toHaveTextContent('0')
+    expect(screen.getByText('Level').nextSibling).toHaveTextContent('1')
+    expect(screen.getByRole('grid', { name: /next piece/i }).querySelector('.cell')).not.toBeInTheDocument()
+    expect(screen.getByRole('grid', { name: /held piece/i }).querySelector('.cell')).not.toBeInTheDocument()
   })
 })

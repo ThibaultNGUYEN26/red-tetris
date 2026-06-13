@@ -748,7 +748,12 @@ function Game({
       <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
         <TetriminosClouds />
         <div className="game-card">
-          <SpectatorView players={gamePlayers} onBack={onBack} username={username} />
+          <SpectatorView
+            players={gamePlayers}
+            onBack={onBack}
+            username={username}
+            language={language}
+          />
         </div>
       </div>
     )

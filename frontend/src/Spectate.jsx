@@ -6,9 +6,38 @@ import { socket } from './socket'
 import { apiFetch } from './api'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
 import SpectatorView from './components/SpectatorView/SpectatorView.jsx'
+import { DEFAULT_LANGUAGE, isSupportedLanguage } from './i18n/playerStats'
 
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
+const LANGUAGE_STORAGE_KEY = 'red-tetris-language'
+
+const SPECTATE_TRANSLATIONS = {
+  en: {
+    missingUsername: 'Missing username in spectator URL.',
+    roomNotFound: 'Room not found',
+    unauthorized: 'Spectator not authorized',
+    loading: 'Loading spectator mode...',
+    back: 'Back',
+    gameOver: 'Game over',
+    winner: 'Winner',
+    noWinner: 'No winner',
+    playAgain: 'Play again',
+    backToMenu: 'Back to menu',
+  },
+  fr: {
+    missingUsername: 'Pseudo manquant dans l\u2019URL spectateur.',
+    roomNotFound: 'Salle introuvable',
+    unauthorized: 'Spectateur non autorise',
+    loading: 'Chargement du mode spectateur...',
+    back: 'Retour',
+    gameOver: 'Partie terminee',
+    winner: 'Vainqueur',
+    noWinner: 'Aucun vainqueur',
+    playAgain: 'Rejouer',
+    backToMenu: 'Retour au menu',
+  },
+}
 
 const getSavedUsername = () => {
   try {
@@ -17,6 +46,11 @@ const getSavedUsername = () => {
   } catch {
     return ''
   }
+}
+
+const getSavedLanguage = () => {
+  const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+  return isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
 }
 
 const unregisterUser = (username) => new Promise((resolve) => {
@@ -54,6 +88,8 @@ function Spectate() {
   const [theme] = useState(() => (
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
   ))
+  const [language] = useState(getSavedLanguage)
+  const text = SPECTATE_TRANSLATIONS[language] || SPECTATE_TRANSLATIONS[DEFAULT_LANGUAGE]
 
   const handlePlayAgain = async () => {
     const roomPath = roomType
@@ -69,7 +105,7 @@ function Spectate() {
   useEffect(() => {
     if (!roomName) return
     if (!spectatorUsername) {
-      setError('Pseudo manquant dans l’URL spectateur.')
+      setError(text.missingUsername)
       setLoading(false)
       return
     }
@@ -77,17 +113,17 @@ function Spectate() {
     const fetchRoom = async () => {
       try {
         const res = await apiFetch(`/api/rooms/by-name/${encodeURIComponent(roomName)}`)
-        if (!res.ok) throw new Error('Salle introuvable')
+        if (!res.ok) throw new Error(text.roomNotFound)
         const room = await res.json()
         setRoomId(room.id)
       } catch {
-        setError('Salle introuvable')
+        setError(text.roomNotFound)
         setLoading(false)
       }
     }
 
     fetchRoom()
-  }, [roomName, spectatorUsername])
+  }, [roomName, spectatorUsername, text])
 
   useEffect(() => {
     if (!roomId || !spectatorUsername) return
@@ -113,7 +149,7 @@ function Spectate() {
         if (cancelled) return
         if (!res?.ok) {
           joinedSpectatorRef.current = false
-          setError(res?.error || 'Spectateur non autorisé')
+          setError(res?.error || text.unauthorized)
           setLoading(false)
           return
         }
@@ -134,7 +170,7 @@ function Spectate() {
       socket.off('gameState', handleGameState)
       socket.off('gameOver', handleGameOver)
     }
-  }, [roomId, spectatorUsername])
+  }, [roomId, spectatorUsername, text])
 
   if (loading) {
     return (
@@ -146,7 +182,7 @@ function Spectate() {
         <div className="content-wrapper">
           <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
             <div className="game-card spectator-empty">
-              <p>Chargement du mode spectateur…</p>
+              <p>{text.loading}</p>
             </div>
           </div>
         </div>
@@ -165,7 +201,7 @@ function Spectate() {
           <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
             <div className="game-card spectator-empty">
               <p>{error}</p>
-              <button className="back-button" onClick={() => navigate('/')}>Retour</button>
+              <button className="back-button" onClick={() => navigate('/')}>{text.back}</button>
             </div>
           </div>
         </div>
@@ -185,18 +221,18 @@ function Spectate() {
             {isGameOver && (
               <div className="game-over-overlay" role="dialog" aria-modal="true">
                 <div className="game-over-card">
-                  <h3>Partie terminée</h3>
+                  <h3>{text.gameOver}</h3>
                   <p className="game-over-winner">
-                    {winner ? `Vainqueur : ${winner}` : 'Aucun vainqueur'}
+                    {winner ? `${text.winner}: ${winner}` : text.noWinner}
                   </p>
                   <div className="game-over-actions">
                     <div className="game-over-primary-actions">
                       <button className="resume-button" onClick={handlePlayAgain}>
-                        Rejouer
+                        {text.playAgain}
                       </button>
                     </div>
                     <button className="back-button" onClick={() => navigate('/')}>
-                      Retour au menu
+                      {text.backToMenu}
                     </button>
                   </div>
                 </div>
@@ -206,6 +242,7 @@ function Spectate() {
               players={players}
               onBack={() => navigate('/')}
               username={spectatorUsername}
+              language={language}
             />
           </div>
         </div>
