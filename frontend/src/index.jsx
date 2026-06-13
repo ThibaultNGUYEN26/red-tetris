@@ -626,10 +626,12 @@ function Index({ authMode = 'login' }) {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, languageCode)
     window.dispatchEvent(new Event(LANGUAGE_CHANGE_EVENT))
     setLanguage(languageCode)
-    setUserProfile((current) => ({
-      ...(current || {}),
-      preferences: nextPreferences,
-    }))
+    if (username) {
+      setUserProfile((current) => ({
+        ...(current || {}),
+        preferences: nextPreferences,
+      }))
+    }
     savePreferences(nextPreferences)
   }
 
@@ -1220,6 +1222,7 @@ function Index({ authMode = 'login' }) {
                         initialProfile={userProfile || { username, avatar: DEFAULT_URL_AVATAR }}
                         title="Profile"
                         submitLabel="Save"
+                        language={language}
                         onSubmit={handleProfileUpdate}
                         onLogout={handleReturnToProfile}
                       />
@@ -1237,7 +1240,13 @@ function Index({ authMode = 'login' }) {
             )}
 
             {!username ? (
-              <AuthMenu onAuthenticated={handleAuthSubmit} theme={theme} initialMode={authMode} />
+              <AuthMenu
+                onAuthenticated={handleAuthSubmit}
+                theme={theme}
+                initialMode={authMode}
+                language={language}
+                onLanguageChange={handleLanguageChange}
+              />
             ) : (
               <>
                   {!showGame && !showRooms && !showSoloRoom && !showDirectRoom && <Title />}

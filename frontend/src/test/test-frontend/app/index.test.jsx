@@ -149,6 +149,46 @@ describe('Index main page', () => {
     })
   })
 
+  it('translates the login page when language is changed before signing in', () => {
+    mockParams = { username: undefined, roomName: undefined, roomType: undefined }
+
+    render(<Index />)
+
+    expect(screen.getByRole('heading', { name: /login to your account/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /french/i }))
+
+    expect(screen.getByRole('heading', { name: 'Connectez-vous' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Connexion' })).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Inscription' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Pseudo')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Mot de passe')).toBeInTheDocument()
+    expect(localStorage.getItem('red-tetris-language')).toBe('fr')
+  })
+
+  it('translates the register page when language is changed before signing in', () => {
+    mockParams = { username: undefined, roomName: undefined, roomType: undefined }
+
+    render(<Index authMode="register" />)
+
+    expect(screen.getByRole('heading', { name: /create your account/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /french/i }))
+
+    expect(screen.getByRole('heading', { name: 'Creer votre compte' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Inscription' })).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Connexion' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Aleatoire' })).toBeInTheDocument()
+    expect(screen.getByText('Peau')).toBeInTheDocument()
+    expect(screen.getByText('Yeux')).toBeInTheDocument()
+    expect(screen.getByText('Bouche')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Pseudo')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Mot de passe')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Confirmer le mot de passe')).toBeInTheDocument()
+    expect(localStorage.getItem('red-tetris-language')).toBe('fr')
+  })
+
   it('announces idle menu presence so stale room membership is cleared', async () => {
     mockParams = { username: undefined, roomName: undefined, roomType: undefined }
     setSavedUser('Titi')

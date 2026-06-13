@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { apiFetch } from '../../api'
+import { DEFAULT_LANGUAGE, PLAYER_STATS_LANGUAGES } from '../../i18n/playerStats'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const PASSWORD_MIN_LENGTH = 8
@@ -14,6 +15,99 @@ const AUTH_ROUTES = {
   register: '/register',
   forgot: '/forgot-password',
   reset: '/reset-password',
+}
+
+const AUTH_TRANSLATIONS = {
+  en: {
+    languageLabel: 'Language',
+    loginTab: 'Login',
+    registerTab: 'Register',
+    loginTitle: 'Login to Your Account',
+    registerTitle: 'Create Your Account',
+    forgotTitle: 'Reset Your Password',
+    resetTitle: 'Choose a New Password',
+    username: 'Username',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm password',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    showConfirmPassword: 'Show confirm password',
+    hideConfirmPassword: 'Hide confirm password',
+    randomize: 'Random',
+    skin: 'Skin',
+    eyes: 'Eyes',
+    mouth: 'Mouth',
+    pleaseWait: 'Please wait...',
+    register: 'Register',
+    sendResetLink: 'Send Reset Link',
+    updatePassword: 'Update Password',
+    login: 'Login',
+    forgotPassword: 'Forgot password?',
+    restoreAccount: 'Restore account',
+    backToLogin: 'Back to login',
+    missingData: 'Missing data',
+    invalidEmail: 'Invalid email',
+    invalidPassword: 'Invalid password',
+    passwordTooShort: 'Password must be at least 8 characters',
+    passwordUppercase: 'Password must contain at least 1 uppercase letter',
+    passwordLowercase: 'Password must contain at least 1 lowercase letter',
+    passwordNumber: 'Password must contain at least 1 number',
+    passwordSpecial: 'Password must contain at least 1 special character',
+    passwordMismatch: "Password doesn't match",
+    invalidResetLink: 'Invalid or expired reset link',
+    authenticationFailed: 'Authentication failed',
+    accountCreated: 'Account created. Please log in.',
+    passwordResetGenerated: 'Password reset link generated',
+    passwordUpdated: 'Password updated',
+    serverUnavailable: 'Server unavailable',
+    unableToRestore: 'Unable to restore account',
+  },
+  fr: {
+    languageLabel: 'Langue',
+    loginTab: 'Connexion',
+    registerTab: 'Inscription',
+    loginTitle: 'Connectez-vous',
+    registerTitle: 'Creer votre compte',
+    forgotTitle: 'Reinitialiser votre mot de passe',
+    resetTitle: 'Choisir un nouveau mot de passe',
+    username: 'Pseudo',
+    email: 'Email',
+    password: 'Mot de passe',
+    confirmPassword: 'Confirmer le mot de passe',
+    showPassword: 'Afficher le mot de passe',
+    hidePassword: 'Masquer le mot de passe',
+    showConfirmPassword: 'Afficher la confirmation du mot de passe',
+    hideConfirmPassword: 'Masquer la confirmation du mot de passe',
+    randomize: 'Aleatoire',
+    skin: 'Peau',
+    eyes: 'Yeux',
+    mouth: 'Bouche',
+    pleaseWait: 'Veuillez patienter...',
+    register: 'Inscription',
+    sendResetLink: 'Envoyer le lien',
+    updatePassword: 'Mettre a jour',
+    login: 'Connexion',
+    forgotPassword: 'Mot de passe oublie ?',
+    restoreAccount: 'Restaurer le compte',
+    backToLogin: 'Retour a la connexion',
+    missingData: 'Donnees manquantes',
+    invalidEmail: 'Email invalide',
+    invalidPassword: 'Mot de passe invalide',
+    passwordTooShort: 'Le mot de passe doit contenir au moins 8 caracteres',
+    passwordUppercase: 'Le mot de passe doit contenir au moins 1 majuscule',
+    passwordLowercase: 'Le mot de passe doit contenir au moins 1 minuscule',
+    passwordNumber: 'Le mot de passe doit contenir au moins 1 chiffre',
+    passwordSpecial: 'Le mot de passe doit contenir au moins 1 caractere special',
+    passwordMismatch: 'Les mots de passe ne correspondent pas',
+    invalidResetLink: 'Lien de reinitialisation invalide ou expire',
+    authenticationFailed: 'Echec de l authentification',
+    accountCreated: 'Compte cree. Veuillez vous connecter.',
+    passwordResetGenerated: 'Lien de reinitialisation genere',
+    passwordUpdated: 'Mot de passe mis a jour',
+    serverUnavailable: 'Serveur indisponible',
+    unableToRestore: 'Impossible de restaurer le compte',
+  },
 }
 
 const skinColors = [
@@ -30,28 +124,38 @@ const eyeTypes = ['normal', 'happy', 'joy', 'sad', 'very_sad', 'crying', 'uwu', 
 const mouthTypes = ['uwu', 'neutral', 'smile', 'not_smile', 'laugth', 'sad', 'open', 'kiss', 'scared', 'scream', 'horrified']
 
 const getSafeMode = (mode) => (AUTH_MODES.has(mode) ? mode : 'login')
-const getPasswordValidationError = (password) => {
+const getAuthTranslation = (language) =>
+  AUTH_TRANSLATIONS[language] || AUTH_TRANSLATIONS[DEFAULT_LANGUAGE]
+
+const getPasswordValidationError = (password, text = AUTH_TRANSLATIONS.en) => {
   if (typeof password !== 'string' || password.length < PASSWORD_MIN_LENGTH) {
-    return 'Password must be at least 8 characters'
+    return text.passwordTooShort
   }
   if (!/[A-Z]/.test(password)) {
-    return 'Password must contain at least 1 uppercase letter'
+    return text.passwordUppercase
   }
   if (!/[a-z]/.test(password)) {
-    return 'Password must contain at least 1 lowercase letter'
+    return text.passwordLowercase
   }
   if (!/\d/.test(password)) {
-    return 'Password must contain at least 1 number'
+    return text.passwordNumber
   }
   if (!/[^A-Za-z0-9]/.test(password)) {
-    return 'Password must contain at least 1 special character'
+    return text.passwordSpecial
   }
   return null
 }
 
-function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
+function AuthMenu({
+  onAuthenticated,
+  theme,
+  initialMode = 'login',
+  language = DEFAULT_LANGUAGE,
+  onLanguageChange,
+}) {
   const navigate = useNavigate()
   const location = useLocation()
+  const text = getAuthTranslation(language)
   const [mode, setMode] = useState(getSafeMode(initialMode))
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -92,9 +196,9 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
 
   useEffect(() => {
     if (mode === 'reset' && !resetToken) {
-      setErrorMessage('Invalid or expired reset link')
+      setErrorMessage(text.invalidResetLink)
     }
-  }, [mode, resetToken])
+  }, [mode, resetToken, text.invalidResetLink])
 
   const clearMessages = () => {
     setErrorMessage('')
@@ -154,34 +258,34 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
     const normalizedEmail = email.trim().toLowerCase()
 
     if (mode === 'forgot') {
-      if (!trimmedUsername || !normalizedEmail) return 'Missing data'
-      if (!EMAIL_PATTERN.test(normalizedEmail)) return 'Invalid email'
+      if (!trimmedUsername || !normalizedEmail) return text.missingData
+      if (!EMAIL_PATTERN.test(normalizedEmail)) return text.invalidEmail
       return null
     }
 
     if (mode === 'reset') {
-      if (!resetToken || !password || !confirmPassword) return 'Missing data'
-      const passwordError = getPasswordValidationError(password)
+      if (!resetToken || !password || !confirmPassword) return text.missingData
+      const passwordError = getPasswordValidationError(password, text)
       if (passwordError) return passwordError
-      if (password !== confirmPassword) return "Password doesn't match"
+      if (password !== confirmPassword) return text.passwordMismatch
       return null
     }
 
     if (!trimmedUsername || !password || (mode === 'register' && (!normalizedEmail || !confirmPassword))) {
-      return 'Missing data'
+      return text.missingData
     }
 
     if (mode === 'register' && !EMAIL_PATTERN.test(normalizedEmail)) {
-      return 'Invalid email'
+      return text.invalidEmail
     }
 
-    const passwordError = getPasswordValidationError(password)
+    const passwordError = getPasswordValidationError(password, text)
     if (passwordError) {
       return passwordError
     }
 
     if (mode === 'register' && password !== confirmPassword) {
-      return "Password doesn't match"
+      return text.passwordMismatch
     }
 
     return null
@@ -246,14 +350,14 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
           setCanRestoreAccount(true)
         }
         const nextError = mode === 'login' && data?.error === 'Invalid credentials'
-          ? 'Invalid password'
-          : data?.error || 'Authentication failed'
+          ? text.invalidPassword
+          : data?.error || text.authenticationFailed
         setErrorMessage(nextError)
         return
       }
 
       if (mode === 'forgot') {
-        setSuccessMessage(data?.message || 'Password reset link generated')
+        setSuccessMessage(data?.message || text.passwordResetGenerated)
         if (data?.resetUrl) {
           const url = new URL(data.resetUrl, window.location.origin)
           navigate(`${url.pathname}${url.search}`, { replace: true })
@@ -262,7 +366,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
       }
 
       if (mode === 'register') {
-        setSuccessMessage('Account created. Please log in.')
+        setSuccessMessage(text.accountCreated)
         setUsername('')
         setEmail('')
         setPassword('')
@@ -274,7 +378,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
       }
 
       if (mode === 'reset') {
-        setSuccessMessage(data?.message || 'Password updated')
+        setSuccessMessage(data?.message || text.passwordUpdated)
         setPassword('')
         setConfirmPassword('')
         resetPasswordToggles()
@@ -293,7 +397,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
         },
       })
     } catch {
-      setErrorMessage('Server unavailable')
+      setErrorMessage(text.serverUnavailable)
     } finally {
       setIsSubmitting(false)
     }
@@ -317,7 +421,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
 
       const data = await response.json().catch(() => ({}))
       if (!response.ok) {
-        setErrorMessage(data?.error || 'Unable to restore account')
+        setErrorMessage(data?.error || text.unableToRestore)
         return
       }
 
@@ -332,7 +436,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
         },
       })
     } catch {
-      setErrorMessage('Server unavailable')
+      setErrorMessage(text.serverUnavailable)
     } finally {
       setIsSubmitting(false)
     }
@@ -345,41 +449,56 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
   }
 
   const title = mode === 'register'
-    ? 'Create Your Account'
+    ? text.registerTitle
     : mode === 'forgot'
-      ? 'Reset Your Password'
+      ? text.forgotTitle
       : mode === 'reset'
-        ? 'Choose a New Password'
-        : 'Login to Your Account'
+        ? text.resetTitle
+        : text.loginTitle
 
   const submitLabel = isSubmitting
-    ? 'Please wait...'
+    ? text.pleaseWait
     : mode === 'register'
-      ? 'Register'
+      ? text.register
       : mode === 'forgot'
-        ? 'Send Reset Link'
+        ? text.sendResetLink
         : mode === 'reset'
-          ? 'Update Password'
-          : 'Login'
+          ? text.updatePassword
+          : text.login
 
   const isRegisterLayout = mode === 'register'
 
   return (
     <div className={`username-card auth-card ${isRegisterLayout ? 'register-mode' : 'login-mode'} ${theme === 'dark' ? 'dark' : ''}`}>
+      <div className="auth-language-switcher" aria-label={text.languageLabel}>
+        {PLAYER_STATS_LANGUAGES.map(({ code, label }) => (
+          <button
+            key={code}
+            type="button"
+            className={`auth-language-option${language === code ? ' active' : ''}`}
+            aria-pressed={language === code}
+            onClick={() => onLanguageChange?.(code)}
+          >
+            {code.toUpperCase()}
+            <span className="auth-language-name">{label}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="auth-switch-row">
         <button
           type="button"
           className={`auth-tab ${mode === 'login' ? 'active' : ''}`}
           onClick={() => onModeChange('login')}
         >
-          Login
+          {text.loginTab}
         </button>
         <button
           type="button"
           className={`auth-tab ${mode === 'register' ? 'active' : ''}`}
           onClick={() => onModeChange('register')}
         >
-          Register
+          {text.registerTab}
         </button>
       </div>
 
@@ -394,12 +513,12 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
               </div>
 
               <button className="random-button" onClick={handleRandomize} type="button">
-                🎲 Random
+                {text.randomize}
               </button>
 
               <div className="feature-selectors">
                 <div className="feature-row">
-                  <label>Skin</label>
+                  <label>{text.skin}</label>
                   <div className="feature-carousel">
                     <button className="feature-arrow" onClick={() => setSelectedSkin((prev) => (prev - 1 + skinColors.length) % skinColors.length)} type="button">◀</button>
                     <div className="color-preview" style={{ backgroundColor: skinColors[selectedSkin] }} />
@@ -408,7 +527,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
                 </div>
 
                 <div className="feature-row">
-                  <label>Eyes</label>
+                  <label>{text.eyes}</label>
                   <div className="feature-carousel">
                     <button className="feature-arrow" onClick={() => setSelectedEyes((prev) => (prev - 1 + eyeTypes.length) % eyeTypes.length)} type="button">◀</button>
                     <span className="feature-name">{eyeTypes[selectedEyes]}</span>
@@ -417,7 +536,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
                 </div>
 
                 <div className="feature-row">
-                  <label>Mouth</label>
+                  <label>{text.mouth}</label>
                   <div className="feature-carousel">
                     <button className="feature-arrow" onClick={() => setSelectedMouth((prev) => (prev - 1 + mouthTypes.length) % mouthTypes.length)} type="button">◀</button>
                     <span className="feature-name">{mouthTypes[selectedMouth]}</span>
@@ -437,7 +556,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
               value={username}
               onChange={handleUsernameChange}
               onKeyDown={handleKeyPress}
-              placeholder="Username"
+              placeholder={text.username}
               maxLength={15}
               pattern="[A-Za-z0-9]{1,15}"
               className="username-input"
@@ -451,7 +570,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
               value={email}
               onChange={handleEmailChange}
               onKeyDown={handleKeyPress}
-              placeholder="Email"
+              placeholder={text.email}
               className="username-input"
             />
           )}
@@ -464,14 +583,14 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
                 value={password}
                 onChange={handlePasswordChange}
                 onKeyDown={handleKeyPress}
-                placeholder="Password"
+                placeholder={text.password}
                 className="username-input password-input"
               />
               <button
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? text.hidePassword : text.showPassword}
               >
                 {showPassword ? '🙉' : '🙈'}
               </button>
@@ -485,14 +604,14 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
                 value={confirmPassword}
                 onChange={handleConfirmPasswordChange}
                 onKeyDown={handleKeyPress}
-                placeholder="Confirm password"
+                placeholder={text.confirmPassword}
                 className="username-input password-input"
               />
               <button
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowConfirmPassword((prev) => !prev)}
-                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                aria-label={showConfirmPassword ? text.hideConfirmPassword : text.showConfirmPassword}
               >
                 {showConfirmPassword ? '🙉' : '🙈'}
               </button>
@@ -505,7 +624,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
               className="auth-secondary-action"
               onClick={() => onModeChange('forgot')}
             >
-              Forgot password?
+              {text.forgotPassword}
             </button>
           )}
 
@@ -523,7 +642,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
               onClick={handleRestoreAccount}
               disabled={isSubmitting}
             >
-              Restore account
+              {text.restoreAccount}
             </button>
           )}
 
@@ -533,7 +652,7 @@ function AuthMenu({ onAuthenticated, theme, initialMode = 'login' }) {
               className="auth-secondary-action back-to-login"
               onClick={() => onModeChange('login')}
             >
-              Back to login
+              {text.backToLogin}
             </button>
           )}
         </div>

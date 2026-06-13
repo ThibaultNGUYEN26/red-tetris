@@ -575,6 +575,28 @@ describe('ProfileMenu Component', () => {
 
       expect(onLogout).toHaveBeenCalled()
     })
+
+    it('should render profile menu labels in French', () => {
+      const onLogout = vi.fn()
+      render(
+        <ProfileMenu
+          {...defaultProps}
+          title="Profile"
+          submitLabel="Save"
+          language="fr"
+          onLogout={onLogout}
+        />
+      )
+
+      expect(screen.getByRole('heading', { name: 'Profil' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Aleatoire' })).toBeInTheDocument()
+      expect(screen.getByText('Peau')).toBeInTheDocument()
+      expect(screen.getByText('Yeux')).toBeInTheDocument()
+      expect(screen.getByText('Bouche')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('Pseudo')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Se deconnecter' })).toBeInTheDocument()
+    })
   })
 
   describe('Avatar Validation', () => {

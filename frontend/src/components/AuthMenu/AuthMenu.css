@@ -1,3 +1,51 @@
+.auth-language-switcher {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 20;
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.3rem;
+  border: 1px solid rgba(55, 86, 160, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 10px 26px rgba(55, 86, 160, 0.16);
+  backdrop-filter: blur(8px);
+}
+
+.auth-language-option {
+  min-width: 2.6rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #3756a0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.42rem 0.55rem;
+}
+
+.auth-language-option:hover,
+.auth-language-option:focus-visible {
+  background: rgba(55, 86, 160, 0.1);
+  outline: none;
+}
+
+.auth-language-option.active {
+  background: #3756a0;
+  color: #ffffff;
+}
+
+.auth-language-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .auth-switch-row {
   display: flex;
   gap: 0.5rem;
@@ -162,6 +210,27 @@
   box-shadow:
     0 0 14px rgba(100, 150, 255, 0.34),
     inset 0 1px 2px rgba(210, 220, 255, 0.22);
+}
+
+.auth-card.dark .auth-language-switcher {
+  border-color: rgba(120, 150, 255, 0.36);
+  background: rgba(22, 28, 54, 0.78);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+}
+
+.auth-card.dark .auth-language-option {
+  color: #d0d8ff;
+}
+
+.auth-card.dark .auth-language-option:hover,
+.auth-card.dark .auth-language-option:focus-visible {
+  background: rgba(120, 150, 255, 0.2);
+  color: #ffffff;
+}
+
+.auth-card.dark .auth-language-option.active {
+  background: #d0d8ff;
+  color: #1f2a55;
 }
 
 .auth-card.dark .password-toggle,

@@ -74,6 +74,28 @@ describe('AuthMenu', () => {
     })
   })
 
+  it('renders login/register controls in French and changes language from the switcher', () => {
+    const onLanguageChange = vi.fn()
+    render(
+      <AuthMenu
+        onAuthenticated={onAuthenticated}
+        theme="light"
+        language="fr"
+        onLanguageChange={onLanguageChange}
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: 'Connectez-vous' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Connexion' })).toHaveLength(2)
+    expect(screen.getByRole('button', { name: 'Inscription' })).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Pseudo')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Mot de passe')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }))
+
+    expect(onLanguageChange).toHaveBeenCalledWith('en')
+  })
+
   it('validates login and maps login errors', async () => {
     const { container } = render(<AuthMenu onAuthenticated={onAuthenticated} theme="light" />)
 

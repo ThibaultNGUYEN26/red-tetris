@@ -5,14 +5,64 @@ import { socket } from '../../socket'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 
+const PROFILE_MENU_TRANSLATIONS = {
+  en: {
+    createTitle: 'Create Your Profile',
+    profileTitle: 'Profile',
+    randomize: 'Random',
+    skin: 'Skin',
+    eyes: 'Eyes',
+    mouth: 'Mouth',
+    usernamePlaceholder: 'Username',
+    play: "Let's Play!",
+    save: 'Save',
+    disconnect: 'Disconnect',
+    missingData: 'Missing data',
+    invalidUsername: 'Invalid username',
+    serverUnavailable: 'Server unavailable',
+    serverNotResponding: 'Server not responding',
+    unknownError: 'Unknown error',
+    profileUpdateFailed: 'Profile update failed',
+  },
+  fr: {
+    createTitle: 'Creer votre profil',
+    profileTitle: 'Profil',
+    randomize: 'Aleatoire',
+    skin: 'Peau',
+    eyes: 'Yeux',
+    mouth: 'Bouche',
+    usernamePlaceholder: 'Pseudo',
+    play: 'Jouer',
+    save: 'Enregistrer',
+    disconnect: 'Se deconnecter',
+    missingData: 'Donnees manquantes',
+    invalidUsername: 'Pseudo invalide',
+    serverUnavailable: 'Serveur indisponible',
+    serverNotResponding: 'Le serveur ne repond pas',
+    unknownError: 'Erreur inconnue',
+    profileUpdateFailed: 'Echec de la mise a jour du profil',
+  },
+}
+
+const getProfileMenuTranslation = (language) =>
+  PROFILE_MENU_TRANSLATIONS[language] || PROFILE_MENU_TRANSLATIONS.en
+
 function ProfileMenu({
   onSubmit,
   theme,
   initialProfile = null,
-  title = 'Create Your Profile',
-  submitLabel = "Let's Play!",
+  title,
+  submitLabel,
+  language = 'en',
   onLogout,
 }) {
+  const text = getProfileMenuTranslation(language)
+  const titleText = title === 'Profile'
+    ? text.profileTitle
+    : title || text.createTitle
+  const submitText = submitLabel === 'Save'
+    ? text.save
+    : submitLabel || text.play
   const [username, setUsername] = useState(initialProfile?.username || '')
   const [errorMessage, setErrorMessage] = useState('')
   const inputRef = useRef(null)
@@ -74,12 +124,12 @@ function ProfileMenu({
     const trimmedUsername = username.trim()
 
     if (!trimmedUsername) {
-      setErrorMessage('Missing data')
+      setErrorMessage(text.missingData)
       return
     }
 
     if (!USERNAME_PATTERN.test(trimmedUsername)) {
-      setErrorMessage('Invalid username')
+      setErrorMessage(text.invalidUsername)
       return
     }
 
@@ -95,21 +145,21 @@ function ProfileMenu({
 
     const updateResult = await new Promise((resolve) => {
       if (!socket?.timeout) {
-        resolve({ ok: false, error: 'Server unavailable' })
+        resolve({ ok: false, error: text.serverUnavailable })
         return
       }
 
       socket.timeout(2000).emit('updateProfile', profileData, (err, res) => {
         if (err) {
-          resolve({ ok: false, error: 'Server not responding' })
+          resolve({ ok: false, error: text.serverNotResponding })
           return
         }
-        resolve(res || { ok: false, error: 'Unknown error' })
+        resolve(res || { ok: false, error: text.unknownError })
       })
     })
 
     if (!updateResult?.ok) {
-      setErrorMessage(updateResult?.error || 'Profile update failed')
+      setErrorMessage(updateResult?.error || text.profileUpdateFailed)
       return
     }
 
@@ -130,7 +180,7 @@ function ProfileMenu({
 
   return (
     <div className={`username-card profile-card ${theme === 'dark' ? 'dark' : ''}`}>
-      <h2>{title}</h2>
+      <h2>{titleText}</h2>
 
       {/* Avatar Customization */}
       <div className="avatar-section">
@@ -142,7 +192,7 @@ function ProfileMenu({
 
         {/* Random Button */}
         <button className="random-button" onClick={handleRandomize}>
-          🎲 Random
+          {text.randomize}
         </button>
 
         {/* Feature Selectors */}
@@ -150,7 +200,7 @@ function ProfileMenu({
 
           {/* Skin Color */}
           <div className="feature-row">
-            <label>Skin</label>
+            <label>{text.skin}</label>
             <div className="feature-carousel">
               <button className="feature-arrow" onClick={() => setSelectedSkin((prev) => (prev - 1 + skinColors.length) % skinColors.length)}>
                 ◀
@@ -164,7 +214,7 @@ function ProfileMenu({
 
           {/* Eyes */}
           <div className="feature-row">
-            <label>Eyes</label>
+            <label>{text.eyes}</label>
             <div className="feature-carousel">
               <button className="feature-arrow" onClick={() => setSelectedEyes((prev) => (prev - 1 + eyeTypes.length) % eyeTypes.length)}>
                 ◀
@@ -178,7 +228,7 @@ function ProfileMenu({
 
           {/* Mouth */}
           <div className="feature-row">
-            <label>Mouth</label>
+            <label>{text.mouth}</label>
             <div className="feature-carousel">
               <button className="feature-arrow" onClick={() => setSelectedMouth((prev) => (prev - 1 + mouthTypes.length) % mouthTypes.length)}>
                 ◀
@@ -199,7 +249,7 @@ function ProfileMenu({
         value={username}
         onChange={handleUsernameChange}
         onKeyPress={handleKeyPress}
-        placeholder="Username"
+        placeholder={text.usernamePlaceholder}
         maxLength={15}
         pattern="[A-Za-z0-9]{1,15}"
         className="username-input"
@@ -211,7 +261,7 @@ function ProfileMenu({
         onClick={handleSubmit}
         disabled={username.length === 0}
       >
-        {submitLabel}
+        {submitText}
       </button>
       {onLogout && (
         <button
@@ -219,7 +269,7 @@ function ProfileMenu({
           onClick={onLogout}
           type="button"
         >
-          Disconnect
+          {text.disconnect}
         </button>
       )}
     </div>
