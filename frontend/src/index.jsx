@@ -23,6 +23,7 @@ import bopSound from './res/sounds/bop.mp3'
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const LANGUAGE_STORAGE_KEY = 'red-tetris-language'
+const LANGUAGE_CHANGE_EVENT = 'red-tetris-language-change'
 const DEFAULT_PREFERENCES = {
   theme: 'light',
   soundEnabled: true,
@@ -623,6 +624,7 @@ function Index({ authMode = 'login' }) {
       language: languageCode,
     })
     localStorage.setItem(LANGUAGE_STORAGE_KEY, languageCode)
+    window.dispatchEvent(new Event(LANGUAGE_CHANGE_EVENT))
     setLanguage(languageCode)
     setUserProfile((current) => ({
       ...(current || {}),

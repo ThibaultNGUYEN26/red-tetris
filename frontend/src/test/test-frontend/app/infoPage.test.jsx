@@ -515,6 +515,24 @@ describe('InfoPage language binding', () => {
     expect(screen.getByText('Sign in to export your account data or delete your account directly.')).toBeInTheDocument()
   })
 
+  it('uses French privacy account actions when French is selected', async () => {
+    localStorage.setItem('red-tetris-language', 'fr')
+    localStorage.setItem('red-tetris-auth-user', JSON.stringify({ username: 'Titi' }))
+    window.confirm = vi.fn(() => true)
+    global.fetch = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ ok: true }),
+    }))
+
+    render(<InfoPage type="privacy" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer mon compte' }))
+
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Supprimer le compte Red Tetris "Titi" et ses scores ? Cette action est irreversible.'
+    )
+    expect(await screen.findByRole('status')).toHaveTextContent('Compte supprime.')
+  })
+
   it('shows account deletion errors', async () => {
     localStorage.setItem('red-tetris-auth-user', JSON.stringify({ username: 'Titi' }))
     window.confirm = vi.fn(() => true)
