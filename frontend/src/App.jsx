@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
-import Index from './index.jsx';
-import Spectate from './Spectate.jsx';
-import InfoPage from './InfoPage.jsx';
-import AdminPage from './AdminPage.jsx';
-import CookieNotice from './components/CookieNotice/CookieNotice.jsx';
+import Index from './index';
+import Spectate from './Spectate';
+import InfoPage from './InfoPage';
+import AdminPage from './AdminPage';
+const StorageConsent = lazy(() => import('./components/StorageConsent/StorageConsent'));
 import { DEFAULT_LANGUAGE, getTranslation, isSupportedLanguage } from './i18n';
 
 const LANGUAGE_STORAGE_KEY = 'red-tetris-language';
@@ -64,7 +64,9 @@ function App() {
         <Link to="/terms">{footerText.terms}</Link>
         <Link to="/privacy-policy">{footerText.privacy}</Link>
       </nav>
-      <CookieNotice language={language} />
+      <Suspense fallback={null}>
+        <StorageConsent language={language} />
+      </Suspense>
     </BrowserRouter>
   );
 }

@@ -119,7 +119,7 @@ describe('Index main page', () => {
     vi.clearAllMocks()
     localStorage.clear()
     global.fetch.mockImplementation(async (url) => {
-      if (requestPath(url) === '/api/auth/me') {
+      if (requestPath(url).startsWith('/api/auth/me')) {
         return {
           ok: true,
           status: 200,
@@ -277,7 +277,7 @@ describe('Index main page', () => {
     setSavedUser('Titi')
 
     global.fetch.mockImplementation(async (url) => {
-      if (requestPath(url) === '/api/auth/me') {
+      if (requestPath(url).startsWith('/api/auth/me')) {
         return {
           ok: true,
           status: 200,
@@ -338,6 +338,21 @@ describe('Index main page', () => {
     expect(screen.getByRole('button', { name: /options/i })).toBeInTheDocument()
   })
 
+  it('keeps the saved user when browser back navigation has no auth history state', async () => {
+    mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
+    setSavedUser('Titi')
+
+    render(<Index />)
+
+    expect(screen.getByTestId('mode-menu')).toBeInTheDocument()
+
+    window.dispatchEvent(new PopStateEvent('popstate', { state: null }))
+
+    expect(screen.getByTestId('mode-menu')).toBeInTheDocument()
+    expect(screen.queryByText(/login to your account/i)).not.toBeInTheDocument()
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).not.toBeNull()
+  })
+
   it('passes and saves the selected language from the menu to player stats', async () => {
     mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
     setSavedUser('Titi')
@@ -386,7 +401,7 @@ describe('Index main page', () => {
     mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
     setSavedUser('Titi')
     global.fetch.mockImplementation(async (url) => {
-      if (requestPath(url) === '/api/auth/me') {
+      if (requestPath(url).startsWith('/api/auth/me')) {
         return {
           ok: true,
           status: 200,
@@ -449,7 +464,7 @@ describe('Index main page', () => {
     setSavedUser('Titi')
 
     global.fetch.mockImplementation(async (url) => {
-      if (requestPath(url) === '/api/auth/me') {
+      if (requestPath(url).startsWith('/api/auth/me')) {
         return {
           ok: false,
           status: 401,

@@ -92,7 +92,7 @@ describe('AuthMenu', () => {
     expect(screen.getByPlaceholderText('Mot de passe')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /langue/i }))
-    fireEvent.click(screen.getByRole('button', { name: /English/i }))
+    fireEvent.click(screen.getByRole('button', { name: /anglais/i }))
 
     expect(onLanguageChange).toHaveBeenCalledWith('en')
   })
@@ -229,10 +229,14 @@ describe('AuthMenu', () => {
         body: expect.stringContaining('"email":"newuser@example.com"'),
       }))
       expect(screen.getByText('Account created. Please log in.')).toBeInTheDocument()
-      expect(navigateMock).toHaveBeenCalledWith('/login', { replace: true })
+      expect(onAuthenticated).toHaveBeenCalledWith(expect.objectContaining({
+        username: 'NewUser',
+        email: 'newuser@example.com',
+      }))
+      expect(navigateMock).not.toHaveBeenCalledWith('/login', { replace: true })
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Register' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Register' })[0])
     expect(screen.getByPlaceholderText('Username')).toHaveValue('')
     expect(screen.getByPlaceholderText('Email')).toHaveValue('')
   })

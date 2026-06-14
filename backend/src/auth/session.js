@@ -11,8 +11,12 @@ const isTestRuntime = () =>
   process.env.VITEST === "true" ||
   Boolean(process.env.VITEST_WORKER_ID);
 
+const isDevRuntime = () => process.env.NODE_ENV === "development";
+
 const allowsTestIdentityFallback = () =>
-  isTestRuntime() && process.env.DISABLE_AUTH_TEST_FALLBACK !== "true";
+  (isTestRuntime() || isDevRuntime()) &&
+  process.env.DISABLE_AUTH_TEST_FALLBACK !== "true" &&
+  process.env.DISABLE_DEV_AUTH_FALLBACK !== "true";
 
 const getSecret = () => {
   if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
@@ -112,16 +116,18 @@ export function getCookieToken(req) {
 }
 
 function getSessionCookieOptions() {
-  const defaultSameSite = process.env.NODE_ENV === "production" ? "none" : "lax";
+  const isProduction = process.env.NODE_ENV === "production";
+  const defaultSameSite = isProduction ? "none" : "lax";
   const configuredSameSite = String(process.env.COOKIE_SAME_SITE || defaultSameSite).toLowerCase();
   const sameSite = ALLOWED_COOKIE_SAME_SITE.has(configuredSameSite)
     ? configuredSameSite
     : "lax";
+  const effectiveSameSite = !isProduction && sameSite === "none" ? "lax" : sameSite;
 
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production" || sameSite === "none",
-    sameSite,
+    secure: isProduction || effectiveSameSite === "none",
+    sameSite: effectiveSameSite,
     path: "/",
   };
 }
@@ -155,7 +161,11 @@ export function authenticateRequest(req) {
   if (user) return user;
 
   if (allowsTestIdentityFallback()) {
-    const username = req?.body?.username || req?.body?.host || req?.params?.username;
+    const username =
+      req?.body?.username ||
+      req?.body?.host ||
+      req?.params?.username ||
+      req?.query?.username;
     if (USERNAME_PATTERN.test(username || "")) {
       return { username };
     }

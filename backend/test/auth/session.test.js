@@ -43,6 +43,7 @@ describe('session auth helpers', () => {
   const originalJwtSecret = process.env.JWT_SECRET
   const originalDbPassword = process.env.DB_PASSWORD
   const originalDisableAuthTestFallback = process.env.DISABLE_AUTH_TEST_FALLBACK
+  const originalDisableDevAuthFallback = process.env.DISABLE_DEV_AUTH_FALLBACK
   const originalCookieSameSite = process.env.COOKIE_SAME_SITE
   const originalVitest = process.env.VITEST
   const originalVitestWorkerId = process.env.VITEST_WORKER_ID
@@ -58,6 +59,8 @@ describe('session auth helpers', () => {
     else process.env.DB_PASSWORD = originalDbPassword
     if (originalDisableAuthTestFallback === undefined) delete process.env.DISABLE_AUTH_TEST_FALLBACK
     else process.env.DISABLE_AUTH_TEST_FALLBACK = originalDisableAuthTestFallback
+    if (originalDisableDevAuthFallback === undefined) delete process.env.DISABLE_DEV_AUTH_FALLBACK
+    else process.env.DISABLE_DEV_AUTH_FALLBACK = originalDisableDevAuthFallback
     if (originalCookieSameSite === undefined) delete process.env.COOKIE_SAME_SITE
     else process.env.COOKIE_SAME_SITE = originalCookieSameSite
     if (originalVitest === undefined) delete process.env.VITEST
@@ -207,6 +210,20 @@ describe('session auth helpers', () => {
       sameSite: 'lax',
     }))
 
+    process.env.NODE_ENV = 'development'
+    process.env.COOKIE_SAME_SITE = 'none'
+    const devCookieRes = buildRes()
+    setSessionCookie(devCookieRes, token)
+    clearSessionCookie(devCookieRes)
+    expect(devCookieRes.cookie).toHaveBeenCalledWith(SESSION_COOKIE_NAME, token, expect.objectContaining({
+      sameSite: 'lax',
+      secure: false,
+    }))
+    expect(devCookieRes.clearCookie).toHaveBeenCalledWith(SESSION_COOKIE_NAME, expect.objectContaining({
+      sameSite: 'lax',
+      secure: false,
+    }))
+
     process.env.NODE_ENV = 'test'
     const fallbackReq = { headers: {}, body: { username: 'FallbackUser' } }
     const fallbackNext = vi.fn()
@@ -230,6 +247,29 @@ describe('session auth helpers', () => {
 
     expect(authenticateRequest({ body: { username: 'WorkerUser' } })).toEqual({
       username: 'WorkerUser',
+    })
+  })
+
+  it('allows development identity fallback unless explicitly disabled', () => {
+    process.env.NODE_ENV = 'development'
+    delete process.env.VITEST
+    delete process.env.VITEST_WORKER_ID
+    delete process.env.DISABLE_AUTH_TEST_FALLBACK
+    delete process.env.DISABLE_DEV_AUTH_FALLBACK
+
+    expect(authenticateRequest({ body: { username: 'DevUser' } })).toEqual({
+      username: 'DevUser',
+    })
+    expect(resolveSocketUser({ data: {}, handshake: { auth: {} } }, { username: 'DevUser' })).toEqual({
+      ok: true,
+      username: 'DevUser',
+    })
+
+    process.env.DISABLE_DEV_AUTH_FALLBACK = 'true'
+    expect(authenticateRequest({ body: { username: 'DevUser' } })).toBeNull()
+    expect(resolveSocketUser({ data: {}, handshake: { auth: {} } }, { username: 'DevUser' })).toEqual({
+      ok: false,
+      error: 'Authentication required',
     })
   })
 

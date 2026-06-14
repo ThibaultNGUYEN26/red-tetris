@@ -126,14 +126,14 @@ describe('Options Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /langue/i }))
 
     expect(screen.getByLabelText(/options de langue/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'French' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Spanish' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Italian' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Anglais' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Français' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Espagnol' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Italien' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'German' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'French' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Français' })).toHaveAttribute('aria-pressed', 'true')
 
-    fireEvent.click(screen.getByRole('button', { name: 'French' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Français' }))
     expect(onLanguageChange).toHaveBeenCalledWith('fr')
   })
 

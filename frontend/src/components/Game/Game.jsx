@@ -16,9 +16,13 @@ import loserSound from '../../res/sounds/loser.mp3'
 import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
 const DEFAULT_BOARD = { width: 10, height: 20 }
-const SOFT_DROP_MS = 60
 const DAS_MS = 220
 const ARR_MS = 60
+const SOFT_DROP_MS = 60
+const SERVER_TICK_MS = 33
+const BASE_DROP_MS = 500
+const DROP_LEVEL_STEP_MS = 40
+const MIN_DAS_MS = 70
 const COUNTDOWN_STEP_MS = 800
 const COUNTDOWN_STEPS = ['3', '2', '1', 'Go']
 const SHARED_BOARD_MODES = ['cooperative', 'cooperative_roles']
@@ -67,6 +71,25 @@ const SHAPES = {
 const getBoardSize = (mode) =>
   mode === 'giant' ? { width: 15, height: 30 } : DEFAULT_BOARD
 
+const normalizeLevel = (level) => {
+  const parsed = Number(level)
+  return Number.isFinite(parsed) && parsed > 1 ? parsed : 1
+}
+
+const getDropIntervalMs = (level) =>
+  Math.max(SERVER_TICK_MS, BASE_DROP_MS - (normalizeLevel(level) - 1) * DROP_LEVEL_STEP_MS)
+
+const getSpeedScale = (level) => getDropIntervalMs(level) / BASE_DROP_MS
+
+const getHorizontalDasMs = (level) =>
+  Math.max(MIN_DAS_MS, Math.round(DAS_MS * getSpeedScale(level)))
+
+const getHorizontalArrMs = (level) =>
+  Math.max(SERVER_TICK_MS, Math.round(ARR_MS * getSpeedScale(level)))
+
+const getSoftDropMs = (level) =>
+  Math.max(SERVER_TICK_MS, Math.round(SOFT_DROP_MS * getSpeedScale(level)))
+
 const makeEmptyBoard = (size = DEFAULT_BOARD) =>
   Array.from({ length: size.height }, () =>
     Array.from({ length: size.width }, () => 'empty')
@@ -111,6 +134,7 @@ function Game({
   const dasTimerRef = useRef(null)
   const arrTimerRef = useRef(null)
   const heldDirectionRef = useRef(null)
+  const levelRef = useRef(1)
   const joinedRef = useRef(false)
   const exitingRef = useRef(false)
   const musicRef = useRef(null)
@@ -294,6 +318,7 @@ function Game({
     heldDirectionRef.current = direction
 
     const action = direction < 0 ? 'left' : 'right'
+    const level = levelRef.current
     emitMove(action)
 
     dasTimerRef.current = setTimeout(() => {
@@ -303,8 +328,8 @@ function Game({
         /* v8 ignore next -- race guard for stale auto-repeat ticks after direction changes. @preserve */
         if (heldDirectionRef.current !== direction) return
         emitMove(action)
-      }, ARR_MS)
-    }, DAS_MS)
+      }, getHorizontalArrMs(level))
+    }, getHorizontalDasMs(level))
   }
 
   const startSoftDrop = () => {
@@ -313,7 +338,7 @@ function Game({
       /* v8 ignore next -- interval guard for pause transitions between render cleanup cycles. @preserve */
       if (isPaused) return
       emitMove('drop')
-    }, SOFT_DROP_MS)
+    }, getSoftDropMs(levelRef.current))
   }
 
   const handleLeaveGame = () => {
@@ -547,6 +572,7 @@ function Game({
   }, [roomId, username, isMultiplayer])
 
   useEffect(() => {
+    levelRef.current = stats.level
     /* v8 ignore next -- refs are created on mount before stats effects can play sounds. @preserve */
     if (stats.level > lastLevelRef.current) {
       triggerBoardFlash('level')

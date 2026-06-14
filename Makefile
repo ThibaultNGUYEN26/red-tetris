@@ -4,10 +4,10 @@ export
 DOCKER_COMPOSE ?= docker-compose
 
 frontend:
-	cd frontend && npm run dev
+	npm run dev --prefix frontend
 
-backend:
-	cd backend && npm run dev
+backend: create-db
+	npm run dev --prefix backend
 
 certs:
 	bash ./scripts/generate-ssl-cert.sh
@@ -27,17 +27,12 @@ logs-frontend:
 	$(DOCKER_COMPOSE) logs -f frontend
 
 create-db:
-	$(DOCKER_COMPOSE) --env-file .env up -d postgres
+	$(DOCKER_COMPOSE) --env-file .env up -d --wait postgres
 
 wait-db:
-	@echo "Waiting for Postgres to be ready..."
-	@until $(DOCKER_COMPOSE) exec -T postgres \
-		pg_isready -h localhost -p 5432 -U $(DB_USER) -d $(DB_NAME) > /dev/null 2>&1; do \
-		sleep 1; \
-	done
-	@echo "Postgres is ready !"
+	$(DOCKER_COMPOSE) up -d --wait postgres
 
-db:
+db: create-db wait-db
 	$(DOCKER_COMPOSE) exec postgres \
 		psql -h localhost -U $(DB_USER) -d $(DB_NAME)
 

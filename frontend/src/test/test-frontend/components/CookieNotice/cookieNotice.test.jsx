@@ -3,9 +3,9 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import '@testing-library/jest-dom/vitest'
 
-import CookieNotice, {
+import StorageConsent, {
   COOKIE_NOTICE_STORAGE_KEY,
-} from '../../../../components/CookieNotice/CookieNotice.jsx'
+} from '../../../../components/StorageConsent/StorageConsent.jsx'
 
 describe('CookieNotice', () => {
   beforeEach(() => {
@@ -23,7 +23,7 @@ describe('CookieNotice', () => {
 
     render(
       <MemoryRouter>
-        <CookieNotice />
+        <StorageConsent />
       </MemoryRouter>
     )
 
@@ -51,7 +51,7 @@ describe('CookieNotice', () => {
 
     render(
       <MemoryRouter>
-        <CookieNotice />
+        <StorageConsent />
       </MemoryRouter>
     )
 
@@ -63,7 +63,7 @@ describe('CookieNotice', () => {
 
     render(
       <MemoryRouter>
-        <CookieNotice />
+        <StorageConsent />
       </MemoryRouter>
     )
 
@@ -78,7 +78,7 @@ describe('CookieNotice', () => {
 
     render(
       <MemoryRouter>
-        <CookieNotice />
+        <StorageConsent />
       </MemoryRouter>
     )
 
