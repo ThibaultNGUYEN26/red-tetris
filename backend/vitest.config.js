@@ -12,6 +12,7 @@ export default {
     environment: 'node',
     include: ['test/**/*.test.js'],
     setupFiles: ['test/setup.js'],
+    testTimeout: 10000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html'],

@@ -6,13 +6,13 @@
   justify-content: center;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem;
+  padding: 0.5rem 0.75rem 3.75rem;
   box-sizing: border-box;
 }
 
 .game-card {
-  width: min(1240px, 96vw);
-  max-height: calc(100vh - 5rem);
+  width: min(1280px, 98vw);
+  max-height: calc(100vh - 4.25rem);
   overflow: hidden;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 100%);
   border: 3px solid rgba(255, 255, 255, 0.4);
@@ -695,7 +695,7 @@
 
 @media (max-width: 1280px), (max-height: 820px) {
   .game-card {
-    max-height: calc(100vh - 4.75rem);
+    max-height: calc(100vh - 4.25rem);
   }
 
   .game-header {
@@ -728,7 +728,7 @@
 
 @media (max-height: 740px) {
   .game-card {
-    max-height: calc(100vh - 4.5rem);
+    max-height: calc(100vh - 4.25rem);
   }
 
   .side-panel {
@@ -763,7 +763,7 @@
 
 @media (max-width: 720px) {
   .game-card {
-    max-height: calc(100vh - 4.75rem);
+    max-height: calc(100vh - 4.25rem);
   }
 
   .game-header {

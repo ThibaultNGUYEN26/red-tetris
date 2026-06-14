@@ -797,7 +797,7 @@ function Game({
             style={{
               gridTemplateColumns: `repeat(${boardSize.width}, var(--cell-size))`,
               gridTemplateRows: `repeat(${boardSize.height}, var(--cell-size))`,
-              ['--cell-size']: `clamp(14px, min(calc((100vh - 300px) / ${boardSize.height}), calc((100vw - clamp(150px, 28vw, 420px)) / ${boardSize.width})), 48px)`,
+              ['--cell-size']: `clamp(14px, min(calc((100vh - 285px) / ${boardSize.height}), calc((100vw - clamp(150px, 28vw, 420px)) / ${boardSize.width})), 48px)`,
             }}
           >
             {board.map((row, rowIndex) =>
