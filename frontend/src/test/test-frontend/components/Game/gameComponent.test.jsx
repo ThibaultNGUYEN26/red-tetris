@@ -239,6 +239,40 @@ describe('Game Component', () => {
     expect(screen.queryByLabelText(/game countdown/i)).not.toBeInTheDocument()
   })
 
+  it('continues a partial countdown for players who join after the start event', async () => {
+    vi.useFakeTimers()
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1', remainingCountdownMs: 1600 })
+    })
+
+    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('1')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(900)
+    })
+
+    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('Go')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700)
+    })
+
+    expect(screen.queryByLabelText(/game countdown/i)).not.toBeInTheDocument()
+  })
+
   it('finishes a countdown whose step interval was already cleared', async () => {
     vi.useFakeTimers()
     const setIntervalSpy = vi.spyOn(globalThis, 'setInterval').mockReturnValue(0)
@@ -259,7 +293,7 @@ describe('Game Component', () => {
       getSocketHandler('gameStarted')?.({ roomId: '1', countdownMs: 1 })
     })
 
-    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('3')
+    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('Go')
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1)

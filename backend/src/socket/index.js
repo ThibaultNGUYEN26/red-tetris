@@ -31,6 +31,22 @@ const getGameStartCountdownMs = () => {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const clearGameStartCountdown = (game) => {
+  if (!game) return;
+  if (game.startCountdownTimeout) {
+    clearTimeout(game.startCountdownTimeout);
+    game.startCountdownTimeout = null;
+  }
+  game.startCountdownEndsAt = null;
+};
+
+const getRemainingGameStartCountdownMs = (game) => {
+  if (!game?.isPaused) return 0;
+  const endsAt = Number(game.startCountdownEndsAt);
+  if (!Number.isFinite(endsAt)) return 0;
+  return Math.max(0, endsAt - Date.now());
+};
+
 const emitFinalGameState = (io, roomId, game) => {
   const emit = (state) => io.to(String(roomId)).emit("gameState", state);
 
@@ -578,7 +594,15 @@ export default function setupSockets(io) {
           socket.data.roomId = String(roomId);
           socket.data.isSpectator = false;
           player.socketId = socket.id;
-          socket.emit("gameStarted", { roomId: String(roomId), reconnected: true });
+          {
+            const remainingCountdownMs = getRemainingGameStartCountdownMs(game);
+            socket.emit(
+              "gameStarted",
+              remainingCountdownMs > 0
+                ? { roomId: String(roomId), reconnected: true, remainingCountdownMs }
+                : { roomId: String(roomId), reconnected: true }
+            );
+          }
           socket.emit("gameState", game.serialize());
           if (ack) ack({ ok: true, reconnected: true });
           return;
@@ -742,9 +766,11 @@ export default function setupSockets(io) {
         const game = getGame(String(roomId));
         if (!game) return; // or recreate the game instance if needed
 
-        socket.emit("gameStarted", {
-          roomId
-        });
+        const remainingCountdownMs = getRemainingGameStartCountdownMs(game);
+        socket.emit(
+          "gameStarted",
+          remainingCountdownMs > 0 ? { roomId, remainingCountdownMs } : { roomId }
+        );
         socket.emit("gameState", game.serialize());
 
       } catch (err) {
@@ -1063,6 +1089,7 @@ export default function setupSockets(io) {
         });
 
         const countdownMs = getGameStartCountdownMs();
+        clearGameStartCountdown(game);
 
         // Start game and server tick
         game.start({ paused: countdownMs > 0 });
@@ -1090,9 +1117,11 @@ export default function setupSockets(io) {
         );
 
         if (countdownMs > 0) {
-          setTimeout(() => {
+          game.startCountdownEndsAt = Date.now() + countdownMs;
+          game.startCountdownTimeout = setTimeout(() => {
             const currentGame = getGame(String(roomId));
-            if (!currentGame || currentGame.isOver) return;
+            if (!currentGame || currentGame !== game || currentGame.isOver) return;
+            clearGameStartCountdown(currentGame);
             currentGame.resume();
             currentGame.emitState({
               force: true,

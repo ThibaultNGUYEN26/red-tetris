@@ -90,6 +90,20 @@ const getHorizontalArrMs = (level) =>
 const getSoftDropMs = (level) =>
   Math.max(SERVER_TICK_MS, Math.round(SOFT_DROP_MS * getSpeedScale(level)))
 
+const getCountdownDurationMs = (payload = {}) => {
+  const countdownMs = Number(payload?.countdownMs)
+  if (Number.isFinite(countdownMs) && countdownMs > 0) {
+    return countdownMs
+  }
+
+  const remainingCountdownMs = Number(payload?.remainingCountdownMs)
+  if (Number.isFinite(remainingCountdownMs) && remainingCountdownMs > 0) {
+    return remainingCountdownMs
+  }
+
+  return 0
+}
+
 const makeEmptyBoard = (size = DEFAULT_BOARD) =>
   Array.from({ length: size.height }, () =>
     Array.from({ length: size.width }, () => 'empty')
@@ -177,15 +191,21 @@ function Game({
 
     stopSoftDrop()
     stopHorizontalAutoMove()
-    setCountdownStep(COUNTDOWN_STEPS[0])
+    const endAt = Date.now() + durationMs
 
-    let index = 0
-    countdownStepTimerRef.current = setInterval(() => {
-      index += 1
-      if (index < COUNTDOWN_STEPS.length) {
-        setCountdownStep(COUNTDOWN_STEPS[index])
-      }
-    }, COUNTDOWN_STEP_MS)
+    const syncCountdownStep = () => {
+      const remainingMs = Math.max(0, endAt - Date.now())
+      const stepIndex = Math.min(
+        COUNTDOWN_STEPS.length - 1,
+        Math.max(0, COUNTDOWN_STEPS.length - Math.ceil(remainingMs / COUNTDOWN_STEP_MS))
+      )
+      const nextStep = COUNTDOWN_STEPS[stepIndex]
+      setCountdownStep((current) => (current === nextStep ? current : nextStep))
+    }
+
+    syncCountdownStep()
+
+    countdownStepTimerRef.current = setInterval(syncCountdownStep, 50)
 
     countdownTimerRef.current = setTimeout(() => {
       if (countdownStepTimerRef.current) {
@@ -417,6 +437,7 @@ function Game({
 
     const handleGameStarted = (payload = {}) => {
       if (exitingRef.current) return
+      if (payload?.roomId && String(payload.roomId) !== String(roomId)) return
       const mode = roomModeRef.current
       const size = getBoardSize(mode)
       setGameMode(mode)
@@ -448,7 +469,7 @@ function Game({
       }
       startMusic()
       startCountdown({
-        durationMs: Number.isFinite(payload?.countdownMs) ? payload.countdownMs : 0,
+        durationMs: getCountdownDurationMs(payload),
       })
     }
 
@@ -804,9 +825,11 @@ function Game({
           <div className="countdown-overlay" aria-live="assertive" aria-label={text.countdownAria}>
             <div
               key={countdownStep}
-              className={`countdown-burst${countdownStep === 'Go' ? ' countdown-go' : ''}`}
+              className={`countdown-panel${countdownStep === 'Go' ? ' countdown-panel-go' : ''}`}
             >
-              {countdownStep === 'Go' ? text.countdownGo : countdownStep}
+              <span className="countdown-step">
+                {countdownStep === 'Go' ? text.countdownGo : countdownStep}
+              </span>
             </div>
           </div>
         )}
@@ -890,7 +913,7 @@ function Game({
             style={{
               gridTemplateColumns: `repeat(${boardSize.width}, var(--cell-size))`,
               gridTemplateRows: `repeat(${boardSize.height}, var(--cell-size))`,
-              ['--cell-size']: `clamp(14px, min(calc((100vh - 285px) / ${boardSize.height}), calc((100vw - clamp(150px, 28vw, 420px)) / ${boardSize.width})), 48px)`,
+              ['--cell-size']: `clamp(18px, min(calc((100vh - 235px) / ${boardSize.height}), calc((100vw - clamp(240px, 22vw, 320px)) / ${boardSize.width})), 48px)`,
             }}
           >
             {board.map((row, rowIndex) =>
