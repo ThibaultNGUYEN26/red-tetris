@@ -19,6 +19,17 @@ import { isPerfLogEnabled, perfLogDuration, perfStart } from "./perf.js";
 
 const PORT = process.env.PORT || 3000;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:8080";
+const ALLOWED_FRONTEND_ORIGINS = FRONTEND_URL
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const corsOrigin = (origin, callback) => {
+  if (!origin || ALLOWED_FRONTEND_ORIGINS.includes(origin)) {
+    callback(null, true);
+    return;
+  }
+  callback(new Error("Not allowed by CORS"));
+};
 assertSessionSecret();
 
 // App and HTTP Server
@@ -28,7 +39,7 @@ app.set("etag", false);
 
 app.use(
   cors({
-    origin: FRONTEND_URL,
+    origin: corsOrigin,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Admin-Username", "X-Admin-Password"],
     credentials: true,
@@ -36,7 +47,7 @@ app.use(
   })
 );
 app.options(/.*/, cors({
-  origin: FRONTEND_URL,
+  origin: corsOrigin,
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Admin-Username", "X-Admin-Password"],
   credentials: true,
@@ -78,7 +89,7 @@ app.get("/health", (req, res) => {
 
 const io = new Server(httpServer, {
   cors: {
-    origin: FRONTEND_URL,
+    origin: ALLOWED_FRONTEND_ORIGINS,
     credentials: true,
   },
   perMessageDeflate: false,

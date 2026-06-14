@@ -690,6 +690,65 @@ describe('Game Component', () => {
     fireEvent.keyUp(window, { key: 'ArrowDown' })
   })
 
+  it('scales held movement repeat speed with the current level', async () => {
+    vi.useFakeTimers()
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+          score: 0,
+          lines: 90,
+          level: 10,
+        }],
+      })
+    })
+
+    socket.emit.mockClear()
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(120)
+    })
+
+    expect(
+      socket.emit.mock.calls.filter(
+        ([event, payload]) =>
+          event === 'movePiece' && payload?.roomId === '1' && payload?.action === 'left'
+      )
+    ).toHaveLength(2)
+
+    fireEvent.keyUp(window, { key: 'ArrowLeft' })
+    socket.emit.mockClear()
+    fireEvent.keyDown(window, { key: 'ArrowDown' })
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(40)
+    })
+
+    expect(
+      socket.emit.mock.calls.filter(
+        ([event, payload]) =>
+          event === 'movePiece' && payload?.roomId === '1' && payload?.action === 'drop'
+      )
+    ).toHaveLength(2)
+
+    fireEvent.keyUp(window, { key: 'ArrowDown' })
+  })
+
   it('renders authoritative playerState updates from the backend fast path', async () => {
     const updatedBoard = makeBoard()
     updatedBoard[0][4] = 't'

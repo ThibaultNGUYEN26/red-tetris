@@ -146,13 +146,17 @@ describe('server bootstrap', () => {
 
     expect(corsMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        origin: frontendUrl,
+        origin: expect.any(Function),
         methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Username', 'X-Admin-Password'],
         credentials: true,
         optionsSuccessStatus: 204,
       })
     )
+    const corsOrigin = corsMock.mock.calls[0][0].origin
+    const corsCallback = vi.fn()
+    corsOrigin(frontendUrl.split(',')[0], corsCallback)
+    expect(corsCallback).toHaveBeenCalledWith(null, true)
     expect(appOptions).toHaveBeenCalledWith(/.*/, 'cors-middleware')
     expect(appUse).toHaveBeenCalledWith('cors-middleware')
     expect(appUse).toHaveBeenCalledWith('json-middleware')
@@ -275,14 +279,18 @@ describe('server bootstrap', () => {
 
     expect(corsMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        origin: 'http://localhost:8080',
+        origin: expect.any(Function),
       })
     )
+    const corsOrigin = corsMock.mock.calls[0][0].origin
+    const corsCallback = vi.fn()
+    corsOrigin('http://localhost:8080', corsCallback)
+    expect(corsCallback).toHaveBeenCalledWith(null, true)
     expect(serverCtorMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         cors: {
-          origin: 'http://localhost:8080',
+          origin: ['http://localhost:8080'],
           credentials: true,
         },
         perMessageDeflate: false,

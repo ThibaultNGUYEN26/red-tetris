@@ -27,6 +27,15 @@ const DEFAULT_PREFERENCES = {
   language: "en",
 };
 
+const shouldExposeDevSessionToken = () =>
+  process.env.NODE_ENV === "development" ||
+  process.env.NODE_ENV === "test" ||
+  process.env.VITEST === "true" ||
+  Boolean(process.env.VITEST_WORKER_ID);
+
+const withDevSessionToken = (payload, token) =>
+  shouldExposeDevSessionToken() ? { ...payload, authToken: token } : payload;
+
 const normalizePreferences = (preferences) => ({
   ...DEFAULT_PREFERENCES,
   ...(preferences && typeof preferences === "object" ? preferences : {}),
@@ -125,10 +134,14 @@ router.post("/register", async (req, res) => {
       [username, normalizedEmail, JSON.stringify(avatar), passwordHash]
     );
 
-    return res.status(201).json({
-      ...result.rows[0],
-      preferences: normalizePreferences(result.rows[0].preferences),
-    });
+    const user = result.rows[0];
+    const token = createSessionToken(user);
+    setSessionCookie(res, token);
+
+    return res.status(201).json(withDevSessionToken({
+      ...user,
+      preferences: normalizePreferences(user.preferences),
+    }, token));
   } catch (err) {
     if (err?.code === "23505") {
       if (String(err?.constraint).includes("email")) {
@@ -187,13 +200,13 @@ router.post("/login", async (req, res) => {
     const token = createSessionToken(user);
     setSessionCookie(res, token);
 
-    return res.status(200).json({
+    return res.status(200).json(withDevSessionToken({
       id: user.id,
       username: user.username,
       email: user.email,
       avatar: user.avatar,
       preferences: normalizePreferences(user.preferences),
-    });
+    }, token));
   } catch (err) {
     console.error("Login failed:", err);
     return res.status(500).json({ error: "Server error" });
@@ -218,10 +231,16 @@ router.get("/me", async (req, res) => {
       return rejectUnauthenticated(res);
     }
 
-    return res.status(200).json({
-      ...result.rows[0],
-      preferences: normalizePreferences(result.rows[0].preferences),
-    });
+    const user = result.rows[0];
+    const token = shouldExposeDevSessionToken() ? createSessionToken(user) : "";
+    if (token) {
+      setSessionCookie(res, token);
+    }
+
+    return res.status(200).json(withDevSessionToken({
+      ...user,
+      preferences: normalizePreferences(user.preferences),
+    }, token));
   } catch (err) {
     console.error("Fetch current session failed:", err);
     return res.status(500).json({ error: "Server error" });
@@ -280,13 +299,13 @@ router.post("/restore", async (req, res) => {
     const token = createSessionToken(restoredUser);
     setSessionCookie(res, token);
 
-    return res.status(200).json({
+    return res.status(200).json(withDevSessionToken({
       id: restoredUser.id,
       username: restoredUser.username,
       email: restoredUser.email,
       avatar: restoredUser.avatar,
       preferences: normalizePreferences(restoredUser.preferences),
-    });
+    }, token));
   } catch (err) {
     console.error("Restore account failed:", err);
     return res.status(500).json({ error: "Server error" });

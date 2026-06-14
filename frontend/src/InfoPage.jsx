@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
 import { apiFetch } from './api'
+import { clearStoredAuthToken } from './authToken'
 import { DEFAULT_LANGUAGE, getTranslation, isSupportedLanguage } from './i18n'
 
 const THEME_STORAGE_KEY = 'red-tetris-theme'
@@ -381,6 +382,7 @@ function InfoPage({ type }) {
       }
 
       localStorage.removeItem(AUTH_STORAGE_KEY)
+      clearStoredAuthToken()
       setSavedAuthUser({ username: '', email: '' })
       setPrivacyStatus({ type: 'success', message: infoText.deleteSuccess })
     } catch (err) {

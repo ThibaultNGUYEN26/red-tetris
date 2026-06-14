@@ -1,10 +1,12 @@
 import { io } from 'socket.io-client';
 import { API_BASE_URL } from './api';
+import { getStoredAuthToken } from './authToken';
 
 export const socket = io(API_BASE_URL || window.location.origin, {
   path: '/socket.io/',
   transports: ['websocket'],
   withCredentials: true,
+  auth: getStoredAuthToken() ? { token: getStoredAuthToken() } : {},
 });
 
 export const closeSocket = () => {

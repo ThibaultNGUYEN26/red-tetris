@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { apiFetch } from '../../api'
-import { DEFAULT_LANGUAGE, LANGUAGES, getTranslation } from '../../i18n'
+import { setStoredAuthToken } from '../../authToken'
+import { DEFAULT_LANGUAGE, LANGUAGES, getLanguageName, getTranslation } from '../../i18n'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const PASSWORD_MIN_LENGTH = 8
@@ -272,13 +273,23 @@ function AuthMenu({
 
       if (mode === 'register') {
         setSuccessMessage(text.accountCreated)
+        setStoredAuthToken(data?.authToken)
         setUsername('')
         setEmail('')
         setPassword('')
         setConfirmPassword('')
         resetPasswordToggles()
-        setMode('login')
-        navigate('/login', { replace: true })
+        await onAuthenticated({
+          authToken: data.authToken,
+          username: data.username || username.trim(),
+          email: data.email || email.trim().toLowerCase(),
+          avatar: data.avatar || {
+            skinColor: currentAvatar.skinColor,
+            eyeType: currentAvatar.eyeType,
+            mouthType: currentAvatar.mouthType,
+          },
+          preferences: data.preferences || {},
+        })
         return
       }
 
@@ -292,7 +303,9 @@ function AuthMenu({
         return
       }
 
+      setStoredAuthToken(data?.authToken)
       await onAuthenticated({
+        authToken: data.authToken,
         username: data.username || username.trim(),
         email: data.email || email.trim().toLowerCase(),
         avatar: data.avatar || {
@@ -331,7 +344,9 @@ function AuthMenu({
       }
 
       setCanRestoreAccount(false)
+      setStoredAuthToken(data?.authToken)
       await onAuthenticated({
+        authToken: data.authToken,
         username: data.username || username.trim(),
         email: data.email || email.trim().toLowerCase(),
         avatar: data.avatar || {
@@ -400,7 +415,7 @@ function AuthMenu({
             aria-label={text.languageLabel}
             onClick={(event) => event.stopPropagation()}
           >
-            {LANGUAGES.map(({ code, label }) => (
+            {LANGUAGES.map(({ code }) => (
               <button
                 key={code}
                 type="button"
@@ -411,7 +426,7 @@ function AuthMenu({
                   setShowLanguages(false)
                 }}
               >
-                {label}
+                {getLanguageName(code, language)}
               </button>
             ))}
           </div>

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import './Options.css'
-import { DEFAULT_LANGUAGE, LANGUAGES, getTranslation } from '../../../i18n'
+import { DEFAULT_LANGUAGE, LANGUAGES, getLanguageName, getTranslation } from '../../../i18n'
 
 function Options({
   onBack,
@@ -83,7 +83,7 @@ function Options({
             aria-label={text.languageOptions}
             onClick={(event) => event.stopPropagation()}
           >
-            {LANGUAGES.map(({ code, label }) => (
+            {LANGUAGES.map(({ code }) => (
               <button
                 className={`language-option${selectedLanguage === code ? ' selected' : ''}`}
                 key={code}
@@ -94,7 +94,7 @@ function Options({
                   setShowLanguages(false)
                 }}
               >
-                {label}
+                {getLanguageName(code, selectedLanguage)}
               </button>
             ))}
           </div>

@@ -28,7 +28,7 @@ vi.mock('../../../AdminPage.jsx', () => ({
   default: () => <div data-testid="admin-page" />,
 }))
 
-vi.mock('../../../components/CookieNotice/CookieNotice.jsx', () => ({
+vi.mock('../../../components/StorageConsent/StorageConsent.jsx', () => ({
   default: () => null,
 }))
 

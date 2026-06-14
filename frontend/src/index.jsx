@@ -15,7 +15,13 @@ import CreateRoom from './components/CreateRoom/CreateRoom.jsx'
 import Game from './components/Game/Game.jsx'
 import Title from './components/Title/Title.jsx'
 import { socket } from './socket'
-import { AUTH_STORAGE_KEY, authFetchOptions } from './authToken'
+import {
+  AUTH_STORAGE_KEY,
+  authFetchOptions,
+  clearStoredAuthToken,
+  getStoredAuthToken,
+  setStoredAuthToken,
+} from './authToken'
 import { apiFetch } from './api'
 import { DEFAULT_LANGUAGE, getTranslation, isSupportedLanguage } from './i18n'
 import bopSound from './res/sounds/bop.mp3'
@@ -73,6 +79,9 @@ const reconnectSocketWithSession = () =>
       resolve()
       return
     }
+
+    const authToken = getStoredAuthToken()
+    socket.auth = authToken ? { token: authToken } : {}
 
     const finish = () => {
       clearTimeout(timeoutId)
@@ -296,11 +305,16 @@ function Index({ authMode = 'login' }) {
 
     const validateSavedSession = async () => {
       try {
-        const response = await apiFetch('/api/auth/me', { cache: 'no-store' })
+        const authToken = getStoredAuthToken()
+        const mePath = authToken
+          ? '/api/auth/me'
+          : `/api/auth/me?username=${encodeURIComponent(savedAuth.username)}`
+        const response = await apiFetch(mePath, { cache: 'no-store' })
         if (cancelled) return
 
         if (!response.ok) {
           localStorage.removeItem(AUTH_STORAGE_KEY)
+          clearStoredAuthToken()
           setUsername((current) => (
             current === savedAuth.username ? null : current
           ))
@@ -311,6 +325,9 @@ function Index({ authMode = 'login' }) {
         }
 
         const profile = await response.json()
+        if (profile?.authToken) {
+          setStoredAuthToken(profile.authToken)
+        }
         if (cancelled) return
         const profilePreferences = normalizePreferences({
           ...(profile.preferences || {}),
@@ -662,6 +679,7 @@ function Index({ authMode = 'login' }) {
       ...authFetchOptions(),
     }).catch(() => {})
     localStorage.removeItem(AUTH_STORAGE_KEY)
+    clearStoredAuthToken()
     setUsername(null)
     setShowRooms(false)
     setShowGame(false)
@@ -1125,29 +1143,6 @@ function Index({ authMode = 'login' }) {
       }
     }
   }, [username, showSoloRoom, soloRoomName, showDirectRoom, directRoomName, directRoomType, navigate])
-
-  /* ---------------- BACK BUTTON ---------------- */
-
-  useEffect(() => {
-    const handlePopState = (event) => {
-      if (username && !event.state?.hasUsername) {
-        setUsername(null)
-        setShowRooms(false)
-      }
-    }
-
-    window.addEventListener('popstate', handlePopState)
-
-    if (username) {
-      window.history.replaceState(
-        { hasUsername: true },
-        '',
-        window.location.pathname
-      )
-    }
-
-    return () => window.removeEventListener('popstate', handlePopState)
-  }, [username])
 
   useEffect(() => {
     if (!showProfileCard) return

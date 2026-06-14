@@ -22,7 +22,7 @@ const hasActiveCookieNoticeAcknowledgement = () => {
   }
 }
 
-function CookieNotice({ language = DEFAULT_LANGUAGE }) {
+function StorageConsent({ language = DEFAULT_LANGUAGE }) {
   const text = getTranslation(language).cookieNotice
   const [isVisible, setIsVisible] = useState(
     () => !hasActiveCookieNoticeAcknowledgement()
@@ -51,4 +51,4 @@ function CookieNotice({ language = DEFAULT_LANGUAGE }) {
   )
 }
 
-export default CookieNotice
+export default StorageConsent
