@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import Options from '../../../../components/ModeMenuSelector/Options.jsx/Options.jsx'
 
@@ -123,15 +123,16 @@ describe('Options Component', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /langue/i }))
 
-    expect(screen.getByLabelText(/options de langue/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Anglais' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Fran/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Espagnol' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Italien' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'German' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Fran/i })).toHaveAttribute('aria-pressed', 'true')
+    const languagePanel = screen.getByLabelText(/options de langue/i)
+    expect(languagePanel).toBeInTheDocument()
+    expect(within(languagePanel).getByRole('button', { name: 'Anglais' })).toBeInTheDocument()
+    expect(within(languagePanel).getByRole('button', { name: /Fran/i })).toBeInTheDocument()
+    expect(within(languagePanel).getByRole('button', { name: 'Espagnol' })).toBeInTheDocument()
+    expect(within(languagePanel).getByRole('button', { name: 'Italien' })).toBeInTheDocument()
+    expect(within(languagePanel).queryByRole('button', { name: 'German' })).not.toBeInTheDocument()
+    expect(within(languagePanel).getByRole('button', { name: /Fran/i })).toHaveAttribute('aria-pressed', 'true')
 
-    fireEvent.click(screen.getByRole('button', { name: /Fran/i }))
+    fireEvent.click(within(languagePanel).getByRole('button', { name: /Fran/i }))
     expect(onLanguageChange).toHaveBeenCalledWith('fr')
   })
 

@@ -1,4 +1,5 @@
 import './Game.css'
+import '../ModeMenuSelector/Options.jsx/Options.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { unstable_batchedUpdates } from 'react-dom'
 import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
@@ -14,7 +15,7 @@ import clearSound from '../../res/sounds/clear.mp3'
 import winnerSound from '../../res/sounds/winner.mp3'
 import loserSound from '../../res/sounds/loser.mp3'
 import boardEasterEggVideo from '../../res/videos/tetrisarrete.mp4'
-import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
+import { DEFAULT_LANGUAGE, LANGUAGES, getLanguageName, getTranslation } from '../../i18n'
 
 const DEFAULT_BOARD = { width: 10, height: 20 }
 const DAS_MS = 220
@@ -142,6 +143,7 @@ function Game({
   musicEnabled = soundEnabled,
   onMusicChange,
   language = DEFAULT_LANGUAGE,
+  onLanguageChange,
 }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
   const text = getTranslation(language).game
@@ -150,6 +152,8 @@ function Game({
   const soundEffectsOffLabel = text.soundEffectsOff || text.soundOff || 'Sound effects: disabled'
   const musicOnLabel = text.musicOn || 'Music: enabled'
   const musicOffLabel = text.musicOff || 'Music: disabled'
+  const enabledLabel = text.enabled || 'Enabled'
+  const disabledLabel = text.disabled || 'Disabled'
 
   const [board, setBoard] = useState(() => makeEmptyBoard(DEFAULT_BOARD))
   const [boardSize, setBoardSize] = useState(DEFAULT_BOARD)
@@ -170,6 +174,7 @@ function Game({
   const [boardFlash, setBoardFlash] = useState(null)
   const [countdownStep, setCountdownStep] = useState(null)
   const [isBoardVideoActive, setIsBoardVideoActive] = useState(false)
+  const [showPauseLanguages, setShowPauseLanguages] = useState(false)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
@@ -861,6 +866,61 @@ function Game({
           : text.assigningRole
       : null
 
+  const gameMenuRows = [
+    {
+      id: 'resume',
+      label: text.resume,
+      value: isMultiplayer ? 'Back' : 'Play',
+      valueState: 'is-on',
+      onClick: () => {
+        if (isMultiplayer) {
+          setShowMenu(false)
+          return
+        }
+        startCountdown({
+          onDone: () => {
+            setIsPaused(false)
+          },
+        })
+      },
+    },
+    {
+      id: 'sound',
+      label: soundEnabled ? soundEffectsOnLabel : soundEffectsOffLabel,
+      value: soundEnabled ? 'On' : 'Off',
+      valueState: soundEnabled ? 'is-on' : 'is-off',
+      description: soundEnabled ? enabledLabel : disabledLabel,
+      onClick: () => onSoundChange?.(!soundEnabled),
+    },
+    {
+      id: 'music',
+      label: musicEnabled ? musicOnLabel : musicOffLabel,
+      value: musicEnabled ? 'On' : 'Off',
+      valueState: musicEnabled ? 'is-on' : 'is-off',
+      description: musicEnabled ? enabledLabel : disabledLabel,
+      onClick: () => onMusicChange?.(!musicEnabled),
+    },
+    {
+      id: 'language',
+      label: text.language || 'Language',
+      value: getLanguageName(language, language),
+      valueState: 'is-neutral',
+      description: text.languageDescription || 'Choose display language',
+      ariaExpanded: showPauseLanguages,
+      ariaControls: 'pause-language-options',
+      onClick: () => setShowPauseLanguages((current) => !current),
+    },
+    {
+      id: 'leave',
+      label: text.leaveGame,
+      value: 'Exit',
+      valueState: 'is-off',
+      onClick: handleLeaveGame,
+    },
+  ]
+
+  const activeMenuTitle = isMultiplayer ? text.gameMenu : text.pause
+
   if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
     return (
       <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
@@ -1046,70 +1106,58 @@ function Game({
           </div>
         </div>
 
-        {!isMultiplayer && isPaused && !countdownStep && (
+        {((!isMultiplayer && isPaused) || (isMultiplayer && showMenu)) && !countdownStep && (
           <div className="pause-overlay" role="dialog" aria-modal="true">
-            <div className="pause-card">
-              <h3>{text.pause}</h3>
-              <div className="pause-actions">
-                <button
-                  className={soundEnabled ? 'resume-button' : 'back-button'}
-                  onClick={() => onSoundChange?.(!soundEnabled)}
-                >
-                  {soundEnabled ? soundEffectsOnLabel : soundEffectsOffLabel}
-                </button>
-                <button
-                  className={musicEnabled ? 'resume-button' : 'back-button'}
-                  onClick={() => onMusicChange?.(!musicEnabled)}
-                >
-                  {musicEnabled ? musicOnLabel : musicOffLabel}
-                </button>
-                <button
-                  className="resume-button"
-                  onClick={() => {
-                    startCountdown({
-                      onDone: () => {
-                        setIsPaused(false)
-                      },
-                    })
-                  }}
-                >
-                  {text.resume}
-                </button>
-                <button className="back-button" onClick={handleLeaveGame}>
-                  {text.leaveGame}
-                </button>
+            <div className={`options-modal game-options-modal ${theme === 'dark' ? 'dark' : ''}`}>
+              <div className="options-modal-header">
+                <p className="options-kicker">Game</p>
+                <h2>{activeMenuTitle}</h2>
               </div>
-            </div>
-          </div>
-        )}
-
-        {isMultiplayer && showMenu && !countdownStep && (
-          <div className="pause-overlay" role="dialog" aria-modal="true">
-            <div className="pause-card">
-              <h3>{text.gameMenu}</h3>
-              <div className="pause-actions">
-                <button
-                  className={soundEnabled ? 'resume-button' : 'back-button'}
-                  onClick={() => onSoundChange?.(!soundEnabled)}
-                >
-                  {soundEnabled ? soundEffectsOnLabel : soundEffectsOffLabel}
-                </button>
-                <button
-                  className={musicEnabled ? 'resume-button' : 'back-button'}
-                  onClick={() => onMusicChange?.(!musicEnabled)}
-                >
-                  {musicEnabled ? musicOnLabel : musicOffLabel}
-                </button>
-                <button
-                  className="resume-button"
-                  onClick={() => setShowMenu(false)}
-                >
-                  {text.resume}
-                </button>
-                <button className="back-button" onClick={handleLeaveGame}>
-                  {text.leaveGame}
-                </button>
+              <div className="options-list">
+                {gameMenuRows.map((option) => (
+                  <button
+                    key={option.id}
+                    className="option-row"
+                    type="button"
+                    onClick={option.onClick}
+                    aria-expanded={option.ariaExpanded}
+                    aria-controls={option.ariaControls}
+                  >
+                    <span className="option-row-label">{option.label}</span>
+                    <span className={`option-row-value ${option.valueState}`}>{option.value}</span>
+                    <span className="option-row-description">{option.description || ''}</span>
+                  </button>
+                ))}
               </div>
+              {showPauseLanguages && (
+                <div
+                  className="language-options-overlay"
+                  role="presentation"
+                  onClick={() => setShowPauseLanguages(false)}
+                >
+                  <div
+                    className="language-options"
+                    id="pause-language-options"
+                    aria-label={text.languageOptions || 'Language options'}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {LANGUAGES.map(({ code }) => (
+                      <button
+                        className={`language-option${language === code ? ' selected' : ''}`}
+                        key={code}
+                        type="button"
+                        aria-pressed={language === code}
+                        onClick={() => {
+                          onLanguageChange?.(code)
+                          setShowPauseLanguages(false)
+                        }}
+                      >
+                        {getLanguageName(code, language)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

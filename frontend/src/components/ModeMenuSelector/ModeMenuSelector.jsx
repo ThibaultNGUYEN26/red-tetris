@@ -26,61 +26,51 @@ function ModeMenuSelector({
     onShowRooms(true)
   }
 
-  const handleOptions = () => {
-    setShowOptions(true)
-  }
-
-  const handleBackToMenu = () => {
-    setShowOptions(false)
-  }
-
-  if (showOptions) {
-    return (
-      <Options
-        onBack={handleBackToMenu}
-        theme={theme}
-        onThemeChange={onThemeChange}
-        soundEnabled={soundEnabled}
-        onSoundChange={onSoundChange}
-        musicEnabled={musicEnabled}
-        onMusicChange={onMusicChange}
-        selectedLanguage={selectedLanguage}
-        onLanguageChange={onLanguageChange}
-      />
-    )
-  }
-
   return (
-    <div className={`mode-card ${theme === 'dark' ? 'dark' : ''}`}>
-      <h2>{text.heading}</h2>
+    <>
+      <div className={`mode-card ${theme === 'dark' ? 'dark' : ''}`}>
+        <h2>{text.heading}</h2>
 
-      <div className="mode-buttons">
-        <button
-          className="mode-button"
-          onClick={handleSolo}
-        >
-          <span className="mode-icon">🕹️</span>
-          <span className="mode-title">{text.soloTitle}</span>
-          <span className="mode-description">{text.soloDescription}</span>
-        </button>
+        <div className="mode-buttons">
+          <button
+            className="mode-button"
+            onClick={handleSolo}
+          >
+            <span className="mode-title">{text.soloTitle}</span>
+            <span className="mode-description">{text.soloDescription}</span>
+          </button>
+
+          <button
+            className="mode-button"
+            onClick={handleMultiplayer}
+          >
+            <span className="mode-title">{text.multiplayerTitle}</span>
+            <span className="mode-description">{text.multiplayerDescription}</span>
+          </button>
+        </div>
 
         <button
-          className="mode-button"
-          onClick={handleMultiplayer}
+          className="options-button"
+          onClick={() => setShowOptions(true)}
         >
-          <span className="mode-icon">🎮</span>
-          <span className="mode-title">{text.multiplayerTitle}</span>
-          <span className="mode-description">{text.multiplayerDescription}</span>
+          {text.options}
         </button>
       </div>
 
-      <button
-        className="options-button"
-        onClick={handleOptions}
-      >
-        {text.options}
-      </button>
-    </div>
+      {showOptions && (
+        <Options
+          onBack={() => setShowOptions(false)}
+          theme={theme}
+          onThemeChange={onThemeChange}
+          soundEnabled={soundEnabled}
+          onSoundChange={onSoundChange}
+          musicEnabled={musicEnabled}
+          onMusicChange={onMusicChange}
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={onLanguageChange}
+        />
+      )}
+    </>
   )
 }
 

@@ -1,5 +1,5 @@
 ﻿import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { socket } from '../../../../socket'
 
@@ -145,6 +145,7 @@ describe('Game Component', () => {
   it('shows pause overlay on Escape and allows sound and music toggles', async () => {
     const onSoundChange = vi.fn()
     const onMusicChange = vi.fn()
+    const onLanguageChange = vi.fn()
 
     render(
       <Game
@@ -157,6 +158,7 @@ describe('Game Component', () => {
         onSoundChange={onSoundChange}
         musicEnabled
         onMusicChange={onMusicChange}
+        onLanguageChange={onLanguageChange}
       />
     )
 
@@ -170,6 +172,10 @@ describe('Game Component', () => {
     expect(onSoundChange).toHaveBeenCalledWith(false)
     fireEvent.click(screen.getByRole('button', { name: /music: enabled/i }))
     expect(onMusicChange).toHaveBeenCalledWith(false)
+    fireEvent.click(screen.getByRole('button', { name: /language/i }))
+    const languagePanel = screen.getByLabelText(/language options/i)
+    fireEvent.click(within(languagePanel).getByRole('button', { name: /english/i }))
+    expect(onLanguageChange).toHaveBeenCalledWith('en')
 
     expect(screen.getByRole('button', { name: /resume/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /leave game/i })).toBeInTheDocument()

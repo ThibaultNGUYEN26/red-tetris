@@ -1378,6 +1378,7 @@ function Index({ authMode = 'login' }) {
                       musicEnabled={musicEnabled}
                       onMusicChange={handleMusicChange}
                       language={language}
+                      onLanguageChange={handleLanguageChange}
                     />
                   ) : (
                     <ModeMenuSelector
