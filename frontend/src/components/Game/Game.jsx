@@ -19,6 +19,8 @@ const DEFAULT_BOARD = { width: 10, height: 20 }
 const SOFT_DROP_MS = 60
 const DAS_MS = 220
 const ARR_MS = 60
+const COUNTDOWN_STEP_MS = 800
+const COUNTDOWN_STEPS = ['3', '2', '1', 'Go']
 const SHARED_BOARD_MODES = ['cooperative', 'cooperative_roles']
 const SHAPES = {
   i: [
@@ -103,6 +105,7 @@ function Game({
   const [activePlayerUsername, setActivePlayerUsername] = useState(null)
   const [cooperativeRole, setCooperativeRole] = useState(null)
   const [boardFlash, setBoardFlash] = useState(null)
+  const [countdownStep, setCountdownStep] = useState(null)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
@@ -123,6 +126,53 @@ function Game({
   const roomModeRef = useRef(null)
   const boardFlashTimerRef = useRef(null)
   const boardFlashFrameRef = useRef(null)
+  const countdownTimerRef = useRef(null)
+  const countdownStepTimerRef = useRef(null)
+
+  const clearCountdown = ({ resetState = true } = {}) => {
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current)
+      countdownTimerRef.current = null
+    }
+    if (countdownStepTimerRef.current) {
+      clearInterval(countdownStepTimerRef.current)
+      countdownStepTimerRef.current = null
+    }
+    if (resetState) {
+      setCountdownStep(null)
+    }
+  }
+
+  const startCountdown = ({ durationMs = COUNTDOWN_STEP_MS * COUNTDOWN_STEPS.length, onDone } = {}) => {
+    clearCountdown()
+
+    if (!durationMs || durationMs <= 0) {
+      onDone?.()
+      return
+    }
+
+    stopSoftDrop()
+    stopHorizontalAutoMove()
+    setCountdownStep(COUNTDOWN_STEPS[0])
+
+    let index = 0
+    countdownStepTimerRef.current = setInterval(() => {
+      index += 1
+      if (index < COUNTDOWN_STEPS.length) {
+        setCountdownStep(COUNTDOWN_STEPS[index])
+      }
+    }, COUNTDOWN_STEP_MS)
+
+    countdownTimerRef.current = setTimeout(() => {
+      if (countdownStepTimerRef.current) {
+        clearInterval(countdownStepTimerRef.current)
+        countdownStepTimerRef.current = null
+      }
+      countdownTimerRef.current = null
+      setCountdownStep(null)
+      onDone?.()
+    }, durationMs)
+  }
 
   const triggerBoardFlash = (type) => {
     if (boardFlashFrameRef.current) {
@@ -196,7 +246,7 @@ function Game({
   const emitMove = (action) => {
     if (!action || !roomId || !username) return false
     /* v8 ignore next -- pause/elimination also remove or disable the user-facing controls in normal play. @preserve */
-    if (isPaused || isEliminated) return false
+    if (isPaused || isEliminated || countdownStep) return false
     if (
       isMultiplayer &&
       gameMode === 'cooperative' &&
@@ -268,6 +318,7 @@ function Game({
 
   const handleLeaveGame = () => {
     exitingRef.current = true
+    clearCountdown()
     stopSoftDrop()
     stopHorizontalAutoMove()
     setShowMenu(false)
@@ -339,7 +390,7 @@ function Game({
       setBoardSize(getBoardSize(mode))
     }
 
-    const handleGameStarted = () => {
+    const handleGameStarted = (payload = {}) => {
       if (exitingRef.current) return
       const mode = roomModeRef.current
       const size = getBoardSize(mode)
@@ -371,6 +422,9 @@ function Game({
         boardFlashTimerRef.current = null
       }
       startMusic()
+      startCountdown({
+        durationMs: Number.isFinite(payload?.countdownMs) ? payload.countdownMs : 0,
+      })
     }
 
     const handleGameState = (gameState) => {
@@ -448,6 +502,7 @@ function Game({
 
     const handleGameOver = ({ winner }) => {
       if (exitingRef.current) return
+      clearCountdown()
       setWinner(winner || null)
       setIsEliminated(true)
       setIsGameOver(true)
@@ -486,6 +541,7 @@ function Game({
         clearTimeout(boardFlashTimerRef.current)
         boardFlashTimerRef.current = null
       }
+      clearCountdown({ resetState: false })
       stopMusic()
     }
   }, [roomId, username, isMultiplayer])
@@ -535,6 +591,7 @@ function Game({
     const handleKeyDown = (event) => {
       if (event.repeat) return
       const isMirrorMode = gameMode === 'mirror'
+      if (countdownStep) return
       if (event.key === 'Escape' && !isMultiplayer) {
         setIsPaused(true)
         stopSoftDrop()
@@ -591,7 +648,7 @@ function Game({
       stopSoftDrop()
       stopHorizontalAutoMove()
     }
-  }, [isPaused, isMultiplayer, roomId, username, gameMode, activePlayerUsername, cooperativeRole, isEliminated])
+  }, [isPaused, isMultiplayer, roomId, username, gameMode, activePlayerUsername, cooperativeRole, isEliminated, countdownStep])
 
   useEffect(() => {
     if (isPaused) {
@@ -717,6 +774,16 @@ function Game({
           }
           language={language}
         />
+        {countdownStep && (
+          <div className="countdown-overlay" aria-live="assertive" aria-label={text.countdownAria}>
+            <div
+              key={countdownStep}
+              className={`countdown-burst${countdownStep === 'Go' ? ' countdown-go' : ''}`}
+            >
+              {countdownStep === 'Go' ? text.countdownGo : countdownStep}
+            </div>
+          </div>
+        )}
         <div className="game-header">
           <div className="game-title">
             <div className="game-options-stack">
@@ -729,7 +796,7 @@ function Game({
                   }
                   setIsPaused(true)
                 }}
-                disabled={isPaused}
+                disabled={isPaused || Boolean(countdownStep)}
               >
                 {text.options}
               </button>
@@ -839,7 +906,7 @@ function Game({
           </div>
         </div>
 
-        {!isMultiplayer && isPaused && (
+        {!isMultiplayer && isPaused && !countdownStep && (
           <div className="pause-overlay" role="dialog" aria-modal="true">
             <div className="pause-card">
               <h3>{text.pause}</h3>
@@ -852,7 +919,13 @@ function Game({
                 </button>
                 <button
                   className="resume-button"
-                  onClick={() => setIsPaused(false)}
+                  onClick={() => {
+                    startCountdown({
+                      onDone: () => {
+                        setIsPaused(false)
+                      },
+                    })
+                  }}
                 >
                   {text.resume}
                 </button>
@@ -864,7 +937,7 @@ function Game({
           </div>
         )}
 
-        {isMultiplayer && showMenu && (
+        {isMultiplayer && showMenu && !countdownStep && (
           <div className="pause-overlay" role="dialog" aria-modal="true">
             <div className="pause-card">
               <h3>{text.gameMenu}</h3>

@@ -463,6 +463,8 @@ const fr = {
     next: 'Suivante',
     nextAria: 'Pièce suivante',
     keyboardControlsAria: 'Contrôles au clavier',
+    countdownAria: 'Compte a rebours',
+    countdownGo: 'Go',
     pause: 'Pause',
     gameMenu: 'Menu de jeu',
     soundOn: 'Son : activé',

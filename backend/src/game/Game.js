@@ -198,11 +198,11 @@ export default class Game {
     player.pendingPenaltyLines = 0;
   }
 
-  start() {
+  start({ paused = false } = {}) {
     this.isRunning = true;
     this.isOver = false;
     this.statsUpdated = false;
-    this.isPaused = false;
+    this.isPaused = Boolean(paused);
     this.activePlayTimeMs = 0;
     this.lastEmittedStateJson = "";
     this.lastStateEmitMs = -Infinity;

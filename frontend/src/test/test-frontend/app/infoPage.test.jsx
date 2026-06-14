@@ -157,6 +157,38 @@ describe('InfoPage language binding', () => {
     expect(screen.getByRole('button', { name: /deplacer a droite/i })).toBeInTheDocument()
   })
 
+  it('falls back to the tutorial demo when a dot translation is missing', async () => {
+    vi.resetModules()
+    vi.doMock('../../../i18n', async (importOriginal) => {
+      const actual = await importOriginal()
+
+      return {
+        ...actual,
+        getTranslation: (language) => {
+          const translation = actual.getTranslation(language)
+
+          return {
+            ...translation,
+            infoPage: {
+              ...translation.infoPage,
+              tutorialControls: {
+                ...translation.infoPage.tutorialControls,
+                'move-right': undefined,
+              },
+            },
+          }
+        },
+      }
+    })
+
+    const { default: InfoPageWithMissingTutorialText } = await import('../../../InfoPage.jsx')
+
+    render(<InfoPageWithMissingTutorialText type="tutorial" />)
+
+    expect(screen.getByRole('button', { name: 'Show undefined' })).toBeInTheDocument()
+    vi.doUnmock('../../../i18n')
+  })
+
   it('updates the guide page when the saved language changes', async () => {
     render(<InfoPage type="tutorial" />)
 

@@ -10,6 +10,7 @@ let peakActiveUserCount = 0;
 const pendingDisconnects = new Map();
 const MOVE_INPUT_RATE_PER_SECOND = 45;
 const MOVE_INPUT_BURST = 30;
+const DEFAULT_GAME_START_COUNTDOWN_MS = process.env.NODE_ENV === "test" ? 0 : 3200;
 const DEFAULT_RECONNECT_GRACE_MS = 15000;
 const DEFAULT_GAME_OVER_REVEAL_MS = process.env.NODE_ENV === "test" ? 0 : 800;
 
@@ -21,6 +22,11 @@ const getReconnectGraceMs = () => {
 const getGameOverRevealMs = () => {
   const value = Number(process.env.GAME_OVER_REVEAL_MS);
   return Number.isFinite(value) && value >= 0 ? value : DEFAULT_GAME_OVER_REVEAL_MS;
+};
+
+const getGameStartCountdownMs = () => {
+  const value = Number(process.env.GAME_START_COUNTDOWN_MS);
+  return Number.isFinite(value) && value >= 0 ? value : DEFAULT_GAME_START_COUNTDOWN_MS;
 };
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -1056,8 +1062,10 @@ export default function setupSockets(io) {
           },
         });
 
+        const countdownMs = getGameStartCountdownMs();
+
         // Start game and server tick
-        game.start();
+        game.start({ paused: countdownMs > 0 });
 
         // Update DB to mark room as started
         await pool.query("UPDATE rooms SET status='started' WHERE id=$1", [roomId]);
@@ -1076,7 +1084,22 @@ export default function setupSockets(io) {
         await broadcastAvailableRooms(io);
 
         // Emit start event; tick will emit gameState
-        io.to(String(roomId)).emit("gameStarted", { roomId });
+        io.to(String(roomId)).emit(
+          "gameStarted",
+          countdownMs > 0 ? { roomId, countdownMs } : { roomId }
+        );
+
+        if (countdownMs > 0) {
+          setTimeout(() => {
+            const currentGame = getGame(String(roomId));
+            if (!currentGame || currentGame.isOver) return;
+            currentGame.resume();
+            currentGame.emitState({
+              force: true,
+              emit: (state) => io.to(String(roomId)).emit("gameState", state),
+            });
+          }, countdownMs);
+        }
 
       } catch (err) {
         console.error("startGame failed:", err);

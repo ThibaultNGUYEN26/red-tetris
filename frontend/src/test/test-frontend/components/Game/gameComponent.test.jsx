@@ -170,6 +170,7 @@ describe('Game Component', () => {
   })
 
   it('resumes and leaves a local game from the pause overlay', async () => {
+    vi.useFakeTimers()
     const onBack = vi.fn()
 
     render(
@@ -187,14 +188,115 @@ describe('Game Component', () => {
     expect(screen.getByRole('dialog')).toHaveTextContent('Pause')
 
     fireEvent.click(screen.getByRole('button', { name: /resume/i }))
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('3')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3200)
     })
 
     fireEvent.click(screen.getByRole('button', { name: /options/i }))
     fireEvent.click(screen.getByRole('button', { name: /leave game/i }))
 
     expect(onBack).toHaveBeenCalled()
+  })
+
+  it('shows a start countdown and blocks input until it ends', async () => {
+    vi.useFakeTimers()
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1', countdownMs: 3200 })
+    })
+
+    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('3')
+
+    socket.emit.mockClear()
+    fireEvent.keyDown(window, { key: 'ArrowLeft' })
+    expect(socket.emit).not.toHaveBeenCalledWith('movePiece', expect.any(Object))
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2400)
+    })
+
+    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('Go')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(800)
+    })
+
+    expect(screen.queryByLabelText(/game countdown/i)).not.toBeInTheDocument()
+  })
+
+  it('finishes a countdown whose step interval was already cleared', async () => {
+    vi.useFakeTimers()
+    const setIntervalSpy = vi.spyOn(globalThis, 'setInterval').mockReturnValue(0)
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1', countdownMs: 1 })
+    })
+
+    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('3')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1)
+    })
+
+    expect(screen.queryByLabelText(/game countdown/i)).not.toBeInTheDocument()
+    expect(setIntervalSpy).toHaveBeenCalled()
+  })
+
+  it('clears countdown timers on unmount', async () => {
+    vi.useFakeTimers()
+
+    const { unmount } = render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1', countdownMs: 3200 })
+    })
+
+    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('3')
+
+    unmount()
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3200)
+    })
+
+    expect(socket.off).toHaveBeenCalledWith('gameStarted', expect.any(Function))
   })
 
   it('blocks keyboard moves without room context and while paused', async () => {
@@ -1279,6 +1381,44 @@ describe('Game Component', () => {
     })
 
     expect(boardElement).not.toHaveClass('board-flash')
+  })
+
+  it('cancels a pending board flash animation frame on unmount', async () => {
+    vi.useFakeTimers()
+    const requestAnimationFrameMock = vi.fn(() => 123)
+    const cancelAnimationFrameMock = vi.fn()
+
+    vi.stubGlobal('requestAnimationFrame', requestAnimationFrameMock)
+    vi.stubGlobal('cancelAnimationFrame', cancelAnimationFrameMock)
+
+    const { unmount } = render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+          level: 2,
+        }],
+      })
+    })
+
+    expect(requestAnimationFrameMock).toHaveBeenCalled()
+
+    unmount()
+
+    expect(cancelAnimationFrameMock).toHaveBeenCalledWith(123)
   })
 
   it('plays winner and loser sounds on multiplayer game over', async () => {

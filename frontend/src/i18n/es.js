@@ -462,6 +462,8 @@ const es = {
     next: 'Siguiente',
     nextAria: 'Pieza siguiente',
     keyboardControlsAria: 'Controles de teclado',
+    countdownAria: 'Cuenta atras',
+    countdownGo: 'Go',
     pause: 'Pausa',
     gameMenu: 'Menu de juego',
     soundOn: 'Sonido: activado',

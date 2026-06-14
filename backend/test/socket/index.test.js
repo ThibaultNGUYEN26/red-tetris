@@ -80,6 +80,7 @@ describe('socket setup', () => {
     vi.useRealTimers()
     delete process.env.RECONNECT_GRACE_MS
     delete process.env.GAME_OVER_REVEAL_MS
+    delete process.env.GAME_START_COUNTDOWN_MS
     delete process.env.DISABLE_AUTH_TEST_FALLBACK
   })
 
@@ -1119,6 +1120,135 @@ describe('socket setup', () => {
     )
     expect(io.emit).toHaveBeenCalledWith('availableRooms', [])
     expect(io.roomEmit).toHaveBeenCalledWith('gameStarted', { roomId: '1' })
+  })
+
+  it('startGame pauses during a configured countdown and resumes afterward', async () => {
+    vi.useFakeTimers()
+    process.env.GAME_START_COUNTDOWN_MS = '25'
+
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          players: ['Titi', 'Riri'],
+          host: 'Titi',
+          game_mode: 'classic',
+          status: 'started',
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const resumedState = { roomId: '1', resumed: true }
+    const game = {
+      isOver: false,
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      resume: vi.fn(),
+      emitState: vi.fn(({ emit }) => {
+        emit(resumedState)
+      }),
+      mode_player: 'multi',
+    }
+    mockCreateGame.mockReturnValue(game)
+    mockGetGame.mockReturnValue(game)
+
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+
+    expect(game.start).toHaveBeenCalledWith({ paused: true })
+    expect(io.roomEmit).toHaveBeenCalledWith('gameStarted', {
+      roomId: '1',
+      countdownMs: 25,
+    })
+    expect(game.resume).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(25)
+
+    expect(mockGetGame).toHaveBeenCalledWith('1')
+    expect(game.resume).toHaveBeenCalled()
+    expect(game.emitState).toHaveBeenCalledWith({
+      force: true,
+      emit: expect.any(Function),
+    })
+    expect(io.roomEmit).toHaveBeenCalledWith('gameState', resumedState)
+  })
+
+  it('startGame countdown does not resume when the game is gone', async () => {
+    vi.useFakeTimers()
+    process.env.GAME_START_COUNTDOWN_MS = '25'
+
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 1,
+          name: 'Room',
+          players: ['Titi', 'Riri'],
+          host: 'Titi',
+          game_mode: 'classic',
+          status: 'started',
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      resume: vi.fn(),
+      emitState: vi.fn(),
+      mode_player: 'multi',
+    }
+    mockCreateGame.mockReturnValue(game)
+    mockGetGame.mockReturnValue(null)
+
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+    await vi.advanceTimersByTimeAsync(25)
+
+    expect(mockGetGame).toHaveBeenCalledWith('1')
+    expect(game.resume).not.toHaveBeenCalled()
+    expect(game.emitState).not.toHaveBeenCalled()
+    expect(io.roomEmit).not.toHaveBeenCalledWith('gameState', expect.any(Object))
   })
 
   it('startGame stops when the caller is not the host', async () => {

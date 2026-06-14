@@ -525,6 +525,8 @@ const en = {
     next: 'Next',
     nextAria: 'Next piece',
     keyboardControlsAria: 'Keyboard controls',
+    countdownAria: 'Game countdown',
+    countdownGo: 'Go',
     pause: 'Pause',
     gameMenu: 'Game menu',
     soundOn: 'Sound: enabled',
