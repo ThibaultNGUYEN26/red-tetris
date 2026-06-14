@@ -329,40 +329,38 @@
 .next-grid .cell-s { background: #57d98c; box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
 
 .game-controls-help {
-  width: min(1240px, 96vw);
   display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0 0.5rem;
+  flex-direction: column;
+  width: 130px;
+  gap: 0.22rem;
+  margin-top: 0.2rem;
   box-sizing: border-box;
+  opacity: 0.68;
 }
 
 .control-hint {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  min-height: 32px;
-  padding: 0.3rem 0.65rem;
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(42, 82, 152, 0.22);
-  border-radius: 8px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(8px);
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-height: 20px;
+  padding: 0.12rem 0.15rem;
+  border-bottom: 1px solid rgba(42, 82, 152, 0.12);
 }
 
 .control-key {
-  font-size: 0.76rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: #1a3d7a;
-  white-space: nowrap;
+  line-height: 1.15;
 }
 
 .control-action {
-  font-size: 0.74rem;
+  font-size: 0.6rem;
   font-weight: 600;
   color: rgba(26, 61, 122, 0.74);
-  white-space: nowrap;
+  line-height: 1.15;
+  text-align: right;
 }
 
 .pause-overlay {
@@ -458,11 +456,7 @@
 }
 
 .game-screen.dark .control-hint {
-  background: rgba(20, 20, 40, 0.68);
-  border-color: rgba(100, 100, 200, 0.38);
-  box-shadow:
-    0 4px 14px rgba(0, 0, 0, 0.24),
-    inset 0 1px 2px rgba(120, 150, 255, 0.08);
+  border-color: rgba(130, 170, 255, 0.16);
 }
 
 .game-screen.dark .control-key {
@@ -758,13 +752,12 @@
   }
 
   .control-hint {
-    min-height: 28px;
-    padding: 0.25rem 0.55rem;
+    min-height: 18px;
   }
 
   .control-key,
   .control-action {
-    font-size: 0.7rem;
+    font-size: 0.58rem;
   }
 }
 
@@ -828,11 +821,13 @@
   }
 
   .game-controls-help {
-    gap: 0.35rem;
+    width: min(100%, 260px);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.2rem 0.55rem;
   }
 
   .control-hint {
-    flex: 1 1 135px;
-    justify-content: space-between;
+    min-width: 0;
   }
 }

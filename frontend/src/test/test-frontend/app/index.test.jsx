@@ -56,6 +56,7 @@ vi.mock('../../../components/ModeMenuSelector/ModeMenuSelector.jsx', () => ({
       <button type="button">Options</button>
       <span data-testid="selected-language">{selectedLanguage}</span>
       <button type="button" onClick={() => onLanguageChange?.('fr')}>French</button>
+      <button type="button" onClick={() => onLanguageChange?.('es')}>Spanish</button>
     </div>
   ),
 }))
@@ -100,7 +101,7 @@ const requestPath = (url) => {
   return `${parsed.pathname}${parsed.search}`
 }
 
-const setSavedUser = (username = 'Titi') => {
+const setSavedUser = (username = 'Titi', preferences) => {
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
     username,
     avatar: {
@@ -108,6 +109,7 @@ const setSavedUser = (username = 'Titi') => {
       eyeType: 'happy',
       mouthType: 'neutral',
     },
+    ...(preferences ? { preferences } : {}),
   }))
 }
 
@@ -364,6 +366,82 @@ describe('Index main page', () => {
         })
       )
     })
+  })
+
+  it('keeps the locally selected language over a stale saved profile language', async () => {
+    mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
+    localStorage.setItem('red-tetris-language', 'es')
+    setSavedUser('Titi', { theme: 'light', soundEnabled: true, language: 'fr' })
+
+    render(<Index />)
+
+    expect(screen.getByTestId('selected-language')).toHaveTextContent('es')
+    await waitFor(() => {
+      expect(screen.getByTestId('player-stats')).toHaveTextContent('es')
+    })
+    expect(localStorage.getItem('red-tetris-language')).toBe('es')
+  })
+
+  it('does not replace a new language with a stale profile save response', async () => {
+    mockParams = { username: 'Titi', roomName: undefined, roomType: undefined }
+    setSavedUser('Titi')
+    global.fetch.mockImplementation(async (url) => {
+      if (requestPath(url) === '/api/auth/me') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+          }),
+        }
+      }
+
+      if (requestPath(url).startsWith('/api/player/stats')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ avatar: { eyeType: 'happy' } }),
+        }
+      }
+
+      if (requestPath(url) === '/api/profile') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+            preferences: { theme: 'light', soundEnabled: true, language: 'fr' },
+          }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    render(<Index />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Spanish' }))
+
+    expect(screen.getByTestId('selected-language')).toHaveTextContent('es')
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/profile'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            preferences: {
+              theme: 'light',
+              soundEnabled: true,
+              language: 'es',
+            },
+          }),
+        })
+      )
+    })
+    expect(screen.getByTestId('selected-language')).toHaveTextContent('es')
+    expect(localStorage.getItem('red-tetris-language')).toBe('es')
   })
 
   it('clears a saved local user when the session cookie is missing', async () => {

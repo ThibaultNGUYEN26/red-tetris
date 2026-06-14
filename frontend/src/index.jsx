@@ -35,14 +35,19 @@ const DEFAULT_URL_AVATAR = {
   mouthType: 'neutral',
 }
 
-const normalizePreferences = (preferences = {}) => ({
+const getStoredLanguage = () => {
+  const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+  return isSupportedLanguage(savedLanguage) ? savedLanguage : null
+}
+
+const normalizePreferences = (preferences = {}, fallbackPreferences = DEFAULT_PREFERENCES) => ({
   theme: preferences.theme === 'dark' ? 'dark' : 'light',
   soundEnabled: typeof preferences.soundEnabled === 'boolean'
     ? preferences.soundEnabled
-    : DEFAULT_PREFERENCES.soundEnabled,
+    : fallbackPreferences.soundEnabled,
   language: isSupportedLanguage(preferences.language)
     ? preferences.language
-    : DEFAULT_PREFERENCES.language,
+    : fallbackPreferences.language,
 })
 
 const parseRoomParams = (roomName, roomType) => {
@@ -133,7 +138,7 @@ function Index({ authMode = 'login' }) {
     return savedTheme === 'dark' ? 'dark' : 'light'
   })
   const [language, setLanguage] = useState(() => {
-    const savedLanguage = savedAuth?.preferences?.language || localStorage.getItem(LANGUAGE_STORAGE_KEY)
+    const savedLanguage = getStoredLanguage() || savedAuth?.preferences?.language
     return isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
   })
   const [showRooms, setShowRooms] = useState(false)
@@ -229,7 +234,7 @@ function Index({ authMode = 'login' }) {
         setUserProfile((current) => ({
           ...(current || {}),
           ...profile,
-          preferences: normalizePreferences(profile.preferences),
+          preferences: normalized,
         }))
       })
       .catch(() => {})
@@ -307,14 +312,18 @@ function Index({ authMode = 'login' }) {
 
         const profile = await response.json()
         if (cancelled) return
+        const profilePreferences = normalizePreferences({
+          ...(profile.preferences || {}),
+          language: getStoredLanguage() || profile.preferences?.language,
+        })
         setUserProfile({
           ...profile,
           name: profile.name || profile.username,
           avatar: profile.avatar || DEFAULT_URL_AVATAR,
-          preferences: normalizePreferences(profile.preferences),
+          preferences: profilePreferences,
         })
         setUsername(profile.username)
-        applyPreferences(profile.preferences)
+        applyPreferences(profilePreferences)
       } catch {
         // Keep the optimistic local session during transient network failures.
       }

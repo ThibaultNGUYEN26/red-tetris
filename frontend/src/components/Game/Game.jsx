@@ -780,6 +780,14 @@ function Game({
                 )}
               </div>
             </div>
+            <aside className="game-controls-help" aria-label={text.keyboardControlsAria}>
+              {controls.map(({ keys, action }) => (
+                <div className="control-hint" key={keys}>
+                  <span className="control-key">{keys}</span>
+                  <span className="control-action">{action}</span>
+                </div>
+              ))}
+            </aside>
           </div>
 
           <div
@@ -881,14 +889,6 @@ function Game({
           </div>
         )}
       </div>
-      <aside className="game-controls-help" aria-label={text.keyboardControlsAria}>
-        {controls.map(({ keys, action }) => (
-          <div className="control-hint" key={keys}>
-            <span className="control-key">{keys}</span>
-            <span className="control-action">{action}</span>
-          </div>
-        ))}
-      </aside>
     </div>
   )
 }
