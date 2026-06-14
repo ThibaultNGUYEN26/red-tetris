@@ -20,6 +20,8 @@ const SPECTATOR_TRANSLATIONS = {
     holdPieceLabel: 'Held piece',
     nextPieceLabel: 'Next piece',
     boardLabel: 'Tetris board',
+    opponents: 'Opponents',
+    opponentBoard: 'board',
   },
   fr: {
     title: 'Mode spectateur',
@@ -36,6 +38,8 @@ const SPECTATOR_TRANSLATIONS = {
     holdPieceLabel: 'Piece en reserve',
     nextPieceLabel: 'Piece suivante',
     boardLabel: 'Plateau de Tetris',
+    opponents: 'Adversaires',
+    opponentBoard: 'plateau',
   },
 }
 
@@ -263,7 +267,11 @@ function SpectatorView({ players, onBack, username, language = DEFAULT_LANGUAGE 
               )}
             </div>
           </div>
-          <ShadowBoards boards={opponentBoards} />
+          <ShadowBoards
+            boards={opponentBoards}
+            title={text.opponents}
+            boardLabel={text.opponentBoard}
+          />
         </div>
       </div>
     </>

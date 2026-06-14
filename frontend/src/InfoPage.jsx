@@ -8,11 +8,17 @@ import { DEFAULT_LANGUAGE, isSupportedLanguage } from './i18n/playerStats'
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
 const LANGUAGE_STORAGE_KEY = 'red-tetris-language'
+const LANGUAGE_CHANGE_EVENT = 'red-tetris-language-change'
 const CONTACT_TIMEOUT_MS = 15000
 const CONTACT_OBJECT_MAX_LENGTH = 120
 const CONTACT_MESSAGE_MAX_LENGTH = 4000
 const PRIVACY_LAST_UPDATED = 'May 5, 2026'
 const PRIVACY_CONTROLLER_NAME = 'Thibault and Riham'
+
+const getSavedLanguage = () => {
+  const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
+  return isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
+}
 
 const pages = {
   about: {
@@ -229,6 +235,69 @@ const pages = {
   },
 }
 
+pages.tutorial = {
+  title: 'Guide',
+  intro:
+    'Learn the controls and game modes before joining a room.',
+  sections: [
+    {
+      title: 'Controls',
+      body:
+        'Use Left and Right to move the piece, Down for soft drop, Up to rotate, Space for hard drop, and C or Shift to hold the current piece. Escape opens the pause/options menu in solo and the game menu in multiplayer.',
+    },
+    {
+      title: 'Solo',
+      body:
+        'Solo mode lets you play alone, clear lines, level up, and chase your best score. Your solo results can appear on your profile and in the solo leaderboard.',
+    },
+    {
+      title: 'Multiplayer',
+      body:
+        'In multiplayer rooms, up to 8 players compete in real time on separate boards. Clearing multiple lines sends penalty lines to opponents, and the last player still alive wins.',
+    },
+    {
+      title: 'Classic',
+      body:
+        'Classic is the standard competitive multiplayer mode. Everyone plays with the normal controls, and cleared lines can send penalties to the other boards.',
+    },
+    {
+      title: 'Mirror',
+      body:
+        'Mirror reverses part of the controls: Left and Right move the piece in the opposite direction, Down triggers a hard drop, and Space becomes a soft drop.',
+    },
+    {
+      title: 'Chaotic',
+      body:
+        'Chaotic keeps the competitive rules, but randomly swaps your current piece with the next piece during the game, which forces quick adaptation.',
+    },
+    {
+      title: 'Invisible',
+      body:
+        'Invisible keeps the competitive rules, but hides the active falling piece. Players have to track its position from memory while placed pieces remain visible.',
+    },
+    {
+      title: 'Giant',
+      body:
+        'Giant uses a larger board, giving players more space but also more rows and columns to manage under multiplayer pressure.',
+    },
+    {
+      title: 'Alternating co-op',
+      body:
+        'Alternating co-op is a two-player mode on a shared board. Players control pieces turn by turn, so communication and timing are essential.',
+    },
+    {
+      title: 'Role co-op',
+      body:
+        'Role co-op is a two-player mode on a shared board where one player handles rotation and the other handles movement and drops. Both players must coordinate to survive.',
+    },
+    {
+      title: 'Spectator',
+      body:
+        'In multiplayer, eliminated players can watch the remaining boards instead of leaving immediately.',
+    },
+  ],
+}
+
 const localizedPages = {
   fr: {
     about: {
@@ -273,6 +342,69 @@ const localizedPages = {
       ],
     },
   },
+}
+
+localizedPages.fr.tutorial = {
+  title: 'Guide',
+  intro:
+    'Apprenez les controles et les modes de jeu avant de rejoindre une salle.',
+  sections: [
+    {
+      title: 'Controles',
+      body:
+        'Utilisez Gauche et Droite pour deplacer la piece, Bas pour la descente rapide, Haut pour la rotation, Espace pour la chute instantanee, et C ou Maj pour garder la piece actuelle. Echap ouvre le menu pause/options en solo et le menu de jeu en multijoueur.',
+    },
+    {
+      title: 'Solo',
+      body:
+        'Le mode solo vous permet de jouer seul, de supprimer des lignes, de monter de niveau et de viser votre meilleur score. Vos resultats solo peuvent apparaitre dans votre profil et dans le classement solo.',
+    },
+    {
+      title: 'Multijoueur',
+      body:
+        'Dans les salles multijoueur, jusqu a 8 joueurs s affrontent en temps reel sur des plateaux separes. Supprimer plusieurs lignes envoie des lignes de penalite aux adversaires, et le dernier joueur encore en jeu gagne.',
+    },
+    {
+      title: 'Classique',
+      body:
+        'Classique est le mode multijoueur competitif standard. Tout le monde joue avec les controles normaux, et les lignes supprimees peuvent envoyer des penalites aux autres plateaux.',
+    },
+    {
+      title: 'Miroir',
+      body:
+        'Miroir inverse une partie des controles : Gauche et Droite deplacent la piece dans le sens oppose, Bas declenche une chute instantanee, et Espace devient une descente rapide.',
+    },
+    {
+      title: 'Chaotique',
+      body:
+        'Chaotique conserve les regles competitives, mais echange aleatoirement votre piece actuelle avec la piece suivante pendant la partie, ce qui demande une adaptation rapide.',
+    },
+    {
+      title: 'Invisible',
+      body:
+        'Invisible conserve les regles competitives, mais cache la piece active en chute. Les joueurs doivent donc suivre sa position de memoire, tandis que les pieces posees restent visibles.',
+    },
+    {
+      title: 'Geant',
+      body:
+        'Geant utilise un plateau plus grand, ce qui donne plus d espace aux joueurs, mais aussi plus de lignes et de colonnes a gerer sous la pression du multijoueur.',
+    },
+    {
+      title: 'Co-op alternee',
+      body:
+        'La co-op alternee est un mode a deux joueurs sur un plateau partage. Les joueurs controlent les pieces a tour de role, donc la communication et le timing sont essentiels.',
+    },
+    {
+      title: 'Co-op roles',
+      body:
+        'La co-op roles est un mode a deux joueurs sur un plateau partage ou un joueur gere la rotation et l autre gere les deplacements et les chutes. Les deux joueurs doivent se coordonner pour survivre.',
+    },
+    {
+      title: 'Spectateur',
+      body:
+        'En multijoueur, les joueurs elimines peuvent regarder les plateaux restants au lieu de quitter immediatement.',
+    },
+  ],
 }
 
 localizedPages.fr.terms = {
@@ -408,6 +540,11 @@ const infoPageTranslations = {
       `Delete the Red Tetris account "${username}" and its scores? This cannot be undone.`,
     deleteError: 'Unable to delete account',
     deleteSuccess: 'Account deleted.',
+    tutorialCarousel: 'Tetris controls tutorial',
+    previousControl: 'Show previous control',
+    nextControl: 'Show next control',
+    tutorialSlides: 'Tutorial slides',
+    showTutorialSlide: (title) => `Show ${title}`,
   },
   fr: {
     informationPages: 'Pages d\u2019information',
@@ -430,6 +567,11 @@ const infoPageTranslations = {
       `Supprimer le compte Red Tetris "${username}" et ses scores ? Cette action est irreversible.`,
     deleteError: 'Impossible de supprimer le compte',
     deleteSuccess: 'Compte supprime.',
+    tutorialCarousel: 'Tutoriel des controles de Tetris',
+    previousControl: 'Afficher le controle precedent',
+    nextControl: 'Afficher le controle suivant',
+    tutorialSlides: 'Diapositives du tutoriel',
+    showTutorialSlide: (title) => `Afficher ${title}`,
   },
 }
 
@@ -446,6 +588,10 @@ const contactTranslations = {
     sendSuccess: 'Message sent.',
     mailTimeout: 'Mail server timeout. Please try again later.',
     objectLabel: 'Object',
+    messageLabel: 'Message',
+    emailLabel: 'Email',
+    captchaLabel: 'Captcha',
+    honeypotLabel: 'Website',
     objectPlaceholder: 'Bug report or suggestion',
     messagePlaceholder: 'Describe the issue or idea...',
     emailPlaceholder: 'Your email',
@@ -467,6 +613,10 @@ const contactTranslations = {
     sendSuccess: 'Message envoyé.',
     mailTimeout: 'Délai d’attente du serveur mail dépassé. Veuillez réessayer plus tard.',
     objectLabel: 'Objet',
+    messageLabel: 'Message',
+    emailLabel: 'Email',
+    captchaLabel: 'Captcha',
+    honeypotLabel: 'Site web',
     objectPlaceholder: 'Signalement de bug ou suggestion',
     messagePlaceholder: 'Décrivez le problème ou l’idée...',
     emailPlaceholder: 'Votre e-mail',
@@ -504,6 +654,85 @@ const translateBlocks = (blocks, rowOffset, colOffset) => blocks.map((block) => 
 }))
 
 const tutorialInputRowOffset = 3
+
+const tutorialControlTranslations = {
+  en: {
+    'move-left': {
+      ariaLabel: 'Move left tutorial',
+      key: 'Left',
+      title: 'Move left',
+      description: 'Press the left arrow to move the falling piece one column to the left.',
+    },
+    'move-right': {
+      ariaLabel: 'Move right tutorial',
+      key: 'Right',
+      title: 'Move right',
+      description: 'Press the right arrow to move the falling piece one column to the right.',
+    },
+    'soft-drop': {
+      ariaLabel: 'Soft drop tutorial',
+      key: 'Down',
+      title: 'Soft drop',
+      description: 'Hold the down arrow to make the piece fall faster while keeping control.',
+    },
+    'hard-drop': {
+      ariaLabel: 'Hard drop tutorial',
+      key: 'Space',
+      title: 'Hard drop',
+      description: 'Press Space to send the piece directly to its landing position.',
+    },
+    rotation: {
+      ariaLabel: 'Rotation tutorial',
+      key: 'Up',
+      title: 'Rotate',
+      description: 'Press Up to rotate the falling piece into the shape you need.',
+    },
+    hold: {
+      ariaLabel: 'Hold piece tutorial',
+      key: 'C / Shift',
+      title: 'Hold piece',
+      description: 'Press C or Shift to set the current piece aside and use it later.',
+    },
+  },
+  fr: {
+    'move-left': {
+      ariaLabel: 'Tutoriel du deplacement a gauche',
+      key: 'Gauche',
+      title: 'Deplacer a gauche',
+      description: 'Appuyez sur la fleche gauche pour deplacer la piece en chute d une colonne vers la gauche.',
+    },
+    'move-right': {
+      ariaLabel: 'Tutoriel du deplacement a droite',
+      key: 'Droite',
+      title: 'Deplacer a droite',
+      description: 'Appuyez sur la fleche droite pour deplacer la piece en chute d une colonne vers la droite.',
+    },
+    'soft-drop': {
+      ariaLabel: 'Tutoriel de la descente rapide',
+      key: 'Bas',
+      title: 'Descente rapide',
+      description: 'Maintenez la fleche bas pour faire descendre la piece plus vite tout en gardant le controle.',
+    },
+    'hard-drop': {
+      ariaLabel: 'Tutoriel de la chute instantanee',
+      key: 'Espace',
+      title: 'Chute instantanee',
+      description: 'Appuyez sur Espace pour envoyer la piece directement a sa position d atterrissage.',
+    },
+    rotation: {
+      ariaLabel: 'Tutoriel de la rotation',
+      key: 'Haut',
+      title: 'Rotation',
+      description: 'Appuyez sur Haut pour faire pivoter la piece en chute dans la forme dont vous avez besoin.',
+    },
+    hold: {
+      ariaLabel: 'Tutoriel de la piece gardee',
+      key: 'C / Shift',
+      title: 'Garder la piece',
+      description: 'Appuyez sur C ou Maj pour mettre la piece actuelle de cote et la reprendre plus tard.',
+    },
+  },
+}
 
 const tutorialControls = [
   {
@@ -627,10 +856,7 @@ function TutorialBoardDemo({ demo }) {
 }
 
 function InfoPage({ type }) {
-  const [language] = useState(() => {
-    const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY)
-    return isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
-  })
+  const [language, setLanguage] = useState(getSavedLanguage)
   const page = localizedPages[language]?.[type] || pages[type] || pages.about
   const infoText = infoPageTranslations[language] || infoPageTranslations[DEFAULT_LANGUAGE]
   const contactText = contactTranslations[language] || contactTranslations[DEFAULT_LANGUAGE]
@@ -652,6 +878,20 @@ function InfoPage({ type }) {
   const [savedAuthUser, setSavedAuthUser] = useState(() => getSavedAuthUser())
   const [activeTutorialIndex, setActiveTutorialIndex] = useState(0)
   const starsRef = useRef(null)
+
+  useEffect(() => {
+    const syncSavedLanguage = () => {
+      setLanguage(getSavedLanguage())
+    }
+
+    window.addEventListener('storage', syncSavedLanguage)
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, syncSavedLanguage)
+
+    return () => {
+      window.removeEventListener('storage', syncSavedLanguage)
+      window.removeEventListener(LANGUAGE_CHANGE_EVENT, syncSavedLanguage)
+    }
+  }, [])
 
   function getSavedAuthUser() {
     try {
@@ -866,7 +1106,12 @@ function InfoPage({ type }) {
     }
   }
 
-  const activeTutorial = tutorialControls[activeTutorialIndex]
+  const tutorialText = tutorialControlTranslations[language] || tutorialControlTranslations[DEFAULT_LANGUAGE]
+  const activeTutorialBase = tutorialControls[activeTutorialIndex]
+  const activeTutorial = {
+    ...activeTutorialBase,
+    ...tutorialText[activeTutorialBase.action],
+  }
   const showPreviousTutorial = () => {
     setActiveTutorialIndex((currentIndex) => (
       currentIndex === 0 ? tutorialControls.length - 1 : currentIndex - 1
@@ -900,8 +1145,8 @@ function InfoPage({ type }) {
 
       <div className="content-wrapper info-page-wrapper">
         <main className="info-page-card">
-          <nav className="info-page-nav" aria-label="Pages d'information">
-            <Link className="info-page-back" to="/">← Retour</Link>
+          <nav className="info-page-nav" aria-label={infoText.informationPages}>
+            <Link className="info-page-back" to="/">{infoText.back}</Link>
             {!isTutorialPage && (
               <>
                 <Link to="/about">{infoText.about}</Link>
@@ -957,7 +1202,7 @@ function InfoPage({ type }) {
             <div
               className="tutorial-carousel"
               aria-roledescription="carousel"
-              aria-label="Tutoriel des contrôles de Tetris"
+              aria-label={infoText.tutorialCarousel}
               tabIndex={0}
               onKeyDown={handleTutorialCarouselKeyDown}
             >
@@ -965,7 +1210,7 @@ function InfoPage({ type }) {
                 className="tutorial-carousel-arrow previous"
                 type="button"
                 onClick={showPreviousTutorial}
-                aria-label="Afficher le contrôle précédent"
+                aria-label={infoText.previousControl}
               >
                 ‹
               </button>
@@ -981,14 +1226,14 @@ function InfoPage({ type }) {
                 className="tutorial-carousel-arrow next"
                 type="button"
                 onClick={showNextTutorial}
-                aria-label="Afficher le contrôle suivant"
+                aria-label={infoText.nextControl}
               >
                 ›
               </button>
 
               <div
                 className="tutorial-carousel-dots"
-                aria-label="Diapositives du tutoriel"
+                aria-label={infoText.tutorialSlides}
               >
                 {tutorialControls.map((demo, index) => (
                   <button
@@ -996,7 +1241,7 @@ function InfoPage({ type }) {
                     className={`tutorial-carousel-dot${index === activeTutorialIndex ? ' active' : ''}`}
                     type="button"
                     onClick={() => setActiveTutorialIndex(index)}
-                    aria-label={`Afficher ${demo.title}`}
+                    aria-label={infoText.showTutorialSlide((tutorialText[demo.action] || demo).title)}
                     aria-current={index === activeTutorialIndex ? 'true' : undefined}
                   />
                 ))}
@@ -1017,7 +1262,7 @@ function InfoPage({ type }) {
                 disabled={isContactSending}
               />
 
-              <label htmlFor="contact-message">Message</label>
+              <label htmlFor="contact-message">{contactText.messageLabel}</label>
               <textarea
                 id="contact-message"
                 value={contactMessage}
@@ -1033,7 +1278,7 @@ function InfoPage({ type }) {
 
               {!savedUserEmail && (
                 <>
-                  <label htmlFor="contact-email">Email</label>
+                  <label htmlFor="contact-email">{contactText.emailLabel}</label>
                   <input
                     id="contact-email"
                     type="email"
@@ -1047,7 +1292,7 @@ function InfoPage({ type }) {
 
               <div className="contact-captcha">
                 <label htmlFor="contact-captcha">
-                  Captcha: {contactCaptcha.question || contactText.captchaLoading}
+                  {contactText.captchaLabel}: {contactCaptcha.question || contactText.captchaLoading}
                 </label>
                 <div className="contact-captcha-row">
                   <input
@@ -1072,7 +1317,7 @@ function InfoPage({ type }) {
               </div>
 
               <div className="contact-honeypot" aria-hidden="true">
-                <label htmlFor="contact-website">Website</label>
+                <label htmlFor="contact-website">{contactText.honeypotLabel}</label>
                 <input
                   id="contact-website"
                   name="website"
@@ -1129,3 +1374,4 @@ function InfoPage({ type }) {
 }
 
 export default InfoPage
+

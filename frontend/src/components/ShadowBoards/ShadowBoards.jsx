@@ -1,6 +1,6 @@
 import './ShadowBoards.css'
 
-function ShadowBoards({ boards }) {
+function ShadowBoards({ boards, title = 'Opponents', boardLabel = 'board' }) {
   if (!boards || boards.length === 0) return null
 
   const getSpectrumMap = (board) => {
@@ -25,7 +25,7 @@ function ShadowBoards({ boards }) {
 
   return (
     <div className="shadow-boards">
-      <h3>Opponents</h3>
+      <h3>{title}</h3>
       <div className={`shadow-boards-grid count-${boards.length}`}>
         {boards.map((entry) => {
           const board = Array.isArray(entry.board) ? entry.board : []
@@ -39,7 +39,7 @@ function ShadowBoards({ boards }) {
               <div
                 className="shadow-board-grid-inner"
                 role="grid"
-                aria-label={`${entry.username} board`}
+                aria-label={`${entry.username} ${boardLabel}`}
                 style={{
                   gridTemplateColumns: `repeat(${cols}, var(--cell-size))`,
                   gridTemplateRows: `repeat(${rows}, var(--cell-size))`,

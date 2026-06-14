@@ -52,6 +52,8 @@ const GAME_TRANSLATIONS = {
     rotateRole: 'ROTATION',
     placeRole: 'PLACEMENT',
     assigningRole: 'ASSIGNING ROLE...',
+    opponents: 'Opponents',
+    opponentBoard: 'board',
   },
   fr: {
     controls: [
@@ -84,6 +86,8 @@ const GAME_TRANSLATIONS = {
     rotateRole: 'ROTATION',
     placeRole: 'PLACEMENT',
     assigningRole: 'ATTRIBUTION DU RÔLE...',
+    opponents: 'Adversaires',
+    opponentBoard: 'plateau',
   },
 }
 const SHAPES = {
@@ -889,7 +893,11 @@ function Game({
                 )}
               </div>
             </div>
-            <ShadowBoards boards={opponentBoards} />
+            <ShadowBoards
+              boards={opponentBoards}
+              title={text.opponents}
+              boardLabel={text.opponentBoard}
+            />
           </div>
         </div>
 

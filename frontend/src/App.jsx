@@ -81,7 +81,7 @@ function App() {
         <Link to="/terms">{footerText.terms}</Link>
         <Link to="/privacy-policy">{footerText.privacy}</Link>
       </nav>
-      <CookieNotice />
+      <CookieNotice language={language} />
     </BrowserRouter>
   );
 }

@@ -18,8 +18,9 @@
   color: #3756a0;
   box-shadow: 0 10px 26px rgba(55, 86, 160, 0.16);
   backdrop-filter: blur(8px);
-  font-size: 0.95rem;
+  font-size: 1.45rem;
   font-weight: 800;
+  line-height: 1;
   cursor: pointer;
   transition: all 0.2s ease;
 }

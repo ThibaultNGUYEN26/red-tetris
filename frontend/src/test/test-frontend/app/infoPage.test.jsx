@@ -133,10 +133,14 @@ describe('InfoPage language binding', () => {
     const { container } = render(<InfoPage type="tutorial" />)
     const carousel = container.querySelector('.tutorial-carousel')
 
+    expect(screen.getByText('Learn the controls and game modes before joining a room.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Controls' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Multiplayer' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Controles' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'About' })).not.toBeInTheDocument()
     expect(container.querySelector('.tutorial-demo.move-left')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /suivant/ }))
+    fireEvent.click(screen.getByRole('button', { name: /next control/i }))
     expect(container.querySelector('.tutorial-demo.move-right')).toBeInTheDocument()
 
     fireEvent.keyDown(carousel, { key: 'ArrowLeft' })
@@ -148,8 +152,35 @@ describe('InfoPage language binding', () => {
     fireEvent.keyDown(carousel, { key: 'ArrowRight' })
     expect(container.querySelector('.tutorial-demo.move-left')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /droite/ }))
+    fireEvent.click(screen.getByRole('button', { name: /move right/i }))
     expect(container.querySelector('.tutorial-demo.move-right')).toBeInTheDocument()
+  })
+
+  it('renders the tutorial carousel controls in French when French is selected', () => {
+    localStorage.setItem('red-tetris-language', 'fr')
+
+    render(<InfoPage type="tutorial" />)
+
+    expect(screen.getByText('Apprenez les controles et les modes de jeu avant de rejoindre une salle.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Controles' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Multijoueur' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Controls' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /controle suivant/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /deplacer a droite/i })).toBeInTheDocument()
+  })
+
+  it('updates the guide page when the saved language changes', async () => {
+    render(<InfoPage type="tutorial" />)
+
+    expect(screen.getByRole('heading', { name: 'Controls' })).toBeInTheDocument()
+
+    localStorage.setItem('red-tetris-language', 'fr')
+    window.dispatchEvent(new Event('red-tetris-language-change'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Controles' })).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('heading', { name: 'Controls' })).not.toBeInTheDocument()
   })
 
   it('loads captcha and validates contact form input before sending', async () => {

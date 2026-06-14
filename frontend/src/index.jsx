@@ -39,6 +39,30 @@ const ROOM_NOTICE_TRANSLATIONS = {
     userConnected: 'Utilisateur déjà connecté',
   },
 }
+const APP_UI_TRANSLATIONS = {
+  en: {
+    openProfileMenu: 'Open profile menu',
+    profileTitle: 'Profile',
+    saveProfile: 'Save',
+    connectionLost: 'Connection lost. Reconnecting...',
+    serverUnavailable: 'Server unavailable. Retrying...',
+    serverError: 'Server error',
+    reconnected: 'Reconnected.',
+    reconnecting: 'Reconnecting...',
+    reconnectFailed: 'Unable to reconnect. Please refresh.',
+  },
+  fr: {
+    openProfileMenu: 'Ouvrir le menu du profil',
+    profileTitle: 'Profil',
+    saveProfile: 'Enregistrer',
+    connectionLost: 'Connexion perdue. Reconnexion...',
+    serverUnavailable: 'Serveur indisponible. Nouvelle tentative...',
+    serverError: 'Erreur serveur',
+    reconnected: 'Reconnecte.',
+    reconnecting: 'Reconnexion...',
+    reconnectFailed: 'Impossible de se reconnecter. Veuillez actualiser.',
+  },
+}
 const DEFAULT_URL_AVATAR = {
   skinColor: '#cccccc',
   eyeType: 'normal',
@@ -175,6 +199,7 @@ function Index({ authMode = 'login' }) {
   const [routeNotice, setRouteNotice] = useState('')
   const [socketNotice, setSocketNotice] = useState(null)
   const [showProfileCard, setShowProfileCard] = useState(false)
+  const uiText = APP_UI_TRANSLATIONS[language] || APP_UI_TRANSLATIONS[DEFAULT_LANGUAGE]
   const bopAudioRef = useRef(null)
   const profileMenuRef = useRef(null)
   const soundEnabledRef = useRef(soundEnabled)
@@ -505,15 +530,15 @@ function Index({ authMode = 'login' }) {
 
     const handleDisconnect = (reason) => {
       if (reason === 'io client disconnect') return
-      showSocketIssue('Connection lost. Reconnecting...')
+      showSocketIssue(uiText.connectionLost)
     }
 
     const handleConnectError = () => {
-      showSocketIssue('Server unavailable. Retrying...')
+      showSocketIssue(uiText.serverUnavailable)
     }
 
     const handleBackendError = (error) => {
-      const message = typeof error?.message === 'string' ? error.message : 'Server error'
+      const message = typeof error?.message === 'string' ? error.message : uiText.serverError
       setSocketNotice({ type: 'error', message })
       clearSocketNoticeAfter(message, 4500)
     }
@@ -521,16 +546,16 @@ function Index({ authMode = 'login' }) {
     const handleConnect = () => {
       if (!hadSocketIssueRef.current) return
       hadSocketIssueRef.current = false
-      setSocketNotice({ type: 'success', message: 'Reconnected.' })
-      clearSocketNoticeAfter('Reconnected.', 2500)
+      setSocketNotice({ type: 'success', message: uiText.reconnected })
+      clearSocketNoticeAfter(uiText.reconnected, 2500)
     }
 
     const handleReconnectAttempt = () => {
-      showSocketIssue('Reconnecting...')
+      showSocketIssue(uiText.reconnecting)
     }
 
     const handleReconnectFailed = () => {
-      showSocketIssue('Unable to reconnect. Please refresh.')
+      showSocketIssue(uiText.reconnectFailed)
     }
 
     socket.on('disconnect', handleDisconnect)
@@ -549,7 +574,7 @@ function Index({ authMode = 'login' }) {
       socket.io?.off('reconnect_failed', handleReconnectFailed)
       clearSocketNoticeTimeout()
     }
-  }, [])
+  }, [uiText])
 
   /* ---------------- PROFILE ---------------- */
 
@@ -1226,7 +1251,7 @@ function Index({ authMode = 'login' }) {
                   <button
                     className="profile-avatar-btn"
                     onClick={() => setShowProfileCard((current) => !current)}
-                    aria-label="Open profile menu"
+                    aria-label={uiText.openProfileMenu}
                     aria-expanded={showProfileCard}
                     type="button"
                   >
@@ -1237,8 +1262,8 @@ function Index({ authMode = 'login' }) {
                       <ProfileMenu
                         theme={theme}
                         initialProfile={userProfile || { username, avatar: DEFAULT_URL_AVATAR }}
-                        title="Profile"
-                        submitLabel="Save"
+                        title={uiText.profileTitle}
+                        submitLabel={uiText.saveProfile}
                         language={language}
                         onSubmit={handleProfileUpdate}
                         onLogout={handleReturnToProfile}
