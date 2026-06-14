@@ -89,7 +89,7 @@ function Options({
           className="option-button"
           to="/tutorial"
         >
-          <span className="option-icon">?</span>
+          <span className="option-icon">📖</span>
           <span className="option-title">{text.guide}</span>
           <span className="option-description">{text.guideDescription}</span>
         </Link>
@@ -100,7 +100,7 @@ function Options({
           aria-expanded={showLanguages}
           aria-controls="language-options"
         >
-          <span className="option-icon">Aa</span>
+          <span className="option-icon">🌍</span>
           <span className="option-title">{text.language}</span>
           <span className="option-description">{text.languageDescription}</span>
         </button>
