@@ -9,6 +9,8 @@ function Options({
   onThemeChange,
   soundEnabled,
   onSoundChange,
+  musicEnabled = soundEnabled,
+  onMusicChange,
   selectedLanguage = DEFAULT_LANGUAGE,
   onLanguageChange,
 }) {
@@ -16,6 +18,8 @@ function Options({
   const text = getTranslation(selectedLanguage).options
   const themeTitle = theme === 'dark' ? text.darkTheme : text.lightTheme
   const themeDescription = theme === 'dark' ? text.switchToLight : text.switchToDark
+  const soundEffectsLabel = text.soundEffects || text.sound || 'Sound effects'
+  const musicLabel = text.music || 'Music'
 
   const handleThemeToggle = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark'
@@ -23,8 +27,11 @@ function Options({
   }
 
   const handleSoundToggle = () => {
-    const newSound = !soundEnabled
-    onSoundChange?.(newSound)
+    onSoundChange?.(!soundEnabled)
+  }
+
+  const handleMusicToggle = () => {
+    onMusicChange?.(!musicEnabled)
   }
 
   return (
@@ -36,7 +43,7 @@ function Options({
           className="option-button"
           onClick={handleThemeToggle}
         >
-          <span className="option-icon">{theme === 'dark' ? '🌙' : '☀️'}</span>
+          <span className="option-icon">{theme === 'dark' ? 'Moon' : 'Sun'}</span>
           <span className="option-title">{themeTitle}</span>
           <span className="option-description">{themeDescription}</span>
         </button>
@@ -45,16 +52,25 @@ function Options({
           className="option-button"
           onClick={handleSoundToggle}
         >
-          <span className="option-icon">{soundEnabled ? '🔊' : '🔈'}</span>
-          <span className="option-title">{text.sound}</span>
+          <span className="option-icon">{soundEnabled ? 'SFX On' : 'SFX Off'}</span>
+          <span className="option-title">{soundEffectsLabel}</span>
           <span className="option-description">{soundEnabled ? text.enabled : text.disabled}</span>
+        </button>
+
+        <button
+          className="option-button"
+          onClick={handleMusicToggle}
+        >
+          <span className="option-icon">{musicEnabled ? 'Music On' : 'Music Off'}</span>
+          <span className="option-title">{musicLabel}</span>
+          <span className="option-description">{musicEnabled ? text.enabled : text.disabled}</span>
         </button>
 
         <Link
           className="option-button"
           to="/tutorial"
         >
-          <span className="option-icon">📖</span>
+          <span className="option-icon">Guide</span>
           <span className="option-title">{text.guide}</span>
           <span className="option-description">{text.guideDescription}</span>
         </Link>
@@ -65,7 +81,7 @@ function Options({
           aria-expanded={showLanguages}
           aria-controls="language-options"
         >
-          <span className="option-icon">🌍</span>
+          <span className="option-icon">Lang</span>
           <span className="option-title">{text.language}</span>
           <span className="option-description">{text.languageDescription}</span>
         </button>

@@ -18,6 +18,8 @@ describe('ModeMenuSelector Component', () => {
     onShowSoloRoom: vi.fn(),
     soundEnabled: true,
     onSoundChange: vi.fn(),
+    musicEnabled: true,
+    onMusicChange: vi.fn(),
   }
 
   beforeEach(() => {

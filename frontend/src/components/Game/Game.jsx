@@ -139,11 +139,17 @@ function Game({
   isMultiplayer: isMultiplayerProp,
   soundEnabled = true,
   onSoundChange,
+  musicEnabled = soundEnabled,
+  onMusicChange,
   language = DEFAULT_LANGUAGE,
 }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
   const text = getTranslation(language).game
   const controls = text.controls
+  const soundEffectsOnLabel = text.soundEffectsOn || text.soundOn || 'Sound effects: enabled'
+  const soundEffectsOffLabel = text.soundEffectsOff || text.soundOff || 'Sound effects: disabled'
+  const musicOnLabel = text.musicOn || 'Music: enabled'
+  const musicOffLabel = text.musicOff || 'Music: disabled'
 
   const [board, setBoard] = useState(() => makeEmptyBoard(DEFAULT_BOARD))
   const [boardSize, setBoardSize] = useState(DEFAULT_BOARD)
@@ -260,8 +266,8 @@ function Game({
   }
 
   const startMusic = () => {
-    /* v8 ignore next -- tested indirectly through game start; false sound suppresses the whole audio path. @preserve */
-    if (!soundEnabled) return
+    /* v8 ignore next -- tested indirectly through game start; disabled music suppresses the whole audio path. @preserve */
+    if (!musicEnabled) return
     const audio = musicRef.current
     /* v8 ignore next -- audio refs are initialized before socket-driven music starts. @preserve */
     if (!audio) return
@@ -278,8 +284,8 @@ function Game({
   }
 
   const resumeMusic = () => {
-    /* v8 ignore next -- the sound effect returns before resumeMusic is called when sound is disabled. @preserve */
-    if (!soundEnabled) return
+    /* v8 ignore next -- music remains stopped when the user disabled background music. @preserve */
+    if (!musicEnabled) return
     const audio = musicRef.current
     /* v8 ignore next -- audio refs are initialized on mount before resume controls are usable. @preserve */
     if (!audio) return
@@ -297,7 +303,7 @@ function Game({
 
   const handleBoardVideoFinished = () => {
     setIsBoardVideoActive(false)
-    if (!soundEnabled || isPaused || isGameOver) return
+    if (!musicEnabled || isPaused || isGameOver) return
     if (!isMultiplayer) {
       resumeMusic()
     }
@@ -669,16 +675,21 @@ function Game({
     if (!isBoardVideoActive) return
     const video = boardVideoRef.current
     if (!video) return
-    if (!soundEnabled) {
-      video.muted = true
-    } else {
-      video.muted = false
-      if (!isMultiplayer) {
-        pauseMusic()
-      }
+    video.volume = 0.1
+    video.muted = !soundEnabled
+    if (!isMultiplayer && musicEnabled) {
+      pauseMusic()
     }
     restartVideoPlayback(video)
-  }, [isBoardVideoActive, soundEnabled, isMultiplayer])
+  }, [isBoardVideoActive])
+
+  useEffect(() => {
+    if (!isBoardVideoActive) return
+    const video = boardVideoRef.current
+    if (!video) return
+    video.volume = 0.1
+    video.muted = !soundEnabled
+  }, [isBoardVideoActive, soundEnabled])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -769,14 +780,22 @@ function Game({
 
   useEffect(() => {
     if (!soundEnabled) {
-      stopMusic()
       stopAllSfx()
+    }
+  }, [soundEnabled])
+
+  useEffect(() => {
+    if (!musicEnabled) {
+      stopMusic()
       return
     }
     if (isMultiplayer) return
+    if (isBoardVideoActive) {
+      pauseMusic()
+      return
+    }
     if (isPaused) {
-      /* v8 ignore next -- pause refs are initialized on mount before pause controls are usable. @preserve */
-      if (pauseRef.current) {
+      if (soundEnabled && pauseRef.current) {
         pauseRef.current.currentTime = 0
         /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
         pauseRef.current.play().catch(() => {})
@@ -788,7 +807,7 @@ function Game({
     if (!isGameOver) {
       resumeMusic()
     }
-  }, [isPaused, isMultiplayer, isGameOver, soundEnabled])
+  }, [isPaused, isMultiplayer, isGameOver, soundEnabled, musicEnabled, isBoardVideoActive])
 
   const createPiecePreview = (type) => {
     if (!type || !SHAPES[type]) {
@@ -1036,7 +1055,13 @@ function Game({
                   className={soundEnabled ? 'resume-button' : 'back-button'}
                   onClick={() => onSoundChange?.(!soundEnabled)}
                 >
-                  {soundEnabled ? text.soundOn : text.soundOff}
+                  {soundEnabled ? soundEffectsOnLabel : soundEffectsOffLabel}
+                </button>
+                <button
+                  className={musicEnabled ? 'resume-button' : 'back-button'}
+                  onClick={() => onMusicChange?.(!musicEnabled)}
+                >
+                  {musicEnabled ? musicOnLabel : musicOffLabel}
                 </button>
                 <button
                   className="resume-button"
@@ -1067,7 +1092,13 @@ function Game({
                   className={soundEnabled ? 'resume-button' : 'back-button'}
                   onClick={() => onSoundChange?.(!soundEnabled)}
                 >
-                  {soundEnabled ? text.soundOn : text.soundOff}
+                  {soundEnabled ? soundEffectsOnLabel : soundEffectsOffLabel}
+                </button>
+                <button
+                  className={musicEnabled ? 'resume-button' : 'back-button'}
+                  onClick={() => onMusicChange?.(!musicEnabled)}
+                >
+                  {musicEnabled ? musicOnLabel : musicOffLabel}
                 </button>
                 <button
                   className="resume-button"

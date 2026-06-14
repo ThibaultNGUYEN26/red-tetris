@@ -10,6 +10,8 @@ function ModeMenuSelector({
   onShowSoloRoom,
   soundEnabled,
   onSoundChange,
+  musicEnabled = soundEnabled,
+  onMusicChange,
   selectedLanguage = DEFAULT_LANGUAGE,
   onLanguageChange,
 }) {
@@ -40,6 +42,8 @@ function ModeMenuSelector({
         onThemeChange={onThemeChange}
         soundEnabled={soundEnabled}
         onSoundChange={onSoundChange}
+        musicEnabled={musicEnabled}
+        onMusicChange={onMusicChange}
         selectedLanguage={selectedLanguage}
         onLanguageChange={onLanguageChange}
       />

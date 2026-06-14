@@ -33,6 +33,7 @@ const LANGUAGE_CHANGE_EVENT = 'red-tetris-language-change'
 const DEFAULT_PREFERENCES = {
   theme: 'light',
   soundEnabled: true,
+  musicEnabled: true,
   language: DEFAULT_LANGUAGE,
 }
 const DEFAULT_URL_AVATAR = {
@@ -51,6 +52,9 @@ const normalizePreferences = (preferences = {}, fallbackPreferences = DEFAULT_PR
   soundEnabled: typeof preferences.soundEnabled === 'boolean'
     ? preferences.soundEnabled
     : fallbackPreferences.soundEnabled,
+  musicEnabled: typeof preferences.musicEnabled === 'boolean'
+    ? preferences.musicEnabled
+    : fallbackPreferences.musicEnabled,
   language: isSupportedLanguage(preferences.language)
     ? preferences.language
     : fallbackPreferences.language,
@@ -176,6 +180,11 @@ function Index({ authMode = 'login' }) {
       ? savedAuth.preferences.soundEnabled
       : true
   ))
+  const [musicEnabled, setMusicEnabled] = useState(() => (
+    typeof savedAuth?.preferences?.musicEnabled === 'boolean'
+      ? savedAuth.preferences.musicEnabled
+      : true
+  ))
   const [routeNotice, setRouteNotice] = useState('')
   const [socketNotice, setSocketNotice] = useState(null)
   const [showProfileCard, setShowProfileCard] = useState(false)
@@ -221,6 +230,7 @@ function Index({ authMode = 'login' }) {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized.language)
     setTheme(normalized.theme)
     setSoundEnabled(normalized.soundEnabled)
+    setMusicEnabled(normalized.musicEnabled)
     setLanguage(normalized.language)
     return normalized
   }
@@ -622,6 +632,7 @@ function Index({ authMode = 'login' }) {
       ...(userProfile?.preferences || {}),
       theme: nextTheme,
       soundEnabled,
+      musicEnabled,
       language,
     })
     localStorage.setItem(THEME_STORAGE_KEY, nextTheme)
@@ -639,9 +650,27 @@ function Index({ authMode = 'login' }) {
       ...(userProfile?.preferences || {}),
       theme,
       soundEnabled: nextSoundEnabled,
+      musicEnabled,
       language,
     })
     setSoundEnabled(nextSoundEnabled)
+    setUserProfile((current) => ({
+      ...(current || {}),
+      preferences: nextPreferences,
+    }))
+    savePreferences(nextPreferences)
+  }
+
+  const handleMusicChange = (enabled) => {
+    const nextMusicEnabled = Boolean(enabled)
+    const nextPreferences = normalizePreferences({
+      ...(userProfile?.preferences || {}),
+      theme,
+      soundEnabled,
+      musicEnabled: nextMusicEnabled,
+      language,
+    })
+    setMusicEnabled(nextMusicEnabled)
     setUserProfile((current) => ({
       ...(current || {}),
       preferences: nextPreferences,
@@ -655,6 +684,7 @@ function Index({ authMode = 'login' }) {
       ...(userProfile?.preferences || {}),
       theme,
       soundEnabled,
+      musicEnabled,
       language: languageCode,
     })
     localStorage.setItem(LANGUAGE_STORAGE_KEY, languageCode)
@@ -1211,6 +1241,8 @@ function Index({ authMode = 'login' }) {
             onNotice={setRouteNotice}
             soundEnabled={soundEnabled}
             onSoundChange={handleSoundChange}
+            musicEnabled={musicEnabled}
+            onMusicChange={handleMusicChange}
             language={language}
           />
         ) : (
@@ -1343,6 +1375,8 @@ function Index({ authMode = 'login' }) {
                       isMultiplayer={activeGameType !== 'solo'}
                       soundEnabled={soundEnabled}
                       onSoundChange={handleSoundChange}
+                      musicEnabled={musicEnabled}
+                      onMusicChange={handleMusicChange}
                       language={language}
                     />
                   ) : (
@@ -1353,6 +1387,8 @@ function Index({ authMode = 'login' }) {
                       onShowSoloRoom={setShowSoloRoom}
                       soundEnabled={soundEnabled}
                       onSoundChange={handleSoundChange}
+                      musicEnabled={musicEnabled}
+                      onMusicChange={handleMusicChange}
                       selectedLanguage={language}
                       onLanguageChange={handleLanguageChange}
                     />

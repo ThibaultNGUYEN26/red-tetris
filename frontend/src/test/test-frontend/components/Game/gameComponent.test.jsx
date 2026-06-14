@@ -142,8 +142,9 @@ describe('Game Component', () => {
     expect(screen.getByLabelText(/keyboard controls/i)).toHaveTextContent('Hard drop')
   })
 
-  it('shows pause overlay on Escape and allows sound toggle', async () => {
+  it('shows pause overlay on Escape and allows sound and music toggles', async () => {
     const onSoundChange = vi.fn()
+    const onMusicChange = vi.fn()
 
     render(
       <Game
@@ -154,6 +155,8 @@ describe('Game Component', () => {
         isMultiplayer={false}
         soundEnabled
         onSoundChange={onSoundChange}
+        musicEnabled
+        onMusicChange={onMusicChange}
       />
     )
 
@@ -163,8 +166,10 @@ describe('Game Component', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /sound: enabled/i }))
+    fireEvent.click(screen.getByRole('button', { name: /sound effects: enabled/i }))
     expect(onSoundChange).toHaveBeenCalledWith(false)
+    fireEvent.click(screen.getByRole('button', { name: /music: enabled/i }))
+    expect(onMusicChange).toHaveBeenCalledWith(false)
 
     expect(screen.getByRole('button', { name: /resume/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /leave game/i })).toBeInTheDocument()
@@ -980,6 +985,7 @@ describe('Game Component', () => {
   it('applies mirror controls and opens the multiplayer menu', async () => {
     const onBack = vi.fn()
     const onSoundChange = vi.fn()
+    const onMusicChange = vi.fn()
     socket.emit.mockImplementation((event, _payload, callback) => {
       if (event === 'playerLeave') callback?.()
     })
@@ -993,6 +999,8 @@ describe('Game Component', () => {
         isMultiplayer
         soundEnabled={false}
         onSoundChange={onSoundChange}
+        musicEnabled={false}
+        onMusicChange={onMusicChange}
       />
     )
 
@@ -1039,8 +1047,11 @@ describe('Game Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /options/i }))
     expect(screen.getByRole('dialog')).toHaveTextContent('Game menu')
 
-    fireEvent.click(screen.getByRole('button', { name: /sound: disabled/i }))
+    fireEvent.click(screen.getByRole('button', { name: /sound effects: disabled/i }))
     expect(onSoundChange).toHaveBeenCalledWith(true)
+
+    fireEvent.click(screen.getByRole('button', { name: /music: disabled/i }))
+    expect(onMusicChange).toHaveBeenCalledWith(true)
 
     fireEvent.click(screen.getByRole('button', { name: /resume/i }))
     await waitFor(() => {
