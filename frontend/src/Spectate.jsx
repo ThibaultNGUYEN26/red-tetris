@@ -6,38 +6,11 @@ import { socket } from './socket'
 import { apiFetch } from './api'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
 import SpectatorView from './components/SpectatorView/SpectatorView.jsx'
-import { DEFAULT_LANGUAGE, isSupportedLanguage } from './i18n/playerStats'
+import { DEFAULT_LANGUAGE, getTranslation, isSupportedLanguage } from './i18n'
 
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const AUTH_STORAGE_KEY = 'red-tetris-auth-user'
 const LANGUAGE_STORAGE_KEY = 'red-tetris-language'
-
-const SPECTATE_TRANSLATIONS = {
-  en: {
-    missingUsername: 'Missing username in spectator URL.',
-    roomNotFound: 'Room not found',
-    unauthorized: 'Spectator not authorized',
-    loading: 'Loading spectator mode...',
-    back: 'Back',
-    gameOver: 'Game over',
-    winner: 'Winner',
-    noWinner: 'No winner',
-    playAgain: 'Play again',
-    backToMenu: 'Back to menu',
-  },
-  fr: {
-    missingUsername: 'Pseudo manquant dans l\u2019URL spectateur.',
-    roomNotFound: 'Salle introuvable',
-    unauthorized: 'Spectateur non autorise',
-    loading: 'Chargement du mode spectateur...',
-    back: 'Retour',
-    gameOver: 'Partie terminee',
-    winner: 'Vainqueur',
-    noWinner: 'Aucun vainqueur',
-    playAgain: 'Rejouer',
-    backToMenu: 'Retour au menu',
-  },
-}
 
 const getSavedUsername = () => {
   try {
@@ -89,7 +62,7 @@ function Spectate() {
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
   ))
   const [language] = useState(getSavedLanguage)
-  const text = SPECTATE_TRANSLATIONS[language]
+  const text = getTranslation(language).spectate
 
   const handlePlayAgain = async () => {
     const roomPath = roomType

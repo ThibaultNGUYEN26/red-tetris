@@ -2,50 +2,9 @@ import './ProfileMenu.css'
 import { useState, useEffect, useRef } from 'react'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { socket } from '../../socket'
+import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
-
-const PROFILE_MENU_TRANSLATIONS = {
-  en: {
-    createTitle: 'Create Your Profile',
-    profileTitle: 'Profile',
-    randomize: 'Random',
-    skin: 'Skin',
-    eyes: 'Eyes',
-    mouth: 'Mouth',
-    usernamePlaceholder: 'Username',
-    play: "Let's Play!",
-    save: 'Save',
-    disconnect: 'Disconnect',
-    missingData: 'Missing data',
-    invalidUsername: 'Invalid username',
-    serverUnavailable: 'Server unavailable',
-    serverNotResponding: 'Server not responding',
-    unknownError: 'Unknown error',
-    profileUpdateFailed: 'Profile update failed',
-  },
-  fr: {
-    createTitle: 'Creer votre profil',
-    profileTitle: 'Profil',
-    randomize: 'Aleatoire',
-    skin: 'Peau',
-    eyes: 'Yeux',
-    mouth: 'Bouche',
-    usernamePlaceholder: 'Pseudo',
-    play: 'Jouer',
-    save: 'Enregistrer',
-    disconnect: 'Se deconnecter',
-    missingData: 'Donnees manquantes',
-    invalidUsername: 'Pseudo invalide',
-    serverUnavailable: 'Serveur indisponible',
-    serverNotResponding: 'Le serveur ne repond pas',
-    unknownError: 'Erreur inconnue',
-    profileUpdateFailed: 'Echec de la mise a jour du profil',
-  },
-}
-
-const getProfileMenuTranslation = (language) =>
-  PROFILE_MENU_TRANSLATIONS[language] || PROFILE_MENU_TRANSLATIONS.en
 
 function ProfileMenu({
   onSubmit,
@@ -53,10 +12,10 @@ function ProfileMenu({
   initialProfile = null,
   title,
   submitLabel,
-  language = 'en',
+  language = DEFAULT_LANGUAGE,
   onLogout,
 }) {
-  const text = getProfileMenuTranslation(language)
+  const text = getTranslation(language).profileMenu
   const titleText = title === 'Profile'
     ? text.profileTitle
     : title || text.createTitle

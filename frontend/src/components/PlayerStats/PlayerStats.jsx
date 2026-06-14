@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { apiFetch } from '../../api'
-import { getPlayerStatsTranslation } from '../../i18n/playerStats'
+import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
 const DEFAULT_ADVANCED = {
   timePlayed: {
@@ -75,11 +75,11 @@ const mergeAdvancedStats = (advanced = {}) => ({
   coop: { ...DEFAULT_ADVANCED.coop, ...(advanced.coop || {}) },
 })
 
-function PlayerStats({ theme, userProfile, username, language = 'en' }) {
+function PlayerStats({ theme, userProfile, username, language = DEFAULT_LANGUAGE }) {
   const [stats, setStats] = useState(DEFAULT_STATS)
   const [loading, setLoading] = useState(true)
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const t = getPlayerStatsTranslation(language)
+  const t = getTranslation(language).playerStats
 
   useEffect(() => {
     let cancelled = false

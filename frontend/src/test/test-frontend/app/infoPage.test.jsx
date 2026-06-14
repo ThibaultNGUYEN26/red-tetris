@@ -92,28 +92,16 @@ describe('InfoPage language binding', () => {
     expect(screen.queryByRole('heading', { name: 'Privacy Policy' })).not.toBeInTheDocument()
   })
 
-  it('falls back to English contact text when a supported language has no contact copy', async () => {
-    vi.resetModules()
-    vi.doMock('../../../i18n/playerStats', () => ({
-      DEFAULT_LANGUAGE: 'en',
-      isSupportedLanguage: (language) => language === 'zz',
-    }))
+  it('falls back to English contact text when the saved language is unsupported', () => {
+    localStorage.setItem('red-tetris-language', 'zz')
 
-    try {
-      const { default: InfoPageWithMissingContactTranslation } = await import('../../../InfoPage.jsx')
-      localStorage.setItem('red-tetris-language', 'zz')
+    render(<InfoPage type="contact" />)
 
-      render(<InfoPageWithMissingContactTranslation type="contact" />)
-
-      expect(screen.getByLabelText('Object')).toHaveAttribute(
-        'placeholder',
-        'Bug report or suggestion'
-      )
-      expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument()
-    } finally {
-      vi.doUnmock('../../../i18n/playerStats')
-      vi.resetModules()
-    }
+    expect(screen.getByLabelText('Object')).toHaveAttribute(
+      'placeholder',
+      'Bug report or suggestion'
+    )
+    expect(screen.getByRole('button', { name: 'Send message' })).toBeInTheDocument()
   })
 
   it('falls back to the default page and renders the dark theme background', () => {

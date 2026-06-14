@@ -128,7 +128,7 @@ describe('Options Component', () => {
     expect(screen.getByLabelText(/options de langue/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'French' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Spanish' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Spanish' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Italian' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'German' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'French' })).toHaveAttribute('aria-pressed', 'true')

@@ -50,20 +50,22 @@ html, body, #root {
 
 .screen-info-links {
   position: fixed;
+  left: 18px;
   right: 18px;
   bottom: 36px;
   z-index: 120;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
-  gap: 8px 12px;
-  max-width: min(320px, calc(100vw - 36px));
+  gap: 8px clamp(6px, 2vw, 12px);
+  max-width: calc(100vw - 36px);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .screen-info-links a {
   color: #2e5c8a;
-  font-size: 0.82rem;
+  font-size: clamp(0.68rem, 2.8vw, 0.82rem);
   font-weight: 800;
   text-decoration: none;
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.58);

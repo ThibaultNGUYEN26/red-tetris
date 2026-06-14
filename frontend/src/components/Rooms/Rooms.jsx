@@ -5,59 +5,10 @@ import { socket } from '../../socket'
 import CreateRoom from '../CreateRoom/CreateRoom.jsx'
 import Game from '../Game/Game.jsx'
 import { logDuration, markStart, perfLog } from '../../perf'
-import { DEFAULT_LANGUAGE } from '../../i18n/playerStats'
-
-const ROOM_TRANSLATIONS = {
-  en: {
-    passwordRequired: 'Password required',
-    invalidPassword: 'Invalid password',
-    title: 'Multiplayer rooms',
-    createRoom: 'Create room',
-    chooseRoomType: 'Choose room type',
-    cooperative: 'Cooperative',
-    multiplayer: 'Multiplayer',
-    optionalPassword: 'Optional password',
-    publicRoomPlaceholder: 'Leave empty for a public room',
-    availableRooms: 'Available rooms',
-    emptyRooms: 'No rooms available. Create one!',
-    password: 'Password',
-    host: 'Host',
-    roomPasswordPlaceholder: 'Room password',
-    hidePassword: 'Hide password',
-    showPassword: 'Show password',
-    joined: 'Joined',
-    full: 'Full',
-    enter: 'Enter',
-    join: 'Join',
-    back: 'Back',
-  },
-  fr: {
-    passwordRequired: 'Mot de passe requis',
-    invalidPassword: 'Mot de passe invalide',
-    title: 'Salles multijoueur',
-    createRoom: 'Créer une salle',
-    chooseRoomType: 'Choisir le type de salle',
-    cooperative: 'Coopérative',
-    multiplayer: 'Multijoueur',
-    optionalPassword: 'Mot de passe optionnel',
-    publicRoomPlaceholder: 'Laisser vide pour une salle publique',
-    availableRooms: 'Salles disponibles',
-    emptyRooms: 'Aucune salle disponible. Créez-en une !',
-    password: 'Mot de passe',
-    host: 'Hôte',
-    roomPasswordPlaceholder: 'Mot de passe de la salle',
-    hidePassword: 'Masquer le mot de passe',
-    showPassword: 'Afficher le mot de passe',
-    joined: 'Rejointe',
-    full: 'Complet',
-    enter: 'Entrer',
-    join: 'Rejoindre',
-    back: 'Retour',
-  },
-}
+import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
 function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, joinRoomName, userProfile, soundEnabled, onSoundChange, language = DEFAULT_LANGUAGE }) {
-  const text = ROOM_TRANSLATIONS[language] || ROOM_TRANSLATIONS[DEFAULT_LANGUAGE]
+  const text = getTranslation(language).rooms
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
   const [showCreateRoom, setShowCreateRoom] = useState(false)

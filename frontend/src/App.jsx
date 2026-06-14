@@ -5,27 +5,10 @@ import Spectate from './Spectate.jsx';
 import InfoPage from './InfoPage.jsx';
 import AdminPage from './AdminPage.jsx';
 import CookieNotice from './components/CookieNotice/CookieNotice.jsx';
-import { DEFAULT_LANGUAGE, isSupportedLanguage } from './i18n/playerStats';
+import { DEFAULT_LANGUAGE, getTranslation, isSupportedLanguage } from './i18n';
 
 const LANGUAGE_STORAGE_KEY = 'red-tetris-language';
 const LANGUAGE_CHANGE_EVENT = 'red-tetris-language-change';
-
-const FOOTER_LINK_TRANSLATIONS = {
-  en: {
-    siteInformation: 'Site information',
-    about: 'About',
-    contact: 'Contact',
-    terms: 'Terms',
-    privacy: 'Privacy',
-  },
-  fr: {
-    siteInformation: 'Informations du site',
-    about: 'A propos',
-    contact: 'Contact',
-    terms: 'Conditions',
-    privacy: 'Confidentialite',
-  },
-};
 
 const getSavedLanguage = () => {
   const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -34,7 +17,7 @@ const getSavedLanguage = () => {
 
 function App() {
   const [language, setLanguage] = useState(getSavedLanguage);
-  const footerText = FOOTER_LINK_TRANSLATIONS[language];
+  const footerText = getTranslation(language).footer;
 
   useEffect(() => {
     const syncSavedLanguage = () => {

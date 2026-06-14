@@ -1,42 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import './Options.css'
-import { DEFAULT_LANGUAGE, PLAYER_STATS_LANGUAGES } from '../../../i18n/playerStats'
-
-const OPTIONS_TRANSLATIONS = {
-  en: {
-    heading: 'Options',
-    lightTheme: 'Light theme',
-    darkTheme: 'Dark theme',
-    switchToLight: 'Switch to light mode',
-    switchToDark: 'Switch to dark mode',
-    sound: 'Sound',
-    enabled: 'Enabled',
-    disabled: 'Disabled',
-    guide: 'Guide',
-    guideDescription: 'Controls and modes',
-    language: 'Language',
-    languageDescription: 'Choose display language',
-    languageOptions: 'Language options',
-    back: 'Back',
-  },
-  fr: {
-    heading: 'Paramètres',
-    lightTheme: 'Thème clair',
-    darkTheme: 'Thème sombre',
-    switchToLight: 'Passer au mode clair',
-    switchToDark: 'Passer au mode sombre',
-    sound: 'Son',
-    enabled: 'Activé',
-    disabled: 'Désactivé',
-    guide: 'Guide',
-    guideDescription: 'Contrôles et modes',
-    language: 'Langue',
-    languageDescription: "Choisir la langue d'affichage",
-    languageOptions: 'Options de langue',
-    back: 'Retour',
-  },
-}
+import { DEFAULT_LANGUAGE, LANGUAGES, getTranslation } from '../../../i18n'
 
 function Options({
   onBack,
@@ -48,7 +13,7 @@ function Options({
   onLanguageChange,
 }) {
   const [showLanguages, setShowLanguages] = useState(false)
-  const text = OPTIONS_TRANSLATIONS[selectedLanguage] || OPTIONS_TRANSLATIONS[DEFAULT_LANGUAGE]
+  const text = getTranslation(selectedLanguage).options
   const themeTitle = theme === 'dark' ? text.darkTheme : text.lightTheme
   const themeDescription = theme === 'dark' ? text.switchToLight : text.switchToDark
 
@@ -118,7 +83,7 @@ function Options({
             aria-label={text.languageOptions}
             onClick={(event) => event.stopPropagation()}
           >
-            {PLAYER_STATS_LANGUAGES.map(({ code, label }) => (
+            {LANGUAGES.map(({ code, label }) => (
               <button
                 className={`language-option${selectedLanguage === code ? ' selected' : ''}`}
                 key={code}

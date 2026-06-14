@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { apiFetch } from '../../api'
-import { DEFAULT_LANGUAGE, PLAYER_STATS_LANGUAGES } from '../../i18n/playerStats'
+import { DEFAULT_LANGUAGE, LANGUAGES, getTranslation } from '../../i18n'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const PASSWORD_MIN_LENGTH = 8
@@ -15,99 +15,6 @@ const AUTH_ROUTES = {
   register: '/register',
   forgot: '/forgot-password',
   reset: '/reset-password',
-}
-
-const AUTH_TRANSLATIONS = {
-  en: {
-    languageLabel: 'Language',
-    loginTab: 'Login',
-    registerTab: 'Register',
-    loginTitle: 'Login to Your Account',
-    registerTitle: 'Create Your Account',
-    forgotTitle: 'Reset Your Password',
-    resetTitle: 'Choose a New Password',
-    username: 'Username',
-    email: 'Email',
-    password: 'Password',
-    confirmPassword: 'Confirm password',
-    showPassword: 'Show password',
-    hidePassword: 'Hide password',
-    showConfirmPassword: 'Show confirm password',
-    hideConfirmPassword: 'Hide confirm password',
-    randomize: 'Random',
-    skin: 'Skin',
-    eyes: 'Eyes',
-    mouth: 'Mouth',
-    pleaseWait: 'Please wait...',
-    register: 'Register',
-    sendResetLink: 'Send Reset Link',
-    updatePassword: 'Update Password',
-    login: 'Login',
-    forgotPassword: 'Forgot password?',
-    restoreAccount: 'Restore account',
-    backToLogin: 'Back to login',
-    missingData: 'Missing data',
-    invalidEmail: 'Invalid email',
-    invalidPassword: 'Invalid password',
-    passwordTooShort: 'Password must be at least 8 characters',
-    passwordUppercase: 'Password must contain at least 1 uppercase letter',
-    passwordLowercase: 'Password must contain at least 1 lowercase letter',
-    passwordNumber: 'Password must contain at least 1 number',
-    passwordSpecial: 'Password must contain at least 1 special character',
-    passwordMismatch: "Password doesn't match",
-    invalidResetLink: 'Invalid or expired reset link',
-    authenticationFailed: 'Authentication failed',
-    accountCreated: 'Account created. Please log in.',
-    passwordResetGenerated: 'Password reset link generated',
-    passwordUpdated: 'Password updated',
-    serverUnavailable: 'Server unavailable',
-    unableToRestore: 'Unable to restore account',
-  },
-  fr: {
-    languageLabel: 'Langue',
-    loginTab: 'Connexion',
-    registerTab: 'Inscription',
-    loginTitle: 'Connectez-vous',
-    registerTitle: 'Creer votre compte',
-    forgotTitle: 'Reinitialiser votre mot de passe',
-    resetTitle: 'Choisir un nouveau mot de passe',
-    username: 'Pseudo',
-    email: 'Email',
-    password: 'Mot de passe',
-    confirmPassword: 'Confirmer le mot de passe',
-    showPassword: 'Afficher le mot de passe',
-    hidePassword: 'Masquer le mot de passe',
-    showConfirmPassword: 'Afficher la confirmation du mot de passe',
-    hideConfirmPassword: 'Masquer la confirmation du mot de passe',
-    randomize: 'Aleatoire',
-    skin: 'Peau',
-    eyes: 'Yeux',
-    mouth: 'Bouche',
-    pleaseWait: 'Veuillez patienter...',
-    register: 'Inscription',
-    sendResetLink: 'Envoyer le lien',
-    updatePassword: 'Mettre a jour',
-    login: 'Connexion',
-    forgotPassword: 'Mot de passe oublie ?',
-    restoreAccount: 'Restaurer le compte',
-    backToLogin: 'Retour a la connexion',
-    missingData: 'Donnees manquantes',
-    invalidEmail: 'Email invalide',
-    invalidPassword: 'Mot de passe invalide',
-    passwordTooShort: 'Le mot de passe doit contenir au moins 8 caracteres',
-    passwordUppercase: 'Le mot de passe doit contenir au moins 1 majuscule',
-    passwordLowercase: 'Le mot de passe doit contenir au moins 1 minuscule',
-    passwordNumber: 'Le mot de passe doit contenir au moins 1 chiffre',
-    passwordSpecial: 'Le mot de passe doit contenir au moins 1 caractere special',
-    passwordMismatch: 'Les mots de passe ne correspondent pas',
-    invalidResetLink: 'Lien de reinitialisation invalide ou expire',
-    authenticationFailed: 'Echec de l authentification',
-    accountCreated: 'Compte cree. Veuillez vous connecter.',
-    passwordResetGenerated: 'Lien de reinitialisation genere',
-    passwordUpdated: 'Mot de passe mis a jour',
-    serverUnavailable: 'Serveur indisponible',
-    unableToRestore: 'Impossible de restaurer le compte',
-  },
 }
 
 const skinColors = [
@@ -124,10 +31,7 @@ const eyeTypes = ['normal', 'happy', 'joy', 'sad', 'very_sad', 'crying', 'uwu', 
 const mouthTypes = ['uwu', 'neutral', 'smile', 'not_smile', 'laugth', 'sad', 'open', 'kiss', 'scared', 'scream', 'horrified']
 
 const getSafeMode = (mode) => (AUTH_MODES.has(mode) ? mode : 'login')
-const getAuthTranslation = (language) =>
-  AUTH_TRANSLATIONS[language] || AUTH_TRANSLATIONS[DEFAULT_LANGUAGE]
-
-const getPasswordValidationError = (password, text = AUTH_TRANSLATIONS.en) => {
+const getPasswordValidationError = (password, text = getTranslation(DEFAULT_LANGUAGE).auth) => {
   if (typeof password !== 'string' || password.length < PASSWORD_MIN_LENGTH) {
     return text.passwordTooShort
   }
@@ -155,7 +59,7 @@ function AuthMenu({
 }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const text = getAuthTranslation(language)
+  const text = getTranslation(language).auth
   const [mode, setMode] = useState(getSafeMode(initialMode))
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -496,7 +400,7 @@ function AuthMenu({
             aria-label={text.languageLabel}
             onClick={(event) => event.stopPropagation()}
           >
-            {PLAYER_STATS_LANGUAGES.map(({ code, label }) => (
+            {LANGUAGES.map(({ code, label }) => (
               <button
                 key={code}
                 type="button"

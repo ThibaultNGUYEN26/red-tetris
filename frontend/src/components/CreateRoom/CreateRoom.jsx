@@ -4,88 +4,7 @@ import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { socket } from '../../socket'
 import { authFetchOptions } from '../../authToken'
 import { apiFetch } from '../../api'
-import { DEFAULT_LANGUAGE } from '../../i18n/playerStats'
-
-const CREATE_ROOM_TRANSLATIONS = {
-  en: {
-    joinErrors: {
-      'Username already connected': 'This username is already connected in this room.',
-      'Room is full': 'This room is already full.',
-      'User is already in a room': 'This player is already busy in another room.',
-      default: 'This room is already occupied. Try another room or another username.',
-    },
-    roomActionErrors: {
-      used: 'Room already used.',
-      invalidName: 'Invalid room name',
-      invalidMode: 'Invalid game mode',
-      hostRenameOnly: 'Only the host can rename the room.',
-      default: 'Unable to update the room right now.',
-    },
-    modes: {
-      classic: { label: 'Classic', description: 'Standard competitive Tetris where cleared lines send penalties to opponents.' },
-      mirror: { label: 'Mirror', description: 'Controls are reversed, so movement and drops behave differently.' },
-      chaotic: { label: 'Chaotic', description: 'Your current piece and next piece can be randomly swapped during the game.' },
-      invisible: { label: 'Invisible', description: 'The active piece becomes harder to track while it falls.' },
-      giant: { label: 'Giant', description: 'Play on a larger board with more space and longer survival.' },
-      cooperative: { label: 'Alternating co-op', description: 'Two players share a board and play turn by turn.' },
-      cooperative_roles: { label: 'Role co-op', description: 'Two players share a board with separate movement and rotation roles.' },
-    },
-    invalidPassword: 'Invalid password',
-    passwordRequired: 'Password required',
-    joinFailed: 'Unable to join the room',
-    editRoomName: 'Edit room name',
-    currentPassword: 'Current room password',
-    password: 'Password',
-    roomPassword: 'Room password',
-    hidePassword: 'Hide password',
-    showPassword: 'Show password',
-    joinRoom: 'Join room',
-    back: 'Back',
-    gameMode: 'Game mode',
-    players: 'Players',
-    waitingPlayers: 'Waiting for players...',
-    startGame: 'Start game',
-  },
-  fr: {
-    joinErrors: {
-      'Username already connected': 'Ce pseudo est déjà connecté dans cette salle.',
-      'Room is full': 'Cette salle est déjà complète.',
-      'User is already in a room': 'Ce joueur est déjà occupé dans une autre salle.',
-      default: 'Cette salle est déjà occupée. Essayez une autre salle ou un autre pseudo.',
-    },
-    roomActionErrors: {
-      used: 'Salle déjà utilisée.',
-      invalidName: 'Nom de salle invalide',
-      invalidMode: 'Mode de jeu invalide',
-      hostRenameOnly: 'Seul l’hôte peut renommer la salle.',
-      default: 'Impossible de mettre à jour la salle pour le moment.',
-    },
-    modes: {
-      classic: { label: 'Classique', description: 'Tetris compétitif standard où les lignes supprimées envoient des pénalités aux adversaires.' },
-      mirror: { label: 'Miroir', description: 'Les contrôles sont inversés, donc les déplacements et les chutes se comportent différemment.' },
-      chaotic: { label: 'Chaotique', description: 'Votre pièce actuelle et la pièce suivante peuvent être échangées aléatoirement pendant la partie.' },
-      invisible: { label: 'Invisible', description: 'La pièce active devient plus difficile à suivre pendant sa chute.' },
-      giant: { label: 'Géant', description: 'Jouez sur un plateau plus grand, avec plus d’espace et une survie plus longue.' },
-      cooperative: { label: 'Co-op alternée', description: 'Deux joueurs partagent un plateau et jouent à tour de rôle.' },
-      cooperative_roles: { label: 'Co-op rôles', description: 'Deux joueurs partagent un plateau avec des rôles séparés pour les déplacements et la rotation.' },
-    },
-    invalidPassword: 'Mot de passe invalide',
-    passwordRequired: 'Mot de passe requis',
-    joinFailed: 'Impossible de rejoindre la salle',
-    editRoomName: 'Modifier le nom de la salle',
-    currentPassword: 'Mot de passe actuel de la salle',
-    password: 'Mot de passe',
-    roomPassword: 'Mot de passe de la salle',
-    hidePassword: 'Masquer le mot de passe',
-    showPassword: 'Afficher le mot de passe',
-    joinRoom: 'Rejoindre la salle',
-    back: 'Retour',
-    gameMode: 'Mode de jeu',
-    players: 'Joueurs',
-    waitingPlayers: 'En attente de joueurs...',
-    startGame: 'Lancer la partie',
-  },
-}
+import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
 function CreateRoom({
   theme,
@@ -107,7 +26,7 @@ function CreateRoom({
   onStartGame,
   language = DEFAULT_LANGUAGE,
 }) {
-  const text = CREATE_ROOM_TRANSLATIONS[language] || CREATE_ROOM_TRANSLATIONS[DEFAULT_LANGUAGE]
+  const text = getTranslation(language).createRoom
   const sharedBoardModes = ['cooperative', 'cooperative_roles']
   const defaultAvatar = {
     skinColor: '#cccccc',

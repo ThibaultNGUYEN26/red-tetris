@@ -2,7 +2,7 @@ import './Leaderboard.css'
 import { useEffect, useState } from 'react'
 import FaceAvatar from '../FaceAvatar/FaceAvatar'
 import { socket } from '../../socket'
-import { DEFAULT_LANGUAGE } from '../../i18n/playerStats'
+import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
 const DEFAULT_AVATAR = {
   skinColor: '#cccccc',
@@ -14,29 +14,6 @@ const hasScoreEntries = (data) =>
   Array.isArray(data) && data.some((entry) => Number(entry?.score || 0) > 0)
 
 const LEADERBOARD_CACHE_KEY = 'red-tetris-leaderboards'
-const LEADERBOARD_TRANSLATIONS = {
-  en: {
-    title: '🏆 Leaderboard',
-    solo: 'Solo',
-    coop: 'Co-op Duo',
-    loading: 'Loading…',
-    playerOne: 'Player 1',
-    playerTwo: 'Player 2',
-    previousPage: 'Previous page',
-    nextPage: 'Next page',
-  },
-  fr: {
-    title: '🏆 Classement',
-    solo: 'Solo',
-    coop: 'Duo coop',
-    loading: 'Chargement…',
-    playerOne: 'Joueur 1',
-    playerTwo: 'Joueur 2',
-    previousPage: 'Page précédente',
-    nextPage: 'Page suivante',
-  },
-}
-
 const readCachedLeaderboards = () => {
   try {
     const cached = JSON.parse(localStorage.getItem(LEADERBOARD_CACHE_KEY) || '{}')
@@ -58,7 +35,7 @@ const writeCachedLeaderboards = (nextCache) => {
 }
 
 function Leaderboard({ theme, language = DEFAULT_LANGUAGE }) {
-  const text = LEADERBOARD_TRANSLATIONS[language] || LEADERBOARD_TRANSLATIONS[DEFAULT_LANGUAGE]
+  const text = getTranslation(language).leaderboard
   const [leaderboards, setLeaderboards] = useState(() => readCachedLeaderboards())
   const [soloLoaded, setSoloLoaded] = useState(() => leaderboards.solo.length > 0)
   const [coopLoaded, setCoopLoaded] = useState(() => leaderboards.coop.length > 0)

@@ -17,7 +17,7 @@ import Title from './components/Title/Title.jsx'
 import { socket } from './socket'
 import { AUTH_STORAGE_KEY, authFetchOptions } from './authToken'
 import { apiFetch } from './api'
-import { DEFAULT_LANGUAGE, isSupportedLanguage } from './i18n/playerStats'
+import { DEFAULT_LANGUAGE, getTranslation, isSupportedLanguage } from './i18n'
 import bopSound from './res/sounds/bop.mp3'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
@@ -28,40 +28,6 @@ const DEFAULT_PREFERENCES = {
   theme: 'light',
   soundEnabled: true,
   language: DEFAULT_LANGUAGE,
-}
-const ROOM_NOTICE_TRANSLATIONS = {
-  en: {
-    roomUsed: 'Room already used',
-    userConnected: 'User already connected',
-  },
-  fr: {
-    roomUsed: 'Salle déjà utilisée',
-    userConnected: 'Utilisateur déjà connecté',
-  },
-}
-const APP_UI_TRANSLATIONS = {
-  en: {
-    openProfileMenu: 'Open profile menu',
-    profileTitle: 'Profile',
-    saveProfile: 'Save',
-    connectionLost: 'Connection lost. Reconnecting...',
-    serverUnavailable: 'Server unavailable. Retrying...',
-    serverError: 'Server error',
-    reconnected: 'Reconnected.',
-    reconnecting: 'Reconnecting...',
-    reconnectFailed: 'Unable to reconnect. Please refresh.',
-  },
-  fr: {
-    openProfileMenu: 'Ouvrir le menu du profil',
-    profileTitle: 'Profil',
-    saveProfile: 'Enregistrer',
-    connectionLost: 'Connexion perdue. Reconnexion...',
-    serverUnavailable: 'Serveur indisponible. Nouvelle tentative...',
-    serverError: 'Erreur serveur',
-    reconnected: 'Reconnecte.',
-    reconnecting: 'Reconnexion...',
-    reconnectFailed: 'Impossible de se reconnecter. Veuillez actualiser.',
-  },
 }
 const DEFAULT_URL_AVATAR = {
   skinColor: '#cccccc',
@@ -199,7 +165,7 @@ function Index({ authMode = 'login' }) {
   const [routeNotice, setRouteNotice] = useState('')
   const [socketNotice, setSocketNotice] = useState(null)
   const [showProfileCard, setShowProfileCard] = useState(false)
-  const uiText = APP_UI_TRANSLATIONS[language] || APP_UI_TRANSLATIONS[DEFAULT_LANGUAGE]
+  const uiText = getTranslation(language).appUi
   const bopAudioRef = useRef(null)
   const profileMenuRef = useRef(null)
   const soundEnabledRef = useRef(soundEnabled)
@@ -229,7 +195,7 @@ function Index({ authMode = 'login' }) {
   }
 
   const getRoomNoticeMessage = (error) => {
-    const noticeText = ROOM_NOTICE_TRANSLATIONS[language] || ROOM_NOTICE_TRANSLATIONS[DEFAULT_LANGUAGE]
+    const noticeText = getTranslation(language).roomNotice
     if (!error) return noticeText.roomUsed
     if (error === 'User is already in a room') return noticeText.userConnected
     return error

@@ -2,46 +2,7 @@ import '../Game/Game.css'
 import './SpectatorView.css'
 import { useEffect, useMemo, useState } from 'react'
 import ShadowBoards from '../ShadowBoards/ShadowBoards'
-import { DEFAULT_LANGUAGE } from '../../i18n/playerStats'
-
-const SPECTATOR_TRANSLATIONS = {
-  en: {
-    title: 'Spectator mode',
-    empty: 'No players to watch.',
-    back: 'Back',
-    watching: 'Watching',
-    previous: 'Previous',
-    next: 'Next',
-    score: 'Score',
-    lines: 'Lines',
-    level: 'Level',
-    hold: 'Hold',
-    nextPiece: 'Next',
-    holdPieceLabel: 'Held piece',
-    nextPieceLabel: 'Next piece',
-    boardLabel: 'Tetris board',
-    opponents: 'Opponents',
-    opponentBoard: 'board',
-  },
-  fr: {
-    title: 'Mode spectateur',
-    empty: 'Aucun joueur a regarder.',
-    back: 'Retour',
-    watching: 'Spectateur de',
-    previous: 'Precedent',
-    next: 'Suivant',
-    score: 'Score',
-    lines: 'Lignes',
-    level: 'Niveau',
-    hold: 'Reserve',
-    nextPiece: 'Suivante',
-    holdPieceLabel: 'Piece en reserve',
-    nextPieceLabel: 'Piece suivante',
-    boardLabel: 'Plateau de Tetris',
-    opponents: 'Adversaires',
-    opponentBoard: 'plateau',
-  },
-}
+import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
 const SHAPES = {
   i: [
@@ -111,7 +72,7 @@ const createPiecePreview = (type) => {
 
 function SpectatorView({ players, onBack, username, language = DEFAULT_LANGUAGE }) {
   const [index, setIndex] = useState(0)
-  const text = SPECTATOR_TRANSLATIONS[language] || SPECTATOR_TRANSLATIONS[DEFAULT_LANGUAGE]
+  const text = getTranslation(language).spectator
 
   const list = Array.isArray(players)
     ? players.filter((p) => p?.username !== username)

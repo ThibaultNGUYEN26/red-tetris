@@ -1,26 +1,7 @@
 import './ModeMenuSelector.css'
 import { useState } from 'react'
 import Options from './Options.jsx/Options.jsx'
-import { DEFAULT_LANGUAGE } from '../../i18n/playerStats'
-
-const MENU_TRANSLATIONS = {
-  en: {
-    heading: 'Select game mode',
-    soloTitle: 'Solo',
-    soloDescription: 'Play alone and beat your high score',
-    multiplayerTitle: 'Multiplayer',
-    multiplayerDescription: 'Compete against other players',
-    options: 'Options',
-  },
-  fr: {
-    heading: 'Sélection du mode de jeu',
-    soloTitle: 'Solo',
-    soloDescription: 'Jouez seul et battez votre meilleur score',
-    multiplayerTitle: 'Multijoueur',
-    multiplayerDescription: "Affrontez d'autres joueurs",
-    options: 'Paramètres',
-  },
-}
+import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
 function ModeMenuSelector({
   theme,
@@ -33,7 +14,7 @@ function ModeMenuSelector({
   onLanguageChange,
 }) {
   const [showOptions, setShowOptions] = useState(false)
-  const text = MENU_TRANSLATIONS[selectedLanguage] || MENU_TRANSLATIONS[DEFAULT_LANGUAGE]
+  const text = getTranslation(selectedLanguage).menu
 
   const handleSolo = () => {
     onShowSoloRoom?.(true)
