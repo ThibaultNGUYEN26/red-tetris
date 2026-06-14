@@ -588,6 +588,47 @@ describe('Game Component', () => {
     expect(socket.emit).toHaveBeenCalledWith('movePiece', { roomId: '1', action: 'hardDrop' })
   })
 
+  it('reveals the board easter egg video only after the full key combo', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+        }],
+      })
+    })
+
+    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+    const combo = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
+
+    combo.slice(0, -1).forEach((key) => {
+      fireEvent.keyDown(window, { key })
+    })
+
+    expect(boardElement.querySelector('video')).not.toBeInTheDocument()
+    expect(boardElement).not.toHaveClass('board-easter-egg-active')
+
+    fireEvent.keyDown(window, { key: combo.at(-1) })
+
+    await waitFor(() => {
+      expect(boardElement.querySelector('video')).toBeInTheDocument()
+      expect(boardElement).toHaveClass('board-easter-egg-active')
+    })
+  })
+
   it('keeps the board server-authoritative after local input', async () => {
     render(
       <Game

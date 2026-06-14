@@ -13,6 +13,7 @@ import pauseSound from '../../res/sounds/pause.mp3'
 import clearSound from '../../res/sounds/clear.mp3'
 import winnerSound from '../../res/sounds/winner.mp3'
 import loserSound from '../../res/sounds/loser.mp3'
+import boardEasterEggVideo from '../../res/videos/tetrisarrete.mp4'
 import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
 const DEFAULT_BOARD = { width: 10, height: 20 }
@@ -26,6 +27,18 @@ const MIN_DAS_MS = 70
 const COUNTDOWN_STEP_MS = 800
 const COUNTDOWN_STEPS = ['3', '2', '1', 'Go']
 const SHARED_BOARD_MODES = ['cooperative', 'cooperative_roles']
+const EASTER_EGG_COMBO = [
+  'arrowup',
+  'arrowup',
+  'arrowdown',
+  'arrowdown',
+  'arrowleft',
+  'arrowright',
+  'arrowleft',
+  'arrowright',
+  'b',
+  'a',
+]
 const SHAPES = {
   i: [
     [[1, 0], [1, 1], [1, 2], [1, 3]],
@@ -109,6 +122,13 @@ const makeEmptyBoard = (size = DEFAULT_BOARD) =>
     Array.from({ length: size.width }, () => 'empty')
   )
 
+const restartVideoPlayback = (video) => {
+  if (!video) return
+  video.currentTime = 0
+  const playback = video.play?.()
+  playback?.catch?.(() => {})
+}
+
 function Game({
   theme,
   onBack,
@@ -143,6 +163,7 @@ function Game({
   const [cooperativeRole, setCooperativeRole] = useState(null)
   const [boardFlash, setBoardFlash] = useState(null)
   const [countdownStep, setCountdownStep] = useState(null)
+  const [isBoardVideoActive, setIsBoardVideoActive] = useState(false)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
@@ -166,6 +187,8 @@ function Game({
   const boardFlashFrameRef = useRef(null)
   const countdownTimerRef = useRef(null)
   const countdownStepTimerRef = useRef(null)
+  const easterEggProgressRef = useRef(0)
+  const boardVideoRef = useRef(null)
 
   const clearCountdown = ({ resetState = true } = {}) => {
     if (countdownTimerRef.current) {
@@ -635,7 +658,28 @@ function Game({
   }, [board])
 
   useEffect(() => {
+    if (!isBoardVideoActive) return
+    restartVideoPlayback(boardVideoRef.current)
+  }, [isBoardVideoActive])
+
+  useEffect(() => {
     const handleKeyDown = (event) => {
+      const normalizedKey = event.key.toLowerCase()
+      const expectedKey = EASTER_EGG_COMBO[easterEggProgressRef.current]
+
+      if (normalizedKey === expectedKey) {
+        easterEggProgressRef.current += 1
+        if (easterEggProgressRef.current === EASTER_EGG_COMBO.length) {
+          easterEggProgressRef.current = 0
+          setIsBoardVideoActive(true)
+          restartVideoPlayback(boardVideoRef.current)
+        }
+      } else if (normalizedKey === EASTER_EGG_COMBO[0]) {
+        easterEggProgressRef.current = 1
+      } else {
+        easterEggProgressRef.current = 0
+      }
+
       if (event.repeat) return
       const isMirrorMode = gameMode === 'mirror'
       if (countdownStep) return
@@ -906,8 +950,8 @@ function Game({
             </aside>
           </div>
 
-          <div
-            className={`game-board${boardFlash ? ` board-flash board-flash-${boardFlash}` : ''}`}
+        <div
+            className={`game-board${boardFlash ? ` board-flash board-flash-${boardFlash}` : ''}${isBoardVideoActive ? ' board-easter-egg-active' : ''}`}
             role="grid"
             aria-label={text.boardAria}
             style={{
@@ -916,6 +960,18 @@ function Game({
               ['--cell-size']: `clamp(18px, min(calc((100vh - 235px) / ${boardSize.height}), calc((100vw - clamp(240px, 22vw, 320px)) / ${boardSize.width})), 48px)`,
             }}
           >
+            {isBoardVideoActive && (
+              <video
+                ref={boardVideoRef}
+                className="board-easter-egg-video"
+                src={boardEasterEggVideo}
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-hidden="true"
+              />
+            )}
             {board.map((row, rowIndex) =>
               row.map((cell, colIndex) => (
                 <div
