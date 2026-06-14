@@ -29,6 +29,7 @@ import bopSound from './res/sounds/bop.mp3'
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const THEME_STORAGE_KEY = 'red-tetris-theme'
 const LANGUAGE_STORAGE_KEY = 'red-tetris-language'
+const FIRST_CONNECTION_TUTORIAL_STORAGE_KEY = 'red-tetris-first-connection-tutorial-seen'
 const LANGUAGE_CHANGE_EVENT = 'red-tetris-language-change'
 const DEFAULT_PREFERENCES = {
   theme: 'light',
@@ -581,6 +582,8 @@ function Index({ authMode = 'login' }) {
   /* ---------------- PROFILE ---------------- */
 
   const handleAuthSubmit = async (profile) => {
+    const shouldOpenTutorial = !localStorage.getItem(FIRST_CONNECTION_TUTORIAL_STORAGE_KEY)
+
     await reconnectSocketWithSession()
 
     const regResult = await new Promise((resolve) => {
@@ -624,6 +627,11 @@ function Index({ authMode = 'login' }) {
     }).catch(() => {})
 
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
+
+    if (shouldOpenTutorial) {
+      localStorage.setItem(FIRST_CONNECTION_TUTORIAL_STORAGE_KEY, '1')
+      navigate('/tutorial', { replace: true })
+    }
   }
 
   const handleThemeChange = (newTheme) => {

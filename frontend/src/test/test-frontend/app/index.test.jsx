@@ -226,11 +226,95 @@ describe('Index main page', () => {
           preferences: {
             theme: 'light',
             soundEnabled: true,
+            musicEnabled: true,
             language: 'fr',
           },
         }),
       })
     )
+  })
+
+  it('opens the tutorial after the first successful login', async () => {
+    mockParams = { username: undefined, roomName: undefined, roomType: undefined }
+    global.fetch.mockImplementation(async (url) => {
+      if (requestPath(url) === '/api/auth/login') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+          }),
+        }
+      }
+
+      if (requestPath(url) === '/api/profile') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+            preferences: { theme: 'light', soundEnabled: true, language: 'en' },
+          }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    const { container } = render(<Index />)
+
+    fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'Titi' } })
+    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'Secret123!' } })
+    fireEvent.click(container.querySelector('.submit-button'))
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/tutorial', { replace: true })
+    })
+    expect(localStorage.getItem('red-tetris-first-connection-tutorial-seen')).toBe('1')
+  })
+
+  it('does not reopen the tutorial after it has already been shown', async () => {
+    mockParams = { username: undefined, roomName: undefined, roomType: undefined }
+    localStorage.setItem('red-tetris-first-connection-tutorial-seen', '1')
+    global.fetch.mockImplementation(async (url) => {
+      if (requestPath(url) === '/api/auth/login') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+          }),
+        }
+      }
+
+      if (requestPath(url) === '/api/profile') {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            username: 'Titi',
+            avatar: { eyeType: 'happy' },
+            preferences: { theme: 'light', soundEnabled: true, language: 'en' },
+          }),
+        }
+      }
+
+      throw new Error(`Unhandled fetch call: ${url}`)
+    })
+
+    const { container } = render(<Index />)
+
+    fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'Titi' } })
+    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'Secret123!' } })
+    fireEvent.click(container.querySelector('.submit-button'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('player-stats')).toBeInTheDocument()
+    })
+    expect(navigateMock).not.toHaveBeenCalledWith('/tutorial', { replace: true })
   })
 
   it('translates the register page when language is changed before signing in', () => {
@@ -375,6 +459,7 @@ describe('Index main page', () => {
             preferences: {
               theme: 'light',
               soundEnabled: true,
+              musicEnabled: true,
               language: 'fr',
             },
           }),
@@ -449,6 +534,7 @@ describe('Index main page', () => {
             preferences: {
               theme: 'light',
               soundEnabled: true,
+              musicEnabled: true,
               language: 'es',
             },
           }),
