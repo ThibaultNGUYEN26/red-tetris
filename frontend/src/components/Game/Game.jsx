@@ -295,6 +295,14 @@ function Game({
     audio.currentTime = 0
   }
 
+  const handleBoardVideoFinished = () => {
+    setIsBoardVideoActive(false)
+    if (!soundEnabled || isPaused || isGameOver) return
+    if (!isMultiplayer) {
+      resumeMusic()
+    }
+  }
+
   const stopAllSfx = () => {
     const refs = [levelUpRef, tetrisRef, pauseRef, clearRef, winnerRef, loserRef]
     refs.forEach((ref) => {
@@ -659,8 +667,18 @@ function Game({
 
   useEffect(() => {
     if (!isBoardVideoActive) return
-    restartVideoPlayback(boardVideoRef.current)
-  }, [isBoardVideoActive])
+    const video = boardVideoRef.current
+    if (!video) return
+    if (!soundEnabled) {
+      video.muted = true
+    } else {
+      video.muted = false
+      if (!isMultiplayer) {
+        pauseMusic()
+      }
+    }
+    restartVideoPlayback(video)
+  }, [isBoardVideoActive, soundEnabled, isMultiplayer])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -672,7 +690,6 @@ function Game({
         if (easterEggProgressRef.current === EASTER_EGG_COMBO.length) {
           easterEggProgressRef.current = 0
           setIsBoardVideoActive(true)
-          restartVideoPlayback(boardVideoRef.current)
         }
       } else if (normalizedKey === EASTER_EGG_COMBO[0]) {
         easterEggProgressRef.current = 1
@@ -966,10 +983,9 @@ function Game({
                 className="board-easter-egg-video"
                 src={boardEasterEggVideo}
                 autoPlay
-                loop
-                muted
                 playsInline
                 aria-hidden="true"
+                onEnded={handleBoardVideoFinished}
               />
             )}
             {board.map((row, rowIndex) =>

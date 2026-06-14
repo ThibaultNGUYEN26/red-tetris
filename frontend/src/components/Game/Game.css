@@ -207,7 +207,7 @@
   z-index: 1;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(8, 12, 24, 0.08), rgba(8, 12, 24, 0.28));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(8, 12, 24, 0.18));
 }
 
 .game-board::after {
@@ -301,17 +301,17 @@
 }
 
 .cell-empty {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(42, 82, 152, 0.08);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
-    inset 0 0 4px rgba(255, 255, 255, 0.18);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 0 4px rgba(255, 255, 255, 0.35);
 }
 
 .game-board.board-easter-egg-active .cell-empty {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.12);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 0 8px rgba(255, 255, 255, 0.08);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
+    inset 0 0 8px rgba(255, 255, 255, 0.22);
 }
 
 .cell-ghost {
@@ -669,10 +669,10 @@
 }
 
 .game-screen.dark .game-board.board-easter-egg-active .cell-empty {
-  background: rgba(8, 12, 24, 0.18);
+  background: rgba(18, 24, 48, 0.32);
   box-shadow:
-    inset 0 0 0 1px rgba(190, 220, 255, 0.08),
-    inset 0 0 8px rgba(0, 0, 0, 0.2);
+    inset 0 0 0 1px rgba(190, 220, 255, 0.16),
+    inset 0 0 8px rgba(0, 0, 0, 0.24);
 }
 
 .game-screen.dark .cell-ghost {

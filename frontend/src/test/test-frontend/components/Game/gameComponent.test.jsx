@@ -78,6 +78,7 @@ describe('Game Component', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
   it('renders board, next preview, and options button', () => {
@@ -589,6 +590,10 @@ describe('Game Component', () => {
   })
 
   it('reveals the board easter egg video only after the full key combo', async () => {
+    const videoPlaySpy = vi
+      .spyOn(HTMLMediaElement.prototype, 'play')
+      .mockImplementation(() => undefined)
+
     render(
       <Game
         theme="light"
@@ -627,6 +632,62 @@ describe('Game Component', () => {
       expect(boardElement.querySelector('video')).toBeInTheDocument()
       expect(boardElement).toHaveClass('board-easter-egg-active')
     })
+
+    expect(videoPlaySpy).toHaveBeenCalled()
+  })
+
+  it('plays the easter egg video once, pauses music, then restores the board and music', async () => {
+    const videoPlaySpy = vi
+      .spyOn(HTMLMediaElement.prototype, 'play')
+      .mockImplementation(() => undefined)
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1' })
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+        }],
+      })
+    })
+
+    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+    const combo = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
+
+    combo.forEach((key) => {
+      fireEvent.keyDown(window, { key })
+    })
+
+    const videoElement = await waitFor(() => {
+      const element = boardElement.querySelector('video')
+      expect(element).toBeInTheDocument()
+      return element
+    })
+
+    expect(audioInstances[0].pause).toHaveBeenCalled()
+    expect(videoPlaySpy).toHaveBeenCalled()
+
+    fireEvent.ended(videoElement)
+
+    await waitFor(() => {
+      expect(boardElement.querySelector('video')).not.toBeInTheDocument()
+      expect(boardElement).not.toHaveClass('board-easter-egg-active')
+    })
+
+    expect(audioInstances[0].play).toHaveBeenCalled()
   })
 
   it('keeps the board server-authoritative after local input', async () => {
@@ -1358,6 +1419,10 @@ describe('Game Component', () => {
   })
 
   it('highlights the board on level up, tetris, and full board clear', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('requestAnimationFrame', (callback) => setTimeout(callback, 16))
+    vi.stubGlobal('cancelAnimationFrame', (timerId) => clearTimeout(timerId))
+
     const filledBoard = makeBoard()
     filledBoard[19][0] = 'i'
 
@@ -1386,11 +1451,13 @@ describe('Game Component', () => {
       })
     })
 
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(16)
+    })
+
     const boardElement = screen.getByRole('grid', { name: /tetris board/i })
 
-    await waitFor(() => {
-      expect(boardElement).toHaveClass('board-flash-level')
-    })
+    expect(boardElement).toHaveClass('board-flash-level')
 
     await act(async () => {
       getSocketHandler('gameState')?.({
@@ -1405,9 +1472,11 @@ describe('Game Component', () => {
       })
     })
 
-    await waitFor(() => {
-      expect(boardElement).toHaveClass('board-flash-tetris')
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(16)
     })
+
+    expect(boardElement).toHaveClass('board-flash-tetris')
 
     await act(async () => {
       getSocketHandler('gameState')?.({
@@ -1422,9 +1491,11 @@ describe('Game Component', () => {
       })
     })
 
-    await waitFor(() => {
-      expect(boardElement).toHaveClass('board-flash-clear')
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(16)
     })
+
+    expect(boardElement).toHaveClass('board-flash-clear')
   })
 
   it('clears pending board highlights when the animation ends or a new game starts', async () => {
