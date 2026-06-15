@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import GoodClouds from './components/GoodClouds/GoodClouds.jsx'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
@@ -149,6 +149,7 @@ function InfoPage({ type }) {
   const infoText = translation.infoPage.labels
   const contactText = translation.infoPage.contact
   const isTutorialPage = type === 'tutorial'
+  const navigate = useNavigate()
   const [theme] = useState(() => (
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
   ))
@@ -435,7 +436,13 @@ function InfoPage({ type }) {
       <div className="content-wrapper info-page-wrapper">
         <main className="info-page-card">
           <nav className="info-page-nav" aria-label={infoText.informationPages}>
-            <Link className="info-page-back" to="/">{infoText.back}</Link>
+            {isTutorialPage ? (
+              <button className="info-page-back" type="button" onClick={() => navigate('/')}>
+                {infoText.closeGuide}
+              </button>
+            ) : (
+              <Link className="info-page-back" to="/">{infoText.back}</Link>
+            )}
             {!isTutorialPage && (
               <>
                 <Link to="/about">{infoText.about}</Link>

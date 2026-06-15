@@ -519,6 +519,7 @@ const fr = {
     labels: {
     informationPages: 'Pages d\u2019information',
     back: '\u2190 Retour',
+    closeGuide: 'Fermer le guide',
     about: 'A propos',
     contact: 'Contact',
     terms: 'Conditions',

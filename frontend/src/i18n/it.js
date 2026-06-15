@@ -581,6 +581,7 @@ const it = {
     labels: {
     informationPages: 'Information pages',
     back: '\u2190 Back',
+    closeGuide: 'Close guide',
     about: 'About',
     contact: 'Contact',
     terms: 'Terms',

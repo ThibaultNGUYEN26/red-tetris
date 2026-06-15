@@ -4,6 +4,7 @@ import '@testing-library/jest-dom/vitest'
 
 vi.mock('react-router-dom', () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
+  useNavigate: () => vi.fn(),
 }))
 
 vi.mock('../../../components/GoodClouds/GoodClouds.jsx', () => ({

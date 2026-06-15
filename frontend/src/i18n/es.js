@@ -518,6 +518,7 @@ const es = {
     labels: {
       informationPages: 'Paginas de informacion',
       back: '\u2190 Volver',
+      closeGuide: 'Cerrar guia',
       about: 'Acerca de',
       contact: 'Contacto',
       terms: 'Terminos',
