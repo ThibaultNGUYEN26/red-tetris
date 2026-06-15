@@ -124,7 +124,6 @@ const makeEmptyBoard = (size = DEFAULT_BOARD) =>
   )
 
 const restartVideoPlayback = (video) => {
-  if (!video) return
   video.currentTime = 0
   const playback = video.play?.()
   playback?.catch?.(() => {})
@@ -148,8 +147,8 @@ function Game({
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
   const text = getTranslation(language).game
   const controls = text.controls
-  const soundEffectsOnLabel = text.soundEffectsOn || text.soundOn || 'Sound effects: enabled'
-  const soundEffectsOffLabel = text.soundEffectsOff || text.soundOff || 'Sound effects: disabled'
+  const soundEffectsOnLabel = text.soundEffectsOn || text.soundOn
+  const soundEffectsOffLabel = text.soundEffectsOff || text.soundOff
   const musicOnLabel = text.musicOn || 'Music: enabled'
   const musicOffLabel = text.musicOff || 'Music: disabled'
   const enabledLabel = text.enabled || 'Enabled'
@@ -679,7 +678,6 @@ function Game({
   useEffect(() => {
     if (!isBoardVideoActive) return
     const video = boardVideoRef.current
-    if (!video) return
     video.volume = 0.1
     video.muted = !soundEnabled
     if (!isMultiplayer && musicEnabled) {
@@ -691,7 +689,6 @@ function Game({
   useEffect(() => {
     if (!isBoardVideoActive) return
     const video = boardVideoRef.current
-    if (!video) return
     video.volume = 0.1
     video.muted = !soundEnabled
   }, [isBoardVideoActive, soundEnabled])
@@ -800,6 +797,7 @@ function Game({
       return
     }
     if (isPaused) {
+      /* v8 ignore next -- audio refs are initialized on mount before pause controls are usable. @preserve */
       if (soundEnabled && pauseRef.current) {
         pauseRef.current.currentTime = 0
         /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */

@@ -7,6 +7,23 @@ vi.mock('react-router-dom', () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
 }))
 
+vi.mock('../../../../i18n', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    getTranslation: (lang) => {
+      if (lang === '__nosound__') {
+        const base = actual.getTranslation('en')
+        return {
+          ...base,
+          options: { ...base.options, soundEffects: undefined, sound: undefined },
+        }
+      }
+      return actual.getTranslation(lang)
+    },
+  }
+})
+
 describe('Options Component', () => {
   const defaultProps = {
     onBack: vi.fn(),
@@ -145,5 +162,16 @@ describe('Options Component', () => {
     expect(screen.getByLabelText(/language options/i)).toBeInTheDocument()
     fireEvent.click(overlay)
     expect(screen.queryByLabelText(/language options/i)).not.toBeInTheDocument()
+  })
+
+  it('falls back to "Sound effects" label when translation has no sound key', () => {
+    render(
+      <Options
+        {...defaultProps}
+        selectedLanguage="__nosound__"
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /sound effects/i })).toBeInTheDocument()
   })
 })

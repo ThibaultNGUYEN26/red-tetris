@@ -918,6 +918,41 @@ describe('auth routes', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' })
   })
 
+  it('omits auth token and skips refreshing session cookie in non-dev environments', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('VITEST', '')
+    vi.stubEnv('VITEST_WORKER_ID', '')
+    process.env.SESSION_SECRET = 'test-secret'
+
+    try {
+      const token = createSessionToken({ id: 3, username: 'Titi' })
+      mockQuery.mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          id: 3,
+          username: 'Titi',
+          email: 'titi@example.com',
+          avatar: {},
+          preferences: null,
+        }],
+      })
+
+      const { default: router } = await import('../../src/routes/auth.routes.js')
+      const handler = getHandler(router, 'get', '/me')
+      const res = buildRes()
+
+      await handler({
+        headers: { cookie: `red_tetris_session=${encodeURIComponent(token)}` },
+      }, res)
+
+      expect(res.status).toHaveBeenCalledWith(200)
+      expect(res.json.mock.calls[0][0]).not.toHaveProperty('authToken')
+      expect(res.cookie).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('returns server error when fetching the current session user fails', async () => {
     process.env.SESSION_SECRET = 'test-secret'
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})

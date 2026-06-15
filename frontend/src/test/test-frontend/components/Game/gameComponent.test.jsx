@@ -701,6 +701,38 @@ describe('Game Component', () => {
     expect(audioInstances[0].play).toHaveBeenCalled()
   })
 
+  it('silently swallows a rejected play() promise when restarting the easter egg video', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValue(new Error('NotAllowedError'))
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1' })
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{ username: 'Titi', board: makeBoard() }],
+      })
+    })
+
+    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+    const combo = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
+    combo.forEach((key) => { fireEvent.keyDown(window, { key }) })
+
+    await waitFor(() => {
+      expect(boardElement.querySelector('video')).toBeInTheDocument()
+    })
+  })
+
   it('keeps the board server-authoritative after local input', async () => {
     render(
       <Game
@@ -1775,5 +1807,340 @@ describe('Game Component', () => {
 
     expect(container.querySelector('.game-screen.dark')).toBeTruthy()
     expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+  })
+
+  it('resets easter egg progress to 1 when a wrong mid-combo key matches the first combo key', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{ username: 'Titi', board: makeBoard() }],
+      })
+    })
+
+    // Progress to index 2 (expecting ArrowDown next), then press ArrowUp — wrong for index 2 but matches EASTER_EGG_COMBO[0], so progress resets to 1 instead of 0
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+
+    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+    expect(boardElement.querySelector('video')).not.toBeInTheDocument()
+  })
+
+  it('closes the pause language overlay by clicking the backdrop', async () => {
+    const { container } = render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+        onLanguageChange={vi.fn()}
+      />
+    )
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /language/i }))
+
+    await waitFor(() => {
+      expect(container.querySelector('.language-options-overlay')).toBeInTheDocument()
+    })
+
+    fireEvent.click(container.querySelector('.language-options-overlay'))
+
+    await waitFor(() => {
+      expect(container.querySelector('.language-options-overlay')).not.toBeInTheDocument()
+    })
+  })
+
+  it('uses soundOff fallback label when translation omits soundEffectsOff', () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        username="Titi"
+        isMultiplayer={false}
+        language="fr"
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.getByRole('button', { name: /son : désactivé/i })).toBeInTheDocument()
+  })
+
+  it('shows dark-themed pause overlay', () => {
+    const { container } = render(
+      <Game
+        theme="dark"
+        onBack={vi.fn()}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(container.querySelector('.options-modal.game-options-modal.dark')).toBeInTheDocument()
+  })
+
+  it('plays pause sound when music is enabled and pausing', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+        musicEnabled
+        onMusicChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'Escape' })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    const pauseAudio = audioInstances.find((a) => a.play.mock.calls.length > 0)
+    expect(pauseAudio).toBeDefined()
+  })
+
+  it('does not resume music when the easter egg video ends in multiplayer', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => undefined)
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled
+        onSoundChange={vi.fn()}
+        musicEnabled
+        onMusicChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1' })
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{ username: 'Titi', board: makeBoard() }],
+      })
+    })
+
+    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+    const combo = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
+    combo.forEach((key) => { fireEvent.keyDown(window, { key }) })
+
+    const videoElement = await waitFor(() => {
+      const el = boardElement.querySelector('video')
+      expect(el).toBeInTheDocument()
+      return el
+    })
+
+    const playCallsBefore = audioInstances[0].play.mock.calls.length
+
+    fireEvent.ended(videoElement)
+
+    await waitFor(() => {
+      expect(boardElement.querySelector('video')).not.toBeInTheDocument()
+    })
+
+    expect(audioInstances[0].play.mock.calls.length).toBe(playCallsBefore)
+  })
+
+  it('skips music resume when video ends while game is over', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => undefined)
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+        musicEnabled
+        onMusicChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1' })
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{ username: 'Titi', board: makeBoard() }],
+      })
+    })
+
+    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+    const combo = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
+    combo.forEach((key) => { fireEvent.keyDown(window, { key }) })
+
+    const videoElement = await waitFor(() => {
+      const el = boardElement.querySelector('video')
+      expect(el).toBeInTheDocument()
+      return el
+    })
+
+    await act(async () => {
+      getSocketHandler('gameOver')?.({ winner: 'Other' })
+    })
+
+    fireEvent.ended(videoElement)
+
+    await waitFor(() => {
+      expect(boardElement.querySelector('video')).not.toBeInTheDocument()
+    })
+  })
+
+  it('ignores gameStarted with a mismatched room id', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '99' })
+    })
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('ignores gameStarted after the player has left', async () => {
+    const onBack = vi.fn()
+
+    render(
+      <Game
+        theme="light"
+        onBack={onBack}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /options/i }))
+    fireEvent.click(screen.getByRole('button', { name: /leave game/i }))
+
+    expect(onBack).toHaveBeenCalled()
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1' })
+    })
+  })
+
+  it('does not play pause sound when sound effects are disabled', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+        musicEnabled
+        onMusicChange={vi.fn()}
+      />
+    )
+
+    const callCountsBefore = audioInstances.map((a) => a.play.mock.calls.length)
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: 'Escape' })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    audioInstances.forEach((a, i) => {
+      expect(a.play.mock.calls.length).toBe(callCountsBefore[i])
+    })
+  })
+
+  it('skips music resume when video ends while the game is already over (not paused)', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => undefined)
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled
+        onSoundChange={vi.fn()}
+        musicEnabled
+        onMusicChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1' })
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{ username: 'Titi', board: makeBoard() }],
+      })
+    })
+
+    const boardElement = screen.getByRole('grid', { name: /tetris board/i })
+    const combo = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']
+    combo.forEach((key) => { fireEvent.keyDown(window, { key }) })
+
+    const videoElement = await waitFor(() => {
+      const el = boardElement.querySelector('video')
+      expect(el).toBeInTheDocument()
+      return el
+    })
+
+    await act(async () => {
+      getSocketHandler('gameOver')?.({ winner: null })
+    })
+
+    fireEvent.ended(videoElement)
+
+    await waitFor(() => {
+      expect(boardElement.querySelector('video')).not.toBeInTheDocument()
+    })
   })
 })

@@ -289,6 +289,7 @@ function AuthMenu({
             mouthType: currentAvatar.mouthType,
           },
           preferences: data.preferences || {},
+          isNew: true,
         })
         return
       }

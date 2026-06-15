@@ -1650,6 +1650,59 @@ describe('CreateRoom Component', () => {
       )
     })
 
+    it('should ignore availableRooms coop fallback after leaving with the back button', async () => {
+      render(
+        <CreateRoom
+          {...defaultProps}
+          mode="join"
+          roomId={1}
+          roomType="cooperative"
+        />
+      )
+
+      const roomStateHandler = socket.on.mock.calls.find(
+        call => call[0] === 'roomState'
+      )?.[1]
+      const availableRoomsHandler = socket.on.mock.calls.find(
+        call => call[0] === 'availableRooms'
+      )?.[1]
+
+      await act(async () => {
+        roomStateHandler?.({
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'cooperative',
+          host: 'TestUser',
+          players: ['TestUser'],
+          player_avatars: {}
+        })
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Room 1')).toBeInTheDocument()
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /back/i }))
+
+      socket.emit.mockClear()
+
+      await act(async () => {
+        availableRoomsHandler?.([{
+          id: 1,
+          name: 'Room 1',
+          game_mode: 'cooperative',
+          host: 'TestUser',
+          player_count: 1,
+          players: ['TestUser']
+        }])
+      })
+
+      expect(socket.emit).not.toHaveBeenCalledWith(
+        'getRoomState',
+        expect.objectContaining({ roomId: '1' })
+      )
+    })
+
     it('should keep the room session when the tab unloads so refresh can reconnect', async () => {
       socket.connected = true
 

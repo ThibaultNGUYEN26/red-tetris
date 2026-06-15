@@ -582,7 +582,7 @@ function Index({ authMode = 'login' }) {
   /* ---------------- PROFILE ---------------- */
 
   const handleAuthSubmit = async (profile) => {
-    const shouldOpenTutorial = !localStorage.getItem(FIRST_CONNECTION_TUTORIAL_STORAGE_KEY)
+    const shouldOpenTutorial = profile.isNew === true
 
     await reconnectSocketWithSession()
 

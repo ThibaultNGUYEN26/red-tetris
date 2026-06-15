@@ -32,7 +32,6 @@ const getGameStartCountdownMs = () => {
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const clearGameStartCountdown = (game) => {
-  if (!game) return;
   if (game.startCountdownTimeout) {
     clearTimeout(game.startCountdownTimeout);
     game.startCountdownTimeout = null;

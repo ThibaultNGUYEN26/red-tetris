@@ -23,4 +23,13 @@ describe('i18n helpers', () => {
     )
     expect(labels.showTutorialSlide('Rotar')).toBe('Mostrar Rotar')
   })
+
+  it('exposes dynamic Italian information labels', () => {
+    const labels = getTranslation('it').infoPage.labels
+
+    expect(labels.deleteConfirm('Titi')).toBe(
+      'Delete the Red Tetris account "Titi" and its scores? This cannot be undone.'
+    )
+    expect(labels.showTutorialSlide('Ruota')).toBe('Show Ruota')
+  })
 })

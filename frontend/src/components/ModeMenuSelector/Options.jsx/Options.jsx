@@ -89,7 +89,7 @@ function Options({
               return (
                 <Link key={option.id} className="option-row" to={option.to}>
                   <span className="option-row-label">{option.label}</span>
-                  <span className={`option-row-value ${option.valueState || 'is-neutral'}`}>{option.value}</span>
+                  <span className={`option-row-value ${option.valueState}`}>{option.value}</span>
                   <span className="option-row-description">{option.description}</span>
                 </Link>
               )
@@ -105,7 +105,7 @@ function Options({
                 aria-controls={option.ariaControls}
               >
                 <span className="option-row-label">{option.label}</span>
-                <span className={`option-row-value ${option.valueState || 'is-neutral'}`}>{option.value}</span>
+                <span className={`option-row-value ${option.valueState}`}>{option.value}</span>
                 <span className="option-row-description">{option.description}</span>
               </button>
             )

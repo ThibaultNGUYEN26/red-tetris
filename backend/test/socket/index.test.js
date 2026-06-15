@@ -1025,6 +1025,80 @@ describe('socket setup', () => {
     expect(socket.emit).toHaveBeenCalledWith('gameState', { roomId: '1', running: true })
   })
 
+  it('getRoomState includes remainingCountdownMs when the game is paused mid-countdown', async () => {
+    vi.useFakeTimers()
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 1,
+        name: 'Room',
+        game_mode: 'classic',
+        host: 'Host',
+        player_count: 2,
+        players: ['Host', 'Riri'],
+        status: 'started',
+      }],
+    })
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        { username: 'Host', avatar: { eyeType: 'happy' } },
+        { username: 'Riri', avatar: { eyeType: 'sad' } },
+      ],
+    })
+    const endsAt = Date.now() + 3000
+    mockGetGame.mockReturnValue({
+      isPaused: true,
+      startCountdownEndsAt: endsAt,
+      serialize: vi.fn(() => ({ roomId: '1', running: true })),
+    })
+
+    const { socket } = await setupConnectedSocket()
+    const getRoomStateHandler = socket.handlers.get('getRoomState')
+
+    await getRoomStateHandler({ roomId: '1' })
+
+    expect(socket.emit).toHaveBeenCalledWith('gameStarted', {
+      roomId: '1',
+      remainingCountdownMs: expect.any(Number),
+    })
+    const call = socket.emit.mock.calls.find(([ev]) => ev === 'gameStarted')
+    expect(call[1].remainingCountdownMs).toBeGreaterThan(0)
+    expect(socket.emit).toHaveBeenCalledWith('gameState', { roomId: '1', running: true })
+    vi.useRealTimers()
+  })
+
+  it('getRoomState omits remainingCountdownMs when startCountdownEndsAt is not finite', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 1,
+        name: 'Room',
+        game_mode: 'classic',
+        host: 'Host',
+        player_count: 2,
+        players: ['Host', 'Riri'],
+        status: 'started',
+      }],
+    })
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        { username: 'Host', avatar: { eyeType: 'happy' } },
+        { username: 'Riri', avatar: { eyeType: 'sad' } },
+      ],
+    })
+    mockGetGame.mockReturnValue({
+      isPaused: true,
+      startCountdownEndsAt: NaN,
+      serialize: vi.fn(() => ({ roomId: '1', running: true })),
+    })
+
+    const { socket } = await setupConnectedSocket()
+    await socket.handlers.get('getRoomState')({ roomId: '1' })
+
+    expect(socket.emit).toHaveBeenCalledWith('gameStarted', { roomId: '1' })
+    expect(socket.emit).toHaveBeenCalledWith('gameState', { roomId: '1', running: true })
+  })
+
   it('getRoomState emits server error when the query throws', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockQuery.mockRejectedValueOnce(new Error('db down'))
@@ -2969,6 +3043,45 @@ describe('socket setup', () => {
     })
     expect(socket.emit).toHaveBeenCalledWith('gameState', gameState)
     expect(player.socketId).toBe(socket.id)
+  })
+
+  it('joinRoom reconnects to a started game mid-countdown and includes remainingCountdownMs', async () => {
+    vi.useFakeTimers()
+    const gameState = { roomId: '1', players: [{ username: 'Titi' }] }
+    const player = { username: 'Titi', socketId: null }
+    const endsAt = Date.now() + 3000
+    mockGetGame.mockReturnValueOnce({
+      isPaused: true,
+      startCountdownEndsAt: endsAt,
+      getPlayer: vi.fn(() => player),
+      serialize: vi.fn(() => gameState),
+    })
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 1,
+        game_mode: 'classic',
+        players: ['Titi', 'Riri'],
+        status: 'started',
+        ready_again: [],
+      }],
+    })
+
+    const { socket } = await setupConnectedSocket()
+    const joinRoomHandler = socket.handlers.get('joinRoom')
+    const ack = vi.fn()
+
+    await joinRoomHandler({ roomId: '1', username: 'Titi' }, ack)
+
+    expect(socket.emit).toHaveBeenCalledWith('gameStarted', expect.objectContaining({
+      roomId: '1',
+      reconnected: true,
+      remainingCountdownMs: expect.any(Number),
+    }))
+    const call = socket.emit.mock.calls.find(([ev]) => ev === 'gameStarted')
+    expect(call[1].remainingCountdownMs).toBeGreaterThan(0)
+    expect(ack).toHaveBeenCalledWith({ ok: true, reconnected: true })
+    vi.useRealTimers()
   })
 
   it('joinRoom reconnects an existing player to a started game', async () => {

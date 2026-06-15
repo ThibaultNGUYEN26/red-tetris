@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
+const mockNavigate = vi.fn()
+
 vi.mock('react-router-dom', () => ({
   Link: ({ to, children, ...props }) => <a href={to} {...props}>{children}</a>,
-  useNavigate: () => vi.fn(),
+  useNavigate: () => mockNavigate,
 }))
 
 vi.mock('../../../components/GoodClouds/GoodClouds.jsx', () => ({
@@ -649,5 +651,13 @@ describe('InfoPage language binding', () => {
     fireEvent.keyDown(carousel, { key: 'Enter' })
 
     expect(container.querySelector('.tutorial-demo.move-left')).toBeInTheDocument()
+  })
+
+  it('navigates home when the Close guide button is clicked on the tutorial page', () => {
+    render(<InfoPage type="tutorial" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close guide' }))
+
+    expect(mockNavigate).toHaveBeenCalledWith('/')
   })
 })

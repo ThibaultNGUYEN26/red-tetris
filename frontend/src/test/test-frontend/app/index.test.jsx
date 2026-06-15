@@ -234,10 +234,10 @@ describe('Index main page', () => {
     )
   })
 
-  it('opens the tutorial after the first successful login', async () => {
+  it('opens the tutorial after the first successful registration', async () => {
     mockParams = { username: undefined, roomName: undefined, roomType: undefined }
     global.fetch.mockImplementation(async (url) => {
-      if (requestPath(url) === '/api/auth/login') {
+      if (requestPath(url) === '/api/auth/register') {
         return {
           ok: true,
           status: 200,
@@ -263,10 +263,12 @@ describe('Index main page', () => {
       throw new Error(`Unhandled fetch call: ${url}`)
     })
 
-    const { container } = render(<Index />)
+    const { container } = render(<Index authMode="register" />)
 
     fireEvent.change(screen.getByPlaceholderText('Username'), { target: { value: 'Titi' } })
-    fireEvent.change(screen.getByPlaceholderText('Password'), { target: { value: 'Secret123!' } })
+    fireEvent.change(screen.getByPlaceholderText('Email'), { target: { value: 'titi@example.com' } })
+    fireEvent.change(screen.getAllByPlaceholderText('Password')[0], { target: { value: 'Secret123!' } })
+    fireEvent.change(screen.getByPlaceholderText('Confirm password'), { target: { value: 'Secret123!' } })
     fireEvent.click(container.querySelector('.submit-button'))
 
     await waitFor(() => {
@@ -275,9 +277,7 @@ describe('Index main page', () => {
     expect(localStorage.getItem('red-tetris-first-connection-tutorial-seen')).toBe('1')
   })
 
-  it('does not reopen the tutorial after it has already been shown', async () => {
-    mockParams = { username: undefined, roomName: undefined, roomType: undefined }
-    localStorage.setItem('red-tetris-first-connection-tutorial-seen', '1')
+  it('does not open the tutorial after a regular login', async () => {
     global.fetch.mockImplementation(async (url) => {
       if (requestPath(url) === '/api/auth/login') {
         return {
