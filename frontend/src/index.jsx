@@ -629,6 +629,11 @@ function Index({ authMode = 'login' }) {
     window.history.pushState({ hasUsername: true }, '', window.location.pathname)
 
     if (shouldOpenTutorial) {
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+        ...nextProfile,
+        username: profile.username,
+        preferences: nextPreferences,
+      }))
       localStorage.setItem(FIRST_CONNECTION_TUTORIAL_STORAGE_KEY, '1')
       navigate('/tutorial', { replace: true })
     }
