@@ -144,9 +144,12 @@ function Game({
   onMusicChange,
   language = DEFAULT_LANGUAGE,
   onLanguageChange,
+  onThemeChange,
 }) {
   const isMultiplayer = isMultiplayerProp ?? Boolean(roomId)
-  const text = getTranslation(language).game
+  const translation = getTranslation(language)
+  const text = translation.game
+  const optionsText = translation.options
   const controls = text.controls
   const soundEffectsOnLabel = text.soundEffectsOn || text.soundOn || 'Sound effects: enabled'
   const soundEffectsOffLabel = text.soundEffectsOff || text.soundOff || 'Sound effects: disabled'
@@ -198,10 +201,13 @@ function Game({
   const boardFlashFrameRef = useRef(null)
   const countdownTimerRef = useRef(null)
   const countdownStepTimerRef = useRef(null)
+  const countdownActiveRef = useRef(false)
+  const pauseSyncReadyRef = useRef(false)
   const easterEggProgressRef = useRef(0)
   const boardVideoRef = useRef(null)
 
   const clearCountdown = ({ resetState = true } = {}) => {
+    countdownActiveRef.current = false
     if (countdownTimerRef.current) {
       clearTimeout(countdownTimerRef.current)
       countdownTimerRef.current = null
@@ -225,6 +231,7 @@ function Game({
 
     stopSoftDrop()
     stopHorizontalAutoMove()
+    countdownActiveRef.current = true
     const endAt = Date.now() + durationMs
 
     const syncCountdownStep = () => {
@@ -247,6 +254,7 @@ function Game({
         countdownStepTimerRef.current = null
       }
       countdownTimerRef.current = null
+      countdownActiveRef.current = false
       setCountdownStep(null)
       onDone?.()
     }, durationMs)
@@ -510,13 +518,17 @@ function Game({
         boardFlashTimerRef.current = null
       }
       startMusic()
-      startCountdown({
-        durationMs: getCountdownDurationMs(payload),
-      })
+      const countdownDurationMs = getCountdownDurationMs(payload)
+      if (countdownDurationMs > 0) {
+        startCountdown({ durationMs: countdownDurationMs })
+      } else if (!countdownActiveRef.current) {
+        clearCountdown()
+      }
     }
 
     const handleGameState = (gameState) => {
       if (exitingRef.current) return
+      if (countdownActiveRef.current) return
       const mode = gameState?.mode || null
       const me = gameState?.players?.find((p) => p.username === username)
       const isLeavingSolo = !isMultiplayer && exitingRef.current
@@ -561,6 +573,7 @@ function Game({
 
     const handlePlayerState = (playerState) => {
       if (exitingRef.current) return
+      if (countdownActiveRef.current) return
       if (String(playerState?.roomId) !== String(roomId)) return
       const mode = playerState?.mode || null
       const me = playerState?.player
@@ -775,9 +788,14 @@ function Game({
   }, [isPaused, isMultiplayer, roomId, username, gameMode, activePlayerUsername, cooperativeRole, isEliminated, countdownStep])
 
   useEffect(() => {
+    if (!pauseSyncReadyRef.current) {
+      pauseSyncReadyRef.current = true
+      return
+    }
     if (isPaused) {
       stopSoftDrop()
     }
+    if (countdownActiveRef.current) return
     if (!isMultiplayer && roomId) {
       socket.emit('pauseGame', { roomId: String(roomId), paused: isPaused })
     }
@@ -883,6 +901,18 @@ function Game({
           },
         })
       },
+    },
+    {
+      id: 'theme',
+      label: theme === 'dark'
+        ? (optionsText.darkTheme || 'Dark theme')
+        : (optionsText.lightTheme || 'Light theme'),
+      value: theme === 'dark' ? 'Dark' : 'Light',
+      valueState: theme === 'dark' ? 'theme-dark' : 'theme-light',
+      description: theme === 'dark'
+        ? (optionsText.switchToLight || 'Switch to light mode')
+        : (optionsText.switchToDark || 'Switch to dark mode'),
+      onClick: () => onThemeChange?.(theme === 'dark' ? 'light' : 'dark'),
     },
     {
       id: 'sound',

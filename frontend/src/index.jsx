@@ -1142,6 +1142,20 @@ function Index({ authMode = 'login' }) {
   }, [showDirectRoom, directRoomName, directRoomId, directRoomType, username, navigate])
 
   useEffect(() => {
+    if (!soloRoomId) return
+
+    const handleGameStarted = ({ roomId }) => {
+      if (String(roomId) !== String(soloRoomId)) return
+      setActiveGameType('solo')
+      setShowGame(true)
+      setShowSoloRoom(false)
+    }
+
+    socket.on('gameStarted', handleGameStarted)
+    return () => socket.off('gameStarted', handleGameStarted)
+  }, [soloRoomId])
+
+  useEffect(() => {
     if (!directRoomId) return
 
     const handleGameStarted = ({ roomId }) => {
@@ -1244,6 +1258,8 @@ function Index({ authMode = 'login' }) {
             musicEnabled={musicEnabled}
             onMusicChange={handleMusicChange}
             language={language}
+            onLanguageChange={handleLanguageChange}
+            onThemeChange={handleThemeChange}
           />
         ) : (
           <>
@@ -1325,9 +1341,6 @@ function Index({ authMode = 'login' }) {
                       }}
                       onStartGame={(roomId) => {
                         if (roomId) setSoloRoomId(roomId)
-                        setActiveGameType('solo')
-                        setShowSoloRoom(false)
-                        setShowGame(true)
                       }}
                     />
                   ) : showDirectRoom && !showGame && directRoomId ? (
@@ -1379,6 +1392,7 @@ function Index({ authMode = 'login' }) {
                       onMusicChange={handleMusicChange}
                       language={language}
                       onLanguageChange={handleLanguageChange}
+                      onThemeChange={handleThemeChange}
                     />
                   ) : (
                     <ModeMenuSelector

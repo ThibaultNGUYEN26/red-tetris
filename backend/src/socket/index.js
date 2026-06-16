@@ -1110,12 +1110,6 @@ export default function setupSockets(io) {
 
         await broadcastAvailableRooms(io);
 
-        // Emit start event; tick will emit gameState
-        io.to(String(roomId)).emit(
-          "gameStarted",
-          countdownMs > 0 ? { roomId, countdownMs } : { roomId }
-        );
-
         if (countdownMs > 0) {
           game.startCountdownEndsAt = Date.now() + countdownMs;
           game.startCountdownTimeout = setTimeout(() => {
@@ -1130,6 +1124,13 @@ export default function setupSockets(io) {
           }, countdownMs);
         }
 
+        // Emit start event after countdown timing has been recorded so
+        // immediately-following getRoomState/joinRoom calls can recover it.
+        io.to(String(roomId)).emit(
+          "gameStarted",
+          countdownMs > 0 ? { roomId, countdownMs } : { roomId }
+        );
+
       } catch (err) {
         console.error("startGame failed:", err);
       }
@@ -1138,7 +1139,7 @@ export default function setupSockets(io) {
     // movePiece during game Socket (enqueue input for server tick)
     socket.on("movePiece", ({ roomId, action }) => {
       const game = getGame(String(roomId));
-      if (!game || !game.isRunning || game.isOver) return;
+      if (!game || !game.isRunning || game.isOver || game.isPaused) return;
 
       const username = socket.data.username;
       if (!username || !action || socket.data.isSpectator) return;

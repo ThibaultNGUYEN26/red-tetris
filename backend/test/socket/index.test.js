@@ -973,6 +973,29 @@ describe('socket setup', () => {
     expect(socket.roomEmit).toHaveBeenCalledWith('gameState', authoritativeState)
   })
 
+  it('movePiece ignores input while the game is paused for countdown', async () => {
+    const { socket } = await setupConnectedSocket()
+    const game = {
+      isRunning: true,
+      isOver: false,
+      isPaused: true,
+      enqueueInput: vi.fn(),
+      processQueuedInputsFor: vi.fn(),
+      checkGameOver: vi.fn(),
+      serializePlayerView: vi.fn(),
+      emitState: vi.fn(),
+    }
+    mockGetGame.mockReturnValue(game)
+    socket.data.username = 'Titi'
+
+    const movePieceHandler = socket.handlers.get('movePiece')
+    movePieceHandler({ roomId: '1', action: 'left' })
+
+    expect(game.enqueueInput).not.toHaveBeenCalled()
+    expect(game.processQueuedInputsFor).not.toHaveBeenCalled()
+    expect(game.emitState).not.toHaveBeenCalled()
+  })
+
   it('joinSpectator emits gameState when a live game exists', async () => {
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
@@ -1022,6 +1045,47 @@ describe('socket setup', () => {
     await getRoomStateHandler({ roomId: '1' })
 
     expect(socket.emit).toHaveBeenCalledWith('gameStarted', { roomId: '1' })
+    expect(socket.emit).toHaveBeenCalledWith('gameState', { roomId: '1', running: true })
+  })
+
+  it('getRoomState includes remaining countdown when the started game is paused for countdown', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        id: 1,
+        name: 'Room',
+        game_mode: 'classic',
+        host: 'Host',
+        player_count: 1,
+        players: ['Host'],
+        status: 'started',
+      }],
+    })
+    mockQuery.mockResolvedValueOnce({
+      rows: [
+        { username: 'Host', avatar: { eyeType: 'happy' } },
+      ],
+    })
+    mockGetGame.mockReturnValue({
+      isPaused: true,
+      startCountdownEndsAt: Date.now() + 2500,
+      serialize: vi.fn(() => ({ roomId: '1', running: true })),
+    })
+
+    const { socket } = await setupConnectedSocket()
+    const getRoomStateHandler = socket.handlers.get('getRoomState')
+
+    await getRoomStateHandler({ roomId: '1' })
+
+    expect(socket.emit).toHaveBeenCalledWith(
+      'gameStarted',
+      expect.objectContaining({
+        roomId: '1',
+        remainingCountdownMs: expect.any(Number),
+      })
+    )
+    const gameStartedCall = socket.emit.mock.calls.find(([event]) => event === 'gameStarted')
+    expect(gameStartedCall?.[1]?.remainingCountdownMs).toBeGreaterThan(0)
     expect(socket.emit).toHaveBeenCalledWith('gameState', { roomId: '1', running: true })
   })
 
