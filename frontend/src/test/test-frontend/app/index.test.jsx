@@ -948,6 +948,10 @@ describe('Index main page', () => {
     expect(screen.getByTestId('desired-room-name')).toHaveTextContent('oldsolo')
 
     fireEvent.click(screen.getByRole('button', { name: /start game/i }))
+    const soloGameStartedHandler = socket.on.mock.calls.find(
+      ([event]) => event === 'gameStarted'
+    )?.[1]
+    soloGameStartedHandler?.({ roomId: '12' })
     expect(await screen.findByRole('button', { name: /play again/i })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /play again/i }))

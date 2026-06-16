@@ -143,6 +143,7 @@ describe('Game Component', () => {
   })
 
   it('shows pause overlay on Escape and allows sound and music toggles', async () => {
+    const onThemeChange = vi.fn()
     const onSoundChange = vi.fn()
     const onMusicChange = vi.fn()
     const onLanguageChange = vi.fn()
@@ -158,6 +159,7 @@ describe('Game Component', () => {
         onSoundChange={onSoundChange}
         musicEnabled
         onMusicChange={onMusicChange}
+        onThemeChange={onThemeChange}
         onLanguageChange={onLanguageChange}
       />
     )
@@ -168,6 +170,8 @@ describe('Game Component', () => {
       expect(screen.getByRole('dialog')).toBeInTheDocument()
     })
 
+    fireEvent.click(screen.getByRole('button', { name: /light theme/i }))
+    expect(onThemeChange).toHaveBeenCalledWith('dark')
     fireEvent.click(screen.getByRole('button', { name: /sound effects: enabled/i }))
     expect(onSoundChange).toHaveBeenCalledWith(false)
     fireEvent.click(screen.getByRole('button', { name: /music: enabled/i }))
@@ -283,6 +287,93 @@ describe('Game Component', () => {
     })
 
     expect(screen.queryByLabelText(/game countdown/i)).not.toBeInTheDocument()
+  })
+
+  it('keeps an active countdown when a duplicate start event has no countdown duration', async () => {
+    vi.useFakeTimers()
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1', countdownMs: 3200 })
+    })
+
+    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('3')
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1', reconnected: true })
+    })
+
+    expect(screen.getByLabelText(/game countdown/i)).toHaveTextContent('3')
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3200)
+    })
+
+    expect(screen.queryByLabelText(/game countdown/i)).not.toBeInTheDocument()
+  })
+
+  it('does not render server board updates until the start countdown ends', async () => {
+    vi.useFakeTimers()
+    const activeBoard = makeBoardWithCells([[0, 4, 'i']])
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1', countdownMs: 3200 })
+    })
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: activeBoard,
+          nextType: 't',
+        }],
+      })
+    })
+
+    expect(document.querySelectorAll('.game-board .cell-i')).toHaveLength(0)
+    expect(document.querySelectorAll('.next-grid .cell-t')).toHaveLength(0)
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3200)
+    })
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: activeBoard,
+          nextType: 't',
+        }],
+      })
+    })
+
+    expect(document.querySelectorAll('.game-board .cell-i')).toHaveLength(1)
+    expect(document.querySelectorAll('.next-grid .cell-t')).toHaveLength(4)
   })
 
   it('finishes a countdown whose step interval was already cleared', async () => {

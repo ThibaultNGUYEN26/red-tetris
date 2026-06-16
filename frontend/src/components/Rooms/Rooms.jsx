@@ -7,7 +7,7 @@ import Game from '../Game/Game.jsx'
 import { logDuration, markStart, perfLog } from '../../perf'
 import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
-function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, joinRoomName, userProfile, soundEnabled, onSoundChange, language = DEFAULT_LANGUAGE }) {
+function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, joinRoomName, userProfile, soundEnabled, onSoundChange, language = DEFAULT_LANGUAGE, onLanguageChange, onThemeChange }) {
   const text = getTranslation(language).rooms
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
@@ -318,6 +318,8 @@ function Rooms({ theme, onBack, onLeaveRoom, onRoomCreated, onNotice, username, 
         soundEnabled={soundEnabled}
         onSoundChange={onSoundChange}
         language={language}
+        onLanguageChange={onLanguageChange}
+        onThemeChange={onThemeChange}
       />
     )
   }

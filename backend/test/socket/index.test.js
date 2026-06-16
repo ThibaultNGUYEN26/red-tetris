@@ -973,6 +973,29 @@ describe('socket setup', () => {
     expect(socket.roomEmit).toHaveBeenCalledWith('gameState', authoritativeState)
   })
 
+  it('movePiece ignores input while the game is paused for countdown', async () => {
+    const { socket } = await setupConnectedSocket()
+    const game = {
+      isRunning: true,
+      isOver: false,
+      isPaused: true,
+      enqueueInput: vi.fn(),
+      processQueuedInputsFor: vi.fn(),
+      checkGameOver: vi.fn(),
+      serializePlayerView: vi.fn(),
+      emitState: vi.fn(),
+    }
+    mockGetGame.mockReturnValue(game)
+    socket.data.username = 'Titi'
+
+    const movePieceHandler = socket.handlers.get('movePiece')
+    movePieceHandler({ roomId: '1', action: 'left' })
+
+    expect(game.enqueueInput).not.toHaveBeenCalled()
+    expect(game.processQueuedInputsFor).not.toHaveBeenCalled()
+    expect(game.emitState).not.toHaveBeenCalled()
+  })
+
   it('joinSpectator emits gameState when a live game exists', async () => {
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,

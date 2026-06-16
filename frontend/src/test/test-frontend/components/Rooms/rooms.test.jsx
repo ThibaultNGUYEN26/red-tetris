@@ -37,11 +37,13 @@ vi.mock('../../../../components/CreateRoom/CreateRoom.jsx', () => ({
 }))
 
 vi.mock('../../../../components/Game/Game.jsx', () => ({
-  default: ({ onPlayAgain, onBack, onSpectate }) => (
+  default: ({ onPlayAgain, onBack, onSpectate, onLanguageChange, onThemeChange }) => (
     <div data-testid="game-mock">
       <button onClick={onPlayAgain}>Rejouer</button>
       <button onClick={onBack}>back au menu</button>
       <button onClick={onSpectate}>Regarder</button>
+      <button onClick={() => onLanguageChange?.('fr')}>French in game</button>
+      <button onClick={() => onThemeChange?.('dark')}>Dark theme in game</button>
     </div>
   )
 }))
@@ -1209,6 +1211,36 @@ describe('Rooms Component', () => {
       gameStartedCallback?.({ roomId: 'other-room' })
 
       expect(screen.queryByTestId('game-mock')).not.toBeInTheDocument()
+    })
+
+    it('passes language changes from an in-room game to the parent handler', async () => {
+      const onThemeChange = vi.fn()
+      const onLanguageChange = vi.fn()
+      render(
+        <Rooms
+          {...defaultProps}
+          onLanguageChange={onLanguageChange}
+          onThemeChange={onThemeChange}
+        />
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: /create room/i }))
+      fireEvent.click(screen.getByRole('button', { name: /multiplayer/i }))
+      fireEvent.click(screen.getByRole('button', { name: /create multiplayer room/i }))
+
+      const gameStartedCallback = socket.on.mock.calls
+        .filter(call => call[0] === 'gameStarted')
+        .at(-1)?.[1]
+
+      await act(async () => {
+        gameStartedCallback?.({ roomId: '2' })
+      })
+
+      fireEvent.click(screen.getByRole('button', { name: /french in game/i }))
+      fireEvent.click(screen.getByRole('button', { name: /dark theme in game/i }))
+
+      expect(onLanguageChange).toHaveBeenCalledWith('fr')
+      expect(onThemeChange).toHaveBeenCalledWith('dark')
     })
 
     it('should clear current room when socket reports room not found', async () => {
