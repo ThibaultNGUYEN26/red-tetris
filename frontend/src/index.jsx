@@ -28,6 +28,7 @@ import bopSound from './res/sounds/bop.mp3'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const THEME_STORAGE_KEY = 'red-tetris-theme'
+const SKIN_STORAGE_KEY = 'red-tetris-skin'
 const LANGUAGE_STORAGE_KEY = 'red-tetris-language'
 const FIRST_CONNECTION_TUTORIAL_STORAGE_KEY = 'red-tetris-first-connection-tutorial-seen'
 const LANGUAGE_CHANGE_EVENT = 'red-tetris-language-change'
@@ -151,6 +152,7 @@ function Index({ authMode = 'login' }) {
     const savedTheme = savedAuth?.preferences?.theme || localStorage.getItem(THEME_STORAGE_KEY)
     return savedTheme === 'dark' ? 'dark' : 'light'
   })
+  const [skin, setSkin] = useState(() => localStorage.getItem(SKIN_STORAGE_KEY) || 'classic')
   const [language, setLanguage] = useState(() => {
     const savedLanguage = getStoredLanguage() || savedAuth?.preferences?.language
     return isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
@@ -710,6 +712,11 @@ function Index({ authMode = 'login' }) {
       }))
     }
     savePreferences(nextPreferences)
+  }
+
+  const handleSkinChange = (newSkin) => {
+    localStorage.setItem(SKIN_STORAGE_KEY, newSkin)
+    setSkin(newSkin)
   }
 
   const handleReturnToProfile = async () => {
@@ -1394,6 +1401,7 @@ function Index({ authMode = 'login' }) {
                   ) : showGame ? (
                     <Game
                       theme={theme}
+                      skin={skin}
                       onBack={activeGameType === 'solo' ? handleExitSolo : handleExitDirectGame}
                       onPlayAgain={activeGameType === 'solo' ? handlePlaySoloAgain : handlePlayDirectAgain}
                       roomId={activeGameType === 'solo' ? soloRoomId : directRoomId}
@@ -1419,6 +1427,8 @@ function Index({ authMode = 'login' }) {
                       onMusicChange={handleMusicChange}
                       selectedLanguage={language}
                       onLanguageChange={handleLanguageChange}
+                      skin={skin}
+                      onSkinChange={handleSkinChange}
                     />
                   )}
               </>

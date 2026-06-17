@@ -131,6 +131,7 @@ const restartVideoPlayback = (video) => {
 
 function Game({
   theme,
+  skin = 'classic',
   onBack,
   onPlayAgain,
   onSpectate,
@@ -951,8 +952,7 @@ function Game({
 
   if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
     return (
-      <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
-        <TetriminosClouds />
+      <div className={`game-screen ${theme === 'dark' ? 'dark' : ''} ${skin !== 'classic' ? `skin-${skin}` : ''}`}>
         <div className="game-card">
           <SpectatorView
             players={gamePlayers}
@@ -966,7 +966,7 @@ function Game({
   }
 
   return (
-    <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
+    <div className={`game-screen ${theme === 'dark' ? 'dark' : ''} ${skin !== 'classic' ? `skin-${skin}` : ''}`}>
       <TetriminosClouds />
 
       <div className="game-card">
