@@ -17,6 +17,8 @@ function ModeMenuSelector({
   onLanguageChange,
   skin = 'classic',
   onSkinChange,
+  bg = 'default',
+  onBgChange,
 }) {
   const [showOptions, setShowOptions] = useState(false)
   const [showShop, setShowShop] = useState(false)
@@ -91,6 +93,8 @@ function ModeMenuSelector({
           selectedLanguage={selectedLanguage}
           skin={skin}
           onSkinChange={onSkinChange}
+          bg={bg}
+          onBgChange={onBgChange}
         />
       )}
     </>

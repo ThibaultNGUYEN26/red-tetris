@@ -338,6 +338,8 @@ const es = {
     equip: 'Equipar',
     comingSoon: 'Próximamente',
     back: 'Volver',
+    sectionTetrominoes: 'Tetrominos',
+
   },
   options: {
     heading: 'Opciones',

@@ -660,7 +660,20 @@
   box-shadow:
     inset 0 0 20px rgba(0, 0, 0, 0.4),
     0 10px 24px rgba(0, 0, 0, 0.3);
+}
+
+.game-screen.dark .game-board::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: 0 0 22px rgba(120, 150, 255, 0.34);
   animation: pulse-game-board 4s ease-in-out infinite;
+}
+
+.game-screen.skin-neon .game-board::after {
+  display: none;
 }
 
 .game-screen.dark .cell-empty {
@@ -767,82 +780,28 @@
 }
 
 @keyframes pulse-game-board {
-  0%, 100% {
-    box-shadow:
-      inset 0 0 20px rgba(0, 0, 0, 0.4),
-      0 10px 24px rgba(0, 0, 0, 0.3),
-      0 0 12px rgba(100, 100, 200, 0.18);
-  }
-  50% {
-    box-shadow:
-      inset 0 0 22px rgba(0, 0, 0, 0.42),
-      0 10px 26px rgba(0, 0, 0, 0.36),
-      0 0 22px rgba(120, 150, 255, 0.34);
-  }
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
 }
 
 /* Add glow to pieces in dark mode */
-.game-screen.dark .cell-i {
-  box-shadow:
-    inset 0 0 6px rgba(255, 255, 255, 0.5),
-    0 0 10px rgba(77, 215, 255, 0.6);
-}
-.game-screen.dark .cell-o {
-  box-shadow:
-    inset 0 0 6px rgba(255, 255, 255, 0.5),
-    0 0 10px rgba(255, 210, 77, 0.6);
-}
-.game-screen.dark .cell-t {
-  box-shadow:
-    inset 0 0 6px rgba(255, 255, 255, 0.5),
-    0 0 10px rgba(182, 107, 255, 0.6);
-}
-.game-screen.dark .cell-l {
-  box-shadow:
-    inset 0 0 6px rgba(255, 255, 255, 0.5),
-    0 0 10px rgba(255, 179, 71, 0.6);
-}
-.game-screen.dark .cell-j {
-  box-shadow:
-    inset 0 0 6px rgba(255, 255, 255, 0.5),
-    0 0 10px rgba(111, 168, 255, 0.6);
-}
-.game-screen.dark .cell-z {
-  box-shadow:
-    inset 0 0 6px rgba(255, 255, 255, 0.5),
-    0 0 10px rgba(255, 107, 107, 0.6);
-}
-.game-screen.dark .cell-s {
-  box-shadow:
-    inset 0 0 6px rgba(255, 255, 255, 0.5),
-    0 0 10px rgba(87, 217, 140, 0.6);
-}
+.game-screen.dark .cell-i { box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
+.game-screen.dark .cell-o { box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
+.game-screen.dark .cell-t { box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
+.game-screen.dark .cell-l { box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
+.game-screen.dark .cell-j { box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
+.game-screen.dark .cell-z { box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
+.game-screen.dark .cell-s { box-shadow: inset 0 0 6px rgba(255, 255, 255, 0.5); }
 .game-screen.dark .cell-black {
   background: #6f6f6f;
   box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
 }
 
-/* ── Retro skin ──────────────────────────────────────────────────────────────
-   Pixel-art bevel style: thick inset highlight top-left, shadow bottom-right.
-   Colors match the classic Tetris GameBoy/NES palette.
-   Works in both light and dark theme.
-──────────────────────────────────────────────────────────────────────────── */
-.skin-retro .cell-i { background: #00b7ff; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-o { background: #ffdd00; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-t { background: #aa00ff; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-l { background: #ff8800; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-j { background: #0044ff; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-z { background: #ff2200; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-s { background: #00cc44; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-gray { background: #888; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.3), inset -3px -3px 0 rgba(0,0,0,0.5); }
-
-.skin-retro .next-grid .cell-i { background: #00b7ff; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-o { background: #ffdd00; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-t { background: #aa00ff; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-l { background: #ff8800; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-j { background: #0044ff; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-z { background: #ff2200; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-s { background: #00cc44; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
+@import './skins/skin-retro.css';
+@import './skins/skin-neon.css';
+@import './skins/skin-pastel.css';
+@import './skins/skin-ocean.css';
+@import './skins/skin-fire.css';
 
 @media (max-width: 900px) {
   .game-header {

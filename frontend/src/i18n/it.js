@@ -401,6 +401,8 @@ const it = {
     equip: 'Equipaggia',
     comingSoon: 'Prossimamente',
     back: 'Indietro',
+    sectionTetrominoes: 'Tetromini',
+
   },
   options: {
     heading: 'Opzioni',

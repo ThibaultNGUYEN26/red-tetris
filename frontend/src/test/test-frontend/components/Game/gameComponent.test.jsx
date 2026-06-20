@@ -2234,4 +2234,143 @@ describe('Game Component', () => {
       expect(boardElement.querySelector('video')).not.toBeInTheDocument()
     })
   })
+
+  it('ignores playerState events while countdown is active', async () => {
+    vi.useFakeTimers()
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{ username: 'Titi', board: makeBoard(), score: 0, lines: 0, level: 1 }],
+      })
+    })
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1', countdownMs: 3200 })
+    })
+
+    expect(screen.getByLabelText(/game countdown/i)).toBeInTheDocument()
+
+    await act(async () => {
+      getSocketHandler('playerState')?.({
+        roomId: '1',
+        mode: 'classic',
+        player: { username: 'Titi', board: makeBoard(), score: 999, lines: 10, level: 2 },
+      })
+    })
+
+    expect(screen.queryByText('999')).not.toBeInTheDocument()
+
+    vi.useRealTimers()
+  })
+
+  it('does not emit pauseGame while a start countdown is active', async () => {
+    vi.useFakeTimers()
+
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameStarted')?.({ roomId: '1', countdownMs: 3200 })
+    })
+
+    expect(screen.getByLabelText(/game countdown/i)).toBeInTheDocument()
+
+    socket.emit.mockClear()
+
+    // Options button is disabled during countdown; keyboard Escape is also blocked
+    expect(screen.getByRole('button', { name: /options/i })).toBeDisabled()
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expect(socket.emit).not.toHaveBeenCalledWith('pauseGame', expect.any(Object))
+
+    vi.useRealTimers()
+  })
+
+  it('shows dark-theme pause overlay with correct theme button labels and triggers onThemeChange', async () => {
+    const onThemeChange = vi.fn()
+
+    render(
+      <Game
+        theme="dark"
+        onBack={vi.fn()}
+        username="Titi"
+        isMultiplayer={false}
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+        onThemeChange={onThemeChange}
+      />
+    )
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+    })
+
+    expect(screen.getByRole('button', { name: /dark theme/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /switch to light mode/i })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /dark theme/i }))
+    expect(onThemeChange).toHaveBeenCalledWith('light')
+  })
+
+  it('renders spectator view with non-classic skin class', async () => {
+    const { container } = render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+        skin="neon"
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{
+          username: 'Titi',
+          board: makeBoard(),
+          isAlive: false,
+        }, {
+          username: 'Riri',
+          board: makeBoard(),
+        }],
+      })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /regarder/i })).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /regarder/i }))
+
+    expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+    expect(container.querySelector('.game-screen.skin-neon')).toBeInTheDocument()
+  })
 })

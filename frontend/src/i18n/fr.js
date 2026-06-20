@@ -339,6 +339,8 @@ const fr = {
     equip: 'Équiper',
     comingSoon: 'Bientôt',
     back: 'Retour',
+    sectionTetrominoes: 'Tetrominos',
+
   },
   options: {
     heading: 'Paramètres',

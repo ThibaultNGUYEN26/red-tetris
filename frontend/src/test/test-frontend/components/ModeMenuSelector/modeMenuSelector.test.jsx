@@ -10,6 +10,14 @@ vi.mock('../../../../components/ModeMenuSelector/Options.jsx/Options.jsx', () =>
   ),
 }))
 
+vi.mock('../../../../components/Shop/Shop.jsx', () => ({
+  default: ({ onBack }) => (
+    <div data-testid="shop">
+      <button onClick={onBack}>Back</button>
+    </div>
+  ),
+}))
+
 describe('ModeMenuSelector Component', () => {
   const defaultProps = {
     theme: 'light',
@@ -87,5 +95,15 @@ describe('ModeMenuSelector Component', () => {
     fireEvent.click(screen.getByRole('button', { name: /solo/i }))
 
     expect(defaultProps.onShowSoloRoom).toHaveBeenCalledWith(true)
+  })
+
+  it('opens shop view and returns to menu', () => {
+    render(<ModeMenuSelector {...defaultProps} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /shop/i }))
+    expect(screen.getByTestId('shop')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /back/i }))
+    expect(screen.queryByTestId('shop')).not.toBeInTheDocument()
   })
 })

@@ -1,0 +1,27 @@
+/* ── Neon skin ───────────────────────────────────────────────────────────────
+   Glass-neon style: translucent fill + outline border.
+   Uses outline (not box-shadow) for the border — zero blur cost on repaint.
+   The board gets will-change:transform to isolate it on its own compositor
+   layer, so per-cell repaints don't spill into the surrounding page.
+   Outer glow removed from individual cells — at 200 cells it hammers the GPU.
+──────────────────────────────────────────────────────────────────────────── */
+.game-screen.skin-neon .game-board {
+  will-change: transform;
+}
+
+.game-screen.skin-neon .cell-i { background: rgba(0, 255, 255, 0.15); outline: 2px solid #00ffff; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .cell-o { background: rgba(220, 180, 0, 0.22); outline: 2px solid #ddb800; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .cell-t { background: rgba(255, 0, 255, 0.15); outline: 2px solid #ff00ff; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .cell-s { background: rgba(57, 255, 20, 0.15); outline: 2px solid #39ff14; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .cell-z { background: rgba(255, 7, 58, 0.15); outline: 2px solid #ff073a; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .cell-j { background: rgba(13, 94, 255, 0.18); outline: 2px solid #0d5eff; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .cell-l { background: rgba(255, 140, 0, 0.15); outline: 2px solid #ff8c00; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .cell-gray { background: rgba(180, 180, 220, 0.12); outline: 2px solid rgba(180, 180, 220, 0.55); outline-offset: -2px; box-shadow: none; }
+
+.game-screen.skin-neon .next-grid .cell-i { background: rgba(0, 255, 255, 0.15); outline: 2px solid #00ffff; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .next-grid .cell-o { background: rgba(220, 180, 0, 0.22); outline: 2px solid #ddb800; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .next-grid .cell-t { background: rgba(255, 0, 255, 0.15); outline: 2px solid #ff00ff; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .next-grid .cell-s { background: rgba(57, 255, 20, 0.15); outline: 2px solid #39ff14; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .next-grid .cell-z { background: rgba(255, 7, 58, 0.15); outline: 2px solid #ff073a; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .next-grid .cell-j { background: rgba(13, 94, 255, 0.18); outline: 2px solid #0d5eff; outline-offset: -2px; box-shadow: none; }
+.game-screen.skin-neon .next-grid .cell-l { background: rgba(255, 140, 0, 0.15); outline: 2px solid #ff8c00; outline-offset: -2px; box-shadow: none; }

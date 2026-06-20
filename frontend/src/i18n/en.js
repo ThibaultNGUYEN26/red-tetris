@@ -401,6 +401,8 @@ const en = {
     equip: 'Equip',
     comingSoon: 'Coming soon',
     back: 'Back',
+    sectionTetrominoes: 'Tetrominoes',
+
   },
   options: {
     heading: 'Options',

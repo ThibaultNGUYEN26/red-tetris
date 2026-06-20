@@ -1,0 +1,20 @@
+/* ── Pastel skin ─────────────────────────────────────────────────────────────
+   Soft, light colors with a tinted inset border for cell definition against
+   the white board background.
+──────────────────────────────────────────────────────────────────────────── */
+.skin-pastel .cell-i { background: #8ddcf5; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(80,190,230,0.5); }
+.skin-pastel .cell-o { background: #fbd882; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(220,170,40,0.45); }
+.skin-pastel .cell-t { background: #c99ef7; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(160,90,240,0.45); }
+.skin-pastel .cell-s { background: #8fe08f; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(60,170,60,0.45); }
+.skin-pastel .cell-z { background: #f79090; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(210,70,70,0.45); }
+.skin-pastel .cell-j { background: #96b4fa; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(70,110,230,0.45); }
+.skin-pastel .cell-l { background: #ffc080; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(210,130,30,0.45); }
+.skin-pastel .cell-gray { background: #c2c8d8; box-shadow: inset 0 0 6px rgba(255,255,255,0.4), inset 0 0 0 1.5px rgba(120,130,160,0.35); }
+
+.skin-pastel .next-grid .cell-i { background: #8ddcf5; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(80,190,230,0.5); }
+.skin-pastel .next-grid .cell-o { background: #fbd882; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(220,170,40,0.45); }
+.skin-pastel .next-grid .cell-t { background: #c99ef7; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(160,90,240,0.45); }
+.skin-pastel .next-grid .cell-s { background: #8fe08f; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(60,170,60,0.45); }
+.skin-pastel .next-grid .cell-z { background: #f79090; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(210,70,70,0.45); }
+.skin-pastel .next-grid .cell-j { background: #96b4fa; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(70,110,230,0.45); }
+.skin-pastel .next-grid .cell-l { background: #ffc080; box-shadow: inset 0 0 8px rgba(255,255,255,0.55), inset 0 0 0 1.5px rgba(210,130,30,0.45); }
