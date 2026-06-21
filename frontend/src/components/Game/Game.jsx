@@ -181,6 +181,8 @@ function Game({
   const [activePlayerUsername, setActivePlayerUsername] = useState(null)
   const [cooperativeRole, setCooperativeRole] = useState(null)
   const [boardFlash, setBoardFlash] = useState(null)
+  const [flashToast, setFlashToast] = useState(null)
+  const flashToastTimerRef = useRef(null)
   const [countdownStep, setCountdownStep] = useState(null)
   const [isBoardVideoActive, setIsBoardVideoActive] = useState(false)
   const [showPauseLanguages, setShowPauseLanguages] = useState(false)
@@ -283,6 +285,15 @@ function Game({
         boardFlashTimerRef.current = null
       }, 900)
     })
+  }
+
+  const triggerToast = (label) => {
+    if (flashToastTimerRef.current) clearTimeout(flashToastTimerRef.current)
+    setFlashToast(label)
+    flashToastTimerRef.current = setTimeout(() => {
+      setFlashToast(null)
+      flashToastTimerRef.current = null
+    }, 1000)
   }
 
   const startMusic = () => {
@@ -659,6 +670,7 @@ function Game({
     /* v8 ignore next -- refs are created on mount before stats effects can play sounds. @preserve */
     if (stats.level > lastLevelRef.current) {
       triggerBoardFlash('level')
+      triggerToast('LEVEL UP!')
       if (soundEnabled && levelUpRef.current) {
         levelUpRef.current.currentTime = 0
         /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
@@ -673,6 +685,7 @@ function Game({
     const delta = stats.lines - lastLinesRef.current
     if (delta === 4) {
       triggerBoardFlash('tetris')
+      triggerToast('TETRIS!')
       if (soundEnabled && tetrisRef.current) {
         tetrisRef.current.currentTime = 0
         /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
@@ -687,6 +700,7 @@ function Game({
     const isEmpty = board.every((row) => row.every((cell) => cell === 'empty'))
     if (!wasBoardEmptyRef.current && isEmpty) {
       triggerBoardFlash('clear')
+      triggerToast('PERFECT!')
       if (soundEnabled && clearRef.current) {
         clearRef.current.currentTime = 0
         /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
@@ -1088,6 +1102,11 @@ function Game({
               ['--cell-size']: `clamp(18px, min(calc((100vh - 235px) / ${boardSize.height}), calc((100vw - clamp(240px, 22vw, 320px)) / ${boardSize.width})), 48px)`,
             }}
           >
+            {flashToast && (
+              <div className={`board-toast board-toast-${boardFlash ?? 'default'}`} aria-live="polite">
+                {flashToast}
+              </div>
+            )}
             {isBoardVideoActive && (
               <video
                 ref={boardVideoRef}
