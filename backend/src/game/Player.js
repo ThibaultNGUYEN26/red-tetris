@@ -18,6 +18,7 @@ export default class Player {
     this.chaoticSwapMs = 0;
 
     this.isAlive = true;
+    this.deathOrder = null;
     this.score = 0;
     this.lines = 0;
     this.level = 1;

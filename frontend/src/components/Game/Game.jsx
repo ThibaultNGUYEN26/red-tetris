@@ -176,6 +176,8 @@ function Game({
   const [winner, setWinner] = useState(null)
   const [isEliminated, setIsEliminated] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
+  const [gameRanking, setGameRanking] = useState([])
+  const [gameRewards, setGameRewards] = useState({})
   const [showSpectator, setShowSpectator] = useState(false)
   const [gameMode, setGameMode] = useState(null)
   const [activePlayerUsername, setActivePlayerUsername] = useState(null)
@@ -521,6 +523,8 @@ function Game({
       setIsEliminated(false)
       setShowSpectator(false)
       setIsGameOver(false)
+      setGameRanking([])
+      setGameRewards({})
       setActivePlayerUsername(null)
       setCooperativeRole(null)
       lastLevelRef.current = 1
@@ -619,12 +623,14 @@ function Game({
       })
     }
 
-    const handleGameOver = ({ winner }) => {
+    const handleGameOver = ({ winner, rewards, ranking }) => {
       if (exitingRef.current) return
       clearCountdown()
       setWinner(winner || null)
       setIsEliminated(true)
       setIsGameOver(true)
+      if (Array.isArray(ranking)) setGameRanking(ranking)
+      if (rewards && typeof rewards === 'object') setGameRewards(rewards)
       stopMusic()
       if (soundEnabled && isMultiplayer && winner && username) {
         if (winner === username) {
@@ -997,6 +1003,8 @@ function Game({
           username={username}
           onBack={onBack}
           onPlayAgain={onPlayAgain}
+          ranking={gameRanking}
+          rewards={gameRewards}
           onSpectate={
             isMultiplayer && isEliminated && !winner && !isGameOver
               ? () => {

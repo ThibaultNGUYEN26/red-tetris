@@ -19,6 +19,9 @@ function ModeMenuSelector({
   onSkinChange,
   bg = 'default',
   onBgChange,
+  coins = 0,
+  ownedSkins = ['classic'],
+  onSkinBuy,
 }) {
   const [showOptions, setShowOptions] = useState(false)
   const [showShop, setShowShop] = useState(false)
@@ -95,6 +98,9 @@ function ModeMenuSelector({
           onSkinChange={onSkinChange}
           bg={bg}
           onBgChange={onBgChange}
+          coins={coins}
+          ownedSkins={ownedSkins}
+          onBuy={onSkinBuy}
         />
       )}
     </>

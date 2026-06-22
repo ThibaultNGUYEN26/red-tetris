@@ -1,21 +1,14 @@
 /* ── Retro skin ──────────────────────────────────────────────────────────────
    Pixel-art bevel style: thick inset highlight top-left, shadow bottom-right.
    Colors match the classic Tetris GameBoy/NES palette.
+   Bevel scales with --cell-size so it looks right at any preview size.
    Works in both light and dark theme.
 ──────────────────────────────────────────────────────────────────────────── */
-.skin-retro .cell-i { background: #00b7ff; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-o { background: #ffdd00; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-t { background: #aa00ff; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-l { background: #ff8800; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-j { background: #0044ff; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-z { background: #ff2200; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-s { background: #00cc44; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.55), inset -3px -3px 0 rgba(0,0,0,0.5); }
-.skin-retro .cell-gray { background: #888; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.3), inset -3px -3px 0 rgba(0,0,0,0.5); }
-
-.skin-retro .next-grid .cell-i { background: #00b7ff; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-o { background: #ffdd00; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-t { background: #aa00ff; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-l { background: #ff8800; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-j { background: #0044ff; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-z { background: #ff2200; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
-.skin-retro .next-grid .cell-s { background: #00cc44; box-shadow: inset 2px 2px 0 rgba(255,255,255,0.55), inset -2px -2px 0 rgba(0,0,0,0.5); }
+.skin-retro .cell-i { background: #00b7ff; box-shadow: inset calc(var(--cell-size) * 0.12) calc(var(--cell-size) * 0.12) 0 rgba(255,255,255,0.55), inset calc(var(--cell-size) * -0.12) calc(var(--cell-size) * -0.12) 0 rgba(0,0,0,0.5); }
+.skin-retro .cell-o { background: #ffdd00; box-shadow: inset calc(var(--cell-size) * 0.12) calc(var(--cell-size) * 0.12) 0 rgba(255,255,255,0.55), inset calc(var(--cell-size) * -0.12) calc(var(--cell-size) * -0.12) 0 rgba(0,0,0,0.5); }
+.skin-retro .cell-t { background: #aa00ff; box-shadow: inset calc(var(--cell-size) * 0.12) calc(var(--cell-size) * 0.12) 0 rgba(255,255,255,0.55), inset calc(var(--cell-size) * -0.12) calc(var(--cell-size) * -0.12) 0 rgba(0,0,0,0.5); }
+.skin-retro .cell-l { background: #ff8800; box-shadow: inset calc(var(--cell-size) * 0.12) calc(var(--cell-size) * 0.12) 0 rgba(255,255,255,0.55), inset calc(var(--cell-size) * -0.12) calc(var(--cell-size) * -0.12) 0 rgba(0,0,0,0.5); }
+.skin-retro .cell-j { background: #0044ff; box-shadow: inset calc(var(--cell-size) * 0.12) calc(var(--cell-size) * 0.12) 0 rgba(255,255,255,0.55), inset calc(var(--cell-size) * -0.12) calc(var(--cell-size) * -0.12) 0 rgba(0,0,0,0.5); }
+.skin-retro .cell-z { background: #ff2200; box-shadow: inset calc(var(--cell-size) * 0.12) calc(var(--cell-size) * 0.12) 0 rgba(255,255,255,0.55), inset calc(var(--cell-size) * -0.12) calc(var(--cell-size) * -0.12) 0 rgba(0,0,0,0.5); }
+.skin-retro .cell-s { background: #00cc44; box-shadow: inset calc(var(--cell-size) * 0.12) calc(var(--cell-size) * 0.12) 0 rgba(255,255,255,0.55), inset calc(var(--cell-size) * -0.12) calc(var(--cell-size) * -0.12) 0 rgba(0,0,0,0.5); }
+.skin-retro .cell-gray { background: #888; box-shadow: inset calc(var(--cell-size) * 0.12) calc(var(--cell-size) * 0.12) 0 rgba(255,255,255,0.3), inset calc(var(--cell-size) * -0.12) calc(var(--cell-size) * -0.12) 0 rgba(0,0,0,0.5); }

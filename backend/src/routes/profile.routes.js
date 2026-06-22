@@ -255,6 +255,8 @@ router.get("/player/stats", async (req, res) => {
       `SELECT
           u.username,
           u.avatar,
+          u.coins,
+          u.preferences,
           u.solo_games_played,
           u.highest_solo_score,
           u.multiplayer_games_played,
@@ -353,9 +355,14 @@ router.get("/player/stats", async (req, res) => {
     }
 
     const row = result.rows[0];
+    const ownedSkins = Array.isArray(row.preferences?.ownedSkins)
+      ? row.preferences.ownedSkins
+      : ['classic'];
     return res.status(200).json({
       name: row.username,
       avatar: row.avatar,
+      coins: row.coins ?? 0,
+      ownedSkins,
       soloGames: row.solo_games_played ?? 0,
       soloTopScore: row.highest_solo_score ?? 0,
       multiGames: row.multiplayer_games_played ?? 0,
@@ -526,6 +533,59 @@ router.post("/profile", async (req, res) => {
     });
   } catch (err) {
     console.error("Profile upsert failed:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+const SKIN_PRICES = {
+  classic: 0,
+  retro: 300,
+  pastel: 500,
+  ocean: 800,
+  neon: 1200,
+  fire: 1800,
+  arcane: 2800,
+};
+
+router.post("/shop/buy", async (req, res) => {
+  try {
+    const { username, skinId } = req.body;
+    if (!username || !skinId) return res.status(400).json({ error: "Missing username or skinId" });
+
+    const price = SKIN_PRICES[skinId];
+    if (price === undefined) return res.status(400).json({ error: "Unknown skin" });
+    if (price === 0) return res.status(400).json({ error: "This skin is free" });
+
+    // Fetch current coins and owned skins
+    const userResult = await pool.query(
+      `SELECT coins, preferences FROM users WHERE username = $1 AND deleted_at IS NULL`,
+      [username]
+    );
+    if (!userResult.rowCount) return res.status(404).json({ error: "User not found" });
+
+    const { coins, preferences } = userResult.rows[0];
+    const ownedSkins = preferences?.ownedSkins ?? ["classic"];
+
+    if (ownedSkins.includes(skinId)) return res.status(400).json({ error: "Already owned" });
+    if (coins < price) return res.status(402).json({ error: "Not enough coins" });
+
+    const newOwned = [...ownedSkins, skinId];
+    const result = await pool.query(
+      `UPDATE users
+       SET coins = coins - $2,
+           preferences = preferences || jsonb_build_object('ownedSkins', $3::jsonb)
+       WHERE username = $1 AND coins >= $2 AND deleted_at IS NULL
+       RETURNING coins, preferences`,
+      [username, price, JSON.stringify(newOwned)]
+    );
+    if (!result.rowCount) return res.status(402).json({ error: "Not enough coins" });
+
+    return res.status(200).json({
+      coins: result.rows[0].coins,
+      ownedSkins: result.rows[0].preferences?.ownedSkins ?? newOwned,
+    });
+  } catch (err) {
+    console.error("Shop buy failed:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
