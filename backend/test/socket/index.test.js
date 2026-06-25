@@ -2299,9 +2299,9 @@ describe('socket setup', () => {
       winner: 'Titi',
       durationSeconds: 90,
       results: [
-        { username: 'Titi', score: 500 },
-        { username: 'Riri', score: 200 },
-        { username: 'Lulu', score: 100 },
+        { username: 'Titi', score: 5000 },
+        { username: 'Riri', score: 2000 },
+        { username: 'Lulu', score: 1500 },
       ],
       ranking: [
         { username: 'Titi', rank: 1 },
@@ -2310,11 +2310,80 @@ describe('socket setup', () => {
       ],
     })
 
-    // 3+ players, anyOpponentScored > 80 (Riri=200, Lulu=100), topHalf = floor(3/2) = 1.
-    // Only rank <= 1 earns coins → Titi gets 150, others 0.
+    // 3+ players, at least one non-winning opponent scored >= 1000 (Riri=2000),
+    // topHalf = floor(3/2) = 1. Only rank <= 1 earns coins → Titi gets 150, others 0.
     expect(io.roomEmit).toHaveBeenCalledWith('gameOver', {
       winner: 'Titi',
       rewards: { Titi: 150, Riri: 0, Lulu: 0 },
+      ranking: [
+        { username: 'Titi', rank: 1 },
+        { username: 'Riri', rank: 2 },
+        { username: 'Lulu', rank: 3 },
+      ],
+    })
+  })
+
+  it('classic multiplayer onGameOver skips coin rewards when only the winner scored', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri', 'Lulu'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri', 'Lulu'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+          { username: 'Lulu', avatar: { eyeType: 'neutral' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValue({ rowCount: 1, rows: [] })
+
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'multi',
+      mode: 'classic',
+      statsUpdated: false,
+      players: [{ username: 'Titi' }, { username: 'Riri' }, { username: 'Lulu' }],
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+    io.roomEmit.mockClear()
+    await callbacks.onGameOver({
+      mode: 'classic',
+      winner: 'Titi',
+      durationSeconds: 5,
+      // Winner has a huge score but everyone else is below the anti-farm threshold.
+      // Should NOT mint coins (prevents coalition farming).
+      results: [
+        { username: 'Titi', score: 50000 },
+        { username: 'Riri', score: 50 },
+        { username: 'Lulu', score: 30 },
+      ],
+      ranking: [
+        { username: 'Titi', rank: 1 },
+        { username: 'Riri', rank: 2 },
+        { username: 'Lulu', rank: 3 },
+      ],
+    })
+
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', {
+      winner: 'Titi',
+      rewards: { Titi: 0, Riri: 0, Lulu: 0 },
       ranking: [
         { username: 'Titi', rank: 1 },
         { username: 'Riri', rank: 2 },
