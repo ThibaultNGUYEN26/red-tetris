@@ -124,6 +124,9 @@ function SpectatorView({ players, onBack, username, language = DEFAULT_LANGUAGE 
             <div className="spectator-title">
               {text.watching} <span className="spectator-name">{current.username}</span>
             </div>
+            <div className="spectator-actions">
+              <button className="back-button" onClick={onBack}>{text.back}</button>
+            </div>
             <div className="spectator-controls">
               <button
                 className="spectator-btn spectator-btn-prev"
@@ -141,9 +144,6 @@ function SpectatorView({ players, onBack, username, language = DEFAULT_LANGUAGE 
                 {text.next}
                 <span className="spectator-btn-icon">&rarr;</span>
               </button>
-            </div>
-            <div className="spectator-actions">
-              <button className="back-button" onClick={onBack}>{text.back}</button>
             </div>
           </div>
         </div>
@@ -232,6 +232,7 @@ function SpectatorView({ players, onBack, username, language = DEFAULT_LANGUAGE 
             boards={opponentBoards}
             title={text.opponents}
             boardLabel={text.opponentBoard}
+            showColors
           />
         </div>
       </div>

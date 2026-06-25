@@ -1,6 +1,6 @@
 import './ShadowBoards.css'
 
-function ShadowBoards({ boards, title = 'Opponents', boardLabel = 'board' }) {
+function ShadowBoards({ boards, title = 'Opponents', boardLabel = 'board', showColors = false }) {
   if (!boards || boards.length === 0) return null
 
   const getSpectrumMap = (board) => {
@@ -29,7 +29,7 @@ function ShadowBoards({ boards, title = 'Opponents', boardLabel = 'board' }) {
       <div className={`shadow-boards-grid count-${boards.length}`}>
         {boards.map((entry) => {
           const board = Array.isArray(entry.board) ? entry.board : []
-          const spectrum = getSpectrumMap(board)
+          const spectrum = showColors ? null : getSpectrumMap(board)
           const rows = board.length
           const cols = board[0]?.length ?? 0
           const cellSize = rows > 20 || cols > 10 ? 4 : 9
@@ -47,12 +47,14 @@ function ShadowBoards({ boards, title = 'Opponents', boardLabel = 'board' }) {
                 }}
               >
                 {board.map((row, rowIndex) =>
-                  row.map((_, colIndex) => {
-                    const isSpectrum = spectrum[rowIndex]?.[colIndex]
+                  row.map((cell, colIndex) => {
+                    const cls = showColors
+                      ? `cell cell-${cell}`
+                      : `cell ${spectrum[rowIndex]?.[colIndex] ? 'cell-spectrum' : 'cell-empty'}`
                     return (
                       <div
                         key={`${entry.username}-${rowIndex}-${colIndex}`}
-                        className={`cell ${isSpectrum ? 'cell-spectrum' : 'cell-empty'}`}
+                        className={cls}
                       />
                     )
                   })
