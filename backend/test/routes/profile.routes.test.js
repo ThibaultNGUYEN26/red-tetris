@@ -351,6 +351,8 @@ describe('profile routes', () => {
       multiGames: 7,
       wins: 4,
       losses: 3,
+      coins: 0,
+      ownedSkins: ['classic'],
       advanced: {
         timePlayed: {
           total: 3847,
@@ -486,6 +488,8 @@ describe('profile routes', () => {
       multiGames: 0,
       wins: 0,
       losses: 0,
+      coins: 0,
+      ownedSkins: ['classic'],
       advanced: {
         timePlayed: {
           total: 0,
@@ -553,6 +557,29 @@ describe('profile routes', () => {
 
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json.mock.calls[0][0].advanced.multi.winLossRatio).toBe(0)
+  })
+
+  it('returns the stored ownedSkins from preferences when present', async () => {
+    mockQuery.mockResolvedValueOnce({
+      rowCount: 1,
+      rows: [{
+        username: 'Titi',
+        avatar: { eyeType: 'happy' },
+        coins: 750,
+        preferences: { ownedSkins: ['classic', 'retro', 'pastel'] },
+      }],
+    })
+
+    const { default: router } = await import('../../src/routes/profile.routes.js')
+    const handler = getHandler(router, 'get', '/player/stats')
+    const res = buildRes()
+
+    await handler({ query: { username: 'Titi' } }, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    const payload = res.json.mock.calls[0][0]
+    expect(payload.coins).toBe(750)
+    expect(payload.ownedSkins).toEqual(['classic', 'retro', 'pastel'])
   })
 
   it('returns 500 when fetching player stats fails', async () => {
@@ -941,5 +968,187 @@ describe('profile routes', () => {
     expect(consoleError).toHaveBeenCalledWith('Profile upsert failed:', duplicateOnOtherConstraint)
     expect(res.status).toHaveBeenCalledWith(500)
     expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
+  })
+
+  describe('POST /shop/buy', () => {
+    const importRouter = async () => (await import('../../src/routes/profile.routes.js')).default
+    const buyHandler = async () => getHandler(await importRouter(), 'post', '/shop/buy')
+
+    it('rejects unauthenticated requests', async () => {
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: {} }, res)
+      expect(res.status).toHaveBeenCalledWith(401)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' })
+    })
+
+    it('rejects authenticated requests missing skinId', async () => {
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi' } }, res)
+      expect(res.status).toHaveBeenCalledWith(400)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Missing skinId' })
+    })
+
+    it('ignores body.username and only buys for the authenticated user', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 1000, preferences: { ownedSkins: ['classic'] } }],
+        })
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 500, preferences: { ownedSkins: ['classic', 'retro'] } }],
+        })
+      const handler = await buyHandler()
+      const res = buildRes()
+      // Authenticated as Titi, body tries to buy for "Victim". Should buy for Titi.
+      await handler({ body: { username: 'Titi', targetUsername: 'Victim', skinId: 'retro' } }, res)
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT coins, preferences FROM users'),
+        ['Titi']
+      )
+      expect(res.status).toHaveBeenCalledWith(200)
+    })
+
+    it('rejects an unknown skin id', async () => {
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi', skinId: 'mystery' } }, res)
+      expect(res.status).toHaveBeenCalledWith(400)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Unknown skin' })
+    })
+
+    it('rejects a free skin purchase', async () => {
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi', skinId: 'classic' } }, res)
+      expect(res.status).toHaveBeenCalledWith(400)
+      expect(res.json).toHaveBeenCalledWith({ error: 'This skin is free' })
+    })
+
+    it('returns 404 when the user is missing', async () => {
+      mockQuery.mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Ghost', skinId: 'retro' } }, res)
+      expect(res.status).toHaveBeenCalledWith(404)
+      expect(res.json).toHaveBeenCalledWith({ error: 'User not found' })
+    })
+
+    it('rejects buying a skin the user already owns', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ coins: 5000, preferences: { ownedSkins: ['classic', 'retro'] } }],
+      })
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi', skinId: 'retro' } }, res)
+      expect(res.status).toHaveBeenCalledWith(400)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Already owned' })
+    })
+
+    it('rejects when the user does not have enough coins', async () => {
+      mockQuery.mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{ coins: 10, preferences: { ownedSkins: ['classic'] } }],
+      })
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi', skinId: 'retro' } }, res)
+      expect(res.status).toHaveBeenCalledWith(402)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Not enough coins' })
+    })
+
+    it('returns 402 when the conditional UPDATE affects no rows', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 1000, preferences: { ownedSkins: ['classic'] } }],
+        })
+        .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi', skinId: 'retro' } }, res)
+      expect(res.status).toHaveBeenCalledWith(402)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Not enough coins' })
+    })
+
+    it('uses an atomic ownership guard in the UPDATE query', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 1000, preferences: { ownedSkins: ['classic'] } }],
+        })
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 500, preferences: { ownedSkins: ['classic', 'retro'] } }],
+        })
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi', skinId: 'retro' } }, res)
+
+      // The UPDATE WHERE clause must reject if the skin is already in ownedSkins
+      // so two concurrent same-skin buys cannot both deduct coins.
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining("NOT COALESCE(preferences->'ownedSkins', '[]'::jsonb) ? $4"),
+        ['Titi', 500, JSON.stringify(['classic', 'retro']), 'retro']
+      )
+    })
+
+    it('successfully purchases a skin and returns updated coins and owned list', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 1000, preferences: { ownedSkins: ['classic'] } }],
+        })
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{
+            coins: 500,
+            preferences: { ownedSkins: ['classic', 'retro'] },
+          }],
+        })
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi', skinId: 'retro' } }, res)
+      expect(res.status).toHaveBeenCalledWith(200)
+      expect(res.json).toHaveBeenCalledWith({
+        coins: 500,
+        ownedSkins: ['classic', 'retro'],
+      })
+    })
+
+    it('falls back to the computed owned list when the returned preferences omit ownedSkins', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 1000, preferences: null }],
+        })
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 500, preferences: {} }],
+        })
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi', skinId: 'retro' } }, res)
+      expect(res.status).toHaveBeenCalledWith(200)
+      expect(res.json).toHaveBeenCalledWith({
+        coins: 500,
+        ownedSkins: ['classic', 'retro'],
+      })
+    })
+
+    it('returns 500 and logs when the database throws', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const dbError = new Error('db down')
+      mockQuery.mockRejectedValueOnce(dbError)
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi', skinId: 'retro' } }, res)
+      expect(consoleError).toHaveBeenCalledWith('Shop buy failed:', dbError)
+      expect(res.status).toHaveBeenCalledWith(500)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Server error' })
+    })
   })
 })

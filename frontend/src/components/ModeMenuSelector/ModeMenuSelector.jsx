@@ -1,6 +1,7 @@
 import './ModeMenuSelector.css'
 import { useState } from 'react'
 import Options from './Options.jsx/Options.jsx'
+import Shop from '../Shop/Shop.jsx'
 import { DEFAULT_LANGUAGE, getTranslation } from '../../i18n'
 
 function ModeMenuSelector({
@@ -14,8 +15,17 @@ function ModeMenuSelector({
   onMusicChange,
   selectedLanguage = DEFAULT_LANGUAGE,
   onLanguageChange,
+  skin = 'classic',
+  onSkinChange,
+  bg = 'default',
+  onBgChange,
+  coins = 0,
+  ownedSkins = ['classic'],
+  onSkinBuy,
+  onShopOpen,
 }) {
   const [showOptions, setShowOptions] = useState(false)
+  const [showShop, setShowShop] = useState(false)
   const text = getTranslation(selectedLanguage).menu
 
   const handleSolo = () => {
@@ -24,6 +34,11 @@ function ModeMenuSelector({
 
   const handleMultiplayer = () => {
     onShowRooms(true)
+  }
+
+  const handleOpenShop = () => {
+    onShopOpen?.()
+    setShowShop(true)
   }
 
   return (
@@ -49,12 +64,21 @@ function ModeMenuSelector({
           </button>
         </div>
 
-        <button
-          className="options-button"
-          onClick={() => setShowOptions(true)}
-        >
-          {text.options}
-        </button>
+        <div className="mode-secondary-buttons">
+          <button
+            className="shop-button"
+            onClick={handleOpenShop}
+          >
+            {text.shop}
+          </button>
+
+          <button
+            className="options-button"
+            onClick={() => setShowOptions(true)}
+          >
+            {text.options}
+          </button>
+        </div>
       </div>
 
       {showOptions && (
@@ -68,6 +92,21 @@ function ModeMenuSelector({
           onMusicChange={onMusicChange}
           selectedLanguage={selectedLanguage}
           onLanguageChange={onLanguageChange}
+        />
+      )}
+
+      {showShop && (
+        <Shop
+          onBack={() => setShowShop(false)}
+          theme={theme}
+          selectedLanguage={selectedLanguage}
+          skin={skin}
+          onSkinChange={onSkinChange}
+          bg={bg}
+          onBgChange={onBgChange}
+          coins={coins}
+          ownedSkins={ownedSkins}
+          onBuy={onSkinBuy}
         />
       )}
     </>

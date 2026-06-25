@@ -289,22 +289,33 @@ export default function setupSockets(io) {
       io.emit("leaderboardCoop", coopLeaderboard);
     };
 
+    const calcSoloCoins = (score) => Math.min(Math.floor(score / 1000), 150);
+    const calcCoopCoins = (score) => Math.min(Math.floor(score / 1000), 60);
+    const MULTI_COINS_BY_RANK = { 1: 150, 2: 100, 3: 70, 4: 50 };
+    /* v8 ignore next -- rank is always 1-4 here (callers gate by rank<=topHalf and topHalf<=4 for max 8 players). @preserve */
+    const calcMultiCoins = (rank) => MULTI_COINS_BY_RANK[rank] ?? 0;
+
     const updateSoloStats = async (game) => {
+      if (game?.statsUpdated) return {};
       const player = game.players[0];
-      if (!player) return;
+      if (!player) return {};
+      game.statsUpdated = true;
 
       const result = await pool.query(
         `UPDATE users
          SET solo_games_played = solo_games_played + 1,
-             highest_solo_score = GREATEST(highest_solo_score, $2)
+             highest_solo_score = GREATEST(highest_solo_score, $2),
+             coins = coins + $3
          WHERE username = $1
            AND deleted_at IS NULL`,
-        [player.username, player.score]
+        [player.username, player.score, calcSoloCoins(player.score)]
       );
       if (result.rowCount === 0) {
         console.warn(`No user row found for solo stats update: ${player.username}`);
-        return;
+        return {};
       }
+
+      const coinsEarned = calcSoloCoins(player.score);
 
       try {
         await pool.query(
@@ -327,20 +338,21 @@ export default function setupSockets(io) {
 
       const leaderboard = await fetchSoloLeaderboard();
       io.emit("leaderboardSolo", leaderboard);
+      return { [player.username]: coinsEarned };
     };
 
     const updateCoopStats = async (game, summary) => {
-      if (game.statsUpdated) return;
+      if (game.statsUpdated) return {};
 
       const players = Array.isArray(game.players) ? game.players : [];
-      if (players.length < 2) return;
+      if (players.length < 2) return {};
 
       const usernames = players
         .map((player) => player?.username)
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b));
 
-      if (usernames.length < 2) return;
+      if (usernames.length < 2) return {};
 
       const summaryScores = Array.isArray(summary?.results)
         ? summary.results.map((result) => result?.score ?? 0)
@@ -350,6 +362,7 @@ export default function setupSockets(io) {
         ...summaryScores
       );
       const sharedPlayer = game.getCooperativePlayer?.() ?? {};
+      const coinsEarned = calcCoopCoins(sharedScore);
 
       await pool.query(
         `INSERT INTO coop_scores (player_one, player_two, score, lines, level, tetris_count, duration_seconds)
@@ -365,10 +378,19 @@ export default function setupSockets(io) {
         ]
       );
 
+      // Award coins to both players
+      for (const username of usernames) {
+        await pool.query(
+          `UPDATE users SET coins = coins + $2 WHERE username = $1 AND deleted_at IS NULL`,
+          [username, coinsEarned]
+        );
+      }
+
       const leaderboard = await fetchCoopLeaderboard();
       io.emit("leaderboardCoop", leaderboard);
 
       game.statsUpdated = true;
+      return Object.fromEntries(usernames.map(u => [u, coinsEarned]));
     };
 
     const attachPlayerAvatars = async (room) => {
@@ -394,26 +416,48 @@ export default function setupSockets(io) {
     };
 
     const updateMultiplayerStats = async (game, summary) => {
-      if (!summary || ["cooperative", "cooperative_roles"].includes(summary.mode)) return;
-      if (game?.statsUpdated) return;
+      if (!summary || ["cooperative", "cooperative_roles"].includes(summary.mode)) return {};
+      if (game?.statsUpdated) return {};
 
       const players = Array.isArray(summary.results) ? summary.results : [];
-      if (!players.length) return;
+      if (!players.length) return {};
 
+      // No coins for duos (too easy)
+      const awardCoins = players.length > 2;
       const winner = summary.winner ?? null;
+      // Anti-farm: at least one *non-winning* player must score >= 1000.
+      // Using the winner's own score would let a 3-player coalition with one
+      // tryhard mint coins by burning through seconds-long matches.
+      const ANTI_FARM_THRESHOLD = 1000;
+      const anyOpponentScored = players.some(
+        p => p?.username && p.username !== winner && (p.score ?? 0) >= ANTI_FARM_THRESHOLD
+      );
+
+      const ranking = Array.isArray(summary.ranking) ? summary.ranking : [];
+      const topHalf = Math.floor(players.length / 2);
+      const rewards = {};
 
       for (const player of players) {
         if (!player?.username) continue;
         const isWinner = winner && player.username === winner;
+        const ranked = ranking.find(r => r.username === player.username);
+        const rank = ranked?.rank ?? players.length;
+
+        let coinsEarned = 0;
+        if (awardCoins && anyOpponentScored && rank <= topHalf) {
+          coinsEarned = calcMultiCoins(rank);
+        }
+        rewards[player.username] = coinsEarned;
 
         await pool.query(
           `UPDATE users
            SET multiplayer_games_played = multiplayer_games_played + 1,
                multiplayer_wins = multiplayer_wins + $2,
-               multiplayer_losses = multiplayer_losses + $3
+               multiplayer_losses = multiplayer_losses + $3,
+               coins = coins + $4
            WHERE username = $1
              AND deleted_at IS NULL`,
-          [player.username, isWinner ? 1 : 0, isWinner ? 0 : 1]
+          [player.username, isWinner ? 1 : 0, isWinner ? 0 : 1, coinsEarned]
         );
 
         await pool.query(
@@ -436,6 +480,7 @@ export default function setupSockets(io) {
       }
 
       game.statsUpdated = true;
+      return rewards;
     };
 
     // getLeaderboardSolo Socket
@@ -853,7 +898,7 @@ export default function setupSockets(io) {
       for (const room of roomsResult.rows || []) {
         const roomId = String(room.id);
         const game = getGame(roomId);
-        if (game && room.status === "started") {
+        if (game && !game.isOver && room.status === "started") {
           const player = game.getPlayer?.(username);
           if (player) {
             player.isAlive = false;
@@ -917,7 +962,7 @@ export default function setupSockets(io) {
 
       // Remove player from Game instance
       const game = getGame(roomId);
-      if (game) {
+      if (game && !game.isOver) {
         const player = game.getPlayer(effectiveUsername);
         if (player) {
           player.isAlive = false;
@@ -1013,10 +1058,7 @@ export default function setupSockets(io) {
         // Prevent restarting an already started game
         if (room.status === "started") return;
 
-        const isRestartingFinishedGame = room.status === "finished" || (room.ready_again && room.ready_again.length);
-        const playersToStart = isRestartingFinishedGame
-          ? (room.ready_again || [])
-          : room.players;
+        const playersToStart = room.players;
 
         // Validate player count based on game mode
         const gameMode = room.game_mode || "classic";
@@ -1038,13 +1080,20 @@ export default function setupSockets(io) {
           return;
         }
 
-        // Replace room.players with ready_again if applicable
-        if (room.ready_again && room.ready_again.length) {
-          await pool.query(
-            "UPDATE rooms SET players=$1, ready_again='{}' WHERE id=$2",
-            [playersToStart, roomId]
-          );
-        }
+        // Atomically claim the start slot. If two startGame calls race, only
+        // the first transitions waiting/finished -> started; the second sees
+        // rowCount = 0 and aborts, preventing orphan tick loops.
+        const claim = await pool.query(
+          `UPDATE rooms
+           SET status = 'started',
+               ready_again = '{}'
+           WHERE id = $1
+             AND host = $2
+             AND status IN ('waiting', 'finished')
+           RETURNING id`,
+          [roomId, username]
+        );
+        if (!claim.rowCount) return;
 
         // Always rebuild the in-memory game from the current DB room state.
         removeGame(roomId);
@@ -1062,20 +1111,23 @@ export default function setupSockets(io) {
                 await wait(getGameOverRevealMs());
               }
 
-              io.to(String(roomId)).emit("gameOver", { winner: summary.winner });
-
               if (game.mode_player === "solo") {
-                await updateSoloStats(game);
+                const rewards = await updateSoloStats(game);
+                io.to(String(roomId)).emit("gameOver", { winner: summary.winner, rewards, ranking: summary.ranking ?? [] });
                 await pool.query("DELETE FROM rooms WHERE id = $1", [roomId]);
                 removeGame(roomId);
                 return;
               }
 
+              let rewards = {};
               if (["cooperative", "cooperative_roles"].includes(summary?.mode)) {
-                await updateCoopStats(game, summary);
+                rewards = await updateCoopStats(game, summary);
+              } else {
+                rewards = await updateMultiplayerStats(game, summary);
               }
 
-              await updateMultiplayerStats(game, summary);
+              io.to(String(roomId)).emit("gameOver", { winner: summary.winner, rewards, ranking: summary.ranking ?? [] });
+
               await pool.query(
                 "UPDATE rooms SET status = 'finished' WHERE id = $1",
                 [roomId]
@@ -1093,10 +1145,8 @@ export default function setupSockets(io) {
         // Start game and server tick
         game.start({ paused: countdownMs > 0 });
 
-        // Update DB to mark room as started
-        await pool.query("UPDATE rooms SET status='started' WHERE id=$1", [roomId]);
-
-        // Fetch latest room info (including avatars)
+        // Fetch latest room info (including avatars). Room status was already
+        // flipped to 'started' atomically above when we claimed the slot.
         const latestRoom = await pool.query(
           "SELECT id, name, players, host, game_mode, status FROM rooms WHERE id=$1",
           [roomId]
@@ -1181,16 +1231,22 @@ export default function setupSockets(io) {
             pendingDisconnects.delete(key);
             const game = getGame(String(roomId));
 
-            if (game) {
+            if (game && !game.isOver) {
               const player = game.players.find(p => p.username === username);
 
               if (player && player.isAlive) {
-                player.die();
+                game.killPlayer(player);
 
                 const result = game.checkGameOver();
                 if (result.over) {
                   const summary = game.endGame();
                   if (game.onGameOver) game.onGameOver(summary);
+                } else if (game.mode_player === 'solo') {
+                  // Player exited mid-game — still award solo coins
+                  const rewards = await updateSoloStats(game);
+                  io.to(String(roomId)).emit('gameOver', { winner: null, rewards, ranking: [] });
+                  await pool.query('DELETE FROM rooms WHERE id = $1', [roomId]);
+                  removeGame(roomId);
                 }
               }
             }

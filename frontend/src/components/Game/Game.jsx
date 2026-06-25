@@ -131,6 +131,7 @@ const restartVideoPlayback = (video) => {
 
 function Game({
   theme,
+  skin = 'classic',
   onBack,
   onPlayAgain,
   onSpectate,
@@ -156,6 +157,12 @@ function Game({
   const musicOffLabel = text.musicOff || 'Music: disabled'
   const enabledLabel = text.enabled || 'Enabled'
   const disabledLabel = text.disabled || 'Disabled'
+  /* v8 ignore start -- fallback strings for missing i18n keys; all supported languages provide these values. @preserve */
+  const darkThemeLabel = optionsText.darkTheme || 'Dark theme'
+  const lightThemeLabel = optionsText.lightTheme || 'Light theme'
+  const switchToLightLabel = optionsText.switchToLight || 'Switch to light mode'
+  const switchToDarkLabel = optionsText.switchToDark || 'Switch to dark mode'
+  /* v8 ignore stop */
 
   const [board, setBoard] = useState(() => makeEmptyBoard(DEFAULT_BOARD))
   const [boardSize, setBoardSize] = useState(DEFAULT_BOARD)
@@ -169,11 +176,15 @@ function Game({
   const [winner, setWinner] = useState(null)
   const [isEliminated, setIsEliminated] = useState(false)
   const [isGameOver, setIsGameOver] = useState(false)
+  const [gameRanking, setGameRanking] = useState([])
+  const [gameRewards, setGameRewards] = useState({})
   const [showSpectator, setShowSpectator] = useState(false)
   const [gameMode, setGameMode] = useState(null)
   const [activePlayerUsername, setActivePlayerUsername] = useState(null)
   const [cooperativeRole, setCooperativeRole] = useState(null)
   const [boardFlash, setBoardFlash] = useState(null)
+  const [flashToast, setFlashToast] = useState(null)
+  const flashToastTimerRef = useRef(null)
   const [countdownStep, setCountdownStep] = useState(null)
   const [isBoardVideoActive, setIsBoardVideoActive] = useState(false)
   const [showPauseLanguages, setShowPauseLanguages] = useState(false)
@@ -223,6 +234,7 @@ function Game({
   const startCountdown = ({ durationMs = COUNTDOWN_STEP_MS * COUNTDOWN_STEPS.length, onDone } = {}) => {
     clearCountdown()
 
+    /* v8 ignore next 3 -- defensive guard; all callers either pass a positive value or rely on the default constant. @preserve */
     if (!durationMs || durationMs <= 0) {
       onDone?.()
       return
@@ -275,6 +287,15 @@ function Game({
         boardFlashTimerRef.current = null
       }, 900)
     })
+  }
+
+  const triggerToast = (label) => {
+    if (flashToastTimerRef.current) clearTimeout(flashToastTimerRef.current)
+    setFlashToast(label)
+    flashToastTimerRef.current = setTimeout(() => {
+      setFlashToast(null)
+      flashToastTimerRef.current = null
+    }, 1000)
   }
 
   const startMusic = () => {
@@ -502,6 +523,8 @@ function Game({
       setIsEliminated(false)
       setShowSpectator(false)
       setIsGameOver(false)
+      setGameRanking([])
+      setGameRewards({})
       setActivePlayerUsername(null)
       setCooperativeRole(null)
       lastLevelRef.current = 1
@@ -600,12 +623,14 @@ function Game({
       })
     }
 
-    const handleGameOver = ({ winner }) => {
+    const handleGameOver = ({ winner, rewards, ranking }) => {
       if (exitingRef.current) return
       clearCountdown()
       setWinner(winner || null)
       setIsEliminated(true)
       setIsGameOver(true)
+      if (Array.isArray(ranking)) setGameRanking(ranking)
+      if (rewards && typeof rewards === 'object') setGameRewards(rewards)
       stopMusic()
       if (soundEnabled && isMultiplayer && winner && username) {
         if (winner === username) {
@@ -651,6 +676,7 @@ function Game({
     /* v8 ignore next -- refs are created on mount before stats effects can play sounds. @preserve */
     if (stats.level > lastLevelRef.current) {
       triggerBoardFlash('level')
+      triggerToast('LEVEL UP!')
       if (soundEnabled && levelUpRef.current) {
         levelUpRef.current.currentTime = 0
         /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
@@ -665,6 +691,7 @@ function Game({
     const delta = stats.lines - lastLinesRef.current
     if (delta === 4) {
       triggerBoardFlash('tetris')
+      triggerToast('TETRIS!')
       if (soundEnabled && tetrisRef.current) {
         tetrisRef.current.currentTime = 0
         /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
@@ -679,6 +706,7 @@ function Game({
     const isEmpty = board.every((row) => row.every((cell) => cell === 'empty'))
     if (!wasBoardEmptyRef.current && isEmpty) {
       triggerBoardFlash('clear')
+      triggerToast('PERFECT!')
       if (soundEnabled && clearRef.current) {
         clearRef.current.currentTime = 0
         /* v8 ignore next -- jsdom Audio mocks do not exercise rejected autoplay promises by default. @preserve */
@@ -792,6 +820,7 @@ function Game({
     if (isPaused) {
       stopSoftDrop()
     }
+    /* v8 ignore next -- defensive guard; setIsPaused(true) is blocked via keyboard and UI while countdownStep is set. @preserve */
     if (countdownActiveRef.current) return
     if (!isMultiplayer && roomId) {
       socket.emit('pauseGame', { roomId: String(roomId), paused: isPaused })
@@ -902,14 +931,10 @@ function Game({
     },
     {
       id: 'theme',
-      label: theme === 'dark'
-        ? (optionsText.darkTheme || 'Dark theme')
-        : (optionsText.lightTheme || 'Light theme'),
+      label: theme === 'dark' ? darkThemeLabel : lightThemeLabel,
       value: theme === 'dark' ? 'Dark' : 'Light',
       valueState: theme === 'dark' ? 'theme-dark' : 'theme-light',
-      description: theme === 'dark'
-        ? (optionsText.switchToLight || 'Switch to light mode')
-        : (optionsText.switchToDark || 'Switch to dark mode'),
+      description: theme === 'dark' ? switchToLightLabel : switchToDarkLabel,
       onClick: () => onThemeChange?.(theme === 'dark' ? 'light' : 'dark'),
     },
     {
@@ -951,8 +976,7 @@ function Game({
 
   if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
     return (
-      <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
-        <TetriminosClouds />
+      <div className={`game-screen ${theme === 'dark' ? 'dark' : ''} ${skin !== 'classic' ? `skin-${skin}` : ''}`}>
         <div className="game-card">
           <SpectatorView
             players={gamePlayers}
@@ -966,7 +990,7 @@ function Game({
   }
 
   return (
-    <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
+    <div className={`game-screen ${theme === 'dark' ? 'dark' : ''} ${skin !== 'classic' ? `skin-${skin}` : ''}`}>
       <TetriminosClouds />
 
       <div className="game-card">
@@ -979,6 +1003,8 @@ function Game({
           username={username}
           onBack={onBack}
           onPlayAgain={onPlayAgain}
+          ranking={gameRanking}
+          rewards={gameRewards}
           onSpectate={
             isMultiplayer && isEliminated && !winner && !isGameOver
               ? () => {
@@ -1084,6 +1110,11 @@ function Game({
               ['--cell-size']: `clamp(18px, min(calc((100vh - 235px) / ${boardSize.height}), calc((100vw - clamp(240px, 22vw, 320px)) / ${boardSize.width})), 48px)`,
             }}
           >
+            {flashToast && (
+              <div className={`board-toast board-toast-${boardFlash ?? 'default'}`} aria-live="polite">
+                {flashToast}
+              </div>
+            )}
             {isBoardVideoActive && (
               <video
                 ref={boardVideoRef}

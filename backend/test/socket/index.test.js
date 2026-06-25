@@ -1204,7 +1204,10 @@ describe('socket setup', () => {
     expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
     expect(game.setCallbacks).toHaveBeenCalled()
     expect(game.start).toHaveBeenCalled()
-    expect(mockQuery).toHaveBeenCalledWith("UPDATE rooms SET status='started' WHERE id=$1", ['1'])
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining("SET status = 'started'"),
+      ['1', 'Titi']
+    )
     expect(io.roomEmit).toHaveBeenCalledWith(
       'roomState',
       expect.objectContaining({
@@ -1416,7 +1419,32 @@ describe('socket setup', () => {
     })
   })
 
-  it('startGame replaces players with ready_again before starting', async () => {
+  it('startGame aborts when the atomic claim fails (concurrent start race)', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+        }],
+      })
+      // The atomic claim returns 0 rows — someone else flipped status first.
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+
+    // No game is created and no further DB writes happen.
+    expect(mockCreateGame).not.toHaveBeenCalled()
+    expect(mockRemoveGame).not.toHaveBeenCalled()
+  })
+
+  it('startGame clears ready_again and starts with all room.players', async () => {
     mockQuery
       .mockResolvedValueOnce({
         rowCount: 1,
@@ -1429,11 +1457,11 @@ describe('socket setup', () => {
         }],
       })
       .mockResolvedValueOnce({ rowCount: 1, rows: [] })
-      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Old'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
       .mockResolvedValueOnce({
         rows: [
           { username: 'Titi', avatar: { eyeType: 'happy' } },
-          { username: 'Riri', avatar: { eyeType: 'sad' } },
+          { username: 'Old', avatar: { eyeType: 'sad' } },
         ],
       })
       .mockResolvedValueOnce({
@@ -1450,24 +1478,37 @@ describe('socket setup', () => {
     await startGameHandler({ roomId: '1' })
 
     expect(mockQuery).toHaveBeenCalledWith(
-      "UPDATE rooms SET players=$1, ready_again='{}' WHERE id=$2",
-      [['Titi', 'Riri'], '1']
+      expect.stringContaining("ready_again = '{}'"),
+      ['1', 'Titi']
     )
-    expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
+    expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Old'], 'classic', 'Titi')
   })
 
-  it('startGame refuses multiplayer restart until enough players clicked play again', async () => {
-    mockQuery.mockResolvedValueOnce({
-      rowCount: 1,
-      rows: [{
-        host: 'Titi',
-        players: ['Titi', 'Riri'],
-        status: 'waiting',
-        game_mode: 'classic',
-        ready_again: ['Titi'],
-        is_listed: true,
-      }],
-    })
+  it('startGame starts with all room.players even when only some clicked play again', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: ['Titi'],
+          is_listed: true,
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const game = { setCallbacks: vi.fn(), start: vi.fn(), mode_player: 'multi' }
+    mockCreateGame.mockReturnValue(game)
 
     const { socket } = await setupConnectedSocket()
     socket.data.username = 'Titi'
@@ -1475,10 +1516,7 @@ describe('socket setup', () => {
     const startGameHandler = socket.handlers.get('startGame')
     await startGameHandler({ roomId: '1' })
 
-    expect(mockCreateGame).not.toHaveBeenCalled()
-    expect(socket.emit).toHaveBeenCalledWith('error', {
-      message: 'This room requires between 2 and 8 players to start.',
-    })
+    expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
   })
 
   it('startGame logs failures from the database path', async () => {
@@ -1574,7 +1612,7 @@ describe('socket setup', () => {
 
     expect(game.emitState).toHaveBeenCalledWith({ force: true, emit: expect.any(Function) })
     expect(io.roomEmit).toHaveBeenCalledWith('gameState', finalState)
-    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi' })
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi', rewards: {}, ranking: [] })
 
     const gameStateIndex = io.roomEmit.mock.calls.findIndex(([event]) => event === 'gameState')
     const gameOverIndex = io.roomEmit.mock.calls.findIndex(([event]) => event === 'gameOver')
@@ -1623,7 +1661,7 @@ describe('socket setup', () => {
 
     expect(game.serialize).toHaveBeenCalled()
     expect(io.roomEmit).toHaveBeenCalledWith('gameState', finalState)
-    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi' })
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi', rewards: {}, ranking: [] })
   })
 
   it('onGameOver callback waits for the configured reveal delay before gameOver', async () => {
@@ -1675,7 +1713,7 @@ describe('socket setup', () => {
     await vi.advanceTimersByTimeAsync(25)
     await done
 
-    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi' })
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi', rewards: {}, ranking: [] })
   })
 
   it('onGameOver callback uses the production reveal delay by default', async () => {
@@ -1733,7 +1771,7 @@ describe('socket setup', () => {
       await vi.advanceTimersByTimeAsync(1)
       await done
 
-      expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi' })
+      expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: 'Titi', rewards: {}, ranking: [] })
     } finally {
       if (originalNodeEnv === undefined) delete process.env.NODE_ENV
       else process.env.NODE_ENV = originalNodeEnv
@@ -2013,11 +2051,56 @@ describe('socket setup', () => {
     const callbacks = game.setCallbacks.mock.calls[0][0]
     await callbacks.onGameOver({ winner: null })
 
-    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: null })
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', { winner: null, rewards: { Titi: 0 }, ranking: [] })
     expect(io.emit).toHaveBeenCalledWith('leaderboardSolo', [
       { rank: 1, name: 'Titi', avatar: { eyeType: 'happy' }, score: 42 },
     ])
     expect(mockRemoveGame).toHaveBeenCalledWith('1')
+  })
+
+  it('solo onGameOver is idempotent against double-firing', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+          is_listed: false,
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({ rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValue({ rowCount: 1, rows: [{ username: 'Titi', avatar: { eyeType: 'happy' }, score: 42 }] })
+
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'solo',
+      players: [{ username: 'Titi', score: 5000 }],
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+
+    // Fire onGameOver twice (simulates the race window between tick-driven
+    // gameOver and a concurrent playerLeave or disconnect timer).
+    await callbacks.onGameOver({ winner: null })
+    await callbacks.onGameOver({ winner: null })
+
+    // The UPDATE users that grants solo coins/games_played must run exactly once.
+    const soloUpdateCalls = mockQuery.mock.calls.filter(([sql]) =>
+      typeof sql === 'string' && sql.includes('solo_games_played = solo_games_played + 1')
+    )
+    expect(soloUpdateCalls).toHaveLength(1)
   })
 
   it('solo onGameOver retries score insert after syncing the solo score id sequence', async () => {
@@ -2244,6 +2327,144 @@ describe('socket setup', () => {
     expect(game.statsUpdated).toBe(true)
   })
 
+  it('classic multiplayer onGameOver awards rank-based coins in 3+ player games', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri', 'Lulu'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri', 'Lulu'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+          { username: 'Lulu', avatar: { eyeType: 'neutral' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValue({ rowCount: 1, rows: [] })
+
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'multi',
+      mode: 'classic',
+      statsUpdated: false,
+      players: [{ username: 'Titi' }, { username: 'Riri' }, { username: 'Lulu' }],
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+    io.roomEmit.mockClear()
+    await callbacks.onGameOver({
+      mode: 'classic',
+      winner: 'Titi',
+      durationSeconds: 90,
+      results: [
+        { username: 'Titi', score: 5000 },
+        { username: 'Riri', score: 2000 },
+        { username: 'Lulu', score: 1500 },
+      ],
+      ranking: [
+        { username: 'Titi', rank: 1 },
+        { username: 'Riri', rank: 2 },
+        { username: 'Lulu', rank: 3 },
+      ],
+    })
+
+    // 3+ players, at least one non-winning opponent scored >= 1000 (Riri=2000),
+    // topHalf = floor(3/2) = 1. Only rank <= 1 earns coins → Titi gets 150, others 0.
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', {
+      winner: 'Titi',
+      rewards: { Titi: 150, Riri: 0, Lulu: 0 },
+      ranking: [
+        { username: 'Titi', rank: 1 },
+        { username: 'Riri', rank: 2 },
+        { username: 'Lulu', rank: 3 },
+      ],
+    })
+  })
+
+  it('classic multiplayer onGameOver skips coin rewards when only the winner scored', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri', 'Lulu'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri', 'Lulu'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+          { username: 'Lulu', avatar: { eyeType: 'neutral' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValue({ rowCount: 1, rows: [] })
+
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'multi',
+      mode: 'classic',
+      statsUpdated: false,
+      players: [{ username: 'Titi' }, { username: 'Riri' }, { username: 'Lulu' }],
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+    io.roomEmit.mockClear()
+    await callbacks.onGameOver({
+      mode: 'classic',
+      winner: 'Titi',
+      durationSeconds: 5,
+      // Winner has a huge score but everyone else is below the anti-farm threshold.
+      // Should NOT mint coins (prevents coalition farming).
+      results: [
+        { username: 'Titi', score: 50000 },
+        { username: 'Riri', score: 50 },
+        { username: 'Lulu', score: 30 },
+      ],
+      ranking: [
+        { username: 'Titi', rank: 1 },
+        { username: 'Riri', rank: 2 },
+        { username: 'Lulu', rank: 3 },
+      ],
+    })
+
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', {
+      winner: 'Titi',
+      rewards: { Titi: 0, Riri: 0, Lulu: 0 },
+      ranking: [
+        { username: 'Titi', rank: 1 },
+        { username: 'Riri', rank: 2 },
+        { username: 'Lulu', rank: 3 },
+      ],
+    })
+  })
+
   it('classic multiplayer onGameOver skips nameless results and stores default stat values', async () => {
     mockQuery
       .mockResolvedValueOnce({
@@ -2367,6 +2588,16 @@ describe('socket setup', () => {
       expect.stringContaining('INSERT INTO multiplayer_scores'),
       expect.any(Array)
     )
+
+    // onGameOver(null) — summary is falsy, updateMultiplayerStats early-returns.
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await callbacks.onGameOver(null)
+    consoleError.mockRestore()
+
+    expect(mockQuery).not.toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO multiplayer_scores'),
+      expect.any(Array)
+    )
   })
 
   it('cooperative onGameOver skips incomplete stat inputs and defaults shared values', async () => {
@@ -2464,6 +2695,8 @@ describe('socket setup', () => {
       })
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
       .mockResolvedValueOnce({
         rows: [{
           player_one: 'Riri',
@@ -2526,6 +2759,7 @@ describe('socket setup', () => {
     const onGameOver = vi.fn()
     mockGetGame.mockReturnValue({
       players: [{ username: 'Titi', isAlive: true, die }],
+      killPlayer: vi.fn((player) => { player.isAlive = false; die() }),
       checkGameOver: vi.fn(() => ({ over: true, winner: 'Riri' })),
       endGame: vi.fn(() => ({ roomId: '1', winner: 'Riri' })),
       onGameOver,
@@ -3412,14 +3646,15 @@ describe('socket setup', () => {
     expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
   })
 
-  it('startGame refuses a finished room when no ready_again players are available', async () => {
+  it('startGame refuses a finished room when only one player remains', async () => {
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
       rows: [{
         host: 'Titi',
-        players: ['Titi', 'Riri'],
+        players: ['Titi'],
         status: 'finished',
         game_mode: 'classic',
+        is_listed: true,
       }],
     })
 
@@ -3840,6 +4075,7 @@ describe('socket setup', () => {
     const die = vi.fn()
     mockGetGame.mockReturnValue({
       players: [{ username: 'Titi', isAlive: true, die }],
+      killPlayer: vi.fn((player) => { player.isAlive = false; die() }),
       checkGameOver: vi.fn(() => ({ over: true, winner: 'Riri' })),
       endGame: vi.fn(() => ({ roomId: '1', winner: 'Riri' })),
     })
@@ -3881,11 +4117,13 @@ describe('socket setup', () => {
     mockGetGame
       .mockReturnValueOnce({
         players: [{ username: 'Titi', isAlive: false, die }],
+        killPlayer: vi.fn((player) => { player.isAlive = false; die() }),
         checkGameOver: vi.fn(),
         endGame: vi.fn(),
       })
       .mockReturnValueOnce({
         players: [{ username: 'Riri', isAlive: true, die }],
+        killPlayer: vi.fn((player) => { player.isAlive = false; die() }),
         checkGameOver: vi.fn(),
         endGame: vi.fn(),
       })
@@ -3918,6 +4156,7 @@ describe('socket setup', () => {
       .mockReturnValueOnce(null)
       .mockReturnValueOnce({
         players: [{ username: 'Titi', isAlive: true, die }],
+        killPlayer: vi.fn((player) => { player.isAlive = false; die() }),
         checkGameOver: vi.fn(() => ({ over: false })),
         endGame,
       })
@@ -3936,6 +4175,41 @@ describe('socket setup', () => {
 
     expect(die).toHaveBeenCalled()
     expect(endGame).not.toHaveBeenCalled()
+  })
+
+  it('disconnect timeout awards solo coins and removes the room when a solo player exits mid-game', async () => {
+    vi.useFakeTimers()
+    process.env.RECONNECT_GRACE_MS = '1000'
+    const die = vi.fn()
+    mockGetGame.mockReturnValue({
+      mode_player: 'solo',
+      players: [{ username: 'Titi', score: 5000, lines: 12, level: 3, tetrisCount: 2, isAlive: true, die }],
+      killPlayer: vi.fn((player) => { player.isAlive = false; die() }),
+      checkGameOver: vi.fn(() => ({ over: false })),
+      endGame: vi.fn(),
+      activePlayTimeMs: 60000,
+    })
+    mockQuery.mockResolvedValue({ rowCount: 1, rows: [] })
+
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+    socket.data.roomId = '1'
+
+    await socket.handlers.get('disconnect')()
+    await vi.advanceTimersByTimeAsync(1000)
+    await vi.runAllTimersAsync()
+
+    expect(die).toHaveBeenCalled()
+    expect(io.roomEmit).toHaveBeenCalledWith('gameOver', {
+      winner: null,
+      rewards: { Titi: 5 },
+      ranking: [],
+    })
+    expect(mockQuery).toHaveBeenCalledWith(
+      'DELETE FROM rooms WHERE id = $1',
+      ['1']
+    )
+    expect(mockRemoveGame).toHaveBeenCalledWith('1')
   })
 
   it('disconnect uses the default grace period for invalid reconnect settings', async () => {

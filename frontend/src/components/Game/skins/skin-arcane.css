@@ -1,0 +1,163 @@
+/* ── Arcane skin ──────────────────────────────────────────────────────────────
+   Dark fantasy / MMORPG aesthetic.
+   Each piece is a faceted enchanted gem: deep jewel base, bright refraction
+   highlight, subtle rune-glow outline, and a dark stone board.
+   Board background intentionally not overridden — respects light/dark theme.
+────────────────────────────────────────────────────────────────────────────── */
+
+.game-screen.skin-arcane .cell-empty {
+  box-shadow: inset 0 0 0 1px rgba(130, 80, 220, 0.15);
+}
+
+.game-screen.skin-arcane .cell-ghost {
+  background: transparent;
+  border: 1.5px dashed rgba(180, 120, 255, 0.35);
+  box-shadow: none;
+}
+
+/* Sapphire I — light ice blue */
+.game-screen.skin-arcane .cell-i {
+  background: linear-gradient(135deg, #aaddff 0%, #5599dd 50%, #2255aa 100%);
+  box-shadow:
+    inset 2px 2px 0 rgba(220, 240, 255, 0.8),
+    inset -2px -2px 0 rgba(10, 30, 80, 0.7),
+    inset 0 0 10px rgba(100, 180, 255, 0.35),
+    0 0 8px rgba(80, 160, 255, 0.45);
+  border-radius: 20%;
+}
+
+/* Topaz O — amber gold */
+.game-screen.skin-arcane .cell-o {
+  background: linear-gradient(135deg, #ffd700 0%, #cc8800 50%, #8a5500 100%);
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 240, 140, 0.75),
+    inset -2px -2px 0 rgba(60, 30, 0, 0.85),
+    inset 0 0 10px rgba(220, 160, 0, 0.35),
+    0 0 8px rgba(200, 130, 0, 0.55);
+  border-radius: 20%;
+}
+
+/* Amethyst T — deep violet */
+.game-screen.skin-arcane .cell-t {
+  background: linear-gradient(135deg, #cc44ff 0%, #8800cc 50%, #4a007a 100%);
+  box-shadow:
+    inset 2px 2px 0 rgba(220, 160, 255, 0.7),
+    inset -2px -2px 0 rgba(30, 0, 60, 0.85),
+    inset 0 0 10px rgba(160, 60, 240, 0.35),
+    0 0 8px rgba(140, 40, 220, 0.55);
+  border-radius: 20%;
+}
+
+/* Emerald S — deep forest green */
+.game-screen.skin-arcane .cell-s {
+  background: linear-gradient(135deg, #00e070 0%, #008844 50%, #004d22 100%);
+  box-shadow:
+    inset 2px 2px 0 rgba(120, 255, 180, 0.65),
+    inset -2px -2px 0 rgba(0, 30, 10, 0.85),
+    inset 0 0 10px rgba(0, 180, 90, 0.35),
+    0 0 8px rgba(0, 160, 80, 0.5);
+  border-radius: 20%;
+}
+
+/* Ruby Z — blood red */
+.game-screen.skin-arcane .cell-z {
+  background: linear-gradient(135deg, #ff2244 0%, #cc0022 50%, #7a0010 100%);
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 140, 160, 0.65),
+    inset -2px -2px 0 rgba(50, 0, 10, 0.85),
+    inset 0 0 10px rgba(220, 20, 60, 0.35),
+    0 0 8px rgba(200, 0, 40, 0.5);
+  border-radius: 20%;
+}
+
+/* Obsidian J — deep midnight blue */
+.game-screen.skin-arcane .cell-j {
+  background: linear-gradient(135deg, #4477dd 0%, #1a3399 50%, #080d4d 100%);
+  box-shadow:
+    inset 2px 2px 0 rgba(140, 180, 255, 0.6),
+    inset -2px -2px 0 rgba(0, 0, 30, 0.9),
+    inset 0 0 10px rgba(60, 100, 220, 0.3),
+    0 0 8px rgba(40, 80, 200, 0.45);
+  border-radius: 20%;
+}
+
+/* Citrine L — molten copper */
+.game-screen.skin-arcane .cell-l {
+  background: linear-gradient(135deg, #ff8c00 0%, #cc5500 50%, #7a2a00 100%);
+  box-shadow:
+    inset 2px 2px 0 rgba(255, 200, 120, 0.7),
+    inset -2px -2px 0 rgba(50, 15, 0, 0.85),
+    inset 0 0 10px rgba(220, 110, 0, 0.35),
+    0 0 8px rgba(200, 90, 0, 0.5);
+  border-radius: 20%;
+}
+
+/* Indestructible penalty — iron/dark steel */
+.game-screen.skin-arcane .cell-gray {
+  background: linear-gradient(135deg, #555577 0%, #333355 50%, #1a1a33 100%);
+  box-shadow:
+    inset 2px 2px 0 rgba(160, 160, 200, 0.4),
+    inset -2px -2px 0 rgba(0, 0, 20, 0.8),
+    inset 0 0 8px rgba(80, 80, 140, 0.25);
+  border-radius: 20%;
+}
+
+/* Board flash overrides — keep the arcane glow palette */
+.game-screen.skin-arcane .game-board.board-flash-tetris {
+  animation-name: board-flash-tetris-arcane;
+}
+.game-screen.skin-arcane .game-board.board-flash-level {
+  animation-name: board-flash-level-arcane;
+}
+.game-screen.skin-arcane .game-board.board-flash-clear {
+  animation-name: board-flash-clear-arcane;
+}
+
+@keyframes board-flash-tetris-arcane {
+  0%, 18%, 36% {
+    border-color: rgba(220, 160, 255, 0.95);
+    box-shadow:
+      inset 0 0 30px rgba(160, 60, 255, 0.35),
+      0 0 0 4px rgba(180, 80, 255, 0.4),
+      0 0 40px rgba(140, 40, 220, 0.7);
+  }
+  9%, 27% {
+    border-color: rgba(80, 200, 255, 0.95);
+    box-shadow:
+      inset 0 0 30px rgba(40, 160, 255, 0.3),
+      0 0 0 4px rgba(60, 180, 255, 0.35),
+      0 0 40px rgba(30, 140, 220, 0.65);
+  }
+  100% {
+    border-color: rgba(120, 80, 220, 0.3);
+    box-shadow: none;
+  }
+}
+
+@keyframes board-flash-level-arcane {
+  0% {
+    border-color: rgba(0, 220, 100, 0.9);
+    box-shadow:
+      inset 0 0 30px rgba(0, 180, 80, 0.3),
+      0 0 0 4px rgba(0, 200, 100, 0.35),
+      0 0 36px rgba(0, 160, 80, 0.65);
+  }
+  100% {
+    border-color: rgba(120, 80, 220, 0.3);
+    box-shadow: none;
+  }
+}
+
+@keyframes board-flash-clear-arcane {
+  0% {
+    border-color: rgba(0, 200, 160, 0.95);
+    box-shadow:
+      inset 0 0 32px rgba(0, 170, 130, 0.32),
+      0 0 0 4px rgba(0, 190, 150, 0.38),
+      0 0 40px rgba(0, 160, 120, 0.65);
+  }
+  100% {
+    border-color: rgba(120, 80, 220, 0.3);
+    box-shadow: none;
+  }
+}

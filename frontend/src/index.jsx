@@ -28,7 +28,10 @@ import bopSound from './res/sounds/bop.mp3'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
 const THEME_STORAGE_KEY = 'red-tetris-theme'
+const SKIN_STORAGE_KEY = 'red-tetris-skin'
+const BG_STORAGE_KEY = 'red-tetris-bg'
 const LANGUAGE_STORAGE_KEY = 'red-tetris-language'
+const OWNED_SKINS_STORAGE_KEY = 'red-tetris-owned-skins'
 const FIRST_CONNECTION_TUTORIAL_STORAGE_KEY = 'red-tetris-first-connection-tutorial-seen'
 const LANGUAGE_CHANGE_EVENT = 'red-tetris-language-change'
 const DEFAULT_PREFERENCES = {
@@ -150,6 +153,13 @@ function Index({ authMode = 'login' }) {
   const [theme, setTheme] = useState(() => {
     const savedTheme = savedAuth?.preferences?.theme || localStorage.getItem(THEME_STORAGE_KEY)
     return savedTheme === 'dark' ? 'dark' : 'light'
+  })
+  const [skin, setSkin] = useState(() => localStorage.getItem(SKIN_STORAGE_KEY) || 'classic')
+  const [bg, setBg] = useState(() => localStorage.getItem(BG_STORAGE_KEY) || 'default')
+  const [coins, setCoins] = useState(0)
+  const [ownedSkins, setOwnedSkins] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(OWNED_SKINS_STORAGE_KEY)) || ['classic'] }
+    catch { return ['classic'] }
   })
   const [language, setLanguage] = useState(() => {
     const savedLanguage = getStoredLanguage() || savedAuth?.preferences?.language
@@ -381,6 +391,12 @@ function Index({ authMode = 'login' }) {
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
           if (cancelled) return
+          if (typeof statsData.coins === 'number') setCoins(statsData.coins)
+          if (Array.isArray(statsData.ownedSkins)) {
+            const owned = statsData.ownedSkins.includes('classic') ? statsData.ownedSkins : ['classic', ...statsData.ownedSkins]
+            setOwnedSkins(owned)
+            localStorage.setItem(OWNED_SKINS_STORAGE_KEY, JSON.stringify(owned))
+          }
         setUserProfile({
           ...statsData,
           username,
@@ -712,6 +728,35 @@ function Index({ authMode = 'login' }) {
     savePreferences(nextPreferences)
   }
 
+  const handleSkinChange = (newSkin) => {
+    localStorage.setItem(SKIN_STORAGE_KEY, newSkin)
+    setSkin(newSkin)
+  }
+
+  const handleSkinBuy = async (skinId) => {
+    try {
+      const res = await apiFetch('/api/shop/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, skinId }),
+      })
+      if (!res.ok) return false
+      const data = await res.json()
+      setCoins(data.coins)
+      const owned = Array.isArray(data.ownedSkins) ? data.ownedSkins : [...ownedSkins, skinId]
+      setOwnedSkins(owned)
+      localStorage.setItem(OWNED_SKINS_STORAGE_KEY, JSON.stringify(owned))
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const handleBgChange = (newBg) => {
+    localStorage.setItem(BG_STORAGE_KEY, newBg)
+    setBg(newBg)
+  }
+
   const handleReturnToProfile = async () => {
     if (username) {
       await unregisterUserBeforeDisconnect(username)
@@ -816,6 +861,23 @@ function Index({ authMode = 'login' }) {
     navigate(buildRoomPath(roomName, typeSlug, username), { replace: true })
   }
 
+  const refreshPlayerStats = async () => {
+    if (!username) return
+    try {
+      const res = await apiFetch(`/api/player/stats?username=${encodeURIComponent(username)}`)
+      if (!res.ok) return
+      const data = await res.json()
+      if (typeof data.coins === 'number') setCoins(data.coins)
+      if (Array.isArray(data.ownedSkins)) {
+        const owned = data.ownedSkins.includes('classic') ? data.ownedSkins : ['classic', ...data.ownedSkins]
+        setOwnedSkins(owned)
+        localStorage.setItem(OWNED_SKINS_STORAGE_KEY, JSON.stringify(owned))
+      }
+    } catch {
+      /* ignore — stale stats are not fatal */
+    }
+  }
+
   const handleExitSolo = async () => {
     if (soloRoomId) {
       try {
@@ -838,6 +900,7 @@ function Index({ authMode = 'login' }) {
     setSoloRoomName(null);
     setActiveGameType(null);
     navigate('/', { replace: true });
+    refreshPlayerStats();
   };
 
   const handlePlaySoloAgain = () => {
@@ -847,6 +910,7 @@ function Index({ authMode = 'login' }) {
     setSoloRoomName(null)
     setActiveGameType(null)
     navigate('/', { replace: true })
+    refreshPlayerStats()
   }
 
   const handlePlayDirectAgain = () => {
@@ -854,6 +918,7 @@ function Index({ authMode = 'login' }) {
     socket.emit('playAgain', { roomId: String(directRoomId), username })
     setShowGame(false)
     setShowDirectRoom(true)
+    refreshPlayerStats()
   }
 
   const handleExitSoloLobby = async () => {
@@ -922,6 +987,7 @@ function Index({ authMode = 'login' }) {
     setShowGame(false);
     setActiveGameType(null);
     navigate('/', { replace: true });
+    refreshPlayerStats();
   };
 
   useEffect(() => {
@@ -1241,7 +1307,7 @@ function Index({ authMode = 'login' }) {
   return (
     <>
       {/* Background always rendered */}
-      <div className={`sky-background ${theme === 'dark' ? 'dark' : ''}`}>
+      <div className={`sky-background ${theme === 'dark' ? 'dark' : ''} ${bg !== 'default' ? `bg-${bg}` : ''}`}>
         {theme === 'dark' && <div ref={starsRef} className="stars" />}
         <GoodClouds />
         <TetriminosClouds />
@@ -1394,6 +1460,7 @@ function Index({ authMode = 'login' }) {
                   ) : showGame ? (
                     <Game
                       theme={theme}
+                      skin={skin}
                       onBack={activeGameType === 'solo' ? handleExitSolo : handleExitDirectGame}
                       onPlayAgain={activeGameType === 'solo' ? handlePlaySoloAgain : handlePlayDirectAgain}
                       roomId={activeGameType === 'solo' ? soloRoomId : directRoomId}
@@ -1419,6 +1486,14 @@ function Index({ authMode = 'login' }) {
                       onMusicChange={handleMusicChange}
                       selectedLanguage={language}
                       onLanguageChange={handleLanguageChange}
+                      skin={skin}
+                      onSkinChange={handleSkinChange}
+                      bg={bg}
+                      onBgChange={handleBgChange}
+                      coins={coins}
+                      ownedSkins={ownedSkins}
+                      onSkinBuy={handleSkinBuy}
+                      onShopOpen={refreshPlayerStats}
                     />
                   )}
               </>

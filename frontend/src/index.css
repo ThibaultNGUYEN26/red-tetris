@@ -935,6 +935,51 @@ html, body, #root {
   );
 }
 
+/* NEON BACKGROUND */
+.sky-background.bg-neon {
+  background: #07051a;
+}
+
+/* Hex grid texture via repeating conic-gradient */
+.sky-background.bg-neon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.18;
+  background-image:
+    linear-gradient(60deg, rgba(120, 80, 255, 0.4) 1px, transparent 1px),
+    linear-gradient(-60deg, rgba(120, 80, 255, 0.4) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(120, 80, 255, 0.25) 1px, transparent 1px);
+  background-size: 40px 70px, 40px 70px, 40px 70px;
+}
+
+/* Ambient glow blobs */
+.sky-background.bg-neon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 55% 40% at 20% 60%, rgba(160, 0, 255, 0.22), transparent),
+    radial-gradient(ellipse 45% 35% at 75% 30%, rgba(0, 220, 255, 0.16), transparent),
+    radial-gradient(ellipse 40% 30% at 55% 80%, rgba(255, 0, 180, 0.14), transparent);
+  animation: neon-blobs 8s ease-in-out infinite alternate;
+}
+
+@keyframes neon-blobs {
+  from {
+    background:
+      radial-gradient(ellipse 55% 40% at 20% 60%, rgba(160, 0, 255, 0.22), transparent),
+      radial-gradient(ellipse 45% 35% at 75% 30%, rgba(0, 220, 255, 0.16), transparent),
+      radial-gradient(ellipse 40% 30% at 55% 80%, rgba(255, 0, 180, 0.14), transparent);
+  }
+  to {
+    background:
+      radial-gradient(ellipse 50% 38% at 25% 55%, rgba(160, 0, 255, 0.28), transparent),
+      radial-gradient(ellipse 48% 38% at 70% 35%, rgba(0, 220, 255, 0.2), transparent),
+      radial-gradient(ellipse 42% 32% at 60% 75%, rgba(255, 0, 180, 0.18), transparent);
+  }
+}
+
 .stars {
   position: absolute;
   inset: 0;

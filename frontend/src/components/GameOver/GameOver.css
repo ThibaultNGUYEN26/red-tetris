@@ -24,6 +24,17 @@
   color: #e6f3ff;
 }
 
+.game-screen.dark .game-over-card h3,
+.game-screen.dark .game-over-winner,
+.game-screen.dark .rank-name {
+  color: #e6f3ff;
+}
+
+.game-screen.dark .rank-position,
+.game-screen.dark .rank-score {
+  color: rgba(160, 200, 255, 0.85);
+}
+
 .game-over-winner {
   font-weight: 700;
   margin: 8px 0 4px;
@@ -58,3 +69,69 @@
   font-size: 1rem;
   font-weight: 600;
 }
+
+/* ── ranking table ── */
+.game-over-ranking {
+  margin: 12px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+}
+
+.game-over-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: rgba(42, 82, 152, 0.06);
+}
+
+.game-over-rank-row.is-me {
+  background: rgba(42, 82, 152, 0.16);
+  font-weight: 700;
+}
+
+.game-screen.dark .game-over-rank-row {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.game-screen.dark .game-over-rank-row.is-me {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.rank-position {
+  min-width: 28px;
+  font-weight: 800;
+  color: rgba(42, 82, 152, 0.7);
+}
+
+.rank-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-score {
+  font-variant-numeric: tabular-nums;
+  color: rgba(42, 82, 152, 0.8);
+  font-size: 0.8rem;
+}
+
+.rank-coins {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #b8860b;
+  white-space: nowrap;
+}
+
+.game-over-coins {
+  margin: 10px 0 4px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #b8860b;
+}
+
