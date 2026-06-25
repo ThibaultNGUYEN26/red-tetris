@@ -22,6 +22,7 @@ function ModeMenuSelector({
   coins = 0,
   ownedSkins = ['classic'],
   onSkinBuy,
+  onShopOpen,
 }) {
   const [showOptions, setShowOptions] = useState(false)
   const [showShop, setShowShop] = useState(false)
@@ -33,6 +34,11 @@ function ModeMenuSelector({
 
   const handleMultiplayer = () => {
     onShowRooms(true)
+  }
+
+  const handleOpenShop = () => {
+    onShopOpen?.()
+    setShowShop(true)
   }
 
   return (
@@ -61,7 +67,7 @@ function ModeMenuSelector({
         <div className="mode-secondary-buttons">
           <button
             className="shop-button"
-            onClick={() => setShowShop(true)}
+            onClick={handleOpenShop}
           >
             {text.shop}
           </button>

@@ -1,0 +1,39 @@
+/* ── Plain skin ──────────────────────────────────────────────────────────────
+   Flat solid colours, no highlights, no shadows, no borders, no gaps.
+   Tetrominoes look like a single contiguous shape, fully plain.
+   Selectors are scoped to .game-screen.skin-plain so they win specificity
+   against the default .game-screen.dark .cell-* overrides.
+──────────────────────────────────────────────────────────────────────────── */
+.game-screen.skin-plain .game-board,
+.game-screen.skin-plain .next-grid {
+  gap: 0;
+}
+
+.game-screen.skin-plain .cell-i,
+.game-screen.skin-plain .cell-o,
+.game-screen.skin-plain .cell-t,
+.game-screen.skin-plain .cell-s,
+.game-screen.skin-plain .cell-z,
+.game-screen.skin-plain .cell-j,
+.game-screen.skin-plain .cell-l,
+.game-screen.skin-plain .cell-gray,
+.game-screen.skin-plain.dark .cell-i,
+.game-screen.skin-plain.dark .cell-o,
+.game-screen.skin-plain.dark .cell-t,
+.game-screen.skin-plain.dark .cell-s,
+.game-screen.skin-plain.dark .cell-z,
+.game-screen.skin-plain.dark .cell-j,
+.game-screen.skin-plain.dark .cell-l,
+.game-screen.skin-plain.dark .cell-gray {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.game-screen.skin-plain .cell-i    { background: #29b6f6; }
+.game-screen.skin-plain .cell-o    { background: #fdd835; }
+.game-screen.skin-plain .cell-t    { background: #ab47bc; }
+.game-screen.skin-plain .cell-s    { background: #66bb6a; }
+.game-screen.skin-plain .cell-z    { background: #ef5350; }
+.game-screen.skin-plain .cell-j    { background: #5c6bc0; }
+.game-screen.skin-plain .cell-l    { background: #ffa726; }
+.game-screen.skin-plain .cell-gray { background: #9e9e9e; }

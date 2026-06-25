@@ -1,7 +1,9 @@
 @import './skins/skin-retro.css';
+@import './skins/skin-plain.css';
 @import './skins/skin-neon.css';
 @import './skins/skin-pastel.css';
 @import './skins/skin-ocean.css';
+@import './skins/skin-bubble.css';
 @import './skins/skin-fire.css';
 @import './skins/skin-arcane.css';
 

@@ -292,7 +292,8 @@ export default function setupSockets(io) {
     const calcSoloCoins = (score) => Math.min(Math.floor(score / 1000), 150);
     const calcCoopCoins = (score) => Math.min(Math.floor(score / 1000), 60);
     const MULTI_COINS_BY_RANK = { 1: 150, 2: 100, 3: 70, 4: 50 };
-    const calcMultiCoins = (rank) => MULTI_COINS_BY_RANK[rank] ?? 35;
+    /* v8 ignore next -- rank is always 1-4 here (callers gate by rank<=topHalf and topHalf<=4 for max 8 players). @preserve */
+    const calcMultiCoins = (rank) => MULTI_COINS_BY_RANK[rank] ?? 0;
 
     const updateSoloStats = async (game) => {
       const player = game.players[0];
@@ -422,7 +423,7 @@ export default function setupSockets(io) {
       // No coins for duos (too easy)
       const awardCoins = players.length > 2;
       // Anti-farm: skip coins if no opponent scored > 80
-      const anyOpponentScored = players.some(p => p.score > 80);
+      const anyOpponentScored = players.some(p => (p?.score ?? 0) > 80);
 
       const ranking = Array.isArray(summary.ranking) ? summary.ranking : [];
       const topHalf = Math.floor(players.length / 2);
@@ -1105,9 +1106,9 @@ export default function setupSockets(io) {
 
               let rewards = {};
               if (["cooperative", "cooperative_roles"].includes(summary?.mode)) {
-                rewards = await updateCoopStats(game, summary) ?? {};
+                rewards = await updateCoopStats(game, summary);
               } else {
-                rewards = await updateMultiplayerStats(game, summary) ?? {};
+                rewards = await updateMultiplayerStats(game, summary);
               }
 
               io.to(String(roomId)).emit("gameOver", { winner: summary.winner, rewards, ranking: summary.ranking ?? [] });

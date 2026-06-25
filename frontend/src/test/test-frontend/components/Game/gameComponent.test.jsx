@@ -2373,4 +2373,33 @@ describe('Game Component', () => {
     expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
     expect(container.querySelector('.game-screen.skin-neon')).toBeInTheDocument()
   })
+
+  it('forwards ranking and rewards from gameOver to GameOver', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameOver')?.({
+        winner: 'Titi',
+        ranking: [
+          { username: 'Titi', rank: 1, score: 500 },
+          { username: 'Riri', rank: 2, score: 200 },
+        ],
+        rewards: { Titi: 150, Riri: 0 },
+      })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('game-over-state')).toHaveTextContent('"isGameOver":true')
+    })
+  })
 })

@@ -1469,4 +1469,60 @@ describe('Game', () => {
 
     expect(state.player.isCurrentTurn).toBe(false)
   })
+
+  it('killPlayer is a no-op when the player is already dead', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'classic', 'multi', 'Titi')
+
+    game.killPlayer(players[0])
+    const firstDeathOrder = players[0].deathOrder
+    const counterAfterFirst = game.deathCounter
+
+    // calling again should not bump deathCounter or change deathOrder
+    game.killPlayer(players[0])
+
+    expect(players[0].deathOrder).toBe(firstDeathOrder)
+    expect(game.deathCounter).toBe(counterAfterFirst)
+  })
+
+  it('endGame ranks dead players by reverse death order on equal scores', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2'), new Player('Lulu', '3')]
+    const game = new Game('room-1', players, 'classic', 'multi', 'Titi')
+
+    // All three die with the same score, in a defined order.
+    game.killPlayer(players[0]) // Titi died first
+    game.killPlayer(players[1]) // Riri died second
+    game.killPlayer(players[2]) // Lulu died last
+
+    const summary = game.endGame()
+
+    // Last to die (Lulu) ranks highest among dead players with equal scores.
+    expect(summary.ranking.map((r) => r.username)).toEqual(['Lulu', 'Riri', 'Titi'])
+  })
+
+  it('endGame ranks by score when both players have died with different scores', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'classic', 'multi', 'Titi')
+
+    players[0].score = 50
+    players[1].score = 200
+    game.killPlayer(players[0])
+    game.killPlayer(players[1])
+
+    const summary = game.endGame()
+
+    // Higher score wins among dead players regardless of death order.
+    expect(summary.ranking.map((r) => r.username)).toEqual(['Riri', 'Titi'])
+  })
+
+  it('endGame falls back to insertion order when two alive players tie on score', () => {
+    const players = [new Player('Titi', '1'), new Player('Riri', '2')]
+    const game = new Game('room-1', players, 'classic', 'multi', 'Titi')
+
+    // Both alive, both at score 0 — triggers the deathOrder ?? 0 fallback branch.
+    const summary = game.endGame()
+
+    expect(summary.ranking).toHaveLength(2)
+    expect(summary.ranking.every((r) => r.isAlive)).toBe(true)
+  })
 })

@@ -16,8 +16,10 @@ const PIECES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
 
 const SKIN_PACKS = [
   { id: 'classic', price: 0,     available: true },
+  { id: 'plain',   price: 250,   available: true },
   { id: 'retro',   price: 500,   available: true },
   { id: 'pastel',  price: 1250,  available: true },
+  { id: 'bubble',  price: 1750,  available: true },
   { id: 'ocean',   price: 2500,  available: true },
   { id: 'neon',    price: 5000,  available: true },
   { id: 'fire',    price: 10000, available: true },

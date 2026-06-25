@@ -1493,6 +1493,7 @@ function Index({ authMode = 'login' }) {
                       coins={coins}
                       ownedSkins={ownedSkins}
                       onSkinBuy={handleSkinBuy}
+                      onShopOpen={refreshPlayerStats}
                     />
                   )}
               </>
