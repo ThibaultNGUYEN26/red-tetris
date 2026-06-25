@@ -35,6 +35,7 @@ export default class Game {
     this.statsUpdated = false;
     this.isPaused = false;
     this.activePlayTimeMs = 0;
+    this.deathCounter = 0;
 
     this.onTick = null;
     this.onGameOver = null;
@@ -44,6 +45,13 @@ export default class Game {
     this.currentTurnIndex = 0;
     this.currentTurnUsername = null;
     this.cooperativeRoles = {};
+  }
+
+  killPlayer(player) {
+    if (!player.isAlive) return;
+    this.deathCounter += 1;
+    player.deathOrder = this.deathCounter;
+    player.die();
   }
 
   setCallbacks({ onTick, onGameOver }) {
@@ -215,7 +223,7 @@ export default class Game {
       if (sharedPlayer) {
         const ok = this.spawnForPlayer(sharedPlayer);
         if (!ok) {
-          sharedPlayer.die();
+          this.killPlayer(sharedPlayer);
         }
         this.syncCooperativeStateFrom(sharedPlayer);
       }
@@ -223,7 +231,7 @@ export default class Game {
       this.players.forEach(player => {
         const ok = this.spawnForPlayer(player);
         if (!ok) {
-          player.die();
+          this.killPlayer(player);
         }
       });
     }
@@ -544,7 +552,7 @@ export default class Game {
     player.sequenceIndex += 1;
     const ok = this.spawnForPlayer(player);
     if (!ok) {
-      player.die();
+      this.killPlayer(player);
     }
 
     if (this.isAlternatingCooperativeMode()) {
@@ -631,7 +639,7 @@ export default class Game {
       }
     }
 
-    player.die();
+    this.killPlayer(player);
     player.currentPiece = null;
     player.nextPiece = null;
     return false;
@@ -768,7 +776,7 @@ export default class Game {
         if (!sharedPlayer.currentPiece) {
           const ok = this.spawnForPlayer(sharedPlayer);
           if (!ok) {
-            sharedPlayer.die();
+            this.killPlayer(sharedPlayer);
           }
         }
 
@@ -786,7 +794,7 @@ export default class Game {
         if (!player.currentPiece) {
           const ok = this.spawnForPlayer(player);
           if (!ok) {
-            player.die();
+            this.killPlayer(player);
             return;
           }
         }
@@ -937,6 +945,28 @@ export default class Game {
 
     const alive = this.players.filter(p => p.isAlive);
 
+    const results = this.players.map(p => ({
+      username: p.username,
+      score: p.score,
+      lines: p.lines,
+      level: p.level,
+      tetrisCount: p.tetrisCount,
+      linesSent: p.linesSent,
+      maxLinesCleared: p.maxLinesCleared,
+      durationSeconds: Math.floor(this.activePlayTimeMs / 1000),
+      isAlive: p.isAlive,
+      deathOrder: p.deathOrder,
+    }));
+
+    // Rank: alive players first (highest score), then dead players by reverse death order (last to die = higher rank)
+    const ranked = [...results].sort((a, b) => {
+      if (a.isAlive !== b.isAlive) return a.isAlive ? -1 : 1;
+      if (a.score !== b.score) return b.score - a.score;
+      // tie-break: last to die = better rank (higher deathOrder = died later)
+      return (b.deathOrder ?? 0) - (a.deathOrder ?? 0);
+    });
+    ranked.forEach((r, i) => { r.rank = i + 1; });
+
     return {
       roomId: this.roomId,
       mode: this.mode,
@@ -945,17 +975,8 @@ export default class Game {
         this.mode_player === "multi" && !this.isCooperativeMode()
           ? alive[0]?.username ?? null
           : null,
-      results: this.players.map(p => ({
-        username: p.username,
-        score: p.score,
-        lines: p.lines,
-        level: p.level,
-        tetrisCount: p.tetrisCount,
-        linesSent: p.linesSent,
-        maxLinesCleared: p.maxLinesCleared,
-        durationSeconds: Math.floor(this.activePlayTimeMs / 1000),
-        isAlive: p.isAlive
-      }))
+      results,
+      ranking: ranked,
     };
   }
 }

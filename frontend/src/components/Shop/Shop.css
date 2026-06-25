@@ -218,6 +218,35 @@
   padding: 0.42rem 0;
 }
 
+/* ── coins balance ── */
+.shop-coins-balance {
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #b8860b;
+  letter-spacing: 0.04em;
+}
+
+/* ── buy button ── */
+.shop-buy-button {
+  background: linear-gradient(135deg, rgba(200, 155, 20, 0.92), rgba(160, 110, 5, 0.96));
+}
+
+.shop-buy-button:hover:not(:disabled) {
+  box-shadow: 0 4px 10px rgba(160, 110, 5, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.shop-buy-button.cannot-afford {
+  background: linear-gradient(135deg, rgba(140, 140, 140, 0.7), rgba(100, 100, 100, 0.75));
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* ── locked (unowned) card overlay ── */
+.shop-pack-card.locked {
+  opacity: 0.82;
+}
+
 /* ── preview panel ── */
 .shop-preview-panel {
   position: relative;
