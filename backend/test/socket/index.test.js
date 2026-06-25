@@ -1204,7 +1204,10 @@ describe('socket setup', () => {
     expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
     expect(game.setCallbacks).toHaveBeenCalled()
     expect(game.start).toHaveBeenCalled()
-    expect(mockQuery).toHaveBeenCalledWith("UPDATE rooms SET status='started' WHERE id=$1", ['1'])
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.stringContaining("SET status = 'started'"),
+      ['1', 'Titi']
+    )
     expect(io.roomEmit).toHaveBeenCalledWith(
       'roomState',
       expect.objectContaining({
@@ -1416,6 +1419,31 @@ describe('socket setup', () => {
     })
   })
 
+  it('startGame aborts when the atomic claim fails (concurrent start race)', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+        }],
+      })
+      // The atomic claim returns 0 rows — someone else flipped status first.
+      .mockResolvedValueOnce({ rowCount: 0, rows: [] })
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+
+    // No game is created and no further DB writes happen.
+    expect(mockCreateGame).not.toHaveBeenCalled()
+    expect(mockRemoveGame).not.toHaveBeenCalled()
+  })
+
   it('startGame clears ready_again and starts with all room.players', async () => {
     mockQuery
       .mockResolvedValueOnce({
@@ -1450,8 +1478,8 @@ describe('socket setup', () => {
     await startGameHandler({ roomId: '1' })
 
     expect(mockQuery).toHaveBeenCalledWith(
-      "UPDATE rooms SET ready_again='{}' WHERE id=$1",
-      ['1']
+      expect.stringContaining("ready_again = '{}'"),
+      ['1', 'Titi']
     )
     expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Old'], 'classic', 'Titi')
   })
