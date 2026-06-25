@@ -1080,12 +1080,20 @@ export default function setupSockets(io) {
           return;
         }
 
-        if (room.ready_again && room.ready_again.length) {
-          await pool.query(
-            "UPDATE rooms SET ready_again='{}' WHERE id=$1",
-            [roomId]
-          );
-        }
+        // Atomically claim the start slot. If two startGame calls race, only
+        // the first transitions waiting/finished -> started; the second sees
+        // rowCount = 0 and aborts, preventing orphan tick loops.
+        const claim = await pool.query(
+          `UPDATE rooms
+           SET status = 'started',
+               ready_again = '{}'
+           WHERE id = $1
+             AND host = $2
+             AND status IN ('waiting', 'finished')
+           RETURNING id`,
+          [roomId, username]
+        );
+        if (!claim.rowCount) return;
 
         // Always rebuild the in-memory game from the current DB room state.
         removeGame(roomId);
@@ -1137,10 +1145,8 @@ export default function setupSockets(io) {
         // Start game and server tick
         game.start({ paused: countdownMs > 0 });
 
-        // Update DB to mark room as started
-        await pool.query("UPDATE rooms SET status='started' WHERE id=$1", [roomId]);
-
-        // Fetch latest room info (including avatars)
+        // Fetch latest room info (including avatars). Room status was already
+        // flipped to 'started' atomically above when we claimed the slot.
         const latestRoom = await pool.query(
           "SELECT id, name, players, host, game_mode, status FROM rooms WHERE id=$1",
           [roomId]
