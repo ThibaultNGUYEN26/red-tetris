@@ -1416,7 +1416,7 @@ describe('socket setup', () => {
     })
   })
 
-  it('startGame replaces players with ready_again before starting', async () => {
+  it('startGame clears ready_again and starts with all room.players', async () => {
     mockQuery
       .mockResolvedValueOnce({
         rowCount: 1,
@@ -1429,11 +1429,11 @@ describe('socket setup', () => {
         }],
       })
       .mockResolvedValueOnce({ rowCount: 1, rows: [] })
-      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Old'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
       .mockResolvedValueOnce({
         rows: [
           { username: 'Titi', avatar: { eyeType: 'happy' } },
-          { username: 'Riri', avatar: { eyeType: 'sad' } },
+          { username: 'Old', avatar: { eyeType: 'sad' } },
         ],
       })
       .mockResolvedValueOnce({
@@ -1450,24 +1450,37 @@ describe('socket setup', () => {
     await startGameHandler({ roomId: '1' })
 
     expect(mockQuery).toHaveBeenCalledWith(
-      "UPDATE rooms SET players=$1, ready_again='{}' WHERE id=$2",
-      [['Titi', 'Riri'], '1']
+      "UPDATE rooms SET ready_again='{}' WHERE id=$1",
+      ['1']
     )
-    expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
+    expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Old'], 'classic', 'Titi')
   })
 
-  it('startGame refuses multiplayer restart until enough players clicked play again', async () => {
-    mockQuery.mockResolvedValueOnce({
-      rowCount: 1,
-      rows: [{
-        host: 'Titi',
-        players: ['Titi', 'Riri'],
-        status: 'waiting',
-        game_mode: 'classic',
-        ready_again: ['Titi'],
-        is_listed: true,
-      }],
-    })
+  it('startGame starts with all room.players even when only some clicked play again', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi', 'Riri'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: ['Titi'],
+          is_listed: true,
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi', 'Riri'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({
+        rows: [
+          { username: 'Titi', avatar: { eyeType: 'happy' } },
+          { username: 'Riri', avatar: { eyeType: 'sad' } },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+
+    const game = { setCallbacks: vi.fn(), start: vi.fn(), mode_player: 'multi' }
+    mockCreateGame.mockReturnValue(game)
 
     const { socket } = await setupConnectedSocket()
     socket.data.username = 'Titi'
@@ -1475,10 +1488,7 @@ describe('socket setup', () => {
     const startGameHandler = socket.handlers.get('startGame')
     await startGameHandler({ roomId: '1' })
 
-    expect(mockCreateGame).not.toHaveBeenCalled()
-    expect(socket.emit).toHaveBeenCalledWith('error', {
-      message: 'This room requires between 2 and 8 players to start.',
-    })
+    expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
   })
 
   it('startGame logs failures from the database path', async () => {
@@ -3412,14 +3422,15 @@ describe('socket setup', () => {
     expect(mockCreateGame).toHaveBeenCalledWith('1', ['Titi', 'Riri'], 'classic', 'Titi')
   })
 
-  it('startGame refuses a finished room when no ready_again players are available', async () => {
+  it('startGame refuses a finished room when only one player remains', async () => {
     mockQuery.mockResolvedValueOnce({
       rowCount: 1,
       rows: [{
         host: 'Titi',
-        players: ['Titi', 'Riri'],
+        players: ['Titi'],
         status: 'finished',
         game_mode: 'classic',
+        is_listed: true,
       }],
     })
 

@@ -1013,10 +1013,7 @@ export default function setupSockets(io) {
         // Prevent restarting an already started game
         if (room.status === "started") return;
 
-        const isRestartingFinishedGame = room.status === "finished" || (room.ready_again && room.ready_again.length);
-        const playersToStart = isRestartingFinishedGame
-          ? (room.ready_again || [])
-          : room.players;
+        const playersToStart = room.players;
 
         // Validate player count based on game mode
         const gameMode = room.game_mode || "classic";
@@ -1038,11 +1035,10 @@ export default function setupSockets(io) {
           return;
         }
 
-        // Replace room.players with ready_again if applicable
         if (room.ready_again && room.ready_again.length) {
           await pool.query(
-            "UPDATE rooms SET players=$1, ready_again='{}' WHERE id=$2",
-            [playersToStart, roomId]
+            "UPDATE rooms SET ready_again='{}' WHERE id=$1",
+            [roomId]
           );
         }
 
