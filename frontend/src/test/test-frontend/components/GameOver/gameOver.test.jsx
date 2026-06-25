@@ -104,7 +104,7 @@ describe('GameOver Component', () => {
     )
 
     expect(screen.getByRole('heading', { name: /you won/i })).toBeInTheDocument()
-    expect(screen.getByText('Winner: Titi')).toBeInTheDocument()
+    expect(screen.queryByText('Winner: Titi')).not.toBeInTheDocument()
 
     rerender(
       <GameOver
@@ -119,7 +119,7 @@ describe('GameOver Component', () => {
     )
 
     expect(screen.getByRole('heading', { name: /you lost/i })).toBeInTheDocument()
-    expect(screen.getByText('Winner: Other')).toBeInTheDocument()
+    expect(screen.queryByText('Winner: Other')).not.toBeInTheDocument()
   })
 
   it('shows play again and spectate when applicable', () => {
@@ -181,5 +181,62 @@ describe('GameOver Component', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /back to menu/i }))
     expect(onBack).toHaveBeenCalled()
+  })
+
+  it('renders the ranking with rewards, highlighting the current player', () => {
+    render(
+      <GameOver
+        winner="Titi"
+        isEliminated
+        isGameOver
+        onBack={vi.fn()}
+        username="Titi"
+        isMultiplayer={true}
+        gameMode="classic"
+        ranking={[
+          { username: 'Titi', rank: 1, score: 1500 },
+          { username: 'Riri', rank: 2, score: 800 },
+          { username: 'Lulu', rank: 3, score: 200 },
+        ]}
+        rewards={{ Titi: 150, Riri: 50 }}
+      />
+    )
+
+    // All ranking entries are rendered.
+    expect(screen.getByText('Titi')).toBeInTheDocument()
+    expect(screen.getByText('Riri')).toBeInTheDocument()
+    expect(screen.getByText('Lulu')).toBeInTheDocument()
+    expect(screen.getByText('#1')).toBeInTheDocument()
+    expect(screen.getByText('1,500')).toBeInTheDocument()
+
+    // Only players who earned > 0 coins show the coin badge.
+    expect(screen.getByText('+150 🪙')).toBeInTheDocument()
+    expect(screen.getByText('+50 🪙')).toBeInTheDocument()
+    // Lulu is missing from rewards entirely (?? 0 fallback path) so no badge.
+    expect(screen.queryByText('+0 🪙')).not.toBeInTheDocument()
+
+    // The current player's row is marked with the is-me class.
+    const titiRow = screen.getByText('Titi').closest('.game-over-rank-row')
+    expect(titiRow).toHaveClass('is-me')
+  })
+
+  it('shows own coin reward outside the ranking in coop mode', () => {
+    render(
+      <GameOver
+        winner={null}
+        isEliminated
+        isGameOver
+        onBack={vi.fn()}
+        username="Titi"
+        isMultiplayer={true}
+        gameMode="cooperative"
+        ranking={[{ username: 'Titi', rank: 1, score: 500 }]}
+        rewards={{ Titi: 40 }}
+      />
+    )
+
+    // Coop hides the ranking but shows the standalone coin line.
+    expect(screen.queryByText('#1')).not.toBeInTheDocument()
+    expect(screen.getByText('+40 🪙')).toBeInTheDocument()
   })
 })

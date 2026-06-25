@@ -539,8 +539,10 @@ router.post("/profile", async (req, res) => {
 
 const SKIN_PRICES = {
   classic: 0,
+  plain: 250,
   retro: 500,
   pastel: 1250,
+  bubble: 1750,
   ocean: 2500,
   neon: 5000,
   fire: 10000,
