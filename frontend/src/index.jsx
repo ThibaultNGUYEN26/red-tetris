@@ -861,6 +861,23 @@ function Index({ authMode = 'login' }) {
     navigate(buildRoomPath(roomName, typeSlug, username), { replace: true })
   }
 
+  const refreshPlayerStats = async () => {
+    if (!username) return
+    try {
+      const res = await apiFetch(`/api/player/stats?username=${encodeURIComponent(username)}`)
+      if (!res.ok) return
+      const data = await res.json()
+      if (typeof data.coins === 'number') setCoins(data.coins)
+      if (Array.isArray(data.ownedSkins)) {
+        const owned = data.ownedSkins.includes('classic') ? data.ownedSkins : ['classic', ...data.ownedSkins]
+        setOwnedSkins(owned)
+        localStorage.setItem(OWNED_SKINS_STORAGE_KEY, JSON.stringify(owned))
+      }
+    } catch {
+      /* ignore — stale stats are not fatal */
+    }
+  }
+
   const handleExitSolo = async () => {
     if (soloRoomId) {
       try {
@@ -883,6 +900,7 @@ function Index({ authMode = 'login' }) {
     setSoloRoomName(null);
     setActiveGameType(null);
     navigate('/', { replace: true });
+    refreshPlayerStats();
   };
 
   const handlePlaySoloAgain = () => {
@@ -892,6 +910,7 @@ function Index({ authMode = 'login' }) {
     setSoloRoomName(null)
     setActiveGameType(null)
     navigate('/', { replace: true })
+    refreshPlayerStats()
   }
 
   const handlePlayDirectAgain = () => {
@@ -899,6 +918,7 @@ function Index({ authMode = 'login' }) {
     socket.emit('playAgain', { roomId: String(directRoomId), username })
     setShowGame(false)
     setShowDirectRoom(true)
+    refreshPlayerStats()
   }
 
   const handleExitSoloLobby = async () => {
@@ -967,6 +987,7 @@ function Index({ authMode = 'login' }) {
     setShowGame(false);
     setActiveGameType(null);
     navigate('/', { replace: true });
+    refreshPlayerStats();
   };
 
   useEffect(() => {

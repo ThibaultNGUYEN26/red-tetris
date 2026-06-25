@@ -539,12 +539,12 @@ router.post("/profile", async (req, res) => {
 
 const SKIN_PRICES = {
   classic: 0,
-  retro: 1000,
-  pastel: 2500,
-  ocean: 5000,
-  neon: 10000,
-  fire: 20000,
-  arcane: 40000,
+  retro: 500,
+  pastel: 1250,
+  ocean: 2500,
+  neon: 5000,
+  fire: 10000,
+  arcane: 20000,
 };
 
 router.post("/shop/buy", async (req, res) => {
