@@ -289,8 +289,8 @@ export default function setupSockets(io) {
       io.emit("leaderboardCoop", coopLeaderboard);
     };
 
-    const calcSoloCoins = (score) => Math.min(Math.floor(score / 50), 50);
-    const calcCoopCoins = (score) => Math.min(Math.floor(score / 45), 65);
+    const calcSoloCoins = (score) => Math.min(Math.floor(score / 1000), 150);
+    const calcCoopCoins = (score) => Math.min(Math.floor(score / 1000), 60);
     const MULTI_COINS_BY_RANK = { 1: 150, 2: 100, 3: 70, 4: 50 };
     const calcMultiCoins = (rank) => MULTI_COINS_BY_RANK[rank] ?? 35;
 

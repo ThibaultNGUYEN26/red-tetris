@@ -15,13 +15,13 @@ const SHAPES = {
 const PIECES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L']
 
 const SKIN_PACKS = [
-  { id: 'classic', price: 0,    available: true },
-  { id: 'retro',   price: 300,  available: true },
-  { id: 'pastel',  price: 500,  available: true },
-  { id: 'ocean',   price: 800,  available: true },
-  { id: 'neon',    price: 1200, available: true },
-  { id: 'fire',    price: 1800, available: true },
-  { id: 'arcane',  price: 2800, available: true },
+  { id: 'classic', price: 0,     available: true },
+  { id: 'retro',   price: 1000,  available: true },
+  { id: 'pastel',  price: 2500,  available: true },
+  { id: 'ocean',   price: 5000,  available: true },
+  { id: 'neon',    price: 10000, available: true },
+  { id: 'fire',    price: 20000, available: true },
+  { id: 'arcane',  price: 40000, available: true },
 ]
 
 function TetrominoShape({ piece, size = 10, skinId = 'classic' }) {
