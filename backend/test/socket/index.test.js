@@ -2030,6 +2030,51 @@ describe('socket setup', () => {
     expect(mockRemoveGame).toHaveBeenCalledWith('1')
   })
 
+  it('solo onGameOver is idempotent against double-firing', async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rowCount: 1,
+        rows: [{
+          host: 'Titi',
+          players: ['Titi'],
+          status: 'waiting',
+          game_mode: 'classic',
+          ready_again: [],
+          is_listed: false,
+        }],
+      })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [] })
+      .mockResolvedValueOnce({ rowCount: 1, rows: [{ id: 1, name: 'Room', players: ['Titi'], host: 'Titi', game_mode: 'classic', status: 'started' }] })
+      .mockResolvedValueOnce({ rows: [{ username: 'Titi', avatar: { eyeType: 'happy' } }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValue({ rowCount: 1, rows: [{ username: 'Titi', avatar: { eyeType: 'happy' }, score: 42 }] })
+
+    const game = {
+      setCallbacks: vi.fn(),
+      start: vi.fn(),
+      mode_player: 'solo',
+      players: [{ username: 'Titi', score: 5000 }],
+    }
+    mockCreateGame.mockReturnValue(game)
+
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('startGame')({ roomId: '1' })
+    const callbacks = game.setCallbacks.mock.calls[0][0]
+
+    // Fire onGameOver twice (simulates the race window between tick-driven
+    // gameOver and a concurrent playerLeave or disconnect timer).
+    await callbacks.onGameOver({ winner: null })
+    await callbacks.onGameOver({ winner: null })
+
+    // The UPDATE users that grants solo coins/games_played must run exactly once.
+    const soloUpdateCalls = mockQuery.mock.calls.filter(([sql]) =>
+      typeof sql === 'string' && sql.includes('solo_games_played = solo_games_played + 1')
+    )
+    expect(soloUpdateCalls).toHaveLength(1)
+  })
+
   it('solo onGameOver retries score insert after syncing the solo score id sequence', async () => {
     mockQuery
       .mockResolvedValueOnce({

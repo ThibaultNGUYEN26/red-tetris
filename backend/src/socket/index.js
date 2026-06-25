@@ -296,8 +296,10 @@ export default function setupSockets(io) {
     const calcMultiCoins = (rank) => MULTI_COINS_BY_RANK[rank] ?? 0;
 
     const updateSoloStats = async (game) => {
+      if (game?.statsUpdated) return {};
       const player = game.players[0];
       if (!player) return {};
+      game.statsUpdated = true;
 
       const result = await pool.query(
         `UPDATE users
@@ -896,7 +898,7 @@ export default function setupSockets(io) {
       for (const room of roomsResult.rows || []) {
         const roomId = String(room.id);
         const game = getGame(roomId);
-        if (game && room.status === "started") {
+        if (game && !game.isOver && room.status === "started") {
           const player = game.getPlayer?.(username);
           if (player) {
             player.isAlive = false;
@@ -960,7 +962,7 @@ export default function setupSockets(io) {
 
       // Remove player from Game instance
       const game = getGame(roomId);
-      if (game) {
+      if (game && !game.isOver) {
         const player = game.getPlayer(effectiveUsername);
         if (player) {
           player.isAlive = false;
@@ -1223,7 +1225,7 @@ export default function setupSockets(io) {
             pendingDisconnects.delete(key);
             const game = getGame(String(roomId));
 
-            if (game) {
+            if (game && !game.isOver) {
               const player = game.players.find(p => p.username === username);
 
               if (player && player.isAlive) {
