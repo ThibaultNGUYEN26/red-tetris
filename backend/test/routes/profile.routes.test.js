@@ -974,12 +974,41 @@ describe('profile routes', () => {
     const importRouter = async () => (await import('../../src/routes/profile.routes.js')).default
     const buyHandler = async () => getHandler(await importRouter(), 'post', '/shop/buy')
 
-    it('rejects missing username or skinId', async () => {
+    it('rejects unauthenticated requests', async () => {
       const handler = await buyHandler()
       const res = buildRes()
       await handler({ body: {} }, res)
+      expect(res.status).toHaveBeenCalledWith(401)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Authentication required' })
+    })
+
+    it('rejects authenticated requests missing skinId', async () => {
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi' } }, res)
       expect(res.status).toHaveBeenCalledWith(400)
-      expect(res.json).toHaveBeenCalledWith({ error: 'Missing username or skinId' })
+      expect(res.json).toHaveBeenCalledWith({ error: 'Missing skinId' })
+    })
+
+    it('ignores body.username and only buys for the authenticated user', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 1000, preferences: { ownedSkins: ['classic'] } }],
+        })
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 500, preferences: { ownedSkins: ['classic', 'retro'] } }],
+        })
+      const handler = await buyHandler()
+      const res = buildRes()
+      // Authenticated as Titi, body tries to buy for "Victim". Should buy for Titi.
+      await handler({ body: { username: 'Titi', targetUsername: 'Victim', skinId: 'retro' } }, res)
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining('SELECT coins, preferences FROM users'),
+        ['Titi']
+      )
+      expect(res.status).toHaveBeenCalledWith(200)
     })
 
     it('rejects an unknown skin id', async () => {

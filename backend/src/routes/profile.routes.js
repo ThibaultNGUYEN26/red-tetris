@@ -551,8 +551,12 @@ const SKIN_PRICES = {
 
 router.post("/shop/buy", async (req, res) => {
   try {
-    const { username, skinId } = req.body;
-    if (!username || !skinId) return res.status(400).json({ error: "Missing username or skinId" });
+    const auth = authenticateRequest(req);
+    if (!auth) return rejectUnauthenticated(res);
+
+    const { skinId } = req.body;
+    const username = auth.username;
+    if (!skinId) return res.status(400).json({ error: "Missing skinId" });
 
     const price = SKIN_PRICES[skinId];
     if (price === undefined) return res.status(400).json({ error: "Unknown skin" });
