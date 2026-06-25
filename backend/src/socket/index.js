@@ -422,13 +422,18 @@ export default function setupSockets(io) {
 
       // No coins for duos (too easy)
       const awardCoins = players.length > 2;
-      // Anti-farm: skip coins if no opponent scored > 80
-      const anyOpponentScored = players.some(p => (p?.score ?? 0) > 80);
+      const winner = summary.winner ?? null;
+      // Anti-farm: at least one *non-winning* player must score >= 1000.
+      // Using the winner's own score would let a 3-player coalition with one
+      // tryhard mint coins by burning through seconds-long matches.
+      const ANTI_FARM_THRESHOLD = 1000;
+      const anyOpponentScored = players.some(
+        p => p?.username && p.username !== winner && (p.score ?? 0) >= ANTI_FARM_THRESHOLD
+      );
 
       const ranking = Array.isArray(summary.ranking) ? summary.ranking : [];
       const topHalf = Math.floor(players.length / 2);
       const rewards = {};
-      const winner = summary.winner ?? null;
 
       for (const player of players) {
         if (!player?.username) continue;

@@ -1074,6 +1074,28 @@ describe('profile routes', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Not enough coins' })
     })
 
+    it('uses an atomic ownership guard in the UPDATE query', async () => {
+      mockQuery
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 1000, preferences: { ownedSkins: ['classic'] } }],
+        })
+        .mockResolvedValueOnce({
+          rowCount: 1,
+          rows: [{ coins: 500, preferences: { ownedSkins: ['classic', 'retro'] } }],
+        })
+      const handler = await buyHandler()
+      const res = buildRes()
+      await handler({ body: { username: 'Titi', skinId: 'retro' } }, res)
+
+      // The UPDATE WHERE clause must reject if the skin is already in ownedSkins
+      // so two concurrent same-skin buys cannot both deduct coins.
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.stringContaining("NOT COALESCE(preferences->'ownedSkins', '[]'::jsonb) ? $4"),
+        ['Titi', 500, JSON.stringify(['classic', 'retro']), 'retro']
+      )
+    })
+
     it('successfully purchases a skin and returns updated coins and owned list', async () => {
       mockQuery
         .mockResolvedValueOnce({

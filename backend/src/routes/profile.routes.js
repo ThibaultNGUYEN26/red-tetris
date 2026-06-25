@@ -576,13 +576,18 @@ router.post("/shop/buy", async (req, res) => {
     if (coins < price) return res.status(402).json({ error: "Not enough coins" });
 
     const newOwned = [...ownedSkins, skinId];
+    // Atomic guard: refuse to deduct if the user already owns this skin
+    // (concurrent same-skin purchases would otherwise double-charge them).
     const result = await pool.query(
       `UPDATE users
        SET coins = coins - $2,
            preferences = preferences || jsonb_build_object('ownedSkins', $3::jsonb)
-       WHERE username = $1 AND coins >= $2 AND deleted_at IS NULL
+       WHERE username = $1
+         AND coins >= $2
+         AND deleted_at IS NULL
+         AND NOT COALESCE(preferences->'ownedSkins', '[]'::jsonb) ? $4
        RETURNING coins, preferences`,
-      [username, price, JSON.stringify(newOwned)]
+      [username, price, JSON.stringify(newOwned), skinId]
     );
     if (!result.rowCount) return res.status(402).json({ error: "Not enough coins" });
 
