@@ -6,6 +6,7 @@ import { socket } from './socket'
 import { apiFetch } from './api'
 import TetriminosClouds from './components/TetriminosClouds/TetriminosClouds.jsx'
 import SpectatorView from './components/SpectatorView/SpectatorView.jsx'
+import ConfettiOverlay from './components/ConfettiOverlay/ConfettiOverlay.jsx'
 import { DEFAULT_LANGUAGE, getTranslation, isSupportedLanguage } from './i18n'
 
 const THEME_STORAGE_KEY = 'red-tetris-theme'
@@ -57,6 +58,7 @@ function Spectate() {
   const [players, setPlayers] = useState([])
   const [winner, setWinner] = useState(null)
   const [isGameOver, setIsGameOver] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
   const [loading, setLoading] = useState(true)
   const [theme] = useState(() => (
     localStorage.getItem(THEME_STORAGE_KEY) === 'dark' ? 'dark' : 'light'
@@ -108,11 +110,13 @@ function Spectate() {
       setWinner(payload?.winner || null)
       setIsGameOver(true)
     }
+    const handleConfetti = () => setShowConfetti(true)
 
     let cancelled = false
 
     socket.on('gameState', handleGameState)
     socket.on('gameOver', handleGameOver)
+    socket.on('confetti', handleConfetti)
 
     const joinSpectator = async () => {
       await unregisterUser(spectatorUsername)
@@ -142,6 +146,7 @@ function Spectate() {
       }
       socket.off('gameState', handleGameState)
       socket.off('gameOver', handleGameOver)
+      socket.off('confetti', handleConfetti)
     }
   }, [roomId, spectatorUsername, text])
 
@@ -191,6 +196,7 @@ function Spectate() {
       <div className="content-wrapper">
         <div className={`game-screen ${theme === 'dark' ? 'dark' : ''}`}>
           <div className="game-card">
+            {showConfetti && <ConfettiOverlay onDone={() => setShowConfetti(false)} />}
             {isGameOver && (
               <div className="game-over-overlay" role="dialog" aria-modal="true">
                 <div className="game-over-card">
@@ -216,6 +222,9 @@ function Spectate() {
               onBack={() => navigate('/')}
               username={spectatorUsername}
               language={language}
+              onSendConfetti={(targetUsername) =>
+                socket.emit('sendConfetti', { roomId: String(roomId), targetUsername })
+              }
             />
           </div>
         </div>

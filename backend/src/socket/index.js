@@ -1185,6 +1185,19 @@ export default function setupSockets(io) {
       }
     });
 
+
+    // sendConfetti from spectator to a specific player
+    socket.on("sendConfetti", async ({ roomId, targetUsername }) => {
+      if (!roomId || !targetUsername) return;
+      if (socket.data.username === targetUsername) return;
+      const sockets = await io.in(String(roomId)).fetchSockets();
+      const target = sockets.find(
+        (s) => s.data.username === targetUsername && !s.data.isSpectator
+      );
+      if (target) target.emit("confetti");
+      socket.emit("confetti");
+    });
+
     // movePiece during game Socket (enqueue input for server tick)
     socket.on("movePiece", ({ roomId, action }) => {
       const game = getGame(String(roomId));

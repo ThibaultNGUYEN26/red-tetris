@@ -70,7 +70,7 @@ const createPiecePreview = (type) => {
   return { grid: preview, width, height }
 }
 
-function SpectatorView({ players, onBack, username, language = DEFAULT_LANGUAGE }) {
+function SpectatorView({ players, onBack, username, language = DEFAULT_LANGUAGE, onSendConfetti }) {
   const [index, setIndex] = useState(0)
   const text = getTranslation(language).spectator
 
@@ -128,22 +128,34 @@ function SpectatorView({ players, onBack, username, language = DEFAULT_LANGUAGE 
               <button className="back-button" onClick={onBack}>{text.back}</button>
             </div>
             <div className="spectator-controls">
-              <button
-                className="spectator-btn spectator-btn-prev"
-                onClick={() => setIndex((prev) => (prev <= 0 ? list.length - 1 : prev - 1))}
-                disabled={list.length <= 1}
-              >
-                <span className="spectator-btn-icon">&larr;</span>
-                {text.previous}
-              </button>
-              <button
-                className="spectator-btn spectator-btn-next"
-                onClick={() => setIndex((prev) => (prev + 1) % list.length)}
-                disabled={list.length <= 1}
-              >
-                {text.next}
-                <span className="spectator-btn-icon">&rarr;</span>
-              </button>
+              <div className="spectator-nav-row">
+                <button
+                  className="spectator-btn spectator-btn-prev"
+                  onClick={() => setIndex((prev) => (prev <= 0 ? list.length - 1 : prev - 1))}
+                  disabled={list.length <= 1}
+                >
+                  <span className="spectator-btn-icon">&larr;</span>
+                  {text.previous}
+                </button>
+                <button
+                  className="spectator-btn spectator-btn-next"
+                  onClick={() => setIndex((prev) => (prev + 1) % list.length)}
+                  disabled={list.length <= 1}
+                >
+                  {text.next}
+                  <span className="spectator-btn-icon">&rarr;</span>
+                </button>
+              </div>
+              {onSendConfetti && (
+                <button
+                  className="spectator-confetti-btn"
+                  onClick={() => onSendConfetti(current.username)}
+                  aria-label={text.sendConfettiLabel}
+                  title={text.sendConfettiLabel}
+                >
+                  {text.sendConfetti}
+                </button>
+              )}
             </div>
           </div>
         </div>

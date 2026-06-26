@@ -6,6 +6,7 @@ import TetriminosClouds from '../TetriminosClouds/TetriminosClouds'
 import ShadowBoards from '../ShadowBoards/ShadowBoards'
 import SpectatorView from '../SpectatorView/SpectatorView.jsx'
 import GameOver from '../GameOver/GameOver'
+import ConfettiOverlay from '../ConfettiOverlay/ConfettiOverlay'
 import { socket } from '../../socket'
 import tetrisRemix from '../../res/sounds/tetris_remix.mp3'
 import levelUpSound from '../../res/sounds/level_up.mp3'
@@ -188,6 +189,7 @@ function Game({
   const [countdownStep, setCountdownStep] = useState(null)
   const [isBoardVideoActive, setIsBoardVideoActive] = useState(false)
   const [showPauseLanguages, setShowPauseLanguages] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
 
   const softDropTimerRef = useRef(null)
   const dasTimerRef = useRef(null)
@@ -649,6 +651,9 @@ function Game({
     socket.on('playerState', handlePlayerState)
     socket.on('gameOver', handleGameOver)
 
+    const handleConfetti = () => setShowConfetti(true)
+    socket.on('confetti', handleConfetti)
+
     socket.emit('joinRoom', { roomId: String(roomId), username })
     socket.emit('getRoomState', { roomId: String(roomId) })
 
@@ -658,6 +663,7 @@ function Game({
       socket.off('gameState', handleGameState)
       socket.off('playerState', handlePlayerState)
       socket.off('gameOver', handleGameOver)
+      socket.off('confetti', handleConfetti)
       if (boardFlashFrameRef.current) {
         cancelAnimationFrame(boardFlashFrameRef.current)
         boardFlashFrameRef.current = null
@@ -977,12 +983,16 @@ function Game({
   if (isMultiplayer && isEliminated && !winner && showSpectator && !isGameOver) {
     return (
       <div className={`game-screen ${theme === 'dark' ? 'dark' : ''} ${skin !== 'classic' ? `skin-${skin}` : ''}`}>
+        {showConfetti && <ConfettiOverlay onDone={() => setShowConfetti(false)} />}
         <div className="game-card">
           <SpectatorView
             players={gamePlayers}
             onBack={onBack}
             username={username}
             language={language}
+            onSendConfetti={(targetUsername) =>
+              socket.emit('sendConfetti', { roomId: String(roomId), targetUsername })
+            }
           />
         </div>
       </div>
@@ -992,6 +1002,7 @@ function Game({
   return (
     <div className={`game-screen ${theme === 'dark' ? 'dark' : ''} ${skin !== 'classic' ? `skin-${skin}` : ''}`}>
       <TetriminosClouds />
+      {showConfetti && <ConfettiOverlay onDone={() => setShowConfetti(false)} />}
 
       <div className="game-card">
         <GameOver

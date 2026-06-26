@@ -528,6 +528,8 @@ const fr = {
     boardLabel: 'Plateau de Tetris',
     opponents: 'Adversaires',
     opponentBoard: 'plateau',
+    sendConfetti: '🎉',
+    sendConfettiLabel: 'Envoyer des confettis',
   },
   cookieNotice: {
     label: 'Avis sur les cookies',
