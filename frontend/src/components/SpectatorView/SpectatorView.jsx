@@ -233,6 +233,7 @@ function SpectatorView({ players, onBack, username, language = DEFAULT_LANGUAGE 
             title={text.opponents}
             boardLabel={text.opponentBoard}
             showColors
+            onSelect={(username) => setIndex(list.findIndex((p) => p.username === username))}
           />
         </div>
       </div>

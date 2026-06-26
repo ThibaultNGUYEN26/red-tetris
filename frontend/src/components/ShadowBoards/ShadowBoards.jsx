@@ -1,6 +1,6 @@
 import './ShadowBoards.css'
 
-function ShadowBoards({ boards, title = 'Opponents', boardLabel = 'board', showColors = false }) {
+function ShadowBoards({ boards, title = 'Opponents', boardLabel = 'board', showColors = false, onSelect }) {
   if (!boards || boards.length === 0) return null
 
   const getSpectrumMap = (board) => {
@@ -34,7 +34,11 @@ function ShadowBoards({ boards, title = 'Opponents', boardLabel = 'board', showC
           const cols = board[0]?.length ?? 0
           const cellSize = rows > 20 || cols > 10 ? 4 : 9
           return (
-            <div key={entry.username} className="shadow-board-card">
+            <div
+              key={entry.username}
+              className={`shadow-board-card${onSelect ? ' shadow-board-card-clickable' : ''}`}
+              onClick={onSelect ? () => onSelect(entry.username) : undefined}
+            >
               <div className="shadow-board-name">{entry.username}</div>
               <div
                 className="shadow-board-grid-inner"
