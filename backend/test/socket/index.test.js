@@ -4232,4 +4232,50 @@ describe('socket setup', () => {
     await vi.advanceTimersByTimeAsync(1)
     expect(mockQuery).toHaveBeenCalledWith(expect.stringContaining('WHERE id = $1'), [1])
   })
+
+  it('sendConfetti drops missing roomId or targetUsername', async () => {
+    const { socket } = await setupConnectedSocket()
+    const handler = socket.handlers.get('sendConfetti')
+
+    await handler({})
+    await handler({ roomId: '1' })
+    await handler({ targetUsername: 'Test' })
+
+    expect(socket.emit).not.toHaveBeenCalledWith('confetti')
+  })
+
+  it('sendConfetti drops self-targeting requests', async () => {
+    const { socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    await socket.handlers.get('sendConfetti')({ roomId: '1', targetUsername: 'Titi' })
+
+    expect(socket.emit).not.toHaveBeenCalledWith('confetti')
+  })
+
+  it('sendConfetti emits confetti to target player and sender when target found', async () => {
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    const targetSocket = { data: { username: 'Test', isSpectator: false }, emit: vi.fn() }
+    io.in = vi.fn(() => ({ fetchSockets: async () => [targetSocket] }))
+
+    await socket.handlers.get('sendConfetti')({ roomId: '1', targetUsername: 'Test' })
+
+    expect(targetSocket.emit).toHaveBeenCalledWith('confetti')
+    expect(socket.emit).toHaveBeenCalledWith('confetti')
+  })
+
+  it('sendConfetti still emits confetti to sender when target is not found', async () => {
+    const { io, socket } = await setupConnectedSocket()
+    socket.data.username = 'Titi'
+
+    const spectatorSocket = { data: { username: 'Test', isSpectator: true }, emit: vi.fn() }
+    io.in = vi.fn(() => ({ fetchSockets: async () => [spectatorSocket] }))
+
+    await socket.handlers.get('sendConfetti')({ roomId: '1', targetUsername: 'Test' })
+
+    expect(spectatorSocket.emit).not.toHaveBeenCalledWith('confetti')
+    expect(socket.emit).toHaveBeenCalledWith('confetti')
+  })
 })
