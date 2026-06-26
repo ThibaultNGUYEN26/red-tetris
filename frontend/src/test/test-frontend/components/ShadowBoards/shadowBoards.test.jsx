@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import ShadowBoards from '../../../../components/ShadowBoards/ShadowBoards.jsx'
 
@@ -88,5 +88,30 @@ describe('ShadowBoards Component', () => {
     expect(missingGrid).toHaveStyle('grid-template-rows: repeat(0, var(--cell-size))')
     expect(emptyGrid).toHaveStyle('grid-template-columns: repeat(0, var(--cell-size))')
     expect(emptyGrid).toHaveStyle('grid-template-rows: repeat(0, var(--cell-size))')
+  })
+
+  it('calls onSelect with the username when a clickable board card is clicked', () => {
+    const onSelect = vi.fn()
+    const boards = [
+      { username: 'Alice', board: [['i', 'empty']] },
+      { username: 'Bob', board: [['o', 'empty']] },
+    ]
+
+    render(<ShadowBoards boards={boards} onSelect={onSelect} />)
+
+    fireEvent.click(screen.getByText('Alice').closest('.shadow-board-card-clickable'))
+    expect(onSelect).toHaveBeenCalledWith('Alice')
+  })
+
+  it('renders real piece colors when showColors is true', () => {
+    const boards = [
+      { username: 'Alice', board: [['i', 'empty'], ['t', 'o']] },
+    ]
+
+    const { container } = render(<ShadowBoards boards={boards} showColors />)
+
+    expect(container.querySelector('.cell-i')).toBeInTheDocument()
+    expect(container.querySelector('.cell-t')).toBeInTheDocument()
+    expect(container.querySelector('.cell-spectrum')).not.toBeInTheDocument()
   })
 })

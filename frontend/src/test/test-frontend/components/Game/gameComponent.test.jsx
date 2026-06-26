@@ -20,7 +20,13 @@ vi.mock('../../../../components/ShadowBoards/ShadowBoards', () => ({
 }))
 
 vi.mock('../../../../components/SpectatorView/SpectatorView.jsx', () => ({
-  default: () => <div data-testid="spectator-view" />,
+  default: ({ onSendConfetti }) => (
+    <div data-testid="spectator-view">
+      {onSendConfetti && (
+        <button type="button" onClick={() => onSendConfetti('Riri')}>Send confetti</button>
+      )}
+    </div>
+  ),
 }))
 
 vi.mock('../../../../components/GameOver/GameOver', () => ({
@@ -34,6 +40,14 @@ vi.mock('../../../../components/GameOver/GameOver', () => ({
           Regarder
         </button>
       )}
+    </div>
+  ),
+}))
+
+vi.mock('../../../../components/ConfettiOverlay/ConfettiOverlay', () => ({
+  default: ({ onDone }) => (
+    <div data-testid="confetti-overlay">
+      <button type="button" onClick={onDone}>Done</button>
     </div>
   ),
 }))
@@ -2401,5 +2415,111 @@ describe('Game Component', () => {
     await waitFor(() => {
       expect(screen.getByTestId('game-over-state')).toHaveTextContent('"isGameOver":true')
     })
+  })
+
+  it('shows confetti overlay in the eliminated spectator view when confetti socket event fires', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [
+          { username: 'Titi', board: makeBoard(), isAlive: false },
+          { username: 'Riri', board: makeBoard() },
+        ],
+      })
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /regarder/i }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+    })
+
+    await act(async () => {
+      getSocketHandler('confetti')?.()
+    })
+
+    expect(screen.getByTestId('confetti-overlay')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /done/i }))
+    expect(screen.queryByTestId('confetti-overlay')).not.toBeInTheDocument()
+  })
+
+  it('emits sendConfetti when the spectator view triggers onSendConfetti', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [
+          { username: 'Titi', board: makeBoard(), isAlive: false },
+          { username: 'Riri', board: makeBoard() },
+        ],
+      })
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /regarder/i }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /send confetti/i }))
+
+    expect(socket.emit).toHaveBeenCalledWith(
+      'sendConfetti',
+      { roomId: '1', targetUsername: 'Riri' }
+    )
+  })
+
+  it('shows confetti overlay in the active game view when confetti socket event fires', async () => {
+    render(
+      <Game
+        theme="light"
+        onBack={vi.fn()}
+        roomId={1}
+        username="Titi"
+        isMultiplayer
+        soundEnabled={false}
+        onSoundChange={vi.fn()}
+      />
+    )
+
+    await act(async () => {
+      getSocketHandler('gameState')?.({
+        mode: 'classic',
+        players: [{ username: 'Titi', board: makeBoard(), isAlive: true }],
+      })
+    })
+
+    await act(async () => {
+      getSocketHandler('confetti')?.()
+    })
+
+    expect(screen.getByTestId('confetti-overlay')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /done/i }))
+    expect(screen.queryByTestId('confetti-overlay')).not.toBeInTheDocument()
   })
 })

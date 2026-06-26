@@ -43,12 +43,23 @@ vi.mock('../../../components/TetriminosClouds/TetriminosClouds.jsx', () => ({
   default: () => <div data-testid="tetriminos-clouds" />,
 }))
 
+vi.mock('../../../components/ConfettiOverlay/ConfettiOverlay.jsx', () => ({
+  default: ({ onDone }) => (
+    <div data-testid="confetti-overlay">
+      <button type="button" onClick={onDone}>Done</button>
+    </div>
+  ),
+}))
+
 vi.mock('../../../components/SpectatorView/SpectatorView.jsx', () => ({
-  default: ({ onBack, username, language }) => (
+  default: ({ onBack, username, language, onSendConfetti }) => (
     <div data-testid="spectator-view">
       <span data-testid="spectator-username">{username}</span>
       <span data-testid="spectator-language">{language}</span>
       <button type="button" onClick={onBack}>Back</button>
+      {onSendConfetti && (
+        <button type="button" onClick={() => onSendConfetti('Test')}>Send confetti</button>
+      )}
     </div>
   ),
 }))
@@ -485,5 +496,39 @@ describe('Spectate page', () => {
     expect(screen.getByText(/loading spectator mode/i)).toBeInTheDocument()
     expect(mocks.apiFetch).not.toHaveBeenCalled()
     expect(mocks.socket.emit).not.toHaveBeenCalled()
+  })
+
+  it('shows confetti overlay when confetti socket event fires and hides it on done', async () => {
+    render(<Spectate />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+    })
+
+    const confettiHandler = mocks.socket.on.mock.calls.find(
+      ([event]) => event === 'confetti'
+    )?.[1]
+
+    await act(async () => { confettiHandler?.() })
+
+    expect(screen.getByTestId('confetti-overlay')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /done/i }))
+    expect(screen.queryByTestId('confetti-overlay')).not.toBeInTheDocument()
+  })
+
+  it('emits sendConfetti when onSendConfetti is triggered', async () => {
+    render(<Spectate />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('spectator-view')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /send confetti/i }))
+
+    expect(mocks.socket.emit).toHaveBeenCalledWith(
+      'sendConfetti',
+      { roomId: '42', targetUsername: 'Test' }
+    )
   })
 })

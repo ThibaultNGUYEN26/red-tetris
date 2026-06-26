@@ -4,7 +4,13 @@ import '@testing-library/jest-dom/vitest'
 import SpectatorView from '../../../../components/SpectatorView/SpectatorView.jsx'
 
 vi.mock('../../../../components/ShadowBoards/ShadowBoards', () => ({
-  default: () => <div data-testid="shadow-boards" />,
+  default: ({ onSelect }) => (
+    <div data-testid="shadow-boards">
+      {onSelect && (
+        <button type="button" onClick={() => onSelect('B')}>Select B</button>
+      )}
+    </div>
+  ),
 }))
 
 describe('SpectatorView Component', () => {
@@ -151,5 +157,54 @@ describe('SpectatorView Component', () => {
     expect(screen.getByText('Level').nextSibling).toHaveTextContent('1')
     expect(screen.getByRole('grid', { name: /next piece/i }).querySelector('.cell')).not.toBeInTheDocument()
     expect(screen.getByRole('grid', { name: /held piece/i }).querySelector('.cell')).not.toBeInTheDocument()
+  })
+
+  it('renders and fires the confetti button when onSendConfetti is provided', () => {
+    const onSendConfetti = vi.fn()
+    render(
+      <SpectatorView
+        username="Titi"
+        onBack={vi.fn()}
+        onSendConfetti={onSendConfetti}
+        players={[
+          { username: 'A', board: [['i']] },
+          { username: 'B', board: [['o']] },
+        ]}
+      />
+    )
+
+    const btn = screen.getByRole('button', { name: /confetti/i })
+    expect(btn).toBeInTheDocument()
+    fireEvent.click(btn)
+    expect(onSendConfetti).toHaveBeenCalledWith('A')
+  })
+
+  it('does not render the confetti button when onSendConfetti is not provided', () => {
+    render(
+      <SpectatorView
+        username="Titi"
+        onBack={vi.fn()}
+        players={[{ username: 'A', board: [['i']] }]}
+      />
+    )
+
+    expect(screen.queryByRole('button', { name: /confetti/i })).not.toBeInTheDocument()
+  })
+
+  it('switches the watched player when onSelect is triggered from ShadowBoards', () => {
+    render(
+      <SpectatorView
+        username="Titi"
+        onBack={vi.fn()}
+        players={[
+          { username: 'A', board: [['i']] },
+          { username: 'B', board: [['o']] },
+        ]}
+      />
+    )
+
+    expect(screen.getByText('A')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /select b/i }))
+    expect(screen.getByText('B')).toBeInTheDocument()
   })
 })
