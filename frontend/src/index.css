@@ -8,6 +8,18 @@
   user-select: none;
 }
 
+/* RTL text direction for Arabic — only affects text, not layouts */
+:lang(ar) {
+  direction: rtl;
+  text-align: right;
+}
+
+:lang(ar) input,
+:lang(ar) textarea {
+  direction: rtl;
+  text-align: right;
+}
+
 input,
 textarea,
 [contenteditable="true"] {
