@@ -201,7 +201,7 @@ function Shop({ onBack, theme, selectedLanguage = DEFAULT_LANGUAGE, skin = 'clas
         <div className={`shop-body${hasPreview ? ' with-preview' : ''}`}>
           <div className="shop-content">
             <div className="shop-section">
-              <p className="shop-section-label">{text.sectionTetrominoes ?? 'Tetrominoes'}</p>
+              <p className="shop-section-label">{text.sectionTetrominoes}</p>
               <div className="shop-packs-grid">
                 {SKIN_PACKS.map((pack) => (
                   <PackCard

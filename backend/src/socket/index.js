@@ -768,6 +768,7 @@ export default function setupSockets(io) {
       if (!roomId) return;
       const game = getGame(String(roomId));
       if (!game || game.isOver || game.mode_player !== "solo") return;
+      if (socket.data.username !== game.hostUsername) return;
 
       if (paused) {
         game.pause();
@@ -859,7 +860,7 @@ export default function setupSockets(io) {
 
         let newHost = room.host;
         if (username === room.host) {
-          newHost = updatedPlayers[0];
+          newHost = updatedPlayers[0] ?? readyAgain[0];
         }
 
         // Always keep lobby in WAITING state

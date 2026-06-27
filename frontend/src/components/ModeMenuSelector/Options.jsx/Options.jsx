@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import './Options.css'
-import { DEFAULT_LANGUAGE, LANGUAGES, getLanguageName, getTranslation } from '../../../i18n'
+import { DEFAULT_LANGUAGE, LANGUAGES, getLanguageFlag, getLanguageName, getTranslation } from '../../../i18n'
 
 function Options({
   onBack,
@@ -24,7 +24,7 @@ function Options({
       type: 'button',
       id: 'theme',
       label: theme === 'dark' ? text.darkTheme : text.lightTheme,
-      value: theme === 'dark' ? 'Dark' : 'Light',
+      value: theme === 'dark' ? text.themeDark : text.themeLight,
       valueState: theme === 'dark' ? 'theme-dark' : 'theme-light',
       description: theme === 'dark' ? text.switchToLight : text.switchToDark,
       onClick: () => onThemeChange(theme === 'dark' ? 'light' : 'dark'),
@@ -33,7 +33,7 @@ function Options({
       type: 'button',
       id: 'sound',
       label: soundEffectsLabel,
-      value: soundEnabled ? 'On' : 'Off',
+      value: soundEnabled ? text.on : text.off,
       valueState: soundEnabled ? 'is-on' : 'is-off',
       description: soundEnabled ? text.enabled : text.disabled,
       onClick: () => onSoundChange?.(!soundEnabled),
@@ -42,7 +42,7 @@ function Options({
       type: 'button',
       id: 'music',
       label: musicLabel,
-      value: musicEnabled ? 'On' : 'Off',
+      value: musicEnabled ? text.on : text.off,
       valueState: musicEnabled ? 'is-on' : 'is-off',
       description: musicEnabled ? text.enabled : text.disabled,
       onClick: () => onMusicChange?.(!musicEnabled),
@@ -51,7 +51,7 @@ function Options({
       type: 'link',
       id: 'guide',
       label: text.guide,
-      value: 'Open',
+      value: text.open,
       valueState: 'is-neutral',
       description: text.guideDescription,
       to: '/tutorial',
@@ -60,7 +60,7 @@ function Options({
       type: 'button',
       id: 'language',
       label: text.language,
-      value: getLanguageName(selectedLanguage, selectedLanguage),
+      value: `${getLanguageFlag(selectedLanguage)} ${getLanguageName(selectedLanguage, selectedLanguage)}`,
       valueState: 'is-neutral',
       description: text.languageDescription,
       onClick: () => setShowLanguages((current) => !current),
@@ -79,7 +79,7 @@ function Options({
         aria-labelledby="options-title"
       >
         <div className="options-modal-header">
-          <p className="options-kicker">System</p>
+          <p className="options-kicker">{text.kicker}</p>
           <h2 id="options-title">{text.heading}</h2>
         </div>
 
@@ -135,6 +135,7 @@ function Options({
                     setShowLanguages(false)
                   }}
                 >
+                  <span className="language-option-flag">{getLanguageFlag(code)}</span>
                   {getLanguageName(code, selectedLanguage)}
                 </button>
               ))}

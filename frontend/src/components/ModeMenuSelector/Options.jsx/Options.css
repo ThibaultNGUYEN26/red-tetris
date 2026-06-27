@@ -194,6 +194,14 @@
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.language-option-flag {
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .language-option:hover {

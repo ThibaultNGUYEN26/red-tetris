@@ -78,7 +78,7 @@ function FaceAvatar({ faceConfig, size = 'medium' }) {
         {/* Eyes */}
         {isImageEye ? (
           <div className="eyes">
-            <img src={eyeImages[eyeType]} alt={`${eyeType} eyes`} className={`eye-image eye-${eyeType}`} />
+            <img src={eyeImages[eyeType]} alt="" className={`eye-image eye-${eyeType}`} />
           </div>
         ) : (
           <div className="eyes">
@@ -89,7 +89,7 @@ function FaceAvatar({ faceConfig, size = 'medium' }) {
 
         {/* Mouth */}
         <div className="mouth-container">
-          <img src={mouthImages[mouthType]} alt="mouth" className={`mouth-image mouth-${mouthType}`} />
+          <img src={mouthImages[mouthType]} alt="" className={`mouth-image mouth-${mouthType}`} />
         </div>
       </div>
     </div>

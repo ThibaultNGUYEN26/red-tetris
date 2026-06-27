@@ -16,7 +16,7 @@ import clearSound from '../../res/sounds/clear.mp3'
 import winnerSound from '../../res/sounds/winner.mp3'
 import loserSound from '../../res/sounds/loser.mp3'
 import boardEasterEggVideo from '../../res/videos/tetrisarrete.mp4'
-import { DEFAULT_LANGUAGE, LANGUAGES, getLanguageName, getTranslation } from '../../i18n'
+import { DEFAULT_LANGUAGE, LANGUAGES, getLanguageFlag, getLanguageName, getTranslation } from '../../i18n'
 
 const DEFAULT_BOARD = { width: 10, height: 20 }
 const DAS_MS = 220
@@ -156,8 +156,8 @@ function Game({
   const soundEffectsOffLabel = text.soundEffectsOff || text.soundOff
   const musicOnLabel = text.musicOn || 'Music: enabled'
   const musicOffLabel = text.musicOff || 'Music: disabled'
-  const enabledLabel = text.enabled || 'Enabled'
-  const disabledLabel = text.disabled || 'Disabled'
+  const enabledLabel = optionsText.enabled || 'Enabled'
+  const disabledLabel = optionsText.disabled || 'Disabled'
   /* v8 ignore start -- fallback strings for missing i18n keys; all supported languages provide these values. @preserve */
   const darkThemeLabel = optionsText.darkTheme || 'Dark theme'
   const lightThemeLabel = optionsText.lightTheme || 'Light theme'
@@ -921,7 +921,7 @@ function Game({
     {
       id: 'resume',
       label: text.resume,
-      value: isMultiplayer ? 'Back' : 'Play',
+      value: isMultiplayer ? text.back || optionsText.back : text.play,
       valueState: 'is-on',
       onClick: () => {
         if (isMultiplayer) {
@@ -938,7 +938,7 @@ function Game({
     {
       id: 'theme',
       label: theme === 'dark' ? darkThemeLabel : lightThemeLabel,
-      value: theme === 'dark' ? 'Dark' : 'Light',
+      value: theme === 'dark' ? optionsText.themeDark : optionsText.themeLight,
       valueState: theme === 'dark' ? 'theme-dark' : 'theme-light',
       description: theme === 'dark' ? switchToLightLabel : switchToDarkLabel,
       onClick: () => onThemeChange?.(theme === 'dark' ? 'light' : 'dark'),
@@ -946,7 +946,7 @@ function Game({
     {
       id: 'sound',
       label: soundEnabled ? soundEffectsOnLabel : soundEffectsOffLabel,
-      value: soundEnabled ? 'On' : 'Off',
+      value: soundEnabled ? optionsText.on : optionsText.off,
       valueState: soundEnabled ? 'is-on' : 'is-off',
       description: soundEnabled ? enabledLabel : disabledLabel,
       onClick: () => onSoundChange?.(!soundEnabled),
@@ -954,17 +954,17 @@ function Game({
     {
       id: 'music',
       label: musicEnabled ? musicOnLabel : musicOffLabel,
-      value: musicEnabled ? 'On' : 'Off',
+      value: musicEnabled ? optionsText.on : optionsText.off,
       valueState: musicEnabled ? 'is-on' : 'is-off',
       description: musicEnabled ? enabledLabel : disabledLabel,
       onClick: () => onMusicChange?.(!musicEnabled),
     },
     {
       id: 'language',
-      label: text.language || 'Language',
-      value: getLanguageName(language, language),
+      label: optionsText.language || 'Language',
+      value: `${getLanguageFlag(language)} ${getLanguageName(language, language)}`,
       valueState: 'is-neutral',
-      description: text.languageDescription || 'Choose display language',
+      description: optionsText.languageDescription || 'Choose display language',
       ariaExpanded: showPauseLanguages,
       ariaControls: 'pause-language-options',
       onClick: () => setShowPauseLanguages((current) => !current),
@@ -972,7 +972,7 @@ function Game({
     {
       id: 'leave',
       label: text.leaveGame,
-      value: 'Exit',
+      value: text.exit,
       valueState: 'is-off',
       onClick: handleLeaveGame,
     },
@@ -1180,7 +1180,7 @@ function Game({
           <div className="pause-overlay" role="dialog" aria-modal="true">
             <div className={`options-modal game-options-modal ${theme === 'dark' ? 'dark' : ''}`}>
               <div className="options-modal-header">
-                <p className="options-kicker">Game</p>
+                <p className="options-kicker">{text.kicker}</p>
                 <h2>{activeMenuTitle}</h2>
               </div>
               <div className="options-list">
@@ -1208,7 +1208,7 @@ function Game({
                   <div
                     className="language-options"
                     id="pause-language-options"
-                    aria-label={text.languageOptions || 'Language options'}
+                    aria-label={optionsText.languageOptions || 'Language options'}
                     onClick={(event) => event.stopPropagation()}
                   >
                     {LANGUAGES.map(({ code }) => (
@@ -1222,6 +1222,7 @@ function Game({
                           setShowPauseLanguages(false)
                         }}
                       >
+                        <span className="language-option-flag">{getLanguageFlag(code)}</span>
                         {getLanguageName(code, language)}
                       </button>
                     ))}

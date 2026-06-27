@@ -23,7 +23,7 @@ import {
   setStoredAuthToken,
 } from './authToken'
 import { apiFetch } from './api'
-import { DEFAULT_LANGUAGE, getTranslation, isSupportedLanguage } from './i18n'
+import { DEFAULT_LANGUAGE, RTL_LANGUAGES, getTranslation, isSupportedLanguage } from './i18n'
 import bopSound from './res/sounds/bop.mp3'
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9]{1,15}$/
@@ -163,7 +163,10 @@ function Index({ authMode = 'login' }) {
   })
   const [language, setLanguage] = useState(() => {
     const savedLanguage = getStoredLanguage() || savedAuth?.preferences?.language
-    return isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
+    const lang = isSupportedLanguage(savedLanguage) ? savedLanguage : DEFAULT_LANGUAGE
+    document.documentElement.dir = RTL_LANGUAGES.has(lang) ? 'rtl' : 'ltr'
+    document.documentElement.lang = lang
+    return lang
   })
   const [showRooms, setShowRooms] = useState(false)
   const [showGame, setShowGame] = useState(false)
@@ -239,6 +242,8 @@ function Index({ authMode = 'login' }) {
     const normalized = normalizePreferences(preferences)
     localStorage.setItem(THEME_STORAGE_KEY, normalized.theme)
     localStorage.setItem(LANGUAGE_STORAGE_KEY, normalized.language)
+    document.documentElement.dir = RTL_LANGUAGES.has(normalized.language) ? 'rtl' : 'ltr'
+    document.documentElement.lang = normalized.language
     setTheme(normalized.theme)
     setSoundEnabled(normalized.soundEnabled)
     setMusicEnabled(normalized.musicEnabled)

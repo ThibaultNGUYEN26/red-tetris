@@ -6,7 +6,7 @@ export const socket = io(API_BASE_URL || window.location.origin, {
   path: '/socket.io/',
   transports: ['websocket'],
   withCredentials: true,
-  auth: getStoredAuthToken() ? { token: getStoredAuthToken() } : {},
+  auth: (cb) => { const token = getStoredAuthToken(); cb(token ? { token } : {}); },
 });
 
 export const closeSocket = () => {
