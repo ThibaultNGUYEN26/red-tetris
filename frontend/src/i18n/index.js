@@ -12,7 +12,7 @@ export const DEFAULT_LANGUAGE = 'en'
 export const RTL_LANGUAGES = new Set(['ar'])
 
 export const LANGUAGES = [
-  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
+  { code: 'ar', label: 'العربية', flag: '🇲🇦' },
   { code: 'zh', label: '中文', flag: '🇨🇳' },
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'fr', label: 'French', flag: '🇫🇷' },
