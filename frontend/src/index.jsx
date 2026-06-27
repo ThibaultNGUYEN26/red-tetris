@@ -722,6 +722,8 @@ function Index({ authMode = 'login' }) {
       language: languageCode,
     })
     localStorage.setItem(LANGUAGE_STORAGE_KEY, languageCode)
+    document.documentElement.dir = RTL_LANGUAGES.has(languageCode) ? 'rtl' : 'ltr'
+    document.documentElement.lang = languageCode
     window.dispatchEvent(new Event(LANGUAGE_CHANGE_EVENT))
     setLanguage(languageCode)
     if (username) {
